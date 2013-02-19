@@ -1,7 +1,7 @@
 #include "filesystem.h"
 
-bool check_pattern_recursive(const std::string& path, y::size path_consume,
-                             const std::string& pattern, y::size star_pos)
+bool check_pattern_recursive(const y::string& path, y::size path_consume,
+                             const y::string& pattern, y::size star_pos)
 {
   // Check whether double (or more) star; find following non-star substring.
   bool recursive = false;
@@ -32,7 +32,7 @@ bool check_pattern_recursive(const std::string& path, y::size path_consume,
     // If it's single-star but the expansion contains a slash then it can't
     // match. Don't need to backtrack since subsequent matches will have
     // superstring expansions.
-    std::string expansion = path.substr(path_consume, find - path_consume);
+    y::string expansion = path.substr(path_consume, find - path_consume);
     if (!recursive && expansion.find_first_of('/') != y::string::npos) {
       return false;
     }
@@ -52,7 +52,7 @@ bool check_pattern_recursive(const std::string& path, y::size path_consume,
 
 }
 
-bool check_pattern(const std::string& path, const std::string& pattern)
+bool check_pattern(const y::string& path, const y::string& pattern)
 {
   y::size star_pos = pattern.find_first_of('*');
   if (star_pos > 0 && pattern.substr(0, star_pos) != path.substr(0, star_pos)) {

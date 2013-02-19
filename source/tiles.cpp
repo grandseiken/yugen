@@ -11,7 +11,7 @@ Tileset::~Tileset()
 {
 }
 
-Tile::Tile(const Tileset& tileset, std::size_t index)
+Tile::Tile(const Tileset& tileset, y::size index)
   : _tileset(tileset)
   , _index(index)
 {
