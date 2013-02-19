@@ -9,7 +9,7 @@ class Tileset {
 public:
 
   Tileset(const Texture& texture);
-  ~Tileset()
+  ~Tileset();
 
 private:
 

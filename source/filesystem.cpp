@@ -10,8 +10,8 @@ void Filesystem::list_pattern(y::string_vector& output,
                               const y::string& pattern) const
 {
   y::size star_pos = pattern.find_first_of('*');
-  if (star_pos == std::npos) {
-    if (exists(path)) {
+  if (star_pos == y::string::npos) {
+    if (exists(pattern)) {
       output.push_back(pattern);
     }
     return;
@@ -24,16 +24,16 @@ void Filesystem::list_pattern(y::string_vector& output,
   y::string_vector intermediate;
 
   if (pattern.find_first_of("**", star_pos) < right) {
-    list_directory_recursive(intermedate, prefix);
+    list_directory_recursive(intermediate, prefix);
     for (const y::string& path : intermediate) {
-      if check_pattern(path, pattern) {
+      if (check_pattern(path, pattern)) {
         output.push_back(path);
       }
     }
     return;
   } 
 
-  pattern_rel = pattern.substr(left + 1, right - left - 1);
+  y::string pattern_rel = pattern.substr(left + 1, right - left - 1);
   list_directory(intermediate, prefix);
 
   for (const y::string& path : intermediate) {
@@ -42,7 +42,7 @@ void Filesystem::list_pattern(y::string_vector& output,
       continue;
     }
 
-    if (right == std::npos) {
+    if (right == y::string::npos) {
       output.push_back(path);
     }
     else if (is_directory(path)) {
@@ -52,7 +52,7 @@ void Filesystem::list_pattern(y::string_vector& output,
   }
 }
 
-void Filesystem::list_directory_recursive(const y::string_vector& output,
+void Filesystem::list_directory_recursive(y::string_vector& output,
                                           const y::string& path) const
 {
   y::string_vector directory;
@@ -66,7 +66,7 @@ void Filesystem::list_directory_recursive(const y::string_vector& output,
   }
 }
 
-void Filesystem::exists(const y::string& path) const
+bool Filesystem::exists(const y::string& path) const
 {
   return is_file(path) || is_directory(path);
 }

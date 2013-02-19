@@ -10,3 +10,5 @@ namespace y {
   typedef std::string string;
   typedef std::vector<string> string_vector;
 }
+
+#endif
