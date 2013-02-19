@@ -6,9 +6,12 @@
 
 namespace y {
   typedef std::size_t size;
-
   typedef std::string string;
-  typedef std::vector<string> string_vector;
+
+  template<typename T>
+  using vector = std::vector<T>;
+
+  typedef vector<string> string_vector;
 }
 
 #endif

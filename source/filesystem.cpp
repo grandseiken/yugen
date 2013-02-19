@@ -1,9 +1,65 @@
 #include "filesystem.h"
 
+bool check_pattern_recursive(const std::string& path, y::size path_consume,
+                             const std::string& pattern, y::size star_pos)
+{
+  // Check whether double (or more) star; find following non-star substring.
+  bool recursive = false;
+  y::size left_pos = star_pos + 1;
+  y::size next_pos = left_pos < pattern.length() ?
+      pattern.find_first_of('*', left_pos) : y::string::npos;
+  while (next_pos == left_pos) {
+    recursive = true;
+    next_pos = ++left_pos < pattern.length() ?
+        pattern.find_first_of('*', left_pos) : y::string::npos;
+  }
+
+  // If there's no following substring, just check the expansion matches.
+  if (left_pos >= pattern.length()) {
+    return recursive ||
+        path.find_first_of('/', path_consume) == y::string::npos;
+  }
+
+  // Find that substring in path.
+  y::string sub_pattern = pattern.substr(left_pos, next_pos - left_pos);
+  y::size find = path.find(sub_pattern, path_consume);
+
+  while (true) {
+    if (find == y::string::npos) {
+      return false;
+    }
+
+    // If it's single-star but the expansion contains a slash then it can't
+    // match. Don't need to backtrack since subsequent matches will have
+    // superstring expansions.
+    std::string expansion = path.substr(path_consume, find - path_consume);
+    if (!recursive && expansion.find_first_of('/') != y::string::npos) {
+      return false;
+    }
+
+    if (find + sub_pattern.length() == path.length()) {
+      return true;
+    }
+
+    if (check_pattern_recursive(path, find + sub_pattern.length(),
+                                pattern, next_pos)) {
+      return true;
+    }
+
+    // Try the next match of that substring in the path.
+    find = path.find(sub_pattern, find + 1);
+  }
+
+}
+
 bool check_pattern(const std::string& path, const std::string& pattern)
 {
-  // TODO: implement
-  return false;
+  y::size star_pos = pattern.find_first_of('*');
+  if (star_pos > 0 && pattern.substr(0, star_pos) != path.substr(0, star_pos)) {
+    return false;
+  }
+
+  return check_pattern_recursive(path, star_pos, pattern, star_pos);
 }
 
 void Filesystem::list_pattern(y::string_vector& output,
@@ -27,7 +83,7 @@ void Filesystem::list_pattern(y::string_vector& output,
 
   // If we see a double star in the first path segment with stars, need to check
   // everything anyway.
-  if (pattern.find_first_of("**", star_pos) < right) {
+  if (pattern.find("**", star_pos) < right) {
     list_directory_recursive(intermediate, pattern_prefix);
     for (const y::string& path : intermediate) {
       if (check_pattern(path, pattern)) {
