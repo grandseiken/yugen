@@ -8,6 +8,7 @@ bool check_pattern_recursive(const y::string& path, y::size path_consume,
   y::size left_pos = star_pos + 1;
   y::size next_pos = left_pos < pattern.length() ?
       pattern.find_first_of('*', left_pos) : y::string::npos;
+
   while (next_pos == left_pos) {
     recursive = true;
     next_pos = ++left_pos < pattern.length() ?
@@ -28,7 +29,6 @@ bool check_pattern_recursive(const y::string& path, y::size path_consume,
     if (find == y::string::npos) {
       return false;
     }
-
     // If it's single-star but the expansion contains a slash then it can't
     // match. Don't need to backtrack since subsequent matches will have
     // superstring expansions.
@@ -37,11 +37,8 @@ bool check_pattern_recursive(const y::string& path, y::size path_consume,
       return false;
     }
 
-    if (find + sub_pattern.length() == path.length()) {
-      return true;
-    }
-
-    if (check_pattern_recursive(path, find + sub_pattern.length(),
+    if (find + sub_pattern.length() == path.length() ||
+        check_pattern_recursive(path, find + sub_pattern.length(),
                                 pattern, next_pos)) {
       return true;
     }
@@ -49,7 +46,6 @@ bool check_pattern_recursive(const y::string& path, y::size path_consume,
     // Try the next match of that substring in the path.
     find = path.find(sub_pattern, find + 1);
   }
-
 }
 
 bool check_pattern(const y::string& path, const y::string& pattern)
