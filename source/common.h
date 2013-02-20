@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace y {
   typedef std::size_t size;
@@ -10,6 +11,8 @@ namespace y {
 
   template<typename T>
   using vector = std::vector<T>;
+  template<typename T>
+  using unique = std::unique_ptr<T>;
 
   typedef vector<string> string_vector;
 }

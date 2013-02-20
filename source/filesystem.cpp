@@ -140,7 +140,7 @@ void Filesystem::list_directory(y::string_vector& output,
   y::size first = output.size();
   std::copy_if(
       intermediate.begin(), intermediate.end(), std::back_inserter(output),
-      [&](const std::string& p){return exists(p);});
+      [&](const y::string& p){return exists(p);});
   std::sort(output.begin() + first, output.end());
 }
 
