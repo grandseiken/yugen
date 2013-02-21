@@ -1,11 +1,12 @@
 #!/bin/bash
+cd "$(dirname "$0")"
 if [ ! -d bin ]
 then
   mkdir bin
 fi
 cflag="-O3 -Wall -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include"
-lflag="-O3 -Wall -static -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib"
-libs="-lboost_filesystem -lboost_system -lsfml-system-s -lsfml-window-s"
+lflag="-O3 -Wall -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib"
+libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
 
 change=0
 error=0
