@@ -12,7 +12,7 @@ for cpp in source/*.cpp; do
   else
     echo "Compiling $cpp..."
     g++-4.7 -c -O3 -Wall -std=c++0x -I./boost_1_53_0/install/include -o bin/$base.o $cpp
-    if [$? -eq 0]; then
+    if [ $? -eq 0 ]; then
       md5sum $cpp > bin/$base.md5
     else
       rm bin/$base.md5
