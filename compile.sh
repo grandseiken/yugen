@@ -20,7 +20,9 @@ for cpp in source/*.cpp; do
     if [ $? -eq 0 ]; then
       md5sum $cpp > bin/$base.md5
     else
-      rm bin/$base.md5
+      if [ -f bin/$base.md5 ]; then
+        rm bin/$base.md5
+      fi
       error=1
     fi
     change=1
@@ -32,7 +34,7 @@ if [ $error -eq 0 ]; then
     g++-4.7 $lflag -o bin/yugen bin/*.o $libs
     if [ $? -eq 0 ]; then
       md5sum bin/yugen > bin/yugen.md5
-    else
+    elif [ -f bin/yugen.md5 ]; then
       rm bin/yugen.md5
     fi
   else
