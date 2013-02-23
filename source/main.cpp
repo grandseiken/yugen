@@ -1,10 +1,9 @@
 #include <GL/glew.h>
 #include <SFML/Graphics.hpp>
-#include <SFML/Window.hpp>
 #include <SFML/OpenGL.hpp>
 #include <iostream>
 
-#include "common.h"
+#include "window.h"
 #include "physical_filesystem.h"
 
 GLuint make_buffer(GLenum target, const void* data, GLsizei size,
@@ -97,49 +96,13 @@ GLuint make_program(GLuint vertex_shader, GLuint fragment_shader)
 
 int main(int argc, char** argv)
 {
-  const y::size width = 800;
-  const y::size height = 600;
-
-  const y::vector<sf::VideoMode>& modes = sf::VideoMode::getFullscreenModes();
-  sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
-  y::size i = 0;
-  for (const sf::VideoMode& mode : modes) {
-    std::cout << i++ << ") " << mode.width << "x" << mode.height << " " <<
-        mode.bitsPerPixel << "bpp";
-    if (desktop.width == mode.width && desktop.height == mode.height &&
-        desktop.bitsPerPixel == mode.bitsPerPixel) {
-      std::cout << " (*)";
-    }
-    if (i % 4) {
-      std::cout << '\t';
-    }
-    else {
-      std::cout << std::endl;
-    }
-  }
-  y::size input;
-  std::cin >> input;
-
-  sf::ContextSettings settings;
-  settings.depthBits = 24;
-  settings.stencilBits = 8;
-  settings.antialiasingLevel = 0;
-  settings.majorVersion = 2;
-  settings.minorVersion = 1;
-
-  sf::RenderWindow window(
-      input >= modes.size() ? sf::VideoMode(width, height) : modes[input],
-      "Crunk Yugen",
-      input >= modes.size() ? sf::Style::Default : sf::Style::Fullscreen,
-      settings);
-  window.setVerticalSyncEnabled(true);
+  Window window("Crunk Yugen", 24, 640, 360, true, true);
+  PhysicalFilesystem filesystem("data");
 
   glewInit();
   if (!GLEW_VERSION_2_1) {
     std::cerr << "OpenGL 2.1 not available" << std::endl;
   }
-
-  PhysicalFilesystem filesystem("data");
 
   const GLfloat vertex_data[] = {-1.f, -1.f, 1.f, -1.f, -1.f, 1.f, 1.f, 1.f};
   const GLushort element_data[] = {0, 1, 2, 3};
@@ -180,21 +143,17 @@ int main(int argc, char** argv)
   glVertexAttribPointer(attribute_position, 2, GL_FLOAT, GL_FALSE,
                         sizeof(GLfloat) * 2, (void*)0);
 
-  window.setActive();
   bool running = true;
   bool direction = true;
   GLfloat fade_factor = 0.f;
 
   while (running) {
     sf::Event event;
-    while (window.pollEvent(event)) {
+    while (window.poll_event(event)) {
       if (event.type == sf::Event::Closed ||
           (event.type == sf::Event::KeyPressed &&
            event.key.code == sf::Keyboard::Escape)) {
         running = false;
-      }
-      else if (event.type == sf::Event::Resized) {
-        glViewport(0, 0, event.size.width, event.size.height);
       }
     }
 
