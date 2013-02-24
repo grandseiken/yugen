@@ -21,9 +21,9 @@ namespace y {
   const std::nullptr_t null = nullptr;
 
   template<typename T>
-  auto move_unique(T* t) -> decltype(std::move(unique<T>(t)))
+  auto move_unique(T* t) -> decltype(unique<T>(t))
   {
-    return std::move(unique<T>(t));
+    return unique<T>(t);
   }
 }
 

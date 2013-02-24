@@ -10,7 +10,8 @@ GlUtil::GlUtil(const Filesystem& filesystem)
 {
   GLenum ok = glewInit();
   if (ok != GLEW_OK) {
-    std::cerr << "Couldn't initialise GLEW: " << glewGetString(ok) << std::endl;
+    std::cerr << "Couldn't initialise GLEW: " <<
+        glewGetErrorString(ok) << std::endl;
     return;
   }
 

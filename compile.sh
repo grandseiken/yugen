@@ -23,7 +23,7 @@ for cpp in source/*.cpp; do
       list="source/${include_graph[$i]} $list"
       let i=$i+1
     done
-    for include in `echo $list | xargs cat | grep "#include \"" | sed "s/#include \"\([^\"]\+\)\"/\1/g"`; do
+    for include in `echo $list | xargs cat | grep "#include \+\"" | sed "s/#include \+\"\([^\"]\+\)\"/\1/g"`; do
       seen=0
       i=0
       while [ $i -lt $include_count ]; do
@@ -69,8 +69,11 @@ if [ $error -eq 0 ]; then
       md5sum bin/yugen > bin/yugen.md5
     elif [ -f bin/yugen.md5 ]; then
       rm bin/yugen.md5
+      exit 1
     fi
   else
     echo "Up to date: yugen"
   fi
+else
+  exit 1
 fi
