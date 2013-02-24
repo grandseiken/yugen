@@ -12,13 +12,46 @@ change=0
 error=0
 for cpp in source/*.cpp; do
   base=$(basename $cpp)
-  if [ -f bin/$base.md5 ] && [ "`cat bin/$base.md5`" == "`md5sum $cpp`" ]; then
+  include_graph[0]=$base
+  include_count=1
+  modified=1
+  while [ $modified -eq 1 ]; do
+    modified=0
+    list=""
+    i=0
+    while [ $i -lt $include_count ]; do
+      list="source/${include_graph[$i]} $list"
+      let i=$i+1
+    done
+    for include in `echo $list | xargs cat | grep "#include \"" | sed "s/#include \"\([^\"]\+\)\"/\1/g"`; do
+      seen=0
+      i=0
+      while [ $i -lt $include_count ]; do
+        if [[ "$include" == "${include_graph[$i]}" ]]; then
+          seen=1
+        fi
+        let i=$i+1
+      done
+      if [ $seen -eq 0 ]; then
+        modified=1
+        include_graph[$include_count]=$include
+        let include_count=$include_count+1
+      fi
+    done
+  done
+  list=""
+  i=0
+  while [ $i -lt $include_count ]; do
+    list="source/${include_graph[$i]} $list"
+    let i=$i+1
+  done
+  if [ -f bin/$base.md5 ] && [ "`cat bin/$base.md5`" == "`md5sum $list`" ]; then
     echo "Up to date: $cpp"
   else
     echo "Compiling $cpp..."
     g++-4.7 -c $cflag -o bin/$base.o $cpp
     if [ $? -eq 0 ]; then
-      md5sum $cpp > bin/$base.md5
+      md5sum $list > bin/$base.md5
     else
       if [ -f bin/$base.md5 ]; then
         rm bin/$base.md5

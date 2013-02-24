@@ -1,4 +1,5 @@
 #include "window.h"
+
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/OpenGL.hpp>
@@ -125,10 +126,10 @@ Window::Window(const y::string& title, y::size default_bpp,
   settings.majorVersion = 2;
   settings.minorVersion = 1;
 
-  _window = std::move(y::unique<sf::Window>(new sf::RenderWindow(
+  _window = y::move_unique(new sf::RenderWindow(
       sf::VideoMode(_resolution.width, _resolution.height, _resolution.bpp),
       title, default_fullscreen ? sf::Style::Fullscreen : sf::Style::Default,
-      settings)));
+      settings));
   _window->setVerticalSyncEnabled(true);
   _window->setActive();
 }

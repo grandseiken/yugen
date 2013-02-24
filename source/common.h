@@ -19,6 +19,12 @@ namespace y {
 
   typedef vector<string> string_vector;
   const std::nullptr_t null = nullptr;
+
+  template<typename T>
+  auto move_unique(T* t) -> decltype(std::move(unique<T>(t)))
+  {
+    return std::move(unique<T>(t));
+  }
 }
 
 #endif

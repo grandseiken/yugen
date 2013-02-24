@@ -1,6 +1,6 @@
 #include "physical_filesystem.h"
 
-//#define BOOST_FILESYSTEM_NO_DEPRECATED
+#define BOOST_FILESYSTEM_NO_DEPRECATED
 #include <fstream>
 #include <boost/filesystem.hpp>
 
