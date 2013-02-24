@@ -8,8 +8,7 @@ int main(int argc, char** argv)
 {
   Window window("Crunk Yugen", 24, 640, 360, true, true);
   PhysicalFilesystem filesystem("data");
-
-  GlUtil gl(filesystem);
+  GlUtil gl(filesystem, window, 640, 360);
   if (!gl.setup_ok()) {
     return 1;
   }
@@ -79,7 +78,7 @@ int main(int argc, char** argv)
     if (fade_factor >= 1.f || fade_factor <= 0.f) {
       direction = !direction;
     }
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    gl.bind_window();
     glUniform1f(uniform_fade_factor, fade_factor);
 
     glEnableVertexAttribArray(attribute_position);

@@ -1,12 +1,18 @@
 #include "gl_util.h"
 #include "filesystem.h"
+#include "window.h"
 
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
-GlUtil::GlUtil(const Filesystem& filesystem)
+GlUtil::GlUtil(const Filesystem& filesystem, const Window& window,
+               GLsizei width, GLsizei height)
   : _setup_ok(false)
   , _filesystem(filesystem)
+  , _window(window)
+  , _framebuffer(0)
+  , _framebuffer_width(width)
+  , _framebuffer_height(height)
 {
   GLenum ok = glewInit();
   if (ok != GLEW_OK) {
@@ -22,6 +28,36 @@ GlUtil::GlUtil(const Filesystem& filesystem)
 
   if (!GLEW_EXT_framebuffer_object) {
     std::cerr << "OpenGL framebuffer object not available" << std::endl;
+    return;
+  }
+
+  glGenFramebuffers(1, &_framebuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
+  GLuint framebuffer_texture;
+  GLuint framebuffer_depth;
+
+  glGenTextures(1, &framebuffer_texture);
+  glBindTexture(GL_TEXTURE_2D, framebuffer_texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height,
+               0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                         GL_TEXTURE_2D, framebuffer_texture, 0);
+  GLenum draw_buffers = GL_COLOR_ATTACHMENT0;
+  glDrawBuffers(1, &draw_buffers);
+
+  glGenRenderbuffers(1, &framebuffer_depth);
+  glBindRenderbuffer(GL_RENDERBUFFER, framebuffer_depth);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                            GL_RENDERBUFFER, framebuffer_depth);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    std::cerr << "Framebuffer isn't complete" << std::endl;
     return;
   }
 
@@ -126,4 +162,19 @@ GLuint GlUtil::make_program(const y::vector<GLuint>& shaders) const
   std::cerr << log.get();
   glDeleteProgram(program);
   return 0;
+}
+
+void GlUtil::bind_framebuffer() const
+{
+  glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
+  glViewport(0, 0, _framebuffer_width, _framebuffer_height);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void GlUtil::bind_window() const
+{
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  const Resolution& mode = _window.get_mode();
+  glViewport(0, 0, mode.width, mode.height);
+  glClear(GL_COLOR_BUFFER_BIT);
 }

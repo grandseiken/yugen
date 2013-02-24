@@ -120,8 +120,8 @@ Window::Window(const y::string& title, y::size default_bpp,
   }
 
   sf::ContextSettings settings;
-  settings.depthBits = 24;
-  settings.stencilBits = 8;
+  settings.depthBits = 0;
+  settings.stencilBits = 0;
   settings.antialiasingLevel = 0;
   settings.majorVersion = 2;
   settings.minorVersion = 1;
@@ -147,7 +147,6 @@ bool Window::poll_event(sf::Event& output)
 {
   while (_window->pollEvent(output)) {
     if (output.type == sf::Event::Resized) {
-      glViewport(0, 0, output.size.width, output.size.height);
       _resolution.width = output.size.width;
       _resolution.height = output.size.height;
       continue;
@@ -155,6 +154,11 @@ bool Window::poll_event(sf::Event& output)
     return true;
   }
   return false;
+}
+
+void Window::set_active() const
+{
+  _window->setActive();
 }
 
 void Window::display() const

@@ -34,6 +34,7 @@ public:
   const Resolution& get_mode() const;
 
   bool poll_event(sf::Event& output);
+  void set_active() const;
   void display() const;
 
   static void get_supported_modes(y::vector<Resolution>& output, y::size bpp);
