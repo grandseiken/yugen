@@ -74,11 +74,17 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window,
 
 GlUtil::~GlUtil()
 {
-  for (const y::pair<y::string, GLuint>& pair : _shader_map) {
-    glDeleteShader(pair.second);
+  for (GLuint buffer : _buffer_set) {
+    glDeleteBuffers(1, &buffer);
   }
   for (const y::pair<y::string, GLuint>& pair : _texture_map) {
     glDeleteTextures(1, &pair.second);
+  }
+  for (const y::pair<y::string, GLuint>& pair : _shader_map) {
+    glDeleteShader(pair.second);
+  }
+  for (const y::pair<y::string, GLuint>& pair : _program_map) {
+    glDeleteProgram(pair.second);
   }
 }
 

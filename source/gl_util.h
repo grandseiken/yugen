@@ -67,10 +67,13 @@ private:
   GLsizei _framebuffer_width;
   GLsizei _framebuffer_height;
 
-  y::set<GLuint> _buffer_set;
-  y::map<y::string, GLuint> _texture_map;
-  y::map<y::string, GLuint> _shader_map;
-  y::map<y::string, GLuint> _program_map;
+  typedef y::set<GLuint> gl_set;
+  typedef y::map<y::string, GLuint> gl_map;
+
+  gl_set _buffer_set;
+  gl_map _texture_map;
+  gl_map _shader_map;
+  gl_map _program_map;
 
 };
 
