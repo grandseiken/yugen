@@ -1,10 +1,12 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include <string>
-#include <vector>
-#include <memory>
 #include <cstddef>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace y {
   typedef std::size_t size;
@@ -12,6 +14,10 @@ namespace y {
 
   template<typename T>
   using vector = std::vector<T>;
+  template<typename T>
+  using set = std::unordered_set<T>;
+  template<typename T, typename U>
+  using map = std::unordered_map<T, U>;
   template<typename T, typename U>
   using pair = std::pair<T, U>;
   template<typename T>

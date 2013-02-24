@@ -2,11 +2,11 @@
 
 uniform float fade_factor;
 uniform sampler2D textures[2];
-varying vec2 texcoord;
+varying vec2 tex_coord;
 
 void main()
 {
   gl_FragColor = mix(
-    texture2D(textures[0], texcoord), texture2D(textures[1], texcoord),
-    fade_factor);
+      texture2D(textures[0], tex_coord), texture2D(textures[1], tex_coord),
+      fade_factor);
 }

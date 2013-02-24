@@ -102,6 +102,7 @@ void Filesystem::list_pattern(y::string_vector& output,
     std::copy_if(
         intermediate.begin(), intermediate.end(), std::back_inserter(output),
         [&](const y::string& p){return local::check_pattern(p, cpattern);});
+    return;
   } 
 
   // Otherwise we can pick the subdirectories that actually match the path
