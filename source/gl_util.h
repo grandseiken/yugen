@@ -151,13 +151,17 @@ public:
 
   virtual ~GlBuffer() {}
 
-  void bind(GLenum target) const;
+  void bind() const;
   void draw_elements(GLenum mode, GLsizei count) const;
 
 protected:
 
   friend class GlUtil;
-  GlBuffer(const GlUtil& gl_util, GLuint handle);
+  GlBuffer(const GlUtil& gl_util, GLuint handle, GLenum target);
+
+private:
+
+  GLenum _target;
 
 };
 
@@ -224,7 +228,7 @@ GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint,
   glBufferData(target, size, data, usage_hint);
 
   _buffer_set.insert(buffer);
-  return GlBuffer<T, N>(*this, buffer);
+  return GlBuffer<T, N>(*this, buffer, target);
 }
 
 template<typename T, y::size N>
@@ -238,21 +242,22 @@ void GlUtil::delete_buffer(const GlBuffer<T, N>& buffer)
 }
 
 template<typename T, y::size N>
-GlBuffer<T, N>::GlBuffer(const GlUtil& gl_util, GLuint handle)
+GlBuffer<T, N>::GlBuffer(const GlUtil& gl_util, GLuint handle, GLenum target)
   : GlHandle(gl_util, handle)
+  , _target(target)
 {
 }
 
 template<typename T, y::size N>
-void GlBuffer<T, N>::bind(GLenum target) const
+void GlBuffer<T, N>::bind() const
 {
-  glBindBuffer(target, get_handle());
+  glBindBuffer(_target, get_handle());
 }
 
 template<typename T, y::size N>
 void GlBuffer<T, N>::draw_elements(GLenum mode, GLsizei count) const
 {
-  bind(GL_ELEMENT_ARRAY_BUFFER);
+  bind();
   glDrawElements(mode, N * count, GlType<T>::type_enum, (void*)0);
 }
 
@@ -262,7 +267,7 @@ void GlProgram::bind_attribute(const y::string& name,
 {
   GLint location = glGetAttribLocation(get_handle(), name.c_str());
   glEnableVertexAttribArray(location);
-  buffer.bind(GL_ARRAY_BUFFER);
+  buffer.bind();
   glVertexAttribPointer(
       location, N, GlType<T>::type_enum, GL_FALSE, sizeof(T) * N, y::null);
 }

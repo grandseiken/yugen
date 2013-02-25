@@ -17,10 +17,10 @@ int main(int argc, char** argv)
   }
 
   const GLfloat vertex_data[] = {-1.f, -1.f, 1.f, -1.f, -1.f, 1.f, 1.f, 1.f};
-  const GLushort element_data[] = {0, 1, 2, 3};
-
   auto vertex_buffer = gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data));
+
+  const GLushort element_data[] = {0, 1, 2, 3};
   auto element_buffer = gl.make_buffer<GLushort, 1>(
       GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
       element_data, sizeof(element_data));
