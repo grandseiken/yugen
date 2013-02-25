@@ -10,10 +10,6 @@ PhysicalFilesystem::PhysicalFilesystem(const y::string& root)
 {
 }
 
-PhysicalFilesystem::~PhysicalFilesystem()
-{
-}
-
 void PhysicalFilesystem::list_directory_internal(y::string_vector& output,
                                                  const y::string& path) const
 {

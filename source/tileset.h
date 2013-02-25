@@ -12,7 +12,6 @@ public:
   static const y::size tile_height = 32;
 
   Tileset(const Texture& texture);
-  ~Tileset();
 
 private:
 

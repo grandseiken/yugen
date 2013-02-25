@@ -3,12 +3,10 @@
 
 #include "common.h"
 
+#include <boost/utility.hpp>
+
 struct Resolution {
   Resolution();
-  ~Resolution();
-
-  Resolution(const Resolution& r);
-  Resolution& operator=(const Resolution& r);
 
   bool operator==(const Resolution& r) const;
   bool operator!=(const Resolution& r) const;
@@ -23,13 +21,12 @@ namespace sf {
   class Event;
 }
 
-class Window {
+class Window : public boost::noncopyable {
 public:
 
   Window(const y::string& title, y::size default_bpp,
          y::size default_width, y::size default_height,
          bool default_fullscreen, bool skip_choice);
-  ~Window();
 
   const Resolution& get_mode() const;
 

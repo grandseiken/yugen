@@ -6,7 +6,3 @@ Tileset::Tileset(const Texture& texture)
   , _height(0)
 {
 }
-
-Tileset::~Tileset()
-{
-}

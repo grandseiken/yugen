@@ -7,8 +7,8 @@
 class Filesystem {
 public:
 
-  Filesystem();
-  virtual ~Filesystem();
+  Filesystem() {}
+  virtual ~Filesystem() {}
 
   // Lists all files and directories matching pattern, in which * expands to any
   // substring not containing '/' and ** to any substring (i.e. recursively).

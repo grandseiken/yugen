@@ -7,7 +7,7 @@ class PhysicalFilesystem : public Filesystem {
 public:
 
   PhysicalFilesystem(const y::string& root);
-  virtual ~PhysicalFilesystem();
+  virtual ~PhysicalFilesystem() {}
 
 protected:
 

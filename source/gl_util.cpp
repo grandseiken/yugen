@@ -5,6 +5,36 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
+bool GlHandle::operator==(const GlHandle& handle) const
+{
+  return _gl_util == handle._gl_util && _handle == handle._handle;
+}
+
+bool GlHandle::operator!=(const GlHandle& handle) const
+{
+  return !operator==(handle);
+}
+
+GlHandle::operator bool_type() const
+{
+  return _handle ? &GlHandle::no_bool_comparison : 0;
+}
+
+GlHandle::GlHandle(const GlUtil& gl_util, GLuint handle)
+  : _gl_util(&gl_util), _handle(handle)
+{
+}
+
+const GlUtil& GlHandle::get_gl_util() const
+{
+  return *_gl_util;
+}
+
+GLuint GlHandle::get_handle() const
+{
+  return _handle;
+}
+
 GlUtil::GlUtil(const Filesystem& filesystem, const Window& window,
                GLsizei width, GLsizei height)
   : _setup_ok(false)
@@ -66,10 +96,13 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window,
   _filesystem.list_pattern(shaders, "shaders/**.f.glsl");
   _filesystem.list_pattern(shaders, "shaders/**.v");
   _filesystem.list_pattern(shaders, "shaders/**.f");
-  for (const y::string& shader : shaders) {
-    make_shader(shader);
-  }
+
   _setup_ok = true;
+  for (const y::string& shader : shaders) {
+    if (!make_shader(shader)) {
+      _setup_ok = false;
+    }
+  }
 }
 
 GlUtil::~GlUtil()
@@ -88,43 +121,24 @@ GlUtil::~GlUtil()
   }
 }
 
-bool GlUtil::setup_ok() const
+GlUtil::operator bool_type() const
 {
-  return _setup_ok;
+  return _setup_ok ? &GlUtil::no_bool_comparison : 0;
 }
 
-GLuint GlUtil::make_buffer(GLenum target, GLenum usage_hint,
-                           const void* data, GLsizei size) const
-{
-  GLuint buffer;
-  glGenBuffers(1, &buffer);
-  glBindBuffer(target, buffer);
-  glBufferData(target, size, data, usage_hint);
-  return buffer;
-}
-
-void GlUtil::delete_buffer(GLuint buffer)
-{
-  auto it = _buffer_set.find(buffer);
-  if (it != _buffer_set.end()) {
-    glDeleteBuffers(1, &*it);
-    _buffer_set.erase(it);
-  }
-}
-
-GLuint GlUtil::make_texture(const y::string& filename)
+GlTexture GlUtil::make_texture(const y::string& filename)
 {
   y::string data;
   _filesystem.read_file(data, filename);
   if (data.empty()) {
     std::cerr << "Couldn't read file " << filename << std::endl;
-    return 0;
+    return GlTexture(*this, 0);
   }
 
   sf::Image image;
   if (!image.loadFromMemory(&data[0], data.length())) {
     std::cerr << "Couldn't load image " << filename << std::endl;
-    return 0;
+    return GlTexture(*this, 0);
   }
   GLuint texture;
   glGenTextures(1, &texture);
@@ -141,13 +155,13 @@ GLuint GlUtil::make_texture(const y::string& filename)
     glDeleteTextures(1, &it->second);
   }
   _texture_map[filename] = texture;
-  return texture;
+  return GlTexture(*this, texture);
 }
 
-GLuint GlUtil::get_texture(const y::string& filename) const
+GlTexture GlUtil::get_texture(const y::string& filename) const
 {
   auto it = _texture_map.find(filename);
-  return it == _texture_map.end() ? 0 : it->second;
+  return GlTexture(*this, it == _texture_map.end() ? 0 : it->second);
 }
 
 void GlUtil::delete_texture(const y::string& filename)
@@ -159,13 +173,13 @@ void GlUtil::delete_texture(const y::string& filename)
   }
 }
 
-GLuint GlUtil::make_shader(const y::string& filename, GLenum type)
+GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
 {
   y::string data;
   _filesystem.read_file(data, filename);
   if (data.empty()) {
     std::cerr << "Couldn't read file " << filename << std::endl;
-    return 0;
+    return GlShader(*this, 0);
   }
 
   if (!type) {
@@ -192,7 +206,7 @@ GLuint GlUtil::make_shader(const y::string& filename, GLenum type)
       glDeleteShader(it->second);
     }
     _shader_map[filename] = shader;
-    return shader;
+    return GlShader(*this, shader);
   }
 
   std::cerr << "Shader " << filename << " failed compilation" << std::endl;
@@ -202,13 +216,13 @@ GLuint GlUtil::make_shader(const y::string& filename, GLenum type)
   glGetShaderInfoLog(shader, log_length, 0, log.get());
   std::cerr << log.get();
   glDeleteShader(shader);
-  return 0;
+  return GlShader(*this, 0);
 }
 
-GLuint GlUtil::get_shader(const y::string& filename) const
+GlShader GlUtil::get_shader(const y::string& filename) const
 {
   auto it = _shader_map.find(filename);
-  return it == _shader_map.end() ? 0 : it->second;
+  return GlShader(*this, it == _shader_map.end() ? 0 : it->second);
 }
 
 void GlUtil::delete_shader(const y::string& filename)
@@ -220,7 +234,7 @@ void GlUtil::delete_shader(const y::string& filename)
   }
 }
 
-GLuint GlUtil::make_program(const y::string_vector& shaders)
+GlProgram GlUtil::make_program(const y::string_vector& shaders)
 {
   y::string_vector sort;
   std::copy(shaders.begin(), shaders.end(), std::back_inserter(sort));
@@ -233,7 +247,7 @@ GLuint GlUtil::make_program(const y::string_vector& shaders)
 
   GLuint program = glCreateProgram();
   for (const y::string& shader : shaders) {
-    glAttachShader(program, get_shader(shader));
+    glAttachShader(program, get_shader(shader).get_handle());
   }
   glLinkProgram(program);
 
@@ -245,7 +259,7 @@ GLuint GlUtil::make_program(const y::string_vector& shaders)
       glDeleteProgram(it->second);
     }
     _program_map[hash] = program;
-    return program;
+    return GlProgram(*this, program);
   }
 
   std::cerr << "Program failed linking" << std::endl;
@@ -255,10 +269,10 @@ GLuint GlUtil::make_program(const y::string_vector& shaders)
   glGetProgramInfoLog(program, log_length, 0, log.get());
   std::cerr << log.get();
   glDeleteProgram(program);
-  return 0;
+  return GlProgram(*this, 0);
 }
 
-GLuint GlUtil::get_program(const y::string_vector& shaders) const
+GlProgram GlUtil::get_program(const y::string_vector& shaders) const
 {
   y::string_vector sort;
   std::copy(shaders.begin(), shaders.end(), std::back_inserter(sort));
@@ -270,7 +284,7 @@ GLuint GlUtil::get_program(const y::string_vector& shaders) const
   }
 
   auto it = _program_map.find(hash);
-  return it == _program_map.end() ? 0 : it->second;
+  return GlProgram(*this, it == _program_map.end() ? 0 : it->second);
 }
 
 void GlUtil::delete_program(const y::string_vector& shaders)
@@ -291,16 +305,16 @@ void GlUtil::delete_program(const y::string_vector& shaders)
   }
 }
 
+GlTexture GlUtil::get_framebuffer() const
+{
+  return GlTexture(*this, _framebuffer_texture);
+}
+
 void GlUtil::bind_framebuffer() const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
   glViewport(0, 0, _framebuffer_width, _framebuffer_height);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-GLuint GlUtil::get_framebuffer() const
-{
-  return _framebuffer_texture;
 }
 
 void GlUtil::bind_window() const
@@ -309,4 +323,30 @@ void GlUtil::bind_window() const
   const Resolution& mode = _window.get_mode();
   glViewport(0, 0, mode.width, mode.height);
   glClear(GL_COLOR_BUFFER_BIT);
+}
+
+GlTexture::GlTexture(const GlUtil& gl_util, GLuint handle)
+  : GlHandle(gl_util, handle)
+{
+}
+
+void GlTexture::bind(GLenum target) const
+{
+  glActiveTexture(target);
+  glBindTexture(GL_TEXTURE_2D, get_handle());
+}
+
+GlShader::GlShader(const GlUtil& gl_util, GLuint handle)
+  : GlHandle(gl_util, handle)
+{
+}
+
+GlProgram::GlProgram(const GlUtil& gl_util, GLuint handle)
+  : GlHandle(gl_util, handle)
+{
+}
+
+void GlProgram::bind() const
+{
+  glUseProgram(get_handle());
 }

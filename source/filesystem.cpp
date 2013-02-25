@@ -2,14 +2,6 @@
 
 #include <algorithm>
 
-Filesystem::Filesystem()
-{
-}
-
-Filesystem::~Filesystem()
-{
-}
-
 void Filesystem::list_pattern(y::string_vector& output,
                               const y::string& pattern) const
 {

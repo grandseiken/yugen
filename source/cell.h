@@ -10,7 +10,9 @@ struct Tile {
   static const y::size no_tileset = -1;
 
   Tile(y::size tileset = no_tileset, y::size index = 0);
-  ~Tile();
+
+  bool operator==(const Tile& tile) const;
+  bool operator!=(const Tile& tile) const;
 
   y::size _tileset;
   y::size _index;
@@ -24,7 +26,6 @@ public:
   static const y::size cell_height = 30;
 
   Cell();
-  ~Cell();
 
 private:
 

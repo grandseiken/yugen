@@ -12,23 +12,6 @@ Resolution::Resolution()
 {
 }
 
-Resolution::~Resolution()
-{
-}
-
-Resolution::Resolution(const Resolution& r)
-  : width(r.width), height(r.height), bpp(r.bpp)
-{
-}
-
-Resolution& Resolution::operator=(const Resolution& r)
-{
-  width = r.width;
-  height = r.height;
-  bpp = r.bpp;
-  return *this;
-}
-
 bool Resolution::operator==(const Resolution& r) const
 {
   return width == r.width && height == r.height && bpp == r.bpp;
@@ -132,10 +115,6 @@ Window::Window(const y::string& title, y::size default_bpp,
       settings));
   _window->setVerticalSyncEnabled(true);
   _window->setActive();
-}
-
-Window::~Window()
-{
 }
 
 const Resolution& Window::get_mode() const
