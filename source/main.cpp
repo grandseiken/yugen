@@ -71,12 +71,18 @@ int main(int argc, char** argv)
     hello_program.bind_uniform("fade_factor", fade_factor);
     textures[1].bind(GL_TEXTURE0);
     textures[2].bind(GL_TEXTURE1);
-    hello_program.bind_uniform("textures[0]", 0);
-    hello_program.bind_uniform("textures[1]", 1);
+    hello_program.bind_uniform(0, "textures", 0);
+    hello_program.bind_uniform(1, "textures", 1);
     element_buffer.draw_elements(GL_TRIANGLE_STRIP, 4);
+
+    const Resolution& screen = window.get_mode();
 
     gl.bind_window();
     post_program.bind();
+    post_program.bind_uniform("native_res",
+        GLint(native_width), GLint(native_height));
+    post_program.bind_uniform("screen_res",
+        GLint(screen.width), GLint(screen.height));
     gl.get_framebuffer().bind(GL_TEXTURE0);
     post_program.bind_uniform("framebuffer", 0);
     element_buffer.draw_elements(GL_TRIANGLE_STRIP, 4);

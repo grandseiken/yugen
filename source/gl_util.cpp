@@ -350,3 +350,56 @@ void GlProgram::bind() const
 {
   glUseProgram(get_handle());
 }
+
+bool GlProgram::check_name_exists(bool attribute, const y::string& name,
+                                  bool array, y::size index,
+                                  GLenum& type_output) const
+{
+  GLint name_count;
+  glGetProgramiv(
+      get_handle(), attribute ? GL_ACTIVE_ATTRIBUTES : GL_ACTIVE_UNIFORMS,
+      &name_count);
+
+  GLint name_length;
+  glGetProgramiv(
+      get_handle(),
+      attribute ? GL_ACTIVE_ATTRIBUTE_MAX_LENGTH : GL_ACTIVE_UNIFORM_MAX_LENGTH,
+      &name_length);
+
+  y::unique<char[]> buffer(new char[name_length]);
+  GLint array_size;
+  for (GLint i = 0; i < name_count; ++i) {
+    if (attribute) {
+      glGetActiveAttrib(get_handle(), i, name_length, y::null,
+                        &array_size, &type_output, buffer.get());
+    }
+    else {
+      glGetActiveUniform(get_handle(), i, name_length, y::null,
+                         &array_size, &type_output, buffer.get());
+    }
+    if (name == buffer.get() &&
+        ((!array && array_size == 1) ||
+         (array && signed(index) < array_size))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool GlProgram::check_match(bool attribute, const y::string& name,
+                            bool array, y::size index,
+                            GLenum type, y::size length) const
+{
+  GLenum name_type;
+  if (!check_name_exists(attribute, name, array, index, name_type)) {
+    std::cerr << "Undefined " <<
+        (attribute ? "attribute" : "uniform") << " " << name;
+    if (array) {
+      std::cerr << "[" << index << "]";
+    } 
+    std::cerr << std::endl;
+    return false;
+  }
+  // TODO: figure out type stuff
+  return true;
+}

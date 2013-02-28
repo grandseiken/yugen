@@ -199,22 +199,52 @@ public:
   void bind() const;
 
   template<typename T, y::size N>
-  void bind_attribute(const y::string& name,
+  bool bind_attribute(const y::string& name,
                       const GlBuffer<T, N>& buffer) const;
 
   template<typename T>
-  void bind_uniform(const y::string& name, T a) const; 
+  bool bind_uniform(const y::string& name, T a) const; 
   template<typename T>
-  void bind_uniform(const y::string& name, T a, T b) const; 
+  bool bind_uniform(const y::string& name, T a, T b) const; 
   template<typename T>
-  void bind_uniform(const y::string& name, T a, T b, T c) const; 
+  bool bind_uniform(const y::string& name, T a, T b, T c) const; 
   template<typename T>
-  void bind_uniform(const y::string& name, T a, T b, T c, T d) const;
+  bool bind_uniform(const y::string& name, T a, T b, T c, T d) const;
+
+  template<typename T, y::size N>
+  bool bind_attribute(y::size index, const y::string& name,
+                      const GlBuffer<T, N>& buffer) const;
+
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    T a) const;
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    T a, T b) const; 
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    T a, T b, T c) const; 
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    T a, T b, T c, T d) const;
 
 protected:
 
   friend class GlUtil;
   GlProgram(const GlUtil& gl_util, GLuint handle);
+
+private:
+
+  // Check if uniform or attribute name exists in program.
+  // TODO: cache this. Make the type system better overall.
+  bool check_name_exists(bool attribute, const y::string& name,
+                         bool array, y::size index,
+                         GLenum& type_output) const;
+
+  // Check if name exists and has correct type and size, or print error message.
+  bool check_match(bool attribute, const y::string& name,
+                   bool array, y::size index,
+                   GLenum type, y::size length) const;
 
 };
 
@@ -262,42 +292,135 @@ void GlBuffer<T, N>::draw_elements(GLenum mode, GLsizei count) const
 }
 
 template<typename T, y::size N>
-void GlProgram::bind_attribute(const y::string& name,
+bool GlProgram::bind_attribute(const y::string& name,
                                const GlBuffer<T, N>& buffer) const
 {
+  if (!check_match(true, name, false, 0, GlType<T>::type_enum, N)) {
+    return false;
+  }
+
   GLint location = glGetAttribLocation(get_handle(), name.c_str());
   glEnableVertexAttribArray(location);
   buffer.bind();
   glVertexAttribPointer(
       location, N, GlType<T>::type_enum, GL_FALSE, sizeof(T) * N, y::null);
+  return true;
 }
 
 template<typename T>
-void GlProgram::bind_uniform(const y::string& name, T a) const
+bool GlProgram::bind_uniform(const y::string& name, T a) const
 {
+  if (!check_match(false, name, false, 0, GlType<T>::type_enum, 1)) {
+    return false;
+  }
+
   GLint location = glGetUniformLocation(get_handle(), name.c_str());
   GlUniform<T>::uniform1(location, a);
+  return true;
 }
 
 template<typename T>
-void GlProgram::bind_uniform(const y::string& name, T a, T b) const
+bool GlProgram::bind_uniform(const y::string& name, T a, T b) const
 {
+  if (!check_match(false, name, false, 0, GlType<T>::type_enum, 2)) {
+    return false;
+  }
+
   GLint location = glGetUniformLocation(get_handle(), name.c_str());
   GlUniform<T>::uniform2(location, a, b);
+  return true;
 }
 
 template<typename T>
-void GlProgram::bind_uniform(const y::string& name, T a, T b, T c) const
+bool GlProgram::bind_uniform(const y::string& name, T a, T b, T c) const
 {
+  if (!check_match(false, name, false, 0, GlType<T>::type_enum, 3)) {
+    return false;
+  }
+
   GLint location = glGetUniformLocation(get_handle(), name.c_str());
   GlUniform<T>::uniform3(location, a, b, c);
+  return true;
 }
 
 template<typename T>
-void GlProgram::bind_uniform(const y::string& name, T a, T b, T c, T d) const
+bool GlProgram::bind_uniform(const y::string& name, T a, T b, T c, T d) const
 {
+  if (!check_match(false, name, false, 0, GlType<T>::type_enum, 4)) {
+    return false;
+  }
+
   GLint location = glGetUniformLocation(get_handle(), name.c_str());
   GlUniform<T>::uniform4(location, a, b, c, d);
+  return true;
+}
+
+template<typename T, y::size N>
+bool GlProgram::bind_attribute(y::size index, const y::string& name,
+                               const GlBuffer<T, N>& buffer) const
+{
+  if (!check_match(true, name, true, index, GlType<T>::type_enum, N)) {
+    return false;
+  }
+
+  GLint location = glGetAttribLocation(get_handle(), name.c_str());
+  glEnableVertexAttribArray(location);
+  buffer.bind();
+  glVertexAttribPointer(
+      location, N, GlType<T>::type_enum, GL_FALSE, sizeof(T) * N, y::null);
+  return true;
+}
+
+template<typename T>
+bool GlProgram::bind_uniform(y::size index, const y::string& name,
+                             T a) const
+{
+  if (!check_match(false, name, true, index, GlType<T>::type_enum, 1)) {
+    return false;
+  }
+
+  GLint location = glGetUniformLocation(get_handle(), name.c_str());
+  GlUniform<T>::uniform1(location, a);
+  return true;
+}
+
+template<typename T>
+bool GlProgram::bind_uniform(y::size index, const y::string& name,
+                             T a, T b) const
+{
+  if (!check_match(false, name, true, index, GlType<T>::type_enum, 2)) {
+    return false;
+  }
+
+  GLint location = glGetUniformLocation(get_handle(), name.c_str());
+  GlUniform<T>::uniform2(location, a, b);
+  return true;
+}
+
+template<typename T>
+bool GlProgram::bind_uniform(y::size index, const y::string& name,
+                             T a, T b, T c) const
+{
+  if (!check_match(false, name, true, index, GlType<T>::type_enum, 3)) {
+    return false;
+  }
+
+  GLint location = glGetUniformLocation(get_handle(), name.c_str());
+  GlUniform<T>::uniform3(location, a, b, c);
+  return true;
+}
+
+template<typename T>
+bool GlProgram::bind_uniform(y::size index, const y::string& name,
+                             T a, T b, T c, T d) const
+{
+  if (!check_match(false, name, true, index, GlType<T>::type_enum, 4)) {
+    return false;
+  }
+
+  GLint location = glGetUniformLocation(get_handle(), name.c_str());
+  GlUniform<T>::uniform4(location, a, b, c, d);
+  return true;
 }
 
 #endif
