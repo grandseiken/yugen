@@ -9,18 +9,24 @@ int main(int argc, char** argv)
   const y::size native_width = 640;
   const y::size native_height = 360;
 
-  Window window("Crunk Yugen", 24, native_width, native_height, true, true);
+  Window window("Crunk Yugen", 24, native_width, native_height, true, false);
   PhysicalFilesystem filesystem("data");
   GlUtil gl(filesystem, window, native_width, native_height);
   if (!gl) {
     return 1;
   }
 
-  const GLfloat vertex_data[] = {-1.f, -1.f, 1.f, -1.f, -1.f, 1.f, 1.f, 1.f};
+  const GLfloat vertex_data[] = {
+      -1.f, -1.f,
+       1.f, -1.f,
+      -1.f,  1.f,
+       1.f,  1.f};
+
+  const GLushort element_data[] = {0, 1, 2, 3};
+
   auto vertex_buffer = gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data));
 
-  const GLushort element_data[] = {0, 1, 2, 3};
   auto element_buffer = gl.make_buffer<GLushort, 1>(
       GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
       element_data, sizeof(element_data));
@@ -79,6 +85,7 @@ int main(int argc, char** argv)
 
     gl.bind_window();
     post_program.bind();
+    post_program.bind_uniform("integral_scale_lock", 1);
     post_program.bind_uniform("native_res",
         GLint(native_width), GLint(native_height));
     post_program.bind_uniform("screen_res",
