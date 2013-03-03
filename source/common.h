@@ -44,6 +44,11 @@ namespace y {
     return unique<T>(t);
   }
 
+  template<typename T, typename U>
+  pair<T, U> make_pair(T t, U u) {
+    return pair<T, U>(std::forward<T>(t), std::forward<U>(u));
+  }
+
   typedef boost::noncopyable no_copy;
 
 }

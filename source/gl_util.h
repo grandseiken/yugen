@@ -9,16 +9,10 @@
 class Filesystem;
 class Window;
 
-class GlUtil;
-template<typename T, y::size N>
-class GlBuffer;
-class GlTexture;
-class GlShader;
-class GlProgram;
-
 #define GL_TYPE(T, V) template<> struct GlType<T> { enum { type_enum = V }; }
 template<typename T>
 struct GlType {};
+GL_TYPE(bool, GL_BOOL);
 GL_TYPE(GLbyte, GL_BYTE);
 GL_TYPE(GLubyte, GL_UNSIGNED_BYTE);
 GL_TYPE(GLshort, GL_SHORT);
@@ -38,6 +32,7 @@ GL_TYPE(GLdouble, GL_DOUBLE);
   }
 template<typename T>
 struct GlUniform {};
+GL_UNIFORM(bool, glUniform1i, glUniform2i, glUniform3i, glUniform4i);
 GL_UNIFORM(GLint, glUniform1i, glUniform2i, glUniform3i, glUniform4i);
 GL_UNIFORM(GLuint, glUniform1ui, glUniform2ui, glUniform3ui, glUniform4ui);
 GL_UNIFORM(GLfloat, glUniform1f, glUniform2f, glUniform3f, glUniform4f);
@@ -60,17 +55,127 @@ public:
 protected:
 
   friend class GlUtil;
-  GlHandle(const GlUtil& gl_util, GLuint handle);
+  explicit GlHandle(GLuint handle);
 
-  const GlUtil& get_gl_util() const;
   GLuint get_handle() const;
 
 private:
 
-  const GlUtil* _gl_util;
   GLuint _handle;
 
 };
+
+template<typename T, y::size N>
+class GlBuffer : public GlHandle {
+public:
+
+  virtual ~GlBuffer() {}
+
+  void bind() const;
+  void draw_elements(GLenum mode, GLsizei count) const;
+
+protected:
+
+  friend class GlUtil;
+  GlBuffer(GLuint handle, GLenum target);
+
+private:
+
+  GLenum _target;
+
+};
+
+class GlTexture : public GlHandle {
+public:
+
+  virtual ~GlTexture() {}
+
+  void bind(GLenum target) const;
+
+  y::size get_width() const;
+  y::size get_height() const;
+
+protected:
+
+  friend class GlUtil;
+  GlTexture(GLuint handle, y::size width, y::size height);
+
+private:
+
+  y::size _width;
+  y::size _height;
+
+};
+
+class GlShader : public GlHandle {
+public:
+
+  virtual ~GlShader() {}
+
+protected:
+
+  friend class GlUtil;
+  explicit GlShader(GLuint handle);
+
+};
+
+class GlProgram : public GlHandle {
+public:
+
+  virtual ~GlProgram() {}
+
+  void bind() const;
+
+  template<typename T, y::size N>
+  bool bind_attribute(const y::string& name,
+                      const GlBuffer<T, N>& buffer) const;
+
+  template<typename T>
+  bool bind_uniform(const y::string& name, T a) const; 
+  template<typename T>
+  bool bind_uniform(const y::string& name, T a, T b) const; 
+  template<typename T>
+  bool bind_uniform(const y::string& name, T a, T b, T c) const; 
+  template<typename T>
+  bool bind_uniform(const y::string& name, T a, T b, T c, T d) const;
+
+  template<typename T, y::size N>
+  bool bind_attribute(y::size index, const y::string& name,
+                      const GlBuffer<T, N>& buffer) const;
+
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    T a) const;
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    T a, T b) const; 
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    T a, T b, T c) const; 
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    T a, T b, T c, T d) const;
+
+protected:
+
+  friend class GlUtil;
+  explicit GlProgram(GLuint handle);
+
+private:
+
+  // Check if uniform or attribute name exists in program.
+  // TODO: cache this. Make the type system better overall.
+  bool check_name_exists(bool attribute, const y::string& name,
+                         bool array, y::size index,
+                         GLenum& type_output) const;
+
+  // Check if name exists and has correct type and size, or print error message.
+  bool check_match(bool attribute, const y::string& name,
+                   bool array, y::size index,
+                   GLenum type, y::size length) const;
+
+};
+
 
 class GlUtil : public y::no_copy {
 
@@ -134,116 +239,15 @@ private:
   GLsizei _framebuffer_width;
   GLsizei _framebuffer_height;
 
-  typedef y::set<GLuint> gl_set;
-  typedef y::map<y::string, GLuint> gl_map;
+  typedef y::set<GLuint> gl_buffer_set;
+  typedef y::map<y::string, GlTexture> gl_texture_map;
+  typedef y::map<y::string, GlShader> gl_shader_map;
+  typedef y::map<y::string, GlProgram> gl_program_map;
 
-  gl_set _buffer_set;
-  gl_map _texture_map;
-  gl_map _shader_map;
-  gl_map _program_map;
-
-};
-
-template<typename T, y::size N>
-class GlBuffer : public GlHandle {
-public:
-
-  virtual ~GlBuffer() {}
-
-  void bind() const;
-  void draw_elements(GLenum mode, GLsizei count) const;
-
-protected:
-
-  friend class GlUtil;
-  GlBuffer(const GlUtil& gl_util, GLuint handle, GLenum target);
-
-private:
-
-  GLenum _target;
-
-};
-
-class GlTexture : public GlHandle {
-public:
-
-  virtual ~GlTexture() {}
-
-  void bind(GLenum target) const;
-
-protected:
-
-  friend class GlUtil;
-  GlTexture(const GlUtil& gl_util, GLuint handle);
-
-};
-
-class GlShader : public GlHandle {
-public:
-
-  virtual ~GlShader() {}
-
-protected:
-
-  friend class GlUtil;
-  GlShader(const GlUtil& gl_util, GLuint handle);
-
-};
-
-class GlProgram : public GlHandle {
-public:
-
-  virtual ~GlProgram() {}
-
-  void bind() const;
-
-  template<typename T, y::size N>
-  bool bind_attribute(const y::string& name,
-                      const GlBuffer<T, N>& buffer) const;
-
-  template<typename T>
-  bool bind_uniform(const y::string& name, T a) const; 
-  template<typename T>
-  bool bind_uniform(const y::string& name, T a, T b) const; 
-  template<typename T>
-  bool bind_uniform(const y::string& name, T a, T b, T c) const; 
-  template<typename T>
-  bool bind_uniform(const y::string& name, T a, T b, T c, T d) const;
-
-  template<typename T, y::size N>
-  bool bind_attribute(y::size index, const y::string& name,
-                      const GlBuffer<T, N>& buffer) const;
-
-  template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
-                    T a) const;
-  template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
-                    T a, T b) const; 
-  template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
-                    T a, T b, T c) const; 
-  template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
-                    T a, T b, T c, T d) const;
-
-protected:
-
-  friend class GlUtil;
-  GlProgram(const GlUtil& gl_util, GLuint handle);
-
-private:
-
-  // Check if uniform or attribute name exists in program.
-  // TODO: cache this. Make the type system better overall.
-  bool check_name_exists(bool attribute, const y::string& name,
-                         bool array, y::size index,
-                         GLenum& type_output) const;
-
-  // Check if name exists and has correct type and size, or print error message.
-  bool check_match(bool attribute, const y::string& name,
-                   bool array, y::size index,
-                   GLenum type, y::size length) const;
+  gl_buffer_set _buffer_set;
+  gl_texture_map _texture_map;
+  gl_shader_map _shader_map;
+  gl_program_map _program_map;
 
 };
 
@@ -257,7 +261,7 @@ GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint,
   glBufferData(target, size, data, usage_hint);
 
   _buffer_set.insert(buffer);
-  return GlBuffer<T, N>(*this, buffer, target);
+  return GlBuffer<T, N>(buffer, target);
 }
 
 template<typename T, y::size N>
@@ -271,8 +275,8 @@ void GlUtil::delete_buffer(const GlBuffer<T, N>& buffer)
 }
 
 template<typename T, y::size N>
-GlBuffer<T, N>::GlBuffer(const GlUtil& gl_util, GLuint handle, GLenum target)
-  : GlHandle(gl_util, handle)
+GlBuffer<T, N>::GlBuffer(GLuint handle, GLenum target)
+  : GlHandle(handle)
   , _target(target)
 {
 }

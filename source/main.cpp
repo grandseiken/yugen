@@ -85,7 +85,7 @@ int main(int argc, char** argv)
 
     gl.bind_window();
     post_program.bind();
-    post_program.bind_uniform("integral_scale_lock", 1);
+    post_program.bind_uniform("integral_scale_lock", true);
     post_program.bind_uniform("native_res",
         GLint(native_width), GLint(native_height));
     post_program.bind_uniform("screen_res",
