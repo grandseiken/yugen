@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+#include <boost/utility.hpp>
+
 class CellBlueprint;
 class Tileset;
 
@@ -18,24 +20,31 @@ struct Tile {
 
 };
 
-class Cell {
+class Cell : public boost::noncopyable {
 public:
 
   static const y::size cell_width = 40;
   static const y::size cell_height = 30;
 
+  // Number of background and foreground layers, not including the collision
+  // layer.
   static const y::size background_layers = 1;
   static const y::size foreground_layers = 1;
 
+  // Layer enumeration. 
   static const y::int8 layer_background = -1;
-  static const y::int8 layer_main = 0;
-  static const y::int8 layer_foreground = 1;
+  static const y::int8 layer_collision  =  0;
+  static const y::int8 layer_foreground =  1;
 
   Cell(const CellBlueprint& blueprint);
 
+  // Get the tile at a given position.
   const Tile& get_tile(y::int8 layer, y::size x, y::size y) const;
+
+  // Set the tile at a given position.
   /****/ void set_tile(y::int8 layer, y::size x, y::size y, const Tile& tile);
 
+  // Returns true iff the tileset is currently used for any tile.
   bool is_tileset_used(const Tileset& tileset) const;
 
 private:
@@ -47,15 +56,21 @@ private:
 
 };
 
-class CellBlueprint {
+class CellBlueprint : public boost::noncopyable {
 public:
 
   CellBlueprint();
 
+  // Get the tile at a given position.
   const Tile& get_tile(y::int8 layer, y::size x, y::size y) const;
+
+  // Set the tile at a given position.
   /****/ void set_tile(y::int8 layer, y::size x, y::size y, const Tile& tile);
 
+  // Returns true iff the tileset is currently used for any tile.
   bool is_tileset_used(const Tileset& tileset) const;
+
+  // Returns the number of tiles that use the tileset.
   y::size get_tileset_use_count(const Tileset& tileset) const;
 
 private:
