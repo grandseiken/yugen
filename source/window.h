@@ -3,8 +3,6 @@
 
 #include "common.h"
 
-#include <boost/utility.hpp>
-
 struct Resolution {
   Resolution();
 
@@ -21,7 +19,7 @@ namespace sf {
   class Event;
 }
 
-class Window : public boost::noncopyable {
+class Window : public y::no_copy {
 public:
 
   Window(const y::string& title, y::size default_bpp,

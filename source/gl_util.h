@@ -3,7 +3,6 @@
 
 #include "common.h"
 
-#include <boost/utility.hpp>
 #include <GL/glew.h>
 #include <SFML/OpenGL.hpp>
 
@@ -73,7 +72,7 @@ private:
 
 };
 
-class GlUtil : public boost::noncopyable {
+class GlUtil : public y::no_copy {
 
   typedef void (GlUtil::*bool_type)() const;
   void no_bool_comparison() const {}

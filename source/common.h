@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <boost/utility.hpp>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -9,6 +10,7 @@
 #include <vector>
 
 namespace y {
+
   typedef int8_t int8;
   typedef int16_t int16;
   typedef int32_t int32;
@@ -41,6 +43,9 @@ namespace y {
   {
     return unique<T>(t);
   }
+
+  typedef boost::noncopyable no_copy;
+
 }
 
 #endif

@@ -3,8 +3,6 @@
 
 #include "common.h"
 
-#include <boost/utility.hpp>
-
 class CellBlueprint;
 class Tileset;
 
@@ -20,7 +18,7 @@ struct Tile {
 
 };
 
-class Cell : public boost::noncopyable {
+class Cell : public y::no_copy {
 public:
 
   static const y::size cell_width = 40;
@@ -56,7 +54,7 @@ private:
 
 };
 
-class CellBlueprint : public boost::noncopyable {
+class CellBlueprint : public y::no_copy {
 public:
 
   CellBlueprint();
