@@ -58,12 +58,14 @@ Window::Window(const y::string& title, y::size default_bpp,
         std::cout << std::endl;
       }
     }
+    std::cout << std::endl;
 
     if (!supported_modes.empty()) {
       y::size input;
       std::cin >> input;
       if (input < supported_modes.size()) {
         _resolution = supported_modes[input];
+        default_fullscreen = true;
       }
       else {
         default_fullscreen = false;
@@ -73,13 +75,13 @@ Window::Window(const y::string& title, y::size default_bpp,
 
   // In fullscreen mode, find the closest mode to the given aspect ratio.
   if (default_fullscreen) {
-    float aspect_ratio = _resolution.width / _resolution.height;
+    float aspect_ratio = float(_resolution.width) / _resolution.height;
     float best_distance = 1000.f;
     y::size best_match = 0;
     Resolution best_resolution;
 
     for (const Resolution& r : supported_modes) {
-      float distance = abs(aspect_ratio - r.width / r.height);
+      float distance = fabs(aspect_ratio - float(r.width) / r.height);
       y::size match = (r == desktop) + (r.bpp == _resolution.bpp);
 
       bool best_so_far =
@@ -87,6 +89,7 @@ Window::Window(const y::string& title, y::size default_bpp,
           (distance == best_distance && match > best_match) ||
           (distance == best_distance && match == best_match &&
            r.width > best_resolution.width);
+
       if (best_so_far) {
         best_distance = distance;
         best_match = match;

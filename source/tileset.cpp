@@ -1,8 +1,9 @@
 #include "tileset.h"
+#include "gl_util.h"
 
-Tileset::Tileset(const Texture& texture)
+Tileset::Tileset(const GlTexture& texture)
   : _texture(texture)
-  , _width(0)
-  , _height(0)
+  , _width(texture.get_width() / tile_width)
+  , _height(texture.get_height() / tile_height)
 {
 }
