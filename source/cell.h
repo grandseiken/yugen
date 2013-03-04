@@ -1,10 +1,7 @@
 #ifndef CELL_H
 #define CELL_H
 
-#include "common/int_types.h"
-#include "common/map.h"
-#include "common/no_copy.h"
-#include "common/pointer.h"
+#include "common.h"
 
 class CellBlueprint;
 class Tileset;

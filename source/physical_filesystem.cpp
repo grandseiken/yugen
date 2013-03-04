@@ -1,5 +1,4 @@
 #include "physical_filesystem.h"
-#include "common/int_types.h"
 
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 #include <fstream>

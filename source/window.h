@@ -1,11 +1,7 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include "common/int_types.h"
-#include "common/no_copy.h"
-#include "common/pointer.h"
-#include "common/string.h"
-#include "common/vector.h"
+#include "common.h"
 
 struct Resolution {
   Resolution();

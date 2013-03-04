@@ -1,8 +1,7 @@
 #ifndef CELL_MAP_H
 #define CELL_MAP_H
 
-#include "common/int_types.h"
-#include "common/map.h"
+#include "common.h"
 
 class CellBlueprint;
 
