@@ -164,7 +164,7 @@ protected:
 private:
 
   // Check if uniform or attribute name exists in program.
-  // TODO: cache this. Make the type system better overall.
+  // TODO: cache this.
   bool check_name_exists(bool attribute, const y::string& name,
                          bool array, y::size index,
                          GLenum& type_output) const;

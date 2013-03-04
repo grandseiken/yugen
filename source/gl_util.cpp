@@ -403,6 +403,62 @@ bool GlProgram::check_name_exists(bool attribute, const y::string& name,
   return false;
 }
 
+void composite_type_to_base_and_length(GLenum type, GLenum& type_output,
+                                       y::size& length_output)
+{
+  length_output = 1;
+  type_output = 0;
+
+  switch (type) {
+    case GL_FLOAT_VEC4:
+      length_output = std::max(length_output, y::size(4));
+    case GL_FLOAT_VEC3:
+      length_output = std::max(length_output, y::size(3));
+    case GL_FLOAT_VEC2:
+      length_output = std::max(length_output, y::size(2));
+    case GL_FLOAT:
+      type_output = GL_FLOAT;
+      break;
+
+    case GL_INT_VEC4:
+      length_output = std::max(length_output, y::size(4));
+    case GL_INT_VEC3:
+      length_output = std::max(length_output, y::size(3));
+    case GL_INT_VEC2:
+      length_output = std::max(length_output, y::size(2));
+    case GL_INT:
+      type_output = GL_INT;
+      break;
+
+    case GL_UNSIGNED_INT_VEC4:
+      length_output = std::max(length_output, y::size(4));
+    case GL_UNSIGNED_INT_VEC3:
+      length_output = std::max(length_output, y::size(3));
+    case GL_UNSIGNED_INT_VEC2:
+      length_output = std::max(length_output, y::size(2));
+    case GL_UNSIGNED_INT:
+      type_output = GL_UNSIGNED_INT;
+      break;
+
+    case GL_BOOL_VEC4:
+      length_output = std::max(length_output, y::size(4));
+    case GL_BOOL_VEC3:
+      length_output = std::max(length_output, y::size(3));
+    case GL_BOOL_VEC2:
+      length_output = std::max(length_output, y::size(2));
+    case GL_BOOL:
+      type_output = GL_BOOL;
+      break;
+
+    case GL_DOUBLE:
+      type_output = GL_DOUBLE;
+      break;
+
+    default:
+      type_output = GL_INT;
+  }
+}
+
 bool GlProgram::check_match(bool attribute, const y::string& name,
                             bool array, y::size index,
                             GLenum type, y::size length) const
@@ -417,6 +473,20 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
     std::cerr << std::endl;
     return false;
   }
-  // TODO: figure out type stuff
+
+  GLenum name_base_type;
+  y::size name_length;
+  composite_type_to_base_and_length(name_type, name_base_type, name_length);
+
+  if (type != name_base_type) {
+    std::cerr << (attribute ? "Attribute" : "Uniform") <<
+        " " << name << " given incorrect type" << std::endl;
+    return false;
+  }
+  if (length != name_length) {
+    std::cerr << (attribute ? "Attribute" : "Uniform") <<
+        " " << name << " given incorrect length" << std::endl;
+    return false;
+  }
   return true;
 }
