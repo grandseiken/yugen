@@ -1,4 +1,5 @@
 #include "filesystem.h"
+#include "common/int_types.h"
 
 #include <algorithm>
 

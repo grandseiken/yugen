@@ -1,7 +1,7 @@
 #ifndef TILESET_H
 #define TILESET_H
 
-#include "common.h"
+#include "common/int_types.h"
 
 class GlTexture;
 

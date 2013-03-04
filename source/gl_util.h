@@ -1,7 +1,13 @@
 #ifndef GL_UTIL_H
 #define GL_UTIL_H
 
-#include "common.h"
+#include "common/int_types.h"
+#include "common/map.h"
+#include "common/no_copy.h"
+#include "common/pointer.h"
+#include "common/set.h"
+#include "common/string.h"
+#include "common/string_vector.h"
 
 #include <GL/glew.h>
 #include <SFML/OpenGL.hpp>

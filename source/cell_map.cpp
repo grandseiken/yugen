@@ -1,4 +1,5 @@
 #include "cell_map.h"
+#include "cell.h"
 
 #include <boost/functional/hash.hpp>
 

@@ -1,7 +1,8 @@
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
 
-#include "common.h"
+#include "common/string.h"
+#include "common/string_vector.h"
 
 // TODO: Errors or exceptions?
 class Filesystem {
