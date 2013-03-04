@@ -10,6 +10,13 @@ libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-wi
 
 change=0
 error=0
+for o in bin/*.o; do
+  base=$(basename `echo $o | cut -d . -f 1,2`)
+  if [ ! -f source/$base ]; then
+    rm $o
+    rm bin/$base.md5
+  fi
+done
 for cpp in source/*.cpp; do
   base=$(basename $cpp)
   include_graph[0]=$base
