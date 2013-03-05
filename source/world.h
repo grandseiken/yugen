@@ -7,7 +7,7 @@
 class World {
 public:
 
-  // Boundary width in cells around (0, 0) in the active window.
+  // Boundary width, in cells, around (0, 0) in the active window.
   static const y::size active_window_half_size = 1;
 
   // Initialise world with the given coord of the active map at (0, 0) in the
@@ -15,7 +15,15 @@ public:
   World(const CellMap& active_map, const CellCoord& active_coord);
 
   // Sets the active map with the given coord at (0, 0) in the active window.
+  // Avoids reloading cells whenever possible.
   void set_active_map(const CellMap& active_map, const CellCoord& active_coord);
+
+  // Sets the given coord to (0, 0) in the active window. Avoids reloading cells
+  // whenever possible.
+  void set_active_coord(const CellCoord& active_coord);
+
+  // Moves the active window. Avoids reloading cells whenever possible.
+  void move_active_window(const CellCoord& offset);
 
 private:
 

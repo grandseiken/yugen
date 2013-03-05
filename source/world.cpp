@@ -12,9 +12,23 @@ World::World(const CellMap& active_map, const CellCoord& active_coord)
 void World::set_active_map(const CellMap& active_map,
                            const CellCoord& active_coord)
 {
+  if (_active_map == &active_map) {
+    set_active_coord(active_coord);
+    return;
+  }
   _active_map = &active_map;
   _active_map_offset = -active_coord;
   update_active_window();
+}
+
+void World::set_active_coord(const CellCoord& active_coord)
+{
+  move_active_window(_active_map_offset + active_coord);
+}
+
+void World::move_active_window(const CellCoord& offset)
+{
+  // TODO: implement without unloading cells that are still in view.
 }
 
 y::size World::to_internal_index(y::int32 active_window_x,
