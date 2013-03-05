@@ -15,7 +15,6 @@ int main(int argc, char** argv)
   if (!gl) {
     return 1;
   }
-
   GlFramebuffer framebuffer = gl.make_framebuffer(native_width, native_height);
 
   const GLfloat vertex_data[] = {

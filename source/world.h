@@ -31,6 +31,9 @@ private:
   static y::size to_internal_index(y::int32 active_window_x,
                                    y::int32 active_window_y);
 
+  const CellBlueprint* active_window_target(y::int32 active_window_x,
+                                            y::int32 active_window_y) const;
+
   // Update all cells in the active window.
   void update_active_window();
 
