@@ -107,6 +107,30 @@ private:
 
 };
 
+class GlFramebuffer : public GlHandle {
+public:
+
+  virtual ~GlFramebuffer() {}
+
+  const GlTexture& get_texture() const;
+
+  // Render to framebuffer, rather than window.
+  void bind() const;
+
+protected:
+
+  friend class GlUtil;
+  GlFramebuffer(GLuint handle, const GlTexture& texture, GLuint depth);
+
+  GLuint get_depth_handle() const;
+
+private:
+
+  GlTexture _texture;
+  GLuint _depth_handle;
+
+};
+
 class GlShader : public GlHandle {
 public:
 
@@ -184,8 +208,7 @@ class GlUtil : public y::no_copy {
 
 public:
 
-  GlUtil(const Filesystem& filesystem, const Window& window,
-         GLsizei width, GLsizei height);
+  GlUtil(const Filesystem& filesystem, const Window& window);
   ~GlUtil();
 
   // Returns true iff everything was initialised without problems.
@@ -198,6 +221,11 @@ public:
   // Delete an existing buffer.
   template<typename T, y::size N>
   void delete_buffer(const GlBuffer<T, N>& buffer);
+
+  // Make an OpenGL framebuffer.
+  GlFramebuffer make_framebuffer(y::size width, y::size height);
+  // Delete an existing framebuffer.
+  void delete_framebuffer(const GlFramebuffer& framebuffer);
 
   // Load texture from file.
   GlTexture make_texture(const y::string& filename);
@@ -220,11 +248,7 @@ public:
   // Delete preloaded program.
   void delete_program(const y::string_vector& shaders);
 
-  // Get the framebuffer.
-  GlTexture get_framebuffer() const;
-  // Render to internal framebuffer.
-  void bind_framebuffer() const;
-  // Render to window.
+  // Render to window, rather than any framebuffer.
   void bind_window() const;
 
 private:
@@ -234,17 +258,16 @@ private:
   const Filesystem& _filesystem;
   const Window& _window;
   
-  GLuint _framebuffer;
-  GLuint _framebuffer_texture;
-  GLsizei _framebuffer_width;
-  GLsizei _framebuffer_height;
-
-  typedef y::set<GLuint> gl_buffer_set;
+  typedef y::set<GLuint> gl_handle_set;
   typedef y::map<y::string, GlTexture> gl_texture_map;
   typedef y::map<y::string, GlShader> gl_shader_map;
   typedef y::map<y::string, GlProgram> gl_program_map;
 
-  gl_buffer_set _buffer_set;
+  gl_handle_set _buffer_set;
+  gl_handle_set _framebuffer_set;
+  gl_handle_set _framebuffer_texture_set;
+  gl_handle_set _framebuffer_depth_set;
+
   gl_texture_map _texture_map;
   gl_shader_map _shader_map;
   gl_program_map _program_map;

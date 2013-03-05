@@ -30,15 +30,196 @@ GLuint GlHandle::get_handle() const
   return _handle;
 }
 
-GlUtil::GlUtil(const Filesystem& filesystem, const Window& window,
-               GLsizei width, GLsizei height)
+GlTexture::GlTexture(GLuint handle, y::size width, y::size height)
+  : GlHandle(handle)
+  , _width(width)
+  , _height(height)
+{
+}
+
+void GlTexture::bind(GLenum target) const
+{
+  glActiveTexture(target);
+  glBindTexture(GL_TEXTURE_2D, get_handle());
+}
+
+y::size GlTexture::get_width() const
+{
+  return _width;
+}
+
+y::size GlTexture::get_height() const
+{
+  return _height;
+}
+
+GlFramebuffer::GlFramebuffer(GLuint handle, const GlTexture& texture,
+                             GLuint depth)
+  : GlHandle(handle)
+  , _texture(texture)
+  , _depth_handle(depth)
+{
+}
+
+const GlTexture& GlFramebuffer::get_texture() const
+{
+  return _texture; 
+}
+
+void GlFramebuffer::bind() const
+{
+  glBindFramebuffer(GL_FRAMEBUFFER, get_handle());
+  glViewport(0, 0, get_texture().get_width(), get_texture().get_height());
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+GLuint GlFramebuffer::get_depth_handle() const
+{
+  return _depth_handle;
+}
+
+GlShader::GlShader(GLuint handle)
+  : GlHandle(handle)
+{
+}
+
+GlProgram::GlProgram(GLuint handle)
+  : GlHandle(handle)
+{
+}
+
+void GlProgram::bind() const
+{
+  glUseProgram(get_handle());
+}
+
+bool GlProgram::check_name_exists(bool attribute, const y::string& name,
+                                  bool array, y::size index,
+                                  GLenum& type_output) const
+{
+  GLint name_count;
+  glGetProgramiv(
+      get_handle(), attribute ? GL_ACTIVE_ATTRIBUTES : GL_ACTIVE_UNIFORMS,
+      &name_count);
+
+  GLint name_length;
+  glGetProgramiv(
+      get_handle(),
+      attribute ? GL_ACTIVE_ATTRIBUTE_MAX_LENGTH : GL_ACTIVE_UNIFORM_MAX_LENGTH,
+      &name_length);
+
+  y::unique<char[]> buffer(new char[name_length]);
+  GLint array_size;
+  for (GLint i = 0; i < name_count; ++i) {
+    if (attribute) {
+      glGetActiveAttrib(get_handle(), i, name_length, y::null,
+                        &array_size, &type_output, buffer.get());
+    }
+    else {
+      glGetActiveUniform(get_handle(), i, name_length, y::null,
+                         &array_size, &type_output, buffer.get());
+    }
+    if (name == buffer.get() &&
+        ((!array && array_size == 1) ||
+         (array && signed(index) < array_size))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void composite_type_to_base_and_length(GLenum type, GLenum& type_output,
+                                       y::size& length_output)
+{
+  length_output = 1;
+  type_output = 0;
+
+  switch (type) {
+    case GL_FLOAT_VEC4:
+      length_output = std::max(length_output, y::size(4));
+    case GL_FLOAT_VEC3:
+      length_output = std::max(length_output, y::size(3));
+    case GL_FLOAT_VEC2:
+      length_output = std::max(length_output, y::size(2));
+    case GL_FLOAT:
+      type_output = GL_FLOAT;
+      break;
+
+    case GL_INT_VEC4:
+      length_output = std::max(length_output, y::size(4));
+    case GL_INT_VEC3:
+      length_output = std::max(length_output, y::size(3));
+    case GL_INT_VEC2:
+      length_output = std::max(length_output, y::size(2));
+    case GL_INT:
+      type_output = GL_INT;
+      break;
+
+    case GL_UNSIGNED_INT_VEC4:
+      length_output = std::max(length_output, y::size(4));
+    case GL_UNSIGNED_INT_VEC3:
+      length_output = std::max(length_output, y::size(3));
+    case GL_UNSIGNED_INT_VEC2:
+      length_output = std::max(length_output, y::size(2));
+    case GL_UNSIGNED_INT:
+      type_output = GL_UNSIGNED_INT;
+      break;
+
+    case GL_BOOL_VEC4:
+      length_output = std::max(length_output, y::size(4));
+    case GL_BOOL_VEC3:
+      length_output = std::max(length_output, y::size(3));
+    case GL_BOOL_VEC2:
+      length_output = std::max(length_output, y::size(2));
+    case GL_BOOL:
+      type_output = GL_BOOL;
+      break;
+
+    case GL_DOUBLE:
+      type_output = GL_DOUBLE;
+      break;
+
+    default:
+      type_output = GL_INT;
+  }
+}
+
+bool GlProgram::check_match(bool attribute, const y::string& name,
+                            bool array, y::size index,
+                            GLenum type, y::size length) const
+{
+  GLenum name_type;
+  if (!check_name_exists(attribute, name, array, index, name_type)) {
+    std::cerr << "Undefined " <<
+        (attribute ? "attribute" : "uniform") << " " << name;
+    if (array) {
+      std::cerr << "[" << index << "]";
+    } 
+    std::cerr << std::endl;
+    return false;
+  }
+
+  GLenum name_base_type;
+  y::size name_length;
+  composite_type_to_base_and_length(name_type, name_base_type, name_length);
+
+  if (type != name_base_type) {
+    std::cerr << (attribute ? "Attribute" : "Uniform") <<
+        " " << name << " given incorrect type" << std::endl;
+    return false;
+  }
+  if (length != name_length) {
+    std::cerr << (attribute ? "Attribute" : "Uniform") <<
+        " " << name << " given incorrect length" << std::endl;
+    return false;
+  }
+  return true;
+}
+
+GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
   : _setup_ok(false)
   , _filesystem(filesystem)
   , _window(window)
-  , _framebuffer(0)
-  , _framebuffer_texture(0)
-  , _framebuffer_width(width)
-  , _framebuffer_height(height)
 {
   GLenum ok = glewInit();
   if (ok != GLEW_OK) {
@@ -54,35 +235,6 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window,
 
   if (!GLEW_EXT_framebuffer_object) {
     std::cerr << "OpenGL framebuffer object not available" << std::endl;
-    return;
-  }
-
-  glGenFramebuffers(1, &_framebuffer);
-  glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
-
-  glGenTextures(1, &_framebuffer_texture);
-  glBindTexture(GL_TEXTURE_2D, _framebuffer_texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height,
-               0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                         GL_TEXTURE_2D, _framebuffer_texture, 0);
-  GLenum draw_buffers = GL_COLOR_ATTACHMENT0;
-  glDrawBuffers(1, &draw_buffers);
-
-  GLuint framebuffer_depth;
-  glGenRenderbuffers(1, &framebuffer_depth);
-  glBindRenderbuffer(GL_RENDERBUFFER, framebuffer_depth);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                            GL_RENDERBUFFER, framebuffer_depth);
-
-  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    std::cerr << "Framebuffer isn't complete" << std::endl;
     return;
   }
 
@@ -105,6 +257,15 @@ GlUtil::~GlUtil()
   for (GLuint buffer : _buffer_set) {
     glDeleteBuffers(1, &buffer);
   }
+  for (GLuint framebuffer : _framebuffer_set) {
+    glDeleteFramebuffers(1, &framebuffer);
+  }
+  for (GLuint texture : _framebuffer_texture_set) {
+    glDeleteTextures(1, &texture);
+  }
+  for (GLuint depth : _framebuffer_depth_set) {
+    glDeleteRenderbuffers(1, &depth);
+  }
   for (const auto& pair : _texture_map) {
     GLuint handle = pair.second.get_handle();
     glDeleteTextures(1, &handle);
@@ -120,6 +281,70 @@ GlUtil::~GlUtil()
 GlUtil::operator bool_type() const
 {
   return _setup_ok ? &GlUtil::no_bool_comparison : 0;
+}
+
+GlFramebuffer GlUtil::make_framebuffer(y::size width, y::size height)
+{
+  GLuint framebuffer;
+  glGenFramebuffers(1, &framebuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+  GLuint texture;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height,
+               0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                         GL_TEXTURE_2D, texture, 0);
+  GLenum draw_buffers = GL_COLOR_ATTACHMENT0;
+  glDrawBuffers(1, &draw_buffers);
+
+  GLuint depth;
+  glGenRenderbuffers(1, &depth);
+  glBindRenderbuffer(GL_RENDERBUFFER, depth);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                            GL_RENDERBUFFER, depth);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    std::cerr << "Framebuffer isn't complete" << std::endl;
+    glDeleteFramebuffers(1, &framebuffer);
+    glDeleteTextures(1, &texture);
+    glDeleteRenderbuffers(1, &depth);
+    return GlFramebuffer(0, GlTexture(0, 0, 0), 0);
+  }
+
+  _framebuffer_set.insert(framebuffer);
+  _framebuffer_texture_set.insert(texture);
+  _framebuffer_depth_set.insert(depth);
+  return GlFramebuffer(framebuffer, GlTexture(texture, width, height), depth);
+}
+
+void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
+{
+  auto it = _framebuffer_set.find(framebuffer.get_handle());
+  if (it != _framebuffer_set.end()) {
+    glDeleteFramebuffers(1, &*it);
+    _framebuffer_set.erase(it);
+  }
+
+  it = _framebuffer_texture_set.find(
+      framebuffer.get_texture().get_handle());
+  if (it != _framebuffer_texture_set.end()) {
+    glDeleteTextures(1, &*it);
+    _framebuffer_texture_set.erase(it);
+  }
+
+  it = _framebuffer_depth_set.find(framebuffer.get_depth_handle());
+  if (it != _framebuffer_depth_set.end()) {
+    glDeleteRenderbuffers(1, &*it);
+    _framebuffer_depth_set.erase(it);
+  }
 }
 
 GlTexture GlUtil::make_texture(const y::string& filename)
@@ -309,184 +534,10 @@ void GlUtil::delete_program(const y::string_vector& shaders)
   }
 }
 
-GlTexture GlUtil::get_framebuffer() const
-{
-  return GlTexture(_framebuffer_texture,
-                   _framebuffer_width, _framebuffer_height);
-}
-
-void GlUtil::bind_framebuffer() const
-{
-  glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
-  glViewport(0, 0, _framebuffer_width, _framebuffer_height);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
 void GlUtil::bind_window() const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   const Resolution& mode = _window.get_mode();
   glViewport(0, 0, mode.width, mode.height);
   glClear(GL_COLOR_BUFFER_BIT);
-}
-
-GlTexture::GlTexture(GLuint handle, y::size width, y::size height)
-  : GlHandle(handle)
-  , _width(width)
-  , _height(height)
-{
-}
-
-void GlTexture::bind(GLenum target) const
-{
-  glActiveTexture(target);
-  glBindTexture(GL_TEXTURE_2D, get_handle());
-}
-
-y::size GlTexture::get_width() const
-{
-  return _width;
-}
-
-y::size GlTexture::get_height() const
-{
-  return _height;
-}
-
-GlShader::GlShader(GLuint handle)
-  : GlHandle(handle)
-{
-}
-
-GlProgram::GlProgram(GLuint handle)
-  : GlHandle(handle)
-{
-}
-
-void GlProgram::bind() const
-{
-  glUseProgram(get_handle());
-}
-
-bool GlProgram::check_name_exists(bool attribute, const y::string& name,
-                                  bool array, y::size index,
-                                  GLenum& type_output) const
-{
-  GLint name_count;
-  glGetProgramiv(
-      get_handle(), attribute ? GL_ACTIVE_ATTRIBUTES : GL_ACTIVE_UNIFORMS,
-      &name_count);
-
-  GLint name_length;
-  glGetProgramiv(
-      get_handle(),
-      attribute ? GL_ACTIVE_ATTRIBUTE_MAX_LENGTH : GL_ACTIVE_UNIFORM_MAX_LENGTH,
-      &name_length);
-
-  y::unique<char[]> buffer(new char[name_length]);
-  GLint array_size;
-  for (GLint i = 0; i < name_count; ++i) {
-    if (attribute) {
-      glGetActiveAttrib(get_handle(), i, name_length, y::null,
-                        &array_size, &type_output, buffer.get());
-    }
-    else {
-      glGetActiveUniform(get_handle(), i, name_length, y::null,
-                         &array_size, &type_output, buffer.get());
-    }
-    if (name == buffer.get() &&
-        ((!array && array_size == 1) ||
-         (array && signed(index) < array_size))) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void composite_type_to_base_and_length(GLenum type, GLenum& type_output,
-                                       y::size& length_output)
-{
-  length_output = 1;
-  type_output = 0;
-
-  switch (type) {
-    case GL_FLOAT_VEC4:
-      length_output = std::max(length_output, y::size(4));
-    case GL_FLOAT_VEC3:
-      length_output = std::max(length_output, y::size(3));
-    case GL_FLOAT_VEC2:
-      length_output = std::max(length_output, y::size(2));
-    case GL_FLOAT:
-      type_output = GL_FLOAT;
-      break;
-
-    case GL_INT_VEC4:
-      length_output = std::max(length_output, y::size(4));
-    case GL_INT_VEC3:
-      length_output = std::max(length_output, y::size(3));
-    case GL_INT_VEC2:
-      length_output = std::max(length_output, y::size(2));
-    case GL_INT:
-      type_output = GL_INT;
-      break;
-
-    case GL_UNSIGNED_INT_VEC4:
-      length_output = std::max(length_output, y::size(4));
-    case GL_UNSIGNED_INT_VEC3:
-      length_output = std::max(length_output, y::size(3));
-    case GL_UNSIGNED_INT_VEC2:
-      length_output = std::max(length_output, y::size(2));
-    case GL_UNSIGNED_INT:
-      type_output = GL_UNSIGNED_INT;
-      break;
-
-    case GL_BOOL_VEC4:
-      length_output = std::max(length_output, y::size(4));
-    case GL_BOOL_VEC3:
-      length_output = std::max(length_output, y::size(3));
-    case GL_BOOL_VEC2:
-      length_output = std::max(length_output, y::size(2));
-    case GL_BOOL:
-      type_output = GL_BOOL;
-      break;
-
-    case GL_DOUBLE:
-      type_output = GL_DOUBLE;
-      break;
-
-    default:
-      type_output = GL_INT;
-  }
-}
-
-bool GlProgram::check_match(bool attribute, const y::string& name,
-                            bool array, y::size index,
-                            GLenum type, y::size length) const
-{
-  GLenum name_type;
-  if (!check_name_exists(attribute, name, array, index, name_type)) {
-    std::cerr << "Undefined " <<
-        (attribute ? "attribute" : "uniform") << " " << name;
-    if (array) {
-      std::cerr << "[" << index << "]";
-    } 
-    std::cerr << std::endl;
-    return false;
-  }
-
-  GLenum name_base_type;
-  y::size name_length;
-  composite_type_to_base_and_length(name_type, name_base_type, name_length);
-
-  if (type != name_base_type) {
-    std::cerr << (attribute ? "Attribute" : "Uniform") <<
-        " " << name << " given incorrect type" << std::endl;
-    return false;
-  }
-  if (length != name_length) {
-    std::cerr << (attribute ? "Attribute" : "Uniform") <<
-        " " << name << " given incorrect length" << std::endl;
-    return false;
-  }
-  return true;
 }

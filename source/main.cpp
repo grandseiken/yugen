@@ -11,10 +11,12 @@ int main(int argc, char** argv)
 
   Window window("Crunk Yugen", 24, native_width, native_height, true, false);
   PhysicalFilesystem filesystem("data");
-  GlUtil gl(filesystem, window, native_width, native_height);
+  GlUtil gl(filesystem, window);
   if (!gl) {
     return 1;
   }
+
+  GlFramebuffer framebuffer = gl.make_framebuffer(native_width, native_height);
 
   const GLfloat vertex_data[] = {
       -1.f, -1.f,
@@ -72,7 +74,7 @@ int main(int argc, char** argv)
       direction = !direction;
     }
 
-    gl.bind_framebuffer();
+    framebuffer.bind();
     hello_program.bind();
     hello_program.bind_uniform("fade_factor", fade_factor);
     textures[1].bind(GL_TEXTURE0);
@@ -90,7 +92,7 @@ int main(int argc, char** argv)
         GLint(native_width), GLint(native_height));
     post_program.bind_uniform("screen_res",
         GLint(screen.width), GLint(screen.height));
-    gl.get_framebuffer().bind(GL_TEXTURE0);
+    framebuffer.get_texture().bind(GL_TEXTURE0);
     post_program.bind_uniform("framebuffer", 0);
     element_buffer.draw_elements(GL_TRIANGLE_STRIP, 4);
 
