@@ -12,7 +12,7 @@ change=0
 error=0
 for o in bin/*.o; do
   base=$(basename `echo $o | cut -d . -f 1,2`)
-  if [ ! -f source/$base ]; then
+  if [ ! -f source/$base ] && [ -f $o ]; then
     rm $o
     rm bin/$base.md5
   fi

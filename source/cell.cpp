@@ -19,6 +19,31 @@ bool CellCoord::operator!=(const CellCoord& cell_coord) const
   return !operator==(cell_coord);
 }
 
+CellCoord CellCoord::operator+(const CellCoord& cell_coord) const
+{
+  return CellCoord(x + cell_coord.x, y + cell_coord.y);
+}
+
+CellCoord CellCoord::operator-(const CellCoord& cell_coord) const
+{
+  return CellCoord(x - cell_coord.x, y - cell_coord.y);
+}
+
+CellCoord CellCoord::operator-() const
+{
+  return CellCoord(-x, -y);
+}
+
+CellCoord& CellCoord::operator+=(const CellCoord& cell_coord)
+{
+  return operator=(operator+(cell_coord));
+}
+
+CellCoord& CellCoord::operator-=(const CellCoord& cell_coord)
+{
+  return operator=(operator-(cell_coord));
+}
+
 namespace std {
 
   y::size hash<CellCoord>::operator()(const CellCoord& cell_coord) const

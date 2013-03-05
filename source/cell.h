@@ -13,6 +13,13 @@ struct CellCoord {
   bool operator==(const CellCoord& cell_coord) const;
   bool operator!=(const CellCoord& cell_coord) const;
 
+  CellCoord operator+(const CellCoord& cell_coord) const;
+  CellCoord operator-(const CellCoord& cell_coord) const;
+  CellCoord operator-() const;
+
+  CellCoord& operator+=(const CellCoord& cell_coord);
+  CellCoord& operator-=(const CellCoord& cell_coord);
+
   y::int32 x;
   y::int32 y;
 
@@ -27,7 +34,7 @@ namespace std {
 
 }
 
-class CellMap {
+class CellMap : public y::no_copy {
 public:
 
   bool is_coord_used(const CellCoord& cell_coord) const;
@@ -41,7 +48,8 @@ public:
 
 private:
 
-  y::map<CellCoord, CellBlueprint*> _map;
+  typedef y::map<CellCoord, CellBlueprint*> blueprint_map;
+  blueprint_map _map;
 
 };
 
