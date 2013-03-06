@@ -4,7 +4,7 @@
 #include "common.h"
 #include "cell.h"
 
-class World {
+class WorldWindow {
 public:
 
   // Boundary width, in cells, around (0, 0) in the active window.
@@ -12,7 +12,7 @@ public:
 
   // Initialise world with the given coord of the active map at (0, 0) in the
   // active window.
-  World(const CellMap& active_map, const CellCoord& active_coord);
+  WorldWindow(const CellMap& active_map, const CellCoord& active_coord);
 
   // Sets the active map with the given coord at (0, 0) in the active window.
   // Avoids reloading cells whenever possible.
@@ -24,6 +24,21 @@ public:
 
   // Moves the active window. Avoids reloading cells whenever possible.
   void move_active_window(const CellCoord& offset);
+
+  // Get (possibly null) blueprint at (x, y) in
+  // [-half_width, half_width] * [-half_width, half_width].
+  const CellBlueprint* get_active_window_blueprint(y::int32 x,
+                                                   y::int32 y) const;
+
+  // Get (possibly null) blueprint at (0, 0).
+  const CellBlueprint* get_active_window_blueprint() const;
+
+  // Get (possibly null) cell at (x, y) in
+  // [-half_width, half_width] * [-half_width, half_width].
+  Cell* get_active_window_cell(y::int32 x, y::int32 y) const;
+
+  // Get (possibly null) cell at (0, 0).
+  Cell* get_active_window_cell() const;
 
 private:
 
@@ -55,6 +70,18 @@ private:
 
   typedef y::unique<ActiveWindowEntry[]> active_window;
   active_window _active_window;
+
+};
+
+class World {
+public:
+
+  World();
+
+private:
+
+  CellMap _test_map;
+  WorldWindow _window;
 
 };
 

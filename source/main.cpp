@@ -1,11 +1,14 @@
 #include "gl_util.h"
 #include "physical_filesystem.h"
 #include "window.h"
+#include "world.h"
 
 #include <SFML/Window.hpp>
 
 int main(int argc, char** argv)
 {
+  World world;
+  
   const y::size native_width = 640;
   const y::size native_height = 360;
 
