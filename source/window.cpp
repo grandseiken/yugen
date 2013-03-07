@@ -109,6 +109,11 @@ Window::Window(const y::string& title, y::size default_bpp,
     }
   }
 
+  if (_resolution.width == 0 || _resolution.height == 0) { 
+    _resolution.width = desktop.width / 2;
+    _resolution.height = desktop.height / 2;
+  }
+
   sf::ContextSettings settings;
   settings.depthBits = 0;
   settings.stencilBits = 0;

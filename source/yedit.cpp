@@ -7,7 +7,7 @@
 
 int main(int argc, char** argv)
 {
-  Window window("Crunk Yedit", 24, 0, 0, true, true);
+  Window window("Crunk Yedit", 24, 0, 0, false, true);
   PhysicalFilesystem filesystem("data");
   GlUtil gl(filesystem, window);
   if (!gl) {
