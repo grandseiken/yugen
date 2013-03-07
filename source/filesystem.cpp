@@ -179,24 +179,36 @@ bool Filesystem::is_directory(const y::string& path) const
   return is_directory_internal(cpath);
 }
 
-void Filesystem::read_file(y::string& output,
+bool Filesystem::read_file(y::string& output,
                            const y::string& path) const
 {
   y::string cpath;
   if (!canonicalise_path(cpath, path) || !is_file_internal(cpath)) {
-    return;
+    return false;
   }
   read_file_internal(output, cpath);
+  return true;
 }
 
-void Filesystem::write_file(const y::string& data,
+bool Filesystem::write_file(const y::string& data,
                             const y::string& path)
 {
   y::string cpath;
   if (!canonicalise_path(cpath, path) || is_directory_internal(cpath)) {
-    return;
+    return false;
   }
   write_file_internal(data, cpath);
+  return true;
+}
+
+bool Filesystem::basename(y::string& output, const y::string& path) const
+{
+  y::string cpath;
+  if (!canonicalise_path(cpath, path)) {
+    return false;
+  }
+  output = path.substr(path.find_last_of('/') + 1);
+  return true;
 }
 
 bool Filesystem::canonicalise_path(y::string& output,

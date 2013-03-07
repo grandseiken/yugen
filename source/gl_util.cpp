@@ -239,10 +239,10 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
   }
 
   y::string_vector shaders;
-  _filesystem.list_pattern(shaders, "shaders/**.v.glsl");
-  _filesystem.list_pattern(shaders, "shaders/**.f.glsl");
-  _filesystem.list_pattern(shaders, "shaders/**.v");
-  _filesystem.list_pattern(shaders, "shaders/**.f");
+  _filesystem.list_pattern(shaders, "/shaders/**.v.glsl");
+  _filesystem.list_pattern(shaders, "/shaders/**.f.glsl");
+  _filesystem.list_pattern(shaders, "/shaders/**.v");
+  _filesystem.list_pattern(shaders, "/shaders/**.f");
 
   _setup_ok = true;
   for (const y::string& shader : shaders) {

@@ -23,7 +23,7 @@ public:
   // Lists all files and subdirectories under a directory.
   /*****/ void list_directory_recursive(y::string_vector& output,
                                         const y::string& path) const;
-        
+
   // Returns true iff the given path exists.
   /*****/ bool exists(const y::string& path) const;
 
@@ -34,12 +34,15 @@ public:
   /*****/ bool is_directory(const y::string& path) const;
 
   // Reads the given file in as a string.
-  /*****/ void read_file(y::string& output,
+  /*****/ bool read_file(y::string& output,
                          const y::string& path) const;
 
   // Creates or overwrites the given file with the given contents.
-  /*****/ void write_file(const y::string& data,
+  /*****/ bool write_file(const y::string& data,
                           const y::string& path);
+
+  // Returns the last component of a path.
+  /*****/ bool basename(y::string& output, const y::string& path) const;
 
 protected:
 

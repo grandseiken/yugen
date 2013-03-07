@@ -1,3 +1,4 @@
+#include "databank.h"
 #include "gl_util.h"
 #include "physical_filesystem.h"
 #include "window.h"
@@ -12,6 +13,7 @@ int main(int argc, char** argv)
   if (!gl) {
     return 1;
   }
+  Databank databank(filesystem, gl);
 
   const GLfloat vertex_data[] = {
       -1.f, -1.f,
