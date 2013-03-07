@@ -6,12 +6,30 @@ then
 fi
 
 gcc="g++-4.7"
+targets[0]="yugen"
+targets[1]="yedit"
+targets_size=2
+
 cflag="-O3 -Wall -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include"
 lflag="-O3 -Wall -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib"
 libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
 
+compile_targets_size=$targets_size
 if [ $# -gt 0 ]; then
-  gcc=$1
+  compile_targets_size=$#
+  i=0
+  while [ $i -lt $compile_targets_size ]; do
+    let j=$i+1
+    compile_targets[$i]=${!j}
+    let i=$i+1
+  done 
+else
+  compile_targets_size=$targets_size
+  i=0
+  while [ $i -lt $targets_size ]; do
+    compile_targets[$i]=${targets[$i]}
+    let i=$i+1
+  done
 fi
 
 change=0
@@ -74,19 +92,39 @@ for cpp in source/*.cpp; do
     change=1
   fi
 done
-if [ $error -eq 0 ]; then
-  if [ $change -eq 1 ] || [ ! -f bin/yugen.md5 ]; then
-    echo "Linking..."
-    $gcc $lflag -o bin/yugen bin/*.o $libs
+
+if [ ! $error -eq 0 ]; then
+  exit 1
+fi
+i=0
+while [ $i -lt $compile_targets_size ]; do
+  target=${compile_targets[$i]}
+  objects=""
+  for o in bin/*.o; do
+    base=$(basename `echo $o | cut -d . -f 1,2`)
+    j=0
+    excise=0
+    while [ $j -lt $targets_size ]; do
+      if [[ $base == ${targets[$j]}.cpp ]] && [[ $base != $target.cpp ]]; then
+        excise=1
+      fi
+      let j=$j+1
+    done
+    if [ $excise -ne 1 ]; then
+      objects="$o $objects"
+    fi
+  done
+  if [ $change -eq 1 ] || [ ! -f bin/$target.md5 ]; then
+    echo "Linking $target..."
+    $gcc $lflag -o bin/$target $objects $libs
     if [ $? -eq 0 ]; then
-      md5sum bin/yugen > bin/yugen.md5
-    elif [ -f bin/yugen.md5 ]; then
-      rm bin/yugen.md5
+      md5sum bin/$target > bin/$target.md5
+    elif [ -f bin/$target.md5 ]; then
+      rm bin/$target.md5
       exit 1
     fi
   else
-    echo "Up to date: yugen"
+    echo "Up to date: $target"
   fi
-else
-  exit 1
-fi
+  let i=$i+1
+done

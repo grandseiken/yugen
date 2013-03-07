@@ -36,10 +36,6 @@ Window::Window(const y::string& title, y::size default_bpp,
   _resolution.width = default_width;
   _resolution.height = default_height;
   _resolution.bpp = default_bpp;
-  if (!default_width || !default_height) {
-    _resolution.width = 640;
-    _resolution.height = 480;
-  }
 
   // Let the user choose the resolution.
   if (!skip_choice) { 
@@ -75,7 +71,8 @@ Window::Window(const y::string& title, y::size default_bpp,
 
   // In fullscreen mode, find the closest mode to the given aspect ratio.
   if (default_fullscreen) {
-    float aspect_ratio = float(_resolution.width) / _resolution.height;
+    float aspect_ratio = _resolution.height ?
+        float(_resolution.width) / _resolution.height : 0.f;
     float best_distance = 1000.f;
     y::size best_match = 0;
     Resolution best_resolution;
@@ -84,11 +81,18 @@ Window::Window(const y::string& title, y::size default_bpp,
       float distance = fabs(aspect_ratio - float(r.width) / r.height);
       y::size match = (r == desktop) + (r.bpp == _resolution.bpp);
 
-      bool best_so_far =
-          distance < best_distance ||
-          (distance == best_distance && match > best_match) ||
-          (distance == best_distance && match == best_match &&
-           r.width > best_resolution.width);
+      bool best_so_far = false;
+      if (_resolution.height) {
+        best_so_far =
+            distance < best_distance ||
+            (distance == best_distance && match > best_match) ||
+            (distance == best_distance && match == best_match &&
+             r.width > best_resolution.width);
+      }
+      else {
+        best_so_far = match > best_match ||
+            (match == best_match && r.width > best_resolution.width);
+      }
 
       if (best_so_far) {
         best_distance = distance;
