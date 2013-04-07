@@ -14,6 +14,15 @@ int main(int argc, char** argv)
     return 1;
   }
   Databank databank(filesystem, gl);
+  
+  GlTexture font = gl.make_texture("/font.png");
+  const GLfloat text_data[] = {
+        16.f, 16.f,
+       640.f, 16.f,
+        16.f, 24.f,
+       640.f, 24.f};
+  auto text_buffer = gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, text_data, sizeof(text_data));
 
   const GLfloat vertex_data[] = {
       -1.f, -1.f,
@@ -39,7 +48,11 @@ int main(int argc, char** argv)
   shaders.push_back("/shaders/hello.v.glsl");
   shaders.push_back("/shaders/hello.f.glsl");
   GlProgram hello_program = gl.make_program(shaders);
-  hello_program.bind_attribute("position", vertex_buffer);
+
+  shaders.clear();
+  shaders.push_back("/shaders/text.v.glsl");
+  shaders.push_back("/shaders/text.f.glsl");
+  GlProgram text_program = gl.make_program(shaders);
 
   bool running = true;
   bool direction = true;
@@ -67,11 +80,30 @@ int main(int argc, char** argv)
 
     gl.bind_window();
     hello_program.bind();
+    hello_program.bind_attribute("position", vertex_buffer);
     hello_program.bind_uniform("fade_factor", fade_factor);
     textures[1].bind(GL_TEXTURE0);
     textures[2].bind(GL_TEXTURE1);
     hello_program.bind_uniform(0, "textures", 0);
     hello_program.bind_uniform(1, "textures", 1);
+    element_buffer.draw_elements(GL_TRIANGLE_STRIP, 4);
+
+    const Resolution& screen = window.get_mode();
+    const y::string str = "Hello, world!";
+    text_program.bind();
+    text_program.bind_attribute("pixels", text_buffer);
+    text_program.bind_uniform("resolution",
+        GLint(screen.width), GLint(screen.height));
+    text_program.bind_uniform("origin",
+        GLint(text_data[0]), GLint(text_data[0]));
+    for (y::size i = 0; i < 1024; ++i) {
+      text_program.bind_uniform(i, "string",
+          GLint(i < str.length() ? str[i] : 0));
+    }
+    font.bind(GL_TEXTURE0);
+    text_program.bind_uniform("font", 0);
+    text_program.bind_uniform("font_size", GLint(8), GLint(8));
+    text_program.bind_uniform("colour", 0.0f, 0.0f, 0.0f, 1.0f);
     element_buffer.draw_elements(GL_TRIANGLE_STRIP, 4);
 
     window.display();

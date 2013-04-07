@@ -250,6 +250,9 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
       _setup_ok = false;
     }
   }
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 GlUtil::~GlUtil()

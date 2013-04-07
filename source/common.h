@@ -4,6 +4,7 @@
 #include <boost/utility.hpp>
 #include <cstddef>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -23,6 +24,7 @@ namespace y {
 
   typedef std::size_t size;
   typedef std::string string;
+  typedef std::stringstream sstream;
 
   template<typename T>
   using vector = std::vector<T>;
