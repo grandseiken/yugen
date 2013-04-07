@@ -1,4 +1,5 @@
 #!/bin/bash
+# Usage: compile.sh [-c compiler] [target1, [target2 ...]]
 cd "$(dirname "$0")"
 if [ ! -d bin ]
 then
@@ -14,10 +15,16 @@ cflag="-O3 -Wall -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/
 lflag="-O3 -Wall -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib"
 libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
 
+first=0
+if [ $# -gt 0 ] && [ $1 == "-c" ]; then
+  gcc=$2
+  first=2
+fi
+
 compile_targets_size=$targets_size
-if [ $# -gt 0 ]; then
+if [ $# -gt $first ]; then
   compile_targets_size=$#
-  i=0
+  i=$first
   while [ $i -lt $compile_targets_size ]; do
     let j=$i+1
     compile_targets[$i]=${!j}
