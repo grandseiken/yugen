@@ -2,6 +2,8 @@
 
 uniform ivec2 resolution;
 uniform ivec2 origin;
+attribute vec2 pixels;
+varying vec2 tex_coord;
 
 vec4 pos_from_pixels(vec2 position)
 {
@@ -13,9 +15,6 @@ vec2 tex_from_pixels(vec2 position)
 {
   return position - vec2(origin);
 }
-
-attribute vec2 pixels;
-varying vec2 tex_coord;
 
 void main()
 {
