@@ -21,6 +21,12 @@ if [ $# -gt 0 ] && [ $1 == "-c" ]; then
   first=2
 fi
 
+if [ ! -f bin/.cmd ] || [ "`cat bin/.cmd`" != "$gcc" ]; then
+  rm -rf bin
+  mkdir bin
+fi
+echo "$gcc" > bin/.cmd
+
 compile_targets_size=$targets_size
 if [ $# -gt $first ]; then
   compile_targets_size=$#
