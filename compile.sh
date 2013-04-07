@@ -6,13 +6,13 @@ then
   mkdir bin
 fi
 
-gcc="g++-4.7"
+gcc="g++-4.7 -O3"
 targets[0]="yugen"
 targets[1]="yedit"
 targets_size=2
 
-cflag="-O3 -Wall -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include"
-lflag="-O3 -Wall -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib"
+cflag="-Wall -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include"
+lflag="-Wall -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib"
 libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
 
 first=0
