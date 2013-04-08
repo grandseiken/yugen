@@ -46,8 +46,15 @@ namespace y {
     return unique<T>(t);
   }
 
+  template<typename T>
+  auto move_unique(unique<T>& t) -> decltype(std::move(t))
+  {
+    return std::move(t);
+  }
+
   template<typename T, typename U>
-  pair<T, U> make_pair(T t, U u) {
+  pair<T, U> make_pair(T t, U u)
+  {
     return pair<T, U>(std::forward<T>(t), std::forward<U>(u));
   }
 

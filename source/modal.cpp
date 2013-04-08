@@ -10,7 +10,7 @@ Modal::Modal()
 
 void Modal::push(y::unique<Modal> modal)
 {
-  _stack->push(std::move(modal));
+  _stack->push(y::move_unique(modal));
 }
 
 void Modal::end()
