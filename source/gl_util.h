@@ -113,6 +113,8 @@ public:
   virtual ~GlFramebuffer() {}
 
   const GlTexture& get_texture() const;
+  y::size get_width() const;
+  y::size get_height() const;
 
   // Render to framebuffer, rather than window.
   void bind() const;

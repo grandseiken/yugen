@@ -1,10 +1,39 @@
 #include "gl_util.h"
+#include "modal.h"
 #include "physical_filesystem.h"
 #include "render_util.h"
 #include "window.h"
 #include "world.h"
 
 #include <SFML/Window.hpp>
+
+class Yugen : public Modal {
+public:
+
+  Yugen(Window& window, GlUtil& gl, RenderUtil& util,
+        GlFramebuffer& framebuffer);
+  virtual ~Yugen() {}
+
+  virtual void event(const sf::Event& e);
+  virtual void update();
+  virtual void draw() const;
+
+private:
+
+  Window& _window;
+  GlUtil& _gl;
+  RenderUtil& _util;
+  GlFramebuffer& _framebuffer;
+
+  bool _direction;
+  GLfloat _fade_factor;
+
+  GlProgram _hello_program;
+  GlProgram _post_program;
+  GlTexture _textures[3];
+  GlBuffer<GLfloat, 2> _vertex_buffer;
+
+};
 
 int main(int argc, char** argv)
 {
@@ -22,80 +51,84 @@ int main(int argc, char** argv)
   GlFramebuffer framebuffer = gl.make_framebuffer(native_width, native_height);
   RenderUtil util(gl);
 
-  const GLfloat vertex_data[] = {
-      -1.f, -1.f,
-       1.f, -1.f,
-      -1.f,  1.f,
-       1.f,  1.f};
+  ModalStack stack;
+  stack.push(y::move_unique(new Yugen(window, gl, util, framebuffer)));
+  stack.run(window);
+  return 0;
+}
 
-  auto vertex_buffer = gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data));
+const GLfloat vertex_data[] = {
+    -1.f, -1.f,
+     1.f, -1.f,
+    -1.f,  1.f,
+     1.f,  1.f};
 
-  GlTexture textures[3] = {
+Yugen::Yugen(Window& window, GlUtil& gl, RenderUtil& util,
+             GlFramebuffer& framebuffer)
+  : _window(window)
+  , _gl(gl)
+  , _util(util)
+  , _framebuffer(framebuffer)
+  , _direction(true)
+  , _fade_factor(0.f)
+  , _hello_program(gl.make_program({
+      "/shaders/hello.v.glsl",
+      "/shaders/hello.f.glsl"}))
+  , _post_program(gl.make_program({
+      "/shaders/post.v.glsl",
+      "/shaders/post.f.glsl"}))
+  , _textures({
       gl.make_texture("/bg0.png"),
       gl.make_texture("/bg1.png"),
-      gl.make_texture("/bg2.png")};
+      gl.make_texture("/bg2.png")})
+  , _vertex_buffer(gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data)))
+{
+}
 
-  GlProgram hello_program = gl.make_program({
-      "/shaders/hello.v.glsl",
-      "/shaders/hello.f.glsl"});
-
-  GlProgram post_program = gl.make_program({
-      "/shaders/post.v.glsl",
-      "/shaders/post.f.glsl"});
-
-  bool running = true;
-  bool direction = true;
-  GLfloat fade_factor = 0.f;
-
-  while (running) {
-    sf::Event event;
-    while (window.poll_event(event)) {
-      if (event.type == sf::Event::Closed ||
-          (event.type == sf::Event::KeyPressed &&
-           event.key.code == sf::Keyboard::Escape)) {
-        running = false;
-      }
-    }
-
-    if (direction) {
-      fade_factor += 0.01f;
-    }
-    else {
-      fade_factor -= 0.01f;
-    }
-    if (fade_factor >= 1.f || fade_factor <= 0.f) {
-      direction = !direction;
-    }
-
-    framebuffer.bind();
-    hello_program.bind();
-    hello_program.bind_attribute("position", vertex_buffer);
-    hello_program.bind_uniform("fade_factor", fade_factor);
-    textures[1].bind(GL_TEXTURE0);
-    textures[2].bind(GL_TEXTURE1);
-    hello_program.bind_uniform(0, "textures", 0);
-    hello_program.bind_uniform(1, "textures", 1);
-    util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
-
-    util.set_resolution(native_width, native_height);
-    util.render_text("Hello, world!", 16.0f, 16.0f,
-                     1.0f, 0.5f, 0.0f, 1.0f);
-
-    const Resolution& screen = window.get_mode();
-    gl.bind_window();
-    post_program.bind();
-    post_program.bind_attribute("position", vertex_buffer);
-    post_program.bind_uniform("integral_scale_lock", true);
-    post_program.bind_uniform("native_res",
-        GLint(native_width), GLint(native_height));
-    post_program.bind_uniform("screen_res",
-        GLint(screen.width), GLint(screen.height));
-    framebuffer.get_texture().bind(GL_TEXTURE0);
-    post_program.bind_uniform("framebuffer", 0);
-    util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
-
-    window.display();
+void Yugen::event(const sf::Event& e)
+{
+  if (e.type == sf::Event::Closed ||
+      (e.type == sf::Event::KeyPressed &&
+       e.key.code == sf::Keyboard::Escape)) {
+    end();
   }
-  return 0;
+}
+
+void Yugen::update()
+{
+  _fade_factor += _direction ? 0.01f : -0.01f;
+  if (_fade_factor >= 1.f || _fade_factor <= 0.f) {
+    _direction = !_direction;
+  }
+}
+
+void Yugen::draw() const
+{
+  _framebuffer.bind();
+  _hello_program.bind();
+  _hello_program.bind_attribute("position", _vertex_buffer);
+  _hello_program.bind_uniform("fade_factor", _fade_factor);
+  _textures[1].bind(GL_TEXTURE0);
+  _textures[2].bind(GL_TEXTURE1);
+  _hello_program.bind_uniform(0, "textures", 0);
+  _hello_program.bind_uniform(1, "textures", 1);
+  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+
+  _util.set_resolution(_framebuffer.get_width(), _framebuffer.get_height());
+  _util.render_text("Hello, world!", 16.0f, 16.0f,
+                    0.0f, 0.0f, 0.0f, 1.0f);
+
+  const Resolution& screen = _window.get_mode();
+  _gl.bind_window();
+  _post_program.bind();
+  _post_program.bind_attribute("position", _vertex_buffer);
+  _post_program.bind_uniform("integral_scale_lock", true);
+  _post_program.bind_uniform("native_res",
+      GLint(_framebuffer.get_width()), GLint(_framebuffer.get_height()));
+  _post_program.bind_uniform("screen_res",
+      GLint(screen.width), GLint(screen.height));
+  _framebuffer.get_texture().bind(GL_TEXTURE0);
+  _post_program.bind_uniform("framebuffer", 0);
+  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
 }

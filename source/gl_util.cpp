@@ -66,6 +66,16 @@ const GlTexture& GlFramebuffer::get_texture() const
   return _texture; 
 }
 
+y::size GlFramebuffer::get_width() const
+{
+  return get_texture().get_width();
+}
+
+y::size GlFramebuffer::get_height() const
+{
+  return get_texture().get_height();
+}
+
 void GlFramebuffer::bind() const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, get_handle());
