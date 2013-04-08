@@ -18,6 +18,9 @@ vec2 tex_from_pixels(vec2 position)
 
 void main()
 {
-  gl_Position = pos_from_pixels(pixels);
-  tex_coord = tex_from_pixels(pixels);
+  // Fragment centre correction.
+  vec2 pixels_corrected = pixels + 0.375;
+
+  gl_Position = pos_from_pixels(pixels_corrected);
+  tex_coord = tex_from_pixels(pixels_corrected);
 }

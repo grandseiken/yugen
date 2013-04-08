@@ -8,7 +8,8 @@ varying vec2 tex_coord;
 
 void main()
 {
-  const float correction = 1.0 / 256.0;
+  // Correction is needed for floor/division to behave properly.
+  const float correction = 1.0 / 0xffff;
   tex_coord = position * vec2(0.5) + vec2(0.5);
 
   vec2 scale_v = vec2(screen_res) / vec2(native_res) + correction;

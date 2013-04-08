@@ -67,6 +67,10 @@ void Editor::draw() const
   _gl.bind_window();
   const Resolution& screen = _window.get_mode();
   _util.set_resolution(screen.width, screen.height);
-  _util.render_text("Hello, world!", 16.0f, 16.0f,
-                    1.0f, 1.0f, 1.0f, 1.0f);
+  _util.render_text("Hello, world!", 16.f, 16.f,
+                    1.f, 1.f, 1.f, 1.f);
+  _util.render_text("HHHHHHHHHHHH", 8.f, 8.f,
+                    1.f, 0.f, 0.f, 1.f);
+  _util.render_text("Hdawkfhawkfj", 0.f, 0.f,
+                    1.f, 1.f, 1.f, 1.f);
 }

@@ -116,8 +116,8 @@ void Yugen::draw() const
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
 
   _util.set_resolution(_framebuffer.get_width(), _framebuffer.get_height());
-  _util.render_text("Hello, world!", 16.0f, 16.0f,
-                    0.0f, 0.0f, 0.0f, 1.0f);
+  _util.render_text("Hello, world!", 16.f, 16.f,
+                    0.f, 0.f, 0.f, 1.f);
 
   const Resolution& screen = _window.get_mode();
   _gl.bind_window();
