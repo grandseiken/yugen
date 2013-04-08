@@ -7,7 +7,7 @@
 
 #include <SFML/Window.hpp>
 
-class Editor : public Modal {
+class Editor : public Modal, public y::no_copy {
 public:
 
   Editor(Window& window, GlUtil& gl, RenderUtil& util);

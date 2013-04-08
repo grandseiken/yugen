@@ -145,6 +145,15 @@ protected:
 
 };
 
+namespace std {
+
+  template<>
+  struct hash<y::pair<y::string, y::size>> {
+    y::size operator()(const y::pair<y::string, y::size>& pair) const;
+  };
+
+}
+
 class GlProgram : public GlHandle {
 public:
 
@@ -190,7 +199,9 @@ protected:
 private:
 
   // Check if uniform or attribute name exists in program.
-  // TODO: cache this.
+  // TODO: cache this, or disable for non-debug mode.
+  // TODO: allow converting name to GLint so that we don't need to
+  // lookup a name every time (if performance deems it necessary).
   bool check_name_exists(bool attribute, const y::string& name,
                          bool array, y::size index,
                          GLenum& type_output) const;
@@ -200,8 +211,22 @@ private:
                    bool array, y::size index,
                    GLenum type, y::size length) const;
 
-};
+  typedef y::map<y::string, GLint> SingleMap;
+  typedef y::map<y::pair<y::string, y::size>, GLint> ArrayMap;
 
+  mutable SingleMap _uniform_single_map;
+  mutable ArrayMap _uniform_array_map;
+
+  mutable SingleMap _attribute_single_map;
+  mutable ArrayMap _attribute_array_map;
+
+  GLint get_uniform_location(const y::string& name) const;
+  GLint get_uniform_location(const y::string& name, y::size index) const;
+
+  GLint get_attribute_location(const y::string& name) const;
+  GLint get_attribute_location(const y::string& name, y::size index) const;
+
+};
 
 class GlUtil : public y::no_copy {
 
@@ -327,7 +352,7 @@ bool GlProgram::bind_attribute(const y::string& name,
     return false;
   }
 
-  GLint location = glGetAttribLocation(get_handle(), name.c_str());
+  GLint location = get_attribute_location(name);
   glEnableVertexAttribArray(location);
   buffer.bind();
   glVertexAttribPointer(
@@ -342,7 +367,7 @@ bool GlProgram::bind_uniform(const y::string& name, T a) const
     return false;
   }
 
-  GLint location = glGetUniformLocation(get_handle(), name.c_str());
+  GLint location = get_uniform_location(name);
   GlUniform<T>::uniform1(location, a);
   return true;
 }
@@ -354,7 +379,7 @@ bool GlProgram::bind_uniform(const y::string& name, T a, T b) const
     return false;
   }
 
-  GLint location = glGetUniformLocation(get_handle(), name.c_str());
+  GLint location = get_uniform_location(name);
   GlUniform<T>::uniform2(location, a, b);
   return true;
 }
@@ -366,7 +391,7 @@ bool GlProgram::bind_uniform(const y::string& name, T a, T b, T c) const
     return false;
   }
 
-  GLint location = glGetUniformLocation(get_handle(), name.c_str());
+  GLint location = get_uniform_location(name);
   GlUniform<T>::uniform3(location, a, b, c);
   return true;
 }
@@ -378,7 +403,7 @@ bool GlProgram::bind_uniform(const y::string& name, T a, T b, T c, T d) const
     return false;
   }
 
-  GLint location = glGetUniformLocation(get_handle(), name.c_str());
+  GLint location = get_uniform_location(name);
   GlUniform<T>::uniform4(location, a, b, c, d);
   return true;
 }
@@ -391,9 +416,7 @@ bool GlProgram::bind_attribute(y::size index, const y::string& name,
     return false;
   }
 
-  y::sstream n;
-  n << name << "[" << index << "]";
-  GLint location = glGetAttribLocation(get_handle(), n.str().c_str());
+  GLint location = get_attribute_location(name, index);
   glEnableVertexAttribArray(location);
   buffer.bind();
   glVertexAttribPointer(
@@ -409,9 +432,7 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
     return false;
   }
 
-  y::sstream n;
-  n << name << "[" << index << "]";
-  GLint location = glGetUniformLocation(get_handle(), n.str().c_str());
+  GLint location = get_uniform_location(name, index);
   GlUniform<T>::uniform1(location, a);
   return true;
 }
@@ -424,9 +445,7 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
     return false;
   }
 
-  y::sstream n;
-  n << name << "[" << index << "]";
-  GLint location = glGetUniformLocation(get_handle(), n.str().c_str());
+  GLint location = get_uniform_location(name, index);
   GlUniform<T>::uniform2(location, a, b);
   return true;
 }
@@ -439,9 +458,7 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
     return false;
   }
 
-  y::sstream n;
-  n << name << "[" << index << "]";
-  GLint location = glGetUniformLocation(get_handle(), n.str().c_str());
+  GLint location = get_uniform_location(name, index);
   GlUniform<T>::uniform3(location, a, b, c);
   return true;
 }
@@ -454,9 +471,7 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
     return false;
   }
 
-  y::sstream n;
-  n << name << "[" << index << "]";
-  GLint location = glGetUniformLocation(get_handle(), n.str().c_str());
+  GLint location = get_uniform_location(name, index);
   GlUniform<T>::uniform4(location, a, b, c, d);
   return true;
 }

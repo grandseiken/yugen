@@ -2,8 +2,8 @@
 #include "filesystem.h"
 #include "window.h"
 
+#include <boost/functional/hash.hpp>
 #include <SFML/Graphics.hpp>
-#include <iostream>
 
 bool GlHandle::operator==(const GlHandle& handle) const
 {
@@ -136,6 +136,71 @@ bool GlProgram::check_name_exists(bool attribute, const y::string& name,
     }
   }
   return false;
+}
+
+namespace std {
+
+  y::size hash<y::pair<y::string, y::size>>::operator()(
+      const y::pair<y::string, y::size>& pair) const
+  {
+    y::size seed = 0;
+    boost::hash_combine(seed, pair.first);
+    boost::hash_combine(seed, pair.second);
+    return seed;
+  }
+
+}
+
+GLint GlProgram::get_uniform_location(const y::string& name) const
+{
+  auto it = _uniform_single_map.find(name);
+  if (it != _uniform_single_map.end()) {
+    return it->second;
+  }
+  GLint location = glGetUniformLocation(get_handle(), name.c_str());
+  _uniform_single_map.insert(y::make_pair(name, location));
+  return location;
+}
+
+GLint GlProgram::get_uniform_location(const y::string& name,
+                                      y::size index) const
+{
+  auto p = y::make_pair(name, index);
+  auto it = _uniform_array_map.find(p);
+  if (it != _uniform_array_map.end()) {
+    return it->second;
+  }
+  y::sstream n;
+  n << name << "[" << index << "]";
+  GLint location = glGetUniformLocation(get_handle(), n.str().c_str());
+  _uniform_array_map.insert(y::make_pair(p, location));
+  return location;
+}
+
+GLint GlProgram::get_attribute_location(const y::string& name) const
+{
+  auto it = _attribute_single_map.find(name);
+  if (it != _attribute_single_map.end()) {
+    return it->second;
+  }
+  GLint location = glGetAttribLocation(get_handle(), name.c_str());
+  _attribute_single_map.insert(y::make_pair(name, location));
+  return location;
+}
+
+GLint GlProgram::get_attribute_location(const y::string& name,
+                                        y::size index) const
+{
+  auto p = y::make_pair(name, index);
+  auto it = _attribute_array_map.find(p);
+  if (it != _attribute_array_map.end()) {
+    return it->second;
+  }
+  y::sstream n;
+  n << name << "[" << index << "]";
+  GLint location = glGetAttribLocation(get_handle(), n.str().c_str());
+  _attribute_array_map.insert(y::make_pair(p, location));
+  return location;
 }
 
 void composite_type_to_base_and_length(GLenum type, GLenum& type_output,

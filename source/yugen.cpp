@@ -8,7 +8,7 @@
 #include <SFML/System.hpp>
 #include <SFML/Window.hpp>
 
-class Yugen : public Modal {
+class Yugen : public Modal, public y::no_copy {
 public:
 
   Yugen(Window& window, GlUtil& gl, RenderUtil& util,
