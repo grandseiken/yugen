@@ -5,6 +5,7 @@
 #include "window.h"
 #include "world.h"
 
+#include <SFML/System.hpp>
 #include <SFML/Window.hpp>
 
 class Yugen : public Modal {
@@ -19,6 +20,10 @@ public:
   virtual void draw() const;
 
 private:
+
+  static const y::size samples = 16;
+  sf::Clock _clock;
+  y::vector<y::size> _measurements;
 
   Window& _window;
   GlUtil& _gl;
@@ -101,10 +106,23 @@ void Yugen::update()
   if (_fade_factor >= 1.f || _fade_factor <= 0.f) {
     _direction = !_direction;
   }
+
+  _measurements.push_back(_clock.restart().asMilliseconds());
+  if (_measurements.size() > samples) {
+    _measurements.erase(_measurements.begin());
+  }
 }
 
 void Yugen::draw() const
 {
+  y::size total = 0;
+  if (!_measurements.empty()) {
+    for (y::size m : _measurements) {
+      total += m;
+    }
+    total /= samples;
+  }
+
   _framebuffer.bind();
   _hello_program.bind();
   _hello_program.bind_attribute("position", _vertex_buffer);
@@ -116,8 +134,11 @@ void Yugen::draw() const
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
 
   _util.set_resolution(_framebuffer.get_width(), _framebuffer.get_height());
-  _util.render_text("Hello, world!", 16.f, 16.f,
-                    0.f, 0.f, 0.f, 1.f);
+  if (total) {
+    y::sstream ss;
+    ss << total << " ticks (" << (1000.f / total) << " fps)";
+    _util.render_text(ss.str(), 16.f, 16.f, 0.f, 0.f, 0.f, 1.f);
+  }
 
   const Resolution& screen = _window.get_mode();
   _gl.bind_window();
