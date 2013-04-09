@@ -8,10 +8,24 @@
 class Filesystem;
 class GlUtil;
 
+// TODO: exceptions?
 class Databank : public y::no_copy {
 public:
 
   Databank(const Filesystem& filesystem, GlUtil& gl);
+
+  const y::string_vector& get_tileset_list() const;
+  const y::string_vector& get_cell_list() const;
+  const y::string_vector& get_map_list() const;
+
+  const Tileset& get_tileset(const y::string& name) const;
+  /***/ Tileset& get_tileset(const y::string& name);
+
+  const CellBlueprint& get_cell(const y::string& name) const;
+  /***/ CellBlueprint& get_cell(const y::string& name);
+
+  const CellMap& get_map(const y::string& name) const;
+  /***/ CellMap& get_map(const y::string& name);
 
 private:
 
@@ -35,6 +49,10 @@ private:
   tileset_map _tileset_map;
   cell_map _cell_map;
   map_map _map_map;
+
+  Tileset _default_tileset;
+  CellBlueprint _default_cell;
+  CellMap _default_map;
 
 };
 

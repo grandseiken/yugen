@@ -1,0 +1,7 @@
+MILESTONES
+
+ + Collision tracing (full cells at first); with cell load / unload
+ + Lighting using radial corner swoop / stencil buffer algorithm
+ + Water, bump mapping
+ + Physics, hook shot, long shot
+

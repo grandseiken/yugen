@@ -22,6 +22,8 @@ namespace sf {
 class Window : public y::no_copy {
 public:
 
+  static const y::size framerate = 60;
+
   Window(const y::string& title, y::size default_bpp,
          y::size default_width, y::size default_height,
          bool default_fullscreen, bool skip_choice);

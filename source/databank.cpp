@@ -29,6 +29,75 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   }
 }
 
+const y::string_vector& Databank::get_tileset_list() const
+{
+  return _tileset_list;
+}
+
+const y::string_vector& Databank::get_cell_list() const
+{
+  return _cell_list;
+}
+
+const y::string_vector& Databank::get_map_list() const
+{
+  return _map_list;
+}
+
+const Tileset& Databank::get_tileset(const y::string& name) const
+{
+  auto it = _tileset_map.find(name);
+  if (it != _tileset_map.end()) {
+    return *it->second;
+  }
+  return _default_tileset;
+}
+
+Tileset& Databank::get_tileset(const y::string& name)
+{
+  auto it = _tileset_map.find(name);
+  if (it != _tileset_map.end()) {
+    return *it->second;
+  }
+  return _default_tileset;
+}
+
+const CellBlueprint& Databank::get_cell(const y::string& name) const
+{
+  auto it = _cell_map.find(name);
+  if (it != _cell_map.end()) {
+    return *it->second;
+  }
+  return _default_cell;
+}
+
+CellBlueprint& Databank::get_cell(const y::string& name)
+{
+  auto it = _cell_map.find(name);
+  if (it != _cell_map.end()) {
+    return *it->second;
+  }
+  return _default_cell;
+}
+
+const CellMap& Databank::get_map(const y::string& name) const
+{
+  auto it = _map_map.find(name);
+  if (it != _map_map.end()) {
+    return *it->second;
+  }
+  return _default_map;
+}
+
+CellMap& Databank::get_map(const y::string& name)
+{
+  auto it = _map_map.find(name);
+  if (it != _map_map.end()) {
+    return *it->second;
+  }
+  return _default_map;
+}
+
 void Databank::make_default_map()
 {
   CellBlueprint* blueprint = new CellBlueprint();

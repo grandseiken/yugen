@@ -12,6 +12,7 @@ public:
   static const y::size tile_height = 32;
 
   Tileset(const GlTexture& texture);
+  Tileset();
 
   y::size get_width() const;
   y::size get_height() const;
@@ -19,7 +20,7 @@ public:
 
 private:
 
-  const GlTexture& _texture;
+  const GlTexture* _texture;
 
   // Width and height, in tiles.
   y::size _width;

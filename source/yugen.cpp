@@ -102,6 +102,7 @@ void Yugen::event(const sf::Event& e)
 
 void Yugen::update()
 {
+  // TODO: window framerate limiting is untrustworthy. Lock to 60 here.
   _fade_factor += _direction ? 0.01f : -0.01f;
   if (_fade_factor >= 1.f || _fade_factor <= 0.f) {
     _direction = !_direction;
