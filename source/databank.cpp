@@ -5,6 +5,7 @@
 #include <algorithm>
 
 Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
+  : _default_tileset(gl.make_texture("/yedit/missing_tiles.png"))
 {
   y::string_vector paths;
   filesystem.list_pattern(paths, "/tiles/**.png");

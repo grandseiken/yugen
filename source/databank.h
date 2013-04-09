@@ -7,6 +7,7 @@
 
 class Filesystem;
 class GlUtil;
+class GlTexture;
 
 // TODO: exceptions?
 class Databank : public y::no_copy {
