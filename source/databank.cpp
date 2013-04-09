@@ -3,6 +3,7 @@
 #include "gl_util.h"
 
 #include <algorithm>
+#include <iostream>
 
 Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   : _default_tileset(gl.make_texture("/yedit/missing.png"))
@@ -51,6 +52,7 @@ const Tileset& Databank::get_tileset(const y::string& name) const
   if (it != _tileset_map.end()) {
     return *it->second;
   }
+  std::cerr << "Couldn't find tileset " << name << std::endl;
   return _default_tileset;
 }
 
@@ -60,6 +62,7 @@ Tileset& Databank::get_tileset(const y::string& name)
   if (it != _tileset_map.end()) {
     return *it->second;
   }
+  std::cerr << "Couldn't find tileset " << name << std::endl;
   return _default_tileset;
 }
 
@@ -69,6 +72,7 @@ const CellBlueprint& Databank::get_cell(const y::string& name) const
   if (it != _cell_map.end()) {
     return *it->second;
   }
+  std::cerr << "Couldn't find cell " << name << std::endl;
   return _default_cell;
 }
 
@@ -78,6 +82,7 @@ CellBlueprint& Databank::get_cell(const y::string& name)
   if (it != _cell_map.end()) {
     return *it->second;
   }
+  std::cerr << "Couldn't find cell " << name << std::endl;
   return _default_cell;
 }
 
@@ -87,6 +92,7 @@ const CellMap& Databank::get_map(const y::string& name) const
   if (it != _map_map.end()) {
     return *it->second;
   }
+  std::cerr << "Couldn't find map " << name << std::endl;
   return _default_map;
 }
 
@@ -96,6 +102,7 @@ CellMap& Databank::get_map(const y::string& name)
   if (it != _map_map.end()) {
     return *it->second;
   }
+  std::cerr << "Couldn't find map " << name << std::endl;
   return _default_map;
 }
 
