@@ -4,6 +4,9 @@
 #include "common.h"
 #include "cell.h"
 
+// Sliding window into a Cell source. The source can be changed to simulate
+// non-planar geometry.
+// TODO: use a WorldSource interface instead of CellMap directly.
 class WorldWindow {
 public:
 

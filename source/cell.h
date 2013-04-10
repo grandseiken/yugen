@@ -34,6 +34,7 @@ namespace std {
 
 }
 
+// Sparse spatial map of CellBlueprints.
 class CellMap : public y::no_copy {
 public:
 
@@ -65,6 +66,8 @@ struct Tile {
 
 };
 
+// An instantiation of a CellBlueprint. Modified tiles are stored as a diff
+// from the CelLBlueprint. Changes to the underlying blueprint are reflected.
 class Cell : public y::no_copy {
 public:
 

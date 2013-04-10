@@ -9,14 +9,19 @@ class Filesystem;
 class GlUtil;
 class GlTexture;
 
+// Globs and loads resources. Requesting resources by invalid names returns
+// a reference to a standard missing resource.
 // TODO: exceptions?
 class Databank : public y::no_copy {
 public:
 
   Databank(const Filesystem& filesystem, GlUtil& gl);
 
+  // Get list of tileset names.
   const y::string_vector& get_tileset_list() const;
+  // Get list of cell names.
   const y::string_vector& get_cell_list() const;
+  // Get list of map names.
   const y::string_vector& get_map_list() const;
 
   const Tileset& get_tileset(const y::string& name) const;

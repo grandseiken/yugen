@@ -109,6 +109,8 @@ y::size to_internal_index(y::int8 layer, y::size x, y::size y)
       (layer + Cell::background_layers) * Cell::cell_width * Cell::cell_height;
 }
 
+// Increment or decrement a value in a map, such  that an entry exists iff its
+// value is nonzero.
 template<typename T, typename U>
 void change_by_one(y::map<T, U>& map, const T& t, bool increment)
 {
@@ -154,6 +156,7 @@ void Cell::set_tile(y::int8 layer, y::size x, y::size y, const Tile& tile)
   y::size internal_index = to_internal_index(layer, x, y);
   auto it = _changed_tiles.find(internal_index);
 
+  // Keep track of which tilesets are used in the diff.
   if (it != _changed_tiles.end()) {
     change_by_one(_changed_tilesets, it->second.tileset, false);
 

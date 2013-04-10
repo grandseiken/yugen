@@ -65,6 +65,7 @@ private:
 
 };
 
+// Lightweight handle to an OpenGL buffer.
 template<typename T, y::size N>
 class GlBuffer : public GlHandle {
 public:
@@ -85,6 +86,7 @@ private:
 
 };
 
+// Lightweight handle to an OpenGL texture.
 class GlTexture : public GlHandle {
 public:
 
@@ -107,6 +109,7 @@ private:
 
 };
 
+// Lightweight handle to an OpenGL framebuffer (and underlying texture).
 class GlFramebuffer : public GlHandle {
 public:
 
@@ -154,17 +157,21 @@ namespace std {
 
 }
 
+// Lightweight handle to a GLSL shader program.
 class GlProgram : public GlHandle {
 public:
 
   virtual ~GlProgram() {}
 
+  // Render using this shader.
   void bind() const;
 
+  // Bind the vlaue of an attribute variable.
   template<typename T, y::size N>
   bool bind_attribute(const y::string& name,
                       const GlBuffer<T, N>& buffer) const;
 
+  // Bind the value of a uniform variable.
   template<typename T>
   bool bind_uniform(const y::string& name, T a) const; 
   template<typename T>
@@ -174,10 +181,12 @@ public:
   template<typename T>
   bool bind_uniform(const y::string& name, T a, T b, T c, T d) const;
 
+  // Bind the value of an attribute variable in an array.
   template<typename T, y::size N>
   bool bind_attribute(y::size index, const y::string& name,
                       const GlBuffer<T, N>& buffer) const;
 
+  // Bind the value of a uniform variable in an array.
   template<typename T>
   bool bind_uniform(y::size index, const y::string& name,
                     T a) const;

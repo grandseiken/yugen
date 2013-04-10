@@ -24,6 +24,9 @@ public:
 
   static const y::size framerate = 60;
 
+  // In fullscreen, window will use closest mode to parameters by default,
+  // unless choice is allowed. In windowed, parameters are the defaults but
+  // the window can be resized.
   Window(const y::string& title, y::size default_bpp,
          y::size default_width, y::size default_height,
          bool default_fullscreen, bool skip_choice);

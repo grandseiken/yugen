@@ -9,6 +9,7 @@ namespace sf {
 class ModalStack;
 class Window;
 
+// Interface to an entry in the ModalStack.
 class Modal {
 public:
 
@@ -33,6 +34,8 @@ private:
 
 };
 
+// A stack of modes. The topmost mode receives all events and control the
+// program state. Modes are rendered from back to front.
 class ModalStack {
 public:
 

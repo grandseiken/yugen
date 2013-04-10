@@ -77,10 +77,9 @@ void ModalStack::update()
 
 void ModalStack::draw() const
 {
-  if (empty()) {
-    return;
+  for (const auto& modal : _stack) {
+    modal->draw();
   }
-  _stack[_stack.size() - 1]->draw();
 }
 
 bool ModalStack::clear_ended()

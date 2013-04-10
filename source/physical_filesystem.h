@@ -3,6 +3,7 @@
 
 #include "filesystem.h"
 
+// Implementation of Filesystem that reads from local disk.
 class PhysicalFilesystem : public Filesystem {
 public:
 

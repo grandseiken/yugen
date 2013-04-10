@@ -42,7 +42,7 @@ void RenderUtil::render_text(const y::string& text, int left, int top,
         float(left + _native_width), float(top + height)};
 
   auto text_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, text_data, sizeof(text_data));
+      GL_ARRAY_BUFFER, GL_DYNAMIC_DRAW, text_data, sizeof(text_data));
 
   _text_program.bind();
   _text_program.bind_attribute("pixels", text_buffer);

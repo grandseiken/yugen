@@ -83,6 +83,7 @@ Window::Window(const y::string& title, y::size default_bpp,
 
       bool best_so_far = false;
       if (_resolution.height) {
+        // Heuristic for closest mode.
         best_so_far =
             distance < best_distance ||
             (distance == best_distance && match > best_match) ||

@@ -10,9 +10,14 @@ public:
   RenderUtil(GlUtil& gl);
 
   typedef GlBuffer<GLushort, 1> GlQuad;
+
+  // Element array for a quad.
   const GlQuad& quad() const;
 
+  // Native (target framebuffer) resolution must be set for utility methods
+  // to behave correctly.
   void set_resolution(y::size native_width, y::size native_height);
+
   void render_text(const y::string& text, int left, int top,
                    float r, float g, float b, float a) const;
 
