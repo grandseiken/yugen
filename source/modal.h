@@ -16,11 +16,15 @@ public:
   Modal();
   virtual ~Modal() {}
 
+  // Virtual interface.
   virtual void event(const sf::Event& e) = 0;
   virtual void update() = 0;
   virtual void draw() const = 0;
 
+  // Push a new mode onto the top of the enclosing stack.
   void push(y::unique<Modal> modal);
+
+  // Signal that this mode should exit. Control returns to the mode behind.
   void end();
   bool is_ended() const;
 
@@ -42,6 +46,7 @@ public:
   void push(y::unique<Modal> modal);
   bool empty() const;
 
+  // Run until the stack is empty. Push a mode onto the stack first. 
   void run(Window& window);
 
 private:
