@@ -8,6 +8,11 @@ Tileset::Tileset(const GlTexture& texture)
 {
 }
 
+const GlTexture& Tileset::get_texture() const
+{
+  return _texture;
+}
+
 y::size Tileset::get_width() const
 {
   return _width;

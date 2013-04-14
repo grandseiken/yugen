@@ -17,11 +17,21 @@ RenderUtil::RenderUtil(GlUtil& gl)
   , _quad(gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
                                       quad_data, sizeof(quad_data)))
   , _font(gl.make_texture("/font.png"))
-  , _text_program(gl.make_program({"/shaders/pixels.v.glsl",
+  , _text_program(gl.make_program({"/shaders/text.v.glsl",
                                    "/shaders/text.f.glsl"}))
   , _native_width(0)
   , _native_height(0)
+  , _sprite(gl.make_texture("/yedit/missing.png"))
+  , _frame_width(0)
+  , _frame_height(0)
+  , _sprite_program(gl.make_program({"/shaders/sprite.v.glsl",
+                                     "/shaders/sprite.f.glsl"}))
 {
+}
+
+RenderUtil::~RenderUtil()
+{
+  _gl.delete_buffer(_quad);
 }
 
 const RenderUtil::GlQuad& RenderUtil::quad() const
@@ -42,15 +52,15 @@ void RenderUtil::render_text(const y::string& text, int left, int top,
     return;
   }
 
-  const GLfloat text_data[] = {
-        float(left),                 float(top),
-        float(left + _native_width), float(top),
-        float(left),                 float(top + height),
-        float(left + _native_width), float(top + height)};
+  const float text_data[] = {
+      float(left), float(top),
+      float(left + _native_width), float(top),
+      float(left), float(top + height),
+      float(left + _native_width), float(top + height)};
 
   auto text_buffer = _gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, text_data, sizeof(text_data));
-
+  
   _text_program.bind();
   _text_program.bind_attribute("pixels", text_buffer);
   _text_program.bind_uniform("resolution",
@@ -86,4 +96,105 @@ void RenderUtil::render_text_grid(const y::string& text, int left, int top,
                                   const Colour& colour) const
 {
   render_text_grid(text, left, top, colour.r, colour.g, colour.b, colour.a);
+}
+
+void RenderUtil::set_sprite(const GlTexture& texture,
+                            int frame_width, int frame_height)
+{
+  _sprite = texture;
+  _frame_width = frame_width;
+  _frame_height = frame_height;
+  _batched_sprites.clear();
+}
+
+void RenderUtil::batch_sprite(int left, int top,
+                               int frame_x, int frame_y) const
+{
+  _batched_sprites.push_back(BatchedSprite(left, top, frame_x, frame_y));
+}
+
+void RenderUtil::render_batch() const
+{
+  if (!_native_width || !_native_height ||
+      !_sprite || !_frame_width || !_frame_height) {
+    return;
+  }
+
+  const y::size length = _batched_sprites.size();
+  float* pixels_data = new float[8 * length];
+  float* origin_data = new float[8 * length];
+  float* frame_index_data = new float[8 * length];
+  GLushort* element_data = new GLushort[6 * length];
+  for (y::size i = 0; i < length; ++i) {
+    pixels_data[0 + 8 * i] = _batched_sprites[i].left;
+    pixels_data[1 + 8 * i] = _batched_sprites[i].top;
+    pixels_data[2 + 8 * i] = _batched_sprites[i].left + _frame_width;
+    pixels_data[3 + 8 * i] = _batched_sprites[i].top;
+    pixels_data[4 + 8 * i] = _batched_sprites[i].left;
+    pixels_data[5 + 8 * i] = _batched_sprites[i].top + _frame_height;
+    pixels_data[6 + 8 * i] = _batched_sprites[i].left + _frame_width;
+    pixels_data[7 + 8 * i] = _batched_sprites[i].top + _frame_height;
+    for (y::size j = 0; j < 4; ++j) {
+      origin_data[0 + 2 * j + 8 * i] = _batched_sprites[i].left;
+      origin_data[1 + 2 * j + 8 * i] = _batched_sprites[i].top;
+      frame_index_data[0 + 2 * j + 8 * i] = _batched_sprites[i].frame_x;
+      frame_index_data[1 + 2 * j + 8 * i] = _batched_sprites[i].frame_y;
+    }
+    element_data[0 + 6 * i] = 0 + 4 * i;
+    element_data[1 + 6 * i] = 1 + 4 * i;
+    element_data[2 + 6 * i] = 2 + 4 * i;
+    element_data[3 + 6 * i] = 1 + 4 * i;
+    element_data[4 + 6 * i] = 2 + 4 * i;
+    element_data[5 + 6 * i] = 3 + 4 * i;
+  }
+
+  auto pixels_buffer = _gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, pixels_data,
+      sizeof(float) * 8 * length);
+  auto origin_buffer = _gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, origin_data,
+      sizeof(float) * 8 * length);
+  auto frame_index_buffer = _gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, frame_index_data,
+      sizeof(float) * 8 * length);
+  auto element_buffer = _gl.make_buffer<GLushort, 1>(
+      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data,
+      sizeof(GLushort) * 6 * length);
+  
+  _sprite_program.bind();
+  _sprite_program.bind_attribute("pixels", pixels_buffer);
+  _sprite_program.bind_attribute("origin", origin_buffer);
+  _sprite_program.bind_attribute("frame_index", frame_index_buffer);
+  _sprite_program.bind_uniform("resolution",
+      GLint(_native_width), GLint(_native_height));
+
+  _sprite.bind(GL_TEXTURE0);
+  _sprite_program.bind_uniform("sprite", 0);
+  _sprite_program.bind_uniform(
+      "frame_size", GLint(_frame_width), GLint(_frame_height));
+  _sprite_program.bind_uniform("frame_count",
+                               GLint(_sprite.get_width() / _frame_width),
+                               GLint(_sprite.get_height() / _frame_height));
+  element_buffer.draw_elements(GL_TRIANGLES, 6 * _batched_sprites.size());
+
+  _gl.delete_buffer(pixels_buffer);
+  _gl.delete_buffer(origin_buffer);
+  _gl.delete_buffer(frame_index_buffer);
+  _gl.delete_buffer(element_buffer);
+
+  delete[] pixels_data;
+  delete[] origin_data;
+  delete[] frame_index_data;
+  delete[] element_data;
+
+  _batched_sprites.clear();
+}
+
+RenderUtil::BatchedSprite::BatchedSprite(int left, int top,
+                                         int frame_x, int frame_y)
+  : left(left)
+  , top(top)
+  , frame_x(frame_x)
+  , frame_y(frame_y)
+{
 }

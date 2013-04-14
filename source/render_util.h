@@ -18,6 +18,7 @@ class RenderUtil {
 public:
 
   RenderUtil(GlUtil& gl);
+  ~RenderUtil();
 
   typedef GlBuffer<GLushort, 1> GlQuad;
 
@@ -40,6 +41,11 @@ public:
   void render_text_grid(const y::string& text, int left, int top,
                         const Colour& colour) const;
 
+  // Batch and render sprites (at pixel coordinates).
+  void set_sprite(const GlTexture& sprite, int frame_width, int frame_height);
+  void batch_sprite(int left, int top, int frame_x, int frame_y) const;
+  void render_batch() const;
+
 private:
 
   const y::size width = 8;
@@ -47,11 +53,27 @@ private:
 
   GlUtil& _gl;
   GlQuad _quad;
+
   GlTexture _font;
   GlProgram _text_program;
 
   y::size _native_width;
   y::size _native_height;
+
+  struct BatchedSprite {
+    BatchedSprite(int left, int top, int frame_x, int frame_y);
+
+    int left;
+    int top;
+    int frame_x;
+    int frame_y;
+  };
+
+  GlTexture _sprite;
+  int _frame_width;
+  int _frame_height;
+  mutable y::vector<BatchedSprite> _batched_sprites;
+  GlProgram _sprite_program;
 
 };
 
