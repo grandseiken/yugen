@@ -38,8 +38,8 @@ private:
 
 };
 
-// A stack of modes. The topmost mode receives all events and control the
-// program state. Modes are rendered from back to front.
+// A stack of modes. The topmost mode receives all events and controls the
+// program flow. Modes are rendered from back to front.
 class ModalStack {
 public:
 

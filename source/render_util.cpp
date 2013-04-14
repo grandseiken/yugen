@@ -1,5 +1,15 @@
 #include "render_util.h"
 
+Colour::Colour(float r, float g, float b)
+  : r(r), g(g), b(b), a(1.f)
+{
+}
+
+Colour::Colour(float r, float g, float b, float a)
+  : r(r), g(g), b(b), a(a)
+{
+}
+
 static const GLushort quad_data[] = {0, 1, 2, 3};
 
 RenderUtil::RenderUtil(GlUtil& gl)
@@ -32,9 +42,6 @@ void RenderUtil::render_text(const y::string& text, int left, int top,
     return;
   }
 
-  const y::size width = 8;
-  const y::size height = 8;
-
   const GLfloat text_data[] = {
         float(left),                 float(top),
         float(left + _native_width), float(top),
@@ -61,4 +68,22 @@ void RenderUtil::render_text(const y::string& text, int left, int top,
   _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
 
   _gl.delete_buffer(text_buffer);
+}
+
+void RenderUtil::render_text(const y::string& text, int left, int top,
+                             const Colour& colour) const
+{
+  render_text(text, left, top, colour.r, colour.g, colour.b, colour.a);
+}
+
+void RenderUtil::render_text_grid(const y::string& text, int left, int top,
+                                  float r, float g, float b, float a) const
+{
+  render_text(text, left * width, top * height, r, g, b, a); 
+}
+
+void RenderUtil::render_text_grid(const y::string& text, int left, int top,
+                                  const Colour& colour) const
+{
+  render_text_grid(text, left, top, colour.r, colour.g, colour.b, colour.a);
 }

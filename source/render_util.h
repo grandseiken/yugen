@@ -4,6 +4,16 @@
 #include "common.h"
 #include "gl_util.h"
 
+struct Colour {
+  Colour(float r, float g, float b);
+  Colour(float r, float g, float b, float a);
+
+  float r;
+  float g;
+  float b;
+  float a;
+};
+
 class RenderUtil {
 public:
 
@@ -18,10 +28,22 @@ public:
   // to behave correctly.
   void set_resolution(y::size native_width, y::size native_height);
 
+  // Render text (at pixel coordinates).
   void render_text(const y::string& text, int left, int top,
                    float r, float g, float b, float a) const;
+  void render_text(const y::string& text, int left, int top,
+                   const Colour& colour) const;
+
+  // Render text (at font-size grid coordinates).
+  void render_text_grid(const y::string& text, int left, int top,
+                        float r, float g, float b, float a) const;
+  void render_text_grid(const y::string& text, int left, int top,
+                        const Colour& colour) const;
 
 private:
+
+  const y::size width = 8;
+  const y::size height = 8;
 
   GlUtil& _gl;
   GlQuad _quad;

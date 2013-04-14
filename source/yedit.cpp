@@ -10,7 +10,7 @@
 class Editor : public Modal, public y::no_copy {
 public:
 
-  Editor(Window& window, GlUtil& gl, RenderUtil& util);
+  Editor(Databank& bank, Window& window, GlUtil& gl, RenderUtil& util);
   virtual ~Editor() {}
 
   virtual void event(const sf::Event& e);
@@ -19,6 +19,7 @@ public:
 
 private:
 
+  Databank& _bank;
   Window& _window;
   GlUtil& _gl;
   RenderUtil& _util;
@@ -37,13 +38,14 @@ int main(int argc, char** argv)
   RenderUtil util(gl);
   
   ModalStack stack;
-  stack.push(y::move_unique(new Editor(window, gl, util)));
+  stack.push(y::move_unique(new Editor(databank, window, gl, util)));
   stack.run(window);
   return 0;
 }
 
-Editor::Editor(Window& window, GlUtil& gl, RenderUtil& util)
-  : _window(window)
+Editor::Editor(Databank& bank, Window& window, GlUtil& gl, RenderUtil& util)
+  : _bank(bank)
+  , _window(window)
   , _gl(gl)
   , _util(util)
 {
@@ -67,10 +69,25 @@ void Editor::draw() const
   _gl.bind_window();
   const Resolution& screen = _window.get_mode();
   _util.set_resolution(screen.width, screen.height);
-  _util.render_text("Hello, world!", 16.f, 16.f,
-                    1.f, 1.f, 1.f, 1.f);
-  _util.render_text("HHHHHHHHHHHH", 8.f, 8.f,
-                    1.f, 0.f, 0.f, 1.f);
-  _util.render_text("Hdawkfhawkfj", 0.f, 0.f,
-                    1.f, 1.f, 1.f, 1.f);
+
+  Colour white(1.f, 1.f, 1.f);
+  Colour grey(.5f, .5f, .5f);
+
+  y::size i = 1;
+  _util.render_text_grid("Tilesets", 1, i++, grey);
+  for (const auto& s :_bank.get_tileset_list()) {
+    _util.render_text_grid(s, 2, i++, white);
+  }
+
+  i++;
+  _util.render_text_grid("Cells", 1, i++, grey);
+  for (const auto& s :_bank.get_cell_list()) {
+    _util.render_text_grid(s, 2, i++, white);
+  }
+
+  i++;
+  _util.render_text_grid("Maps", 1, i++, grey);
+  for (const auto& s :_bank.get_map_list()) {
+    _util.render_text_grid(s, 2, i++, white);
+  }
 }
