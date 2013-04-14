@@ -61,12 +61,12 @@ private:
   y::size _native_height;
 
   struct BatchedSprite {
-    BatchedSprite(int left, int top, int frame_x, int frame_y);
+    BatchedSprite(float left, float top, float frame_x, float frame_y);
 
-    int left;
-    int top;
-    int frame_x;
-    int frame_y;
+    float left;
+    float top;
+    float frame_x;
+    float frame_y;
   };
 
   GlTexture _sprite;

@@ -52,7 +52,7 @@ void RenderUtil::render_text(const y::string& text, int left, int top,
     return;
   }
 
-  const float text_data[] = {
+  const GLfloat text_data[] = {
       float(left), float(top),
       float(left + _native_width), float(top),
       float(left), float(top + height),
@@ -60,7 +60,7 @@ void RenderUtil::render_text(const y::string& text, int left, int top,
 
   auto text_buffer = _gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, text_data, sizeof(text_data));
-  
+
   _text_program.bind();
   _text_program.bind_attribute("pixels", text_buffer);
   _text_program.bind_uniform("resolution",
@@ -113,6 +113,14 @@ void RenderUtil::batch_sprite(int left, int top,
   _batched_sprites.push_back(BatchedSprite(left, top, frame_x, frame_y));
 }
 
+template<typename T>
+void write_subarray(T* array, const std::vector<T>& data)
+{
+  for (y::size i = 0; i < data.size(); ++i) {
+    *(array + i) = data[i];
+  }
+}
+
 void RenderUtil::render_batch() const
 {
   if (!_native_width || !_native_height ||
@@ -126,26 +134,19 @@ void RenderUtil::render_batch() const
   float* frame_index_data = new float[8 * length];
   GLushort* element_data = new GLushort[6 * length];
   for (y::size i = 0; i < length; ++i) {
-    pixels_data[0 + 8 * i] = _batched_sprites[i].left;
-    pixels_data[1 + 8 * i] = _batched_sprites[i].top;
-    pixels_data[2 + 8 * i] = _batched_sprites[i].left + _frame_width;
-    pixels_data[3 + 8 * i] = _batched_sprites[i].top;
-    pixels_data[4 + 8 * i] = _batched_sprites[i].left;
-    pixels_data[5 + 8 * i] = _batched_sprites[i].top + _frame_height;
-    pixels_data[6 + 8 * i] = _batched_sprites[i].left + _frame_width;
-    pixels_data[7 + 8 * i] = _batched_sprites[i].top + _frame_height;
+    const BatchedSprite& s = _batched_sprites[i];
+    write_subarray(pixels_data + 8 * i, {
+        s.left, s.top,
+        s.left + _frame_width, s.top,
+        s.left, s.top + _frame_height,
+        s.left + _frame_width, s.top + _frame_height});
+    write_subarray(element_data + 6 * i, {
+        GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
+        GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
     for (y::size j = 0; j < 4; ++j) {
-      origin_data[0 + 2 * j + 8 * i] = _batched_sprites[i].left;
-      origin_data[1 + 2 * j + 8 * i] = _batched_sprites[i].top;
-      frame_index_data[0 + 2 * j + 8 * i] = _batched_sprites[i].frame_x;
-      frame_index_data[1 + 2 * j + 8 * i] = _batched_sprites[i].frame_y;
+      write_subarray(origin_data + 2 * j + 8 * i, {s.left, s.top});
+      write_subarray(frame_index_data + 2 * j + 8 * i, {s.frame_x, s.frame_y});
     }
-    element_data[0 + 6 * i] = 0 + 4 * i;
-    element_data[1 + 6 * i] = 1 + 4 * i;
-    element_data[2 + 6 * i] = 2 + 4 * i;
-    element_data[3 + 6 * i] = 1 + 4 * i;
-    element_data[4 + 6 * i] = 2 + 4 * i;
-    element_data[5 + 6 * i] = 3 + 4 * i;
   }
 
   auto pixels_buffer = _gl.make_buffer<GLfloat, 2>(
@@ -190,8 +191,8 @@ void RenderUtil::render_batch() const
   _batched_sprites.clear();
 }
 
-RenderUtil::BatchedSprite::BatchedSprite(int left, int top,
-                                         int frame_x, int frame_y)
+RenderUtil::BatchedSprite::BatchedSprite(float left, float top,
+                                         float frame_x, float frame_y)
   : left(left)
   , top(top)
   , frame_x(frame_x)

@@ -216,6 +216,7 @@ private:
                          GLenum& type_output) const;
 
   // Check if name exists and has correct type and size, or print error message.
+  // TODO: GL allows converting int -> float, etc.
   bool check_match(bool attribute, const y::string& name,
                    bool array, y::size index,
                    GLenum type, y::size length) const;
@@ -237,6 +238,9 @@ private:
 
 };
 
+// TODO: unbind things after use.
+// TODO: allow re-uploading buffer data.
+// TODO: allow vertex attrib divisor buffers.
 class GlUtil : public y::no_copy {
 
   typedef void (GlUtil::*bool_type)() const;
