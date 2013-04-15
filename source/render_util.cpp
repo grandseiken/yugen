@@ -16,11 +16,17 @@ RenderUtil::RenderUtil(GlUtil& gl)
   : _gl(gl)
   , _quad(gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
                                       quad_data, sizeof(quad_data)))
+  , _native_width(0)
+  , _native_height(0)
   , _font(gl.make_texture("/font.png"))
   , _text_program(gl.make_program({"/shaders/text.v.glsl",
                                    "/shaders/text.f.glsl"}))
-  , _native_width(0)
-  , _native_height(0)
+  , _pixels_buffer(gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _origin_buffer(gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _frame_index_buffer(
+      gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _element_buffer(
+      gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_DYNAMIC_DRAW))
   , _sprite(gl.make_texture("/yedit/missing.png"))
   , _frame_width(0)
   , _frame_height(0)
@@ -32,6 +38,10 @@ RenderUtil::RenderUtil(GlUtil& gl)
 RenderUtil::~RenderUtil()
 {
   _gl.delete_buffer(_quad);
+  _gl.delete_buffer(_pixels_buffer);
+  _gl.delete_buffer(_origin_buffer);
+  _gl.delete_buffer(_frame_index_buffer);
+  _gl.delete_buffer(_element_buffer);
 }
 
 const RenderUtil::GlQuad& RenderUtil::quad() const
@@ -114,10 +124,16 @@ void RenderUtil::batch_sprite(int left, int top,
 }
 
 template<typename T>
-void push_vector(std::vector<T>& dest, const std::vector<T>& source)
+void write_vector(std::vector<T>& dest, y::size dest_index,
+                  const std::vector<T>& source)
 {
   for (y::size i = 0; i < source.size(); ++i) {
-    dest.push_back(source[i]);
+    if (dest_index + i < dest.size()) {
+      dest[dest_index + i] = source[i];
+    }
+    else {
+      dest.push_back(source[i]);
+    }
   }
 }
 
@@ -128,40 +144,41 @@ void RenderUtil::render_batch() const
     return;
   }
 
-  y::vector<float> pixels_data;
-  y::vector<float> origin_data;
-  y::vector<float> frame_index_data;
-  y::vector<GLushort> element_data;
-
-  for (y::size i = 0; i < _batched_sprites.size(); ++i) {
+  y::size length = _batched_sprites.size();
+  for (y::size i = 0; i < length; ++i) {
     const BatchedSprite& s = _batched_sprites[i];
-    push_vector(pixels_data, {
+
+    write_vector(_pixels_data, 8 * i, {
         s.left, s.top,
         s.left + _frame_width, s.top,
         s.left, s.top + _frame_height,
         s.left + _frame_width, s.top + _frame_height});
-    push_vector(element_data, {
-        GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
-        GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
-    for (y::size j = 0; j < 4; ++j) {
-      push_vector(origin_data, {s.left, s.top});
-      push_vector(frame_index_data, {s.frame_x, s.frame_y});
-    }
+    write_vector(_origin_data, 8 * i, {
+        s.left, s.top, s.left, s.top,
+        s.left, s.top, s.left, s.top});
+    write_vector(_frame_index_data, 8 * i, {
+        s.frame_x, s.frame_y, s.frame_x, s.frame_y,
+        s.frame_x, s.frame_y, s.frame_x, s.frame_y});
   }
 
-  auto pixels_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, pixels_data);
-  auto origin_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, origin_data);
-  auto frame_index_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, frame_index_data);
-  auto element_buffer = _gl.make_buffer<GLushort, 1>(
-      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
-  
+  _pixels_buffer.reupload_data(&_pixels_data[0], sizeof(float) * 8 * length);
+  _origin_buffer.reupload_data(&_origin_data[0], sizeof(float) * 8 * length);
+  _frame_index_buffer.reupload_data(&_frame_index_data[0],
+                                    sizeof(float) * 8 * length);
+
+  if (_element_data.size() / 6 < length) {
+    for (y::size i = _element_data.size() / 6; i < length; ++i) {
+      write_vector(_element_data, 6 * i, {
+          GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
+          GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
+    }
+    _element_buffer.reupload_data(_element_data);
+  }
+
   _sprite_program.bind();
-  _sprite_program.bind_attribute("pixels", pixels_buffer);
-  _sprite_program.bind_attribute("origin", origin_buffer);
-  _sprite_program.bind_attribute("frame_index", frame_index_buffer);
+  _sprite_program.bind_attribute("pixels", _pixels_buffer);
+  _sprite_program.bind_attribute("origin", _origin_buffer);
+  _sprite_program.bind_attribute("frame_index", _frame_index_buffer);
   _sprite_program.bind_uniform("resolution",
       GLint(_native_width), GLint(_native_height));
 
@@ -172,12 +189,7 @@ void RenderUtil::render_batch() const
   _sprite_program.bind_uniform("frame_count",
                                GLint(_sprite.get_width() / _frame_width),
                                GLint(_sprite.get_height() / _frame_height));
-  element_buffer.draw_elements(GL_TRIANGLES, 6 * _batched_sprites.size());
-
-  _gl.delete_buffer(pixels_buffer);
-  _gl.delete_buffer(origin_buffer);
-  _gl.delete_buffer(frame_index_buffer);
-  _gl.delete_buffer(element_buffer);
+  _element_buffer.draw_elements(GL_TRIANGLES, 6 * length);
 
   _batched_sprites.clear();
 }

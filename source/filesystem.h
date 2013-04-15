@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-// TODO: Errors or exceptions?
+// TODO: errors or exceptions?
 class Filesystem {
 public:
 

@@ -48,17 +48,18 @@ public:
 
 private:
 
+  // Font width and height.
   const y::size width = 8;
   const y::size height = 8;
 
   GlUtil& _gl;
   GlQuad _quad;
 
-  GlTexture _font;
-  GlProgram _text_program;
-
   y::size _native_width;
   y::size _native_height;
+
+  GlTexture _font;
+  GlProgram _text_program;
 
   struct BatchedSprite {
     BatchedSprite(float left, float top, float frame_x, float frame_y);
@@ -68,6 +69,16 @@ private:
     float frame_x;
     float frame_y;
   };
+
+  mutable y::vector<float> _pixels_data;
+  mutable y::vector<float> _origin_data;
+  mutable y::vector<float> _frame_index_data;
+  mutable y::vector<GLushort> _element_data;
+
+  GlBuffer<float, 2> _pixels_buffer;
+  GlBuffer<float, 2> _origin_buffer;
+  GlBuffer<float, 2> _frame_index_buffer;
+  GlBuffer<GLushort, 1> _element_buffer;
 
   GlTexture _sprite;
   int _frame_width;

@@ -75,14 +75,18 @@ public:
   void bind() const;
   void draw_elements(GLenum mode, GLsizei count) const;
 
+  void reupload_data(const T* data, GLsizei size) const;
+  void reupload_data(const y::vector<T>& data) const;
+
 protected:
 
   friend class GlUtil;
-  GlBuffer(GLuint handle, GLenum target);
+  GlBuffer(GLuint handle, GLenum target, GLenum usage_hint);
 
 private:
 
   GLenum _target;
+  GLenum _usage_hint;
 
 };
 
@@ -239,7 +243,6 @@ private:
 };
 
 // TODO: unbind things after use.
-// TODO: allow re-uploading buffer data.
 // TODO: allow vertex attrib divisor buffers (unpossible in v2).
 // TODO: support code-sharing somehow (#include).
 class GlUtil : public y::no_copy {
@@ -257,11 +260,14 @@ public:
 
   // Make an OpenGL buffer.
   template<typename T, y::size N>
+  GlBuffer<T, N> make_buffer(GLenum target, GLenum usage_hint);
+  template<typename T, y::size N>
   GlBuffer<T, N> make_buffer(GLenum target, GLenum usage_hint,
                              const T* data, GLsizei size);
   template<typename T, y::size N>
   GlBuffer<T, N> make_buffer(GLenum target, GLenum usage_hint,
                              const y::vector<T>& data);
+
   // Delete an existing buffer.
   template<typename T, y::size N>
   void delete_buffer(const GlBuffer<T, N>& buffer);
@@ -319,16 +325,23 @@ private:
 };
 
 template<typename T, y::size N>
+GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint)
+{
+
+  GLuint buffer;
+  glGenBuffers(1, &buffer);
+
+  _buffer_set.insert(buffer);
+  return GlBuffer<T, N>(buffer, target, usage_hint);
+}
+
+template<typename T, y::size N>
 GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint,
                                    const T* data, GLsizei size)
 {
-  GLuint buffer;
-  glGenBuffers(1, &buffer);
-  glBindBuffer(target, buffer);
-  glBufferData(target, size, data, usage_hint);
-
-  _buffer_set.insert(buffer);
-  return GlBuffer<T, N>(buffer, target);
+  GlBuffer<T, N> handle = make_buffer<T, N>(target, usage_hint);
+  handle.reupload_data(data, size);
+  return handle;
 }
 
 template<typename T, y::size N>
@@ -350,9 +363,10 @@ void GlUtil::delete_buffer(const GlBuffer<T, N>& buffer)
 }
 
 template<typename T, y::size N>
-GlBuffer<T, N>::GlBuffer(GLuint handle, GLenum target)
+GlBuffer<T, N>::GlBuffer(GLuint handle, GLenum target, GLenum usage_hint)
   : GlHandle(handle)
   , _target(target)
+  , _usage_hint(usage_hint)
 {
 }
 
@@ -367,6 +381,19 @@ void GlBuffer<T, N>::draw_elements(GLenum mode, GLsizei count) const
 {
   bind();
   glDrawElements(mode, N * count, GlType<T>::type_enum, (void*)0);
+}
+
+template<typename T, y::size N>
+void GlBuffer<T, N>::reupload_data(const T* data, GLsizei size) const
+{
+  bind();
+  glBufferData(_target, size, data, _usage_hint);
+}
+
+template<typename T, y::size N>
+void GlBuffer<T, N>::reupload_data(const y::vector<T>& data) const
+{
+  reupload_data(&data[0], sizeof(T) * data.size());
 }
 
 template<typename T, y::size N>
