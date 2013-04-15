@@ -211,6 +211,16 @@ bool Filesystem::basename(y::string& output, const y::string& path) const
   return true;
 }
 
+bool Filesystem::dirname(y::string& output, const y::string& path) const
+{
+  y::string cpath;
+  if (!canonicalise_path(cpath, path)) {
+    return false;
+  }
+  output = path.substr(0, path.find_last_of('/'));
+  return true;
+}
+
 bool Filesystem::canonicalise_path(y::string& output,
                                    const y::string& path) const
 {

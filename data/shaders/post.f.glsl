@@ -1,5 +1,3 @@
-#version 120
-
 uniform sampler2D framebuffer;
 varying vec2 tex_coord;
 

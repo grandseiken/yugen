@@ -124,8 +124,8 @@ void RenderUtil::batch_sprite(int left, int top,
 }
 
 template<typename T>
-void write_vector(std::vector<T>& dest, y::size dest_index,
-                  const std::vector<T>& source)
+static void write_vector(std::vector<T>& dest, y::size dest_index,
+                         const std::vector<T>& source)
 {
   for (y::size i = 0; i < source.size(); ++i) {
     if (dest_index + i < dest.size()) {
@@ -139,6 +139,7 @@ void write_vector(std::vector<T>& dest, y::size dest_index,
 
 void RenderUtil::render_batch() const
 {
+
   if (!_native_width || !_native_height ||
       !_sprite || !_frame_width || !_frame_height) {
     return;

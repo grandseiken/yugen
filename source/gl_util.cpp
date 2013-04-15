@@ -478,11 +478,44 @@ void GlUtil::delete_texture(const y::string& filename)
 
 GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
 {
-  y::string data;
-  _filesystem.read_file(data, filename);
-  if (data.empty()) {
+  static const y::string header = "#version 120\n";
+  static const y::string include_directive = "#include \"";
+  static const y::size include_limit = 128;
+
+  y::string data = header;
+  if (!_filesystem.read_file(data, filename)) {
     std::cerr << "Couldn't read file " << filename << std::endl;
     return GlShader(0);
+  }
+
+  y::size include_count = 0;
+  y::size include = data.find(include_directive);
+  while (include != y::string::npos) {
+    if (++include_count > include_limit) {
+      std::cerr << "Include depth too deep in file " << filename << std::endl;
+      return GlShader(0);
+    }
+    y::size begin = include + include_directive.length();
+    y::size end = data.find_first_of('"', begin);
+    if (end == y::string::npos) {
+      break;
+    }
+
+    y::string include_filename = data.substr(begin, end - begin);
+    if (include_filename[0] != '/') {
+      y::string dirname;
+      _filesystem.dirname(dirname, filename);
+      include_filename = dirname + '/' + include_filename;
+    }
+
+    y::string after = data.substr(1 + end);
+    data = data.substr(0, include);
+    if (!_filesystem.read_file(data, include_filename)) {
+      std::cerr << "Couldn't read file " << include_filename << std::endl;
+      return GlShader(0);
+    }
+    data += after;
+    include = data.find(include_directive, begin);
   }
 
   if (!type) {
@@ -515,6 +548,7 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
   }
 
   std::cerr << "Shader " << filename << " failed compilation" << std::endl;
+  std::cerr << data << std::endl;
   GLint log_length;
   glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
   y::unique<char[]> log(new char[log_length]);

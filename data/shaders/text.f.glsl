@@ -1,5 +1,3 @@
-#version 120
-
 uniform sampler2D font;
 uniform ivec2 font_size;
 uniform int string[1024];

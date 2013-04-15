@@ -244,7 +244,6 @@ private:
 
 // TODO: unbind things after use.
 // TODO: allow vertex attrib divisor buffers (unpossible in v2).
-// TODO: support code-sharing somehow (#include).
 class GlUtil : public y::no_copy {
 
   typedef void (GlUtil::*bool_type)() const;

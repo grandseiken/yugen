@@ -1,5 +1,3 @@
-#version 120
-
 attribute vec2 position;
 uniform ivec2 native_res;
 uniform ivec2 screen_res;

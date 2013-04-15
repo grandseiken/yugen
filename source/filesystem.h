@@ -44,6 +44,9 @@ public:
   // Returns the last component of a path.
   /*****/ bool basename(y::string& output, const y::string& path) const;
 
+  // Returns all but the last component of a path.
+  /*****/ bool dirname(y::string& output, const y::string& path) const;
+
 protected:
 
   virtual void list_directory_internal(y::string_vector& output,

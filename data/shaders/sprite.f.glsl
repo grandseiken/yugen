@@ -1,5 +1,3 @@
-#version 120
-
 uniform sampler2D sprite;
 uniform ivec2 frame_size;
 uniform ivec2 frame_count;
