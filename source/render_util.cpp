@@ -114,10 +114,10 @@ void RenderUtil::batch_sprite(int left, int top,
 }
 
 template<typename T>
-void write_subarray(T* array, const std::vector<T>& data)
+void push_vector(std::vector<T>& dest, const std::vector<T>& source)
 {
-  for (y::size i = 0; i < data.size(); ++i) {
-    *(array + i) = data[i];
+  for (y::size i = 0; i < source.size(); ++i) {
+    dest.push_back(source[i]);
   }
 }
 
@@ -128,39 +128,35 @@ void RenderUtil::render_batch() const
     return;
   }
 
-  const y::size length = _batched_sprites.size();
-  float* pixels_data = new float[8 * length];
-  float* origin_data = new float[8 * length];
-  float* frame_index_data = new float[8 * length];
-  GLushort* element_data = new GLushort[6 * length];
-  for (y::size i = 0; i < length; ++i) {
+  y::vector<float> pixels_data;
+  y::vector<float> origin_data;
+  y::vector<float> frame_index_data;
+  y::vector<GLushort> element_data;
+
+  for (y::size i = 0; i < _batched_sprites.size(); ++i) {
     const BatchedSprite& s = _batched_sprites[i];
-    write_subarray(pixels_data + 8 * i, {
+    push_vector(pixels_data, {
         s.left, s.top,
         s.left + _frame_width, s.top,
         s.left, s.top + _frame_height,
         s.left + _frame_width, s.top + _frame_height});
-    write_subarray(element_data + 6 * i, {
+    push_vector(element_data, {
         GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
         GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
     for (y::size j = 0; j < 4; ++j) {
-      write_subarray(origin_data + 2 * j + 8 * i, {s.left, s.top});
-      write_subarray(frame_index_data + 2 * j + 8 * i, {s.frame_x, s.frame_y});
+      push_vector(origin_data, {s.left, s.top});
+      push_vector(frame_index_data, {s.frame_x, s.frame_y});
     }
   }
 
   auto pixels_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, pixels_data,
-      sizeof(float) * 8 * length);
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, pixels_data);
   auto origin_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, origin_data,
-      sizeof(float) * 8 * length);
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, origin_data);
   auto frame_index_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, frame_index_data,
-      sizeof(float) * 8 * length);
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, frame_index_data);
   auto element_buffer = _gl.make_buffer<GLushort, 1>(
-      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data,
-      sizeof(GLushort) * 6 * length);
+      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
   
   _sprite_program.bind();
   _sprite_program.bind_attribute("pixels", pixels_buffer);
@@ -182,11 +178,6 @@ void RenderUtil::render_batch() const
   _gl.delete_buffer(origin_buffer);
   _gl.delete_buffer(frame_index_buffer);
   _gl.delete_buffer(element_buffer);
-
-  delete[] pixels_data;
-  delete[] origin_data;
-  delete[] frame_index_data;
-  delete[] element_data;
 
   _batched_sprites.clear();
 }

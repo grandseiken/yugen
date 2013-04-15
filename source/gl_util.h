@@ -240,7 +240,8 @@ private:
 
 // TODO: unbind things after use.
 // TODO: allow re-uploading buffer data.
-// TODO: allow vertex attrib divisor buffers.
+// TODO: allow vertex attrib divisor buffers (unpossible in v2).
+// TODO: support code-sharing somehow (#include).
 class GlUtil : public y::no_copy {
 
   typedef void (GlUtil::*bool_type)() const;
@@ -258,6 +259,9 @@ public:
   template<typename T, y::size N>
   GlBuffer<T, N> make_buffer(GLenum target, GLenum usage_hint,
                              const T* data, GLsizei size);
+  template<typename T, y::size N>
+  GlBuffer<T, N> make_buffer(GLenum target, GLenum usage_hint,
+                             const y::vector<T>& data);
   // Delete an existing buffer.
   template<typename T, y::size N>
   void delete_buffer(const GlBuffer<T, N>& buffer);
@@ -325,6 +329,14 @@ GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint,
 
   _buffer_set.insert(buffer);
   return GlBuffer<T, N>(buffer, target);
+}
+
+template<typename T, y::size N>
+GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint,
+                                   const y::vector<T>& data)
+{
+  return make_buffer<T, N>(target, usage_hint,
+                           &data[0], sizeof(T) * data.size());
 }
 
 template<typename T, y::size N>
