@@ -515,7 +515,7 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
       return GlShader(0);
     }
     data += after;
-    include = data.find(include_directive, begin);
+    include = data.find(include_directive, include);
   }
 
   if (!type) {
