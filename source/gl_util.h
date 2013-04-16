@@ -212,15 +212,15 @@ protected:
 private:
 
   // Check if uniform or attribute name exists in program.
-  // TODO: cache this, or disable for non-debug mode.
+  // TODO: cache this, or allow disabling for non-debug mode.
   // TODO: allow converting name to GLint so that we don't need to
-  // lookup a name every time (if performance deems it necessary).
+  // lookup a name every time (if performance deems it necessary)?
   bool check_name_exists(bool attribute, const y::string& name,
                          bool array, y::size index,
                          GLenum& type_output) const;
 
   // Check if name exists and has correct type and size, or print error message.
-  // TODO: GL allows converting int -> float, etc.
+  // TODO: GL allows converting int -> float, etc, so that should work.
   bool check_match(bool attribute, const y::string& name,
                    bool array, y::size index,
                    GLenum type, y::size length) const;
@@ -242,8 +242,8 @@ private:
 
 };
 
-// TODO: unbind things after use.
-// TODO: allow vertex attrib divisor buffers (unpossible in v2).
+// TODO: unbind things after use? Might make errors more obvious.
+// TODO: vertex attrib divisor buffers would be nice, but can't in OpenGL 2.1.
 class GlUtil : public y::no_copy {
 
   typedef void (GlUtil::*bool_type)() const;

@@ -1,66 +1,12 @@
+#include "yugen.h"
+
 #include "gl_util.h"
-#include "modal.h"
 #include "physical_filesystem.h"
 #include "render_util.h"
 #include "window.h"
 #include "world.h"
 
-#include <SFML/System.hpp>
 #include <SFML/Window.hpp>
-
-class Yugen : public Modal, public y::no_copy {
-public:
-
-  Yugen(Window& window, GlUtil& gl, RenderUtil& util,
-        GlFramebuffer& framebuffer);
-  virtual ~Yugen() {}
-
-  virtual void event(const sf::Event& e);
-  virtual void update();
-  virtual void draw() const;
-
-private:
-
-  static const y::size samples = 16;
-  sf::Clock _clock;
-  y::vector<y::size> _measurements;
-
-  Window& _window;
-  GlUtil& _gl;
-  RenderUtil& _util;
-  GlFramebuffer& _framebuffer;
-
-  bool _direction;
-  GLfloat _fade_factor;
-
-  GlProgram _hello_program;
-  GlProgram _post_program;
-  GlTexture _textures[3];
-  GlBuffer<GLfloat, 2> _vertex_buffer;
-
-};
-
-int main(int argc, char** argv)
-{
-  World world;
-  
-  const y::size native_width = 640;
-  const y::size native_height = 360;
-
-  Window window("Crunk Yugen", 24, native_width, native_height, true, false);
-  PhysicalFilesystem filesystem("data");
-  GlUtil gl(filesystem, window);
-  if (!gl) {
-    return 1;
-  }
-  GlFramebuffer framebuffer = gl.make_framebuffer(native_width, native_height);
-  RenderUtil util(gl);
-
-  ModalStack stack;
-  stack.push(y::move_unique(new Yugen(window, gl, util, framebuffer)));
-  stack.run(window);
-  return 0;
-}
 
 const GLfloat vertex_data[] = {
     -1.f, -1.f,
@@ -153,4 +99,26 @@ void Yugen::draw() const
   _framebuffer.get_texture().bind(GL_TEXTURE0);
   _post_program.bind_uniform("framebuffer", 0);
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+}
+
+int main(int argc, char** argv)
+{
+  World world;
+  
+  const y::size native_width = 640;
+  const y::size native_height = 360;
+
+  Window window("Crunk Yugen", 24, native_width, native_height, true, false);
+  PhysicalFilesystem filesystem("data");
+  GlUtil gl(filesystem, window);
+  if (!gl) {
+    return 1;
+  }
+  GlFramebuffer framebuffer = gl.make_framebuffer(native_width, native_height);
+  RenderUtil util(gl);
+
+  ModalStack stack;
+  stack.push(y::move_unique(new Yugen(window, gl, util, framebuffer)));
+  stack.run(window);
+  return 0;
 }
