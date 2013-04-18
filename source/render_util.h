@@ -14,6 +14,48 @@ struct Colour {
   float a;
 };
 
+struct BatchedTexture {
+  BatchedTexture(const GlTexture& sprite,
+                 y::int32 frame_width, y::int32 frame_height);
+
+  GlTexture sprite;
+  y::int32 frame_width;
+  y::int32 frame_height;
+};
+
+struct BatchedSprite {
+  BatchedSprite(float left, float top, float frame_x, float frame_y);
+
+  float left;
+  float top;
+  float frame_x;
+  float frame_y;
+};
+
+struct BatchedTextureLess {
+  bool operator()(const BatchedTexture& l, const BatchedTexture& r) const;
+};
+
+// Helper class to automatically batch renders using the same texture.
+class RenderBatch {
+public:
+
+  void add_sprite(const GlTexture& sprite,
+                  y::int32 frame_width, y::int32 frame_height,
+                  y::int32 left, y::int32 top,
+                  y::int32 frame_x, y::int32 frame_y);
+
+  typedef y::vector<BatchedSprite> BatchedSpriteList;
+  typedef y::ordered_map<BatchedTexture, BatchedSpriteList,
+                         BatchedTextureLess> BatchedTextureMap;
+  const BatchedTextureMap& get_map() const;
+
+private:
+
+  BatchedTextureMap _map;
+
+};
+
 class RenderUtil {
 public:
 
@@ -30,21 +72,27 @@ public:
   void set_resolution(y::size native_width, y::size native_height);
 
   // Render text (at pixel coordinates).
-  void render_text(const y::string& text, int left, int top,
+  void render_text(const y::string& text, y::int32 left, y::int32 top,
                    float r, float g, float b, float a) const;
-  void render_text(const y::string& text, int left, int top,
+  void render_text(const y::string& text, y::int32 left, y::int32 top,
                    const Colour& colour) const;
 
   // Render text (at font-size grid coordinates).
-  void render_text_grid(const y::string& text, int left, int top,
+  void render_text_grid(const y::string& text, y::int32 left, y::int32 top,
                         float r, float g, float b, float a) const;
-  void render_text_grid(const y::string& text, int left, int top,
+  void render_text_grid(const y::string& text, y::int32 left, y::int32 top,
                         const Colour& colour) const;
 
   // Batch and render sprites (at pixel coordinates).
-  void set_sprite(const GlTexture& sprite, int frame_width, int frame_height);
-  void batch_sprite(int left, int top, int frame_x, int frame_y) const;
+  void set_sprite(const GlTexture& sprite,
+                  y::int32 frame_width, y::int32 frame_height);
+  void batch_sprite(y::int32 left, y::int32 top,
+                    y::int32 frame_x, y::int32 frame_y) const;
   void render_batch() const;
+
+  // Render an entire set of batches at once. Sprite set with set_sprite
+  // is not preserved.
+  void render_batch(const RenderBatch& batch);
 
 private:
 
@@ -60,15 +108,6 @@ private:
 
   GlTexture _font;
   GlProgram _text_program;
-
-  struct BatchedSprite {
-    BatchedSprite(float left, float top, float frame_x, float frame_y);
-
-    float left;
-    float top;
-    float frame_x;
-    float frame_y;
-  };
 
   mutable y::vector<float> _pixels_data;
   mutable y::vector<float> _origin_data;

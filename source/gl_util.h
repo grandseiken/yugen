@@ -52,12 +52,12 @@ public:
 
   operator bool_type() const;
 
+  GLuint get_handle() const;
+
 protected:
 
   friend class GlUtil;
   explicit GlHandle(GLuint handle);
-
-  GLuint get_handle() const;
 
 private:
 

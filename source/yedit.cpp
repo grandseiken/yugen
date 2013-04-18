@@ -36,13 +36,17 @@ void Yedit::draw() const
   const Resolution& screen = _window.get_mode();
   _util.set_resolution(screen.width, screen.height);
 
+  RenderBatch batch;
   const Tileset& t = _bank.get_tileset(_bank.get_tileset_list()[0]);
-  _util.set_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height);
-  _util.batch_sprite(256, 8, 4, 0);
-  _util.batch_sprite(256, 40, 5, 0);
-  _util.batch_sprite(256, 72, 6, 0);
-  _util.batch_sprite(256, 104, 7, 0);
-  _util.render_batch();
+  batch.add_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height,
+                   256, 8, 4, 0);
+  batch.add_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height,
+                   256, 40, 5, 0);
+  batch.add_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height,
+                   256, 72, 6, 0);
+  batch.add_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height,
+                   256, 104, 7, 0);
+  _util.render_batch(batch);
 
   Colour white(1.f, 1.f, 1.f);
   Colour grey(.5f, .5f, .5f);

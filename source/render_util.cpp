@@ -1,5 +1,7 @@
 #include "render_util.h"
 
+#include <boost/functional/hash.hpp>
+
 Colour::Colour(float r, float g, float b)
   : r(r), g(g), b(b), a(1.f)
 {
@@ -8,6 +10,55 @@ Colour::Colour(float r, float g, float b)
 Colour::Colour(float r, float g, float b, float a)
   : r(r), g(g), b(b), a(a)
 {
+}                             
+
+BatchedTexture::BatchedTexture(const GlTexture& sprite,
+                               y::int32 frame_width, y::int32 frame_height)
+  : sprite(sprite)
+  , frame_width(frame_width)
+  , frame_height(frame_height)
+{
+}  
+
+BatchedSprite::BatchedSprite(float left, float top,
+                             float frame_x, float frame_y)
+  : left(left)
+  , top(top)
+  , frame_x(frame_x)
+  , frame_y(frame_y)
+{
+}
+
+bool BatchedTextureLess::operator()(const BatchedTexture& l,
+                                    const BatchedTexture& r) const
+{
+  if (l.sprite.get_handle() < r.sprite.get_handle()) {
+    return true;
+  }
+  if (l.sprite.get_handle() > r.sprite.get_handle()) {
+    return false;
+  }
+  if (l.frame_width < r.frame_width) {
+    return true;
+  }
+  if (l.frame_width > r.frame_width) {
+    return false;
+  }
+  return l.frame_height < r.frame_height;
+}
+
+void RenderBatch::add_sprite(
+    const GlTexture& sprite, y::int32 frame_width, y::int32 frame_height,
+    y::int32 left, y::int32 top, y::int32 frame_x, y::int32 frame_y)
+{
+  BatchedTexture bt(sprite, frame_width, frame_height);
+  BatchedSprite bs(left, top, frame_x, frame_y);
+  _map[bt].push_back(bs);
+}
+
+const RenderBatch::BatchedTextureMap& RenderBatch::get_map() const
+{
+  return _map;
 }
 
 static const GLushort quad_data[] = {0, 1, 2, 3};
@@ -194,11 +245,13 @@ void RenderUtil::render_batch() const
   _batched_sprites.clear();
 }
 
-RenderUtil::BatchedSprite::BatchedSprite(float left, float top,
-                                         float frame_x, float frame_y)
-  : left(left)
-  , top(top)
-  , frame_x(frame_x)
-  , frame_y(frame_y)
+void RenderUtil::render_batch(const RenderBatch& batch)
 {
+  for (const auto& pair : batch.get_map()) {
+    set_sprite(pair.first.sprite,
+               pair.first.frame_width, pair.first.frame_height);
+    _batched_sprites.insert(_batched_sprites.begin(),
+                            pair.second.begin(), pair.second.end());
+    render_batch();
+  }
 }

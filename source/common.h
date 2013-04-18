@@ -3,7 +3,9 @@
 
 #include <boost/utility.hpp>
 #include <cstddef>
+#include <map>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -29,10 +31,14 @@ namespace y {
 
   template<typename T>
   using vector = std::vector<T>;
-  template<typename T>
-  using set = std::unordered_set<T>;
-  template<typename T, typename U>
-  using map = std::unordered_map<T, U>;
+  template<typename T, typename H = std::hash<T>>
+  using set = std::unordered_set<T, H>;
+  template<typename T, typename U, typename H = std::hash<T>>
+  using map = std::unordered_map<T, U, H>;
+  template<typename T, typename L = std::less<T>>
+  using ordered_set = std::set<T, L>;
+  template<typename T, typename U, typename L = std::less<T>>
+  using ordered_map = std::map<T, U, L>;
   template<typename T, typename U>
   using pair = std::pair<T, U>;
   template<typename T>
