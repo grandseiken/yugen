@@ -9,7 +9,7 @@
 class Filesystem;
 class Window;
 
-#define GL_TYPE(T, V) template<> struct GlType<T> { enum { type_enum = V }; }
+#define GL_TYPE(T, V) template<> struct GlType<T> {enum {type_enum = V};}
 template<typename T>
 struct GlType {};
 GL_TYPE(bool, GL_BOOL);
@@ -24,11 +24,11 @@ GL_TYPE(GLdouble, GL_DOUBLE);
 #undef GL_TYPE
 
 #define GL_UNIFORM(T, F1, F2, F3, F4) \
-  template<> struct GlUniform<T> { \
-    static void uniform1(GLint l, T a) { F1(l, a); } \
-    static void uniform2(GLint l, T a, T b) { F2(l, a, b); } \
-    static void uniform3(GLint l, T a, T b, T c) { F3(l, a, b, c); } \
-    static void uniform4(GLint l, T a, T b, T c, T d) { F4(l, a, b, c, d); } \
+  template<> struct GlUniform<T> {\
+    static void uniform1(GLint l, T a) {F1(l, a);}\
+    static void uniform2(GLint l, T a, T b) {F2(l, a, b);}\
+    static void uniform3(GLint l, T a, T b, T c) {F3(l, a, b, c);}\
+    static void uniform4(GLint l, T a, T b, T c, T d) {F4(l, a, b, c, d);}\
   }
 template<typename T>
 struct GlUniform {};
@@ -177,11 +177,11 @@ public:
 
   // Bind the value of a uniform variable.
   template<typename T>
-  bool bind_uniform(const y::string& name, T a) const; 
+  bool bind_uniform(const y::string& name, T a) const;
   template<typename T>
-  bool bind_uniform(const y::string& name, T a, T b) const; 
+  bool bind_uniform(const y::string& name, T a, T b) const;
   template<typename T>
-  bool bind_uniform(const y::string& name, T a, T b, T c) const; 
+  bool bind_uniform(const y::string& name, T a, T b, T c) const;
   template<typename T>
   bool bind_uniform(const y::string& name, T a, T b, T c, T d) const;
 
@@ -196,10 +196,10 @@ public:
                     T a) const;
   template<typename T>
   bool bind_uniform(y::size index, const y::string& name,
-                    T a, T b) const; 
+                    T a, T b) const;
   template<typename T>
   bool bind_uniform(y::size index, const y::string& name,
-                    T a, T b, T c) const; 
+                    T a, T b, T c) const;
   template<typename T>
   bool bind_uniform(y::size index, const y::string& name,
                     T a, T b, T c, T d) const;
@@ -306,7 +306,7 @@ private:
 
   const Filesystem& _filesystem;
   const Window& _window;
-  
+
   typedef y::set<GLuint> gl_handle_set;
   typedef y::map<y::string, GlTexture> gl_texture_map;
   typedef y::map<y::string, GlShader> gl_shader_map;

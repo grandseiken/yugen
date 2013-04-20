@@ -64,7 +64,7 @@ protected:
 
 private:
 
-  // Build canonical version of path. Returns false if it's an invalid path. 
+  // Build canonical version of path. Returns false if it's an invalid path.
   /*****/ bool canonicalise_path(y::string& output,
                                  const y::string& path) const;
 

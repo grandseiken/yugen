@@ -104,7 +104,7 @@ void Yugen::draw() const
 int main(int argc, char** argv)
 {
   World world;
-  
+
   const y::size native_width = 640;
   const y::size native_height = 360;
 

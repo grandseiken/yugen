@@ -95,7 +95,7 @@ void Filesystem::list_pattern(y::string_vector& output,
         intermediate.begin(), intermediate.end(), std::back_inserter(output),
         [&](const y::string& p){return local::check_pattern(p, cpattern);});
     return;
-  } 
+  }
 
   // Otherwise we can pick the subdirectories that actually match the path
   // segment and recurse.
@@ -140,7 +140,7 @@ void Filesystem::list_directory(y::string_vector& output,
 void Filesystem::list_directory_recursive(y::string_vector& output,
                                           const y::string& path) const
 {
-  // Canonicalising is handled by list_directory. 
+  // Canonicalising is handled by list_directory.
   y::string_vector directory;
   list_directory(directory, path);
 

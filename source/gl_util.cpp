@@ -63,7 +63,7 @@ GlFramebuffer::GlFramebuffer(GLuint handle, const GlTexture& texture,
 
 const GlTexture& GlFramebuffer::get_texture() const
 {
-  return _texture; 
+  return _texture;
 }
 
 y::size GlFramebuffer::get_width() const
@@ -269,7 +269,7 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
         (attribute ? "attribute" : "uniform") << " " << name;
     if (array) {
       std::cerr << "[" << index << "]";
-    } 
+    }
     std::cerr << std::endl;
     return false;
   }

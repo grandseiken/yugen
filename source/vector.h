@@ -1,5 +1,5 @@
-#ifndef NDMATH_H
-#define NDMATH_H
+#ifndef VECTOR_H
+#define VECTOR_H
 
 #include "common.h"
 
@@ -16,7 +16,7 @@ namespace y {
       , w(*(3 + elements))
     {}
 
-    const T& x; T& y; T& z; T& w;
+    const T& x; const T& y; const T& z; const T& w;
   };
   template<typename T>
   struct vec_accessors<T, 3> {
@@ -26,7 +26,7 @@ namespace y {
       , z(*(2 + elements))
     {}
 
-    const T& x; T& y; T& z;
+    const T& x; const T& y; const T& z;
   };
   template<typename T>
   struct vec_accessors<T, 2> {
@@ -35,7 +35,7 @@ namespace y {
       , y(*(1 + elements))
     {}
 
-    const T& x; T& y;
+    const T& x; const T& y;
   };
   template<typename T>
   struct vec_accessors<T, 1> {
@@ -51,14 +51,14 @@ namespace y {
   };
 
   template<typename T, y::size N>
-  class vec : public vec_accessors<T, N> {
+  class vec : vec_accessors<T, N> {
   public:
 
     typedef vec<T, N> V;
     T elements[N];
 
     vec()
-      : vec_accessors<T ,N>(elements)
+      : vec_accessors<T, N>(elements)
       , elements{0}
     {
     }

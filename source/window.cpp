@@ -38,7 +38,7 @@ Window::Window(const y::string& title, y::size default_bpp,
   _resolution.bpp = default_bpp;
 
   // Let the user choose the resolution.
-  if (!skip_choice) { 
+  if (!skip_choice) {
     y::size i = 0;
     for (const Resolution& r : supported_modes) {
       std::cout << i++ << ") " <<
@@ -110,7 +110,7 @@ Window::Window(const y::string& title, y::size default_bpp,
     }
   }
 
-  if (_resolution.width == 0 || _resolution.height == 0) { 
+  if (_resolution.width == 0 || _resolution.height == 0) {
     _resolution.width = desktop.width / 2;
     _resolution.height = desktop.height / 2;
   }

@@ -189,7 +189,7 @@ CellBlueprint::CellBlueprint()
 
 const Tile& CellBlueprint::get_tile(y::int8 layer, y::size x, y::size y) const
 {
-  return _tiles[to_internal_index(layer, x, y)]; 
+  return _tiles[to_internal_index(layer, x, y)];
 }
 
 void CellBlueprint::set_tile(y::int8 layer, y::size x, y::size y,

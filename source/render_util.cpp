@@ -10,7 +10,7 @@ Colour::Colour(float r, float g, float b)
 Colour::Colour(float r, float g, float b, float a)
   : r(r), g(g), b(b), a(a)
 {
-}                             
+}
 
 BatchedTexture::BatchedTexture(const GlTexture& sprite,
                                y::int32 frame_width, y::int32 frame_height)
@@ -18,7 +18,7 @@ BatchedTexture::BatchedTexture(const GlTexture& sprite,
   , frame_width(frame_width)
   , frame_height(frame_height)
 {
-}  
+}
 
 BatchedSprite::BatchedSprite(float left, float top,
                              float frame_x, float frame_y)
@@ -150,7 +150,7 @@ void RenderUtil::render_text(const y::string& text, int left, int top,
 void RenderUtil::render_text_grid(const y::string& text, int left, int top,
                                   float r, float g, float b, float a) const
 {
-  render_text(text, left * width, top * height, r, g, b, a); 
+  render_text(text, left * width, top * height, r, g, b, a);
 }
 
 void RenderUtil::render_text_grid(const y::string& text, int left, int top,

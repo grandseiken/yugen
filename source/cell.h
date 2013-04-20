@@ -79,7 +79,7 @@ public:
   static const y::size background_layers = 1;
   static const y::size foreground_layers = 1;
 
-  // Layer enumeration. 
+  // Layer enumeration.
   static const y::int8 layer_background = -1;
   static const y::int8 layer_collision  =  0;
   static const y::int8 layer_foreground =  1;
@@ -123,7 +123,7 @@ public:
 
 private:
 
-  y::map<const Tileset*, y::size> _tilesets; 
+  y::map<const Tileset*, y::size> _tilesets;
   y::unique<Tile[]> _tiles;
 
 };

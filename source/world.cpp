@@ -84,7 +84,7 @@ void WorldWindow::move_active_window(const CellCoord& offset)
         _active_window[internal_index].cell.swap(copy[internal_index].cell);
         continue;
       }
-      
+
       // Otherwise create it.
       _active_window[internal_index].cell =
           y::move_unique(new Cell(*new_blueprint));

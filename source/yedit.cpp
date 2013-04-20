@@ -80,7 +80,7 @@ int main(int argc, char** argv)
   }
   Databank databank(filesystem, gl);
   RenderUtil util(gl);
-  
+
   ModalStack stack;
   stack.push(y::move_unique(new Yedit(databank, window, gl, util)));
   stack.run(window);

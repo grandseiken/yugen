@@ -16,7 +16,7 @@ protected:
                                        const y::string& path) const;
 
   virtual bool is_file_internal(const y::string& path) const;
-  
+
   virtual bool is_directory_internal(const y::string& path) const;
 
   virtual void read_file_internal(y::string& output,
