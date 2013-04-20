@@ -67,7 +67,8 @@ for cpp in source/*.cpp; do
       list="source/${include_graph[$i]} $list"
       let i=$i+1
     done
-    vals=`grep -h ' \+#include \+\"' $list | sed 's/#include \+"\([^"]\+\)"/\1/g'`
+    vals=`grep -h '^#include \+\"' $list`
+    vals=`echo $vals | sed 's/#include \+"\([^"]\+\)"/\1/g'`
     for include in $vals; do
       seen=0
       i=0
@@ -90,7 +91,9 @@ for cpp in source/*.cpp; do
     list="source/${include_graph[$i]} $list"
     let i=$i+1
   done
-  if [ -f bin/$base.md5 ] && [ "`cat bin/$base.md5`" == "`md5sum $list`" ]; then
+  old=`cat bin/$base.md5`
+  new=`md5sum $list`
+  if [ -f bin/$base.md5 ] && [ "$old" == "$new" ]; then
     echo "Up to date: $cpp"
   else
     echo "Compiling $cpp..."
