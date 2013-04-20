@@ -88,6 +88,22 @@ public:
   void render_text_grid(const y::string& text, y::int32 left, y::int32 top,
                         const Colour& colour) const;
 
+  // Render colour (at pixel coordinates).
+  void render_colour(y::int32 left, y::int32 top,
+                     y::int32 width, y::int32 height,
+                     float r, float g, float b, float a);
+  void render_colour(y::int32 left, y::int32 top,
+                     y::int32 width, y::int32 height,
+                     const Colour& colour);
+
+  // Render colour (at font-size grid coordinates).
+  void render_colour_grid(y::int32 left, y::int32 top,
+                          y::int32 width, y::int32 height,
+                          float r, float g, float b, float a);
+  void render_colour_grid(y::int32 left, y::int32 top,
+                          y::int32 width, y::int32 height,
+                          const Colour& colour);
+
   // Batch and render sprites (at pixel coordinates).
   void set_sprite(const GlTexture& sprite,
                   y::int32 frame_width, y::int32 frame_height);
@@ -102,8 +118,8 @@ public:
 private:
 
   // Font width and height.
-  const y::size width = 8;
-  const y::size height = 8;
+  const y::size font_width = 8;
+  const y::size font_height = 8;
 
   GlUtil& _gl;
   GlQuad _quad;
@@ -113,6 +129,7 @@ private:
 
   GlTexture _font;
   GlProgram _text_program;
+  GlProgram _draw_program;
 
   mutable y::vector<float> _pixels_data;
   mutable y::vector<float> _origin_data;

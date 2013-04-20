@@ -72,6 +72,8 @@ RenderUtil::RenderUtil(GlUtil& gl)
   , _font(gl.make_texture("/font.png"))
   , _text_program(gl.make_program({"/shaders/text.v.glsl",
                                    "/shaders/text.f.glsl"}))
+  , _draw_program(gl.make_program({"/shaders/draw.v.glsl",
+                                   "/shaders/draw.f.glsl"}))
   , _pixels_buffer(gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _origin_buffer(gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _frame_index_buffer(
@@ -126,8 +128,8 @@ void RenderUtil::render_text(const y::string& text, int left, int top,
   const GLfloat text_data[] = {
       float(left), float(top),
       float(left + _native_width), float(top),
-      float(left), float(top + height),
-      float(left + _native_width), float(top + height)};
+      float(left), float(top + font_height),
+      float(left + _native_width), float(top + font_height)};
 
   auto text_buffer = _gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, text_data, sizeof(text_data));
@@ -144,7 +146,8 @@ void RenderUtil::render_text(const y::string& text, int left, int top,
   }
   _font.bind(GL_TEXTURE0);
   _text_program.bind_uniform("font", 0);
-  _text_program.bind_uniform("font_size", GLint(width), GLint(height));
+  _text_program.bind_uniform(
+      "font_size", GLint(font_width), GLint(font_height));
   _text_program.bind_uniform("colour", r, g, b, a);
   _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
 
@@ -160,13 +163,64 @@ void RenderUtil::render_text(const y::string& text, int left, int top,
 void RenderUtil::render_text_grid(const y::string& text, int left, int top,
                                   float r, float g, float b, float a) const
 {
-  render_text(text, left * width, top * height, r, g, b, a);
+  render_text(text, left * font_width, top * font_height, r, g, b, a);
 }
 
 void RenderUtil::render_text_grid(const y::string& text, int left, int top,
                                   const Colour& colour) const
 {
   render_text_grid(text, left, top, colour.r, colour.g, colour.b, colour.a);
+}
+
+void RenderUtil::render_colour(y::int32 left, y::int32 top,
+                               y::int32 width, y::int32 height,
+                               float r, float g, float b, float a)
+{
+  if (!_native_width || !_native_height) {
+    return;
+  }
+
+  const GLfloat rect_data[] = {
+      float(left), float(top),
+      float(left + width), float(top),
+      float(left), float(top + height),
+      float(left + width), float(top + height)};
+
+  auto rect_buffer = _gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, rect_data, sizeof(rect_data));
+
+  _draw_program.bind();
+  _draw_program.bind_attribute("pixels", rect_buffer);
+  _draw_program.bind_uniform("resolution",
+      GLint(_native_width), GLint(_native_height));
+  _draw_program.bind_uniform("colour", r, g, b, a);
+  _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
+
+  _gl.delete_buffer(rect_buffer);
+}
+
+void RenderUtil::render_colour(y::int32 left, y::int32 top,
+                               y::int32 width, y::int32 height,
+                               const Colour& colour)
+{
+  render_colour(left, top, width, height,
+                colour.r, colour.g, colour.b, colour.a);
+}
+
+void RenderUtil::render_colour_grid(y::int32 left, y::int32 top,
+                                    y::int32 width, y::int32 height,
+                                    float r, float g, float b, float a)
+{
+  render_colour(left * font_width, top * font_height,
+                width * font_width, height * font_height, r, g, b, a);
+}
+
+void RenderUtil::render_colour_grid(y::int32 left, y::int32 top,
+                                    y::int32 width, y::int32 height,
+                                    const Colour& colour)
+{
+  render_colour_grid(left, top, width, height,
+                     colour.r, colour.g, colour.b, colour.a);
 }
 
 void RenderUtil::set_sprite(const GlTexture& texture,
