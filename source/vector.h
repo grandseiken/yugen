@@ -238,6 +238,16 @@ namespace y {
     return u;
   }
 
+  template<typename T, y::size N>
+  vec<T, N> operator/(const T& t, const vec<T, N>& v)
+  {
+    vec<T, N> u;
+    for (y::size i = 0; i < N; ++i) {
+      u[i] = t / v[i];
+    }
+    return u;
+  }
+
   typedef vec<y::int32, 2> ivec2;
   typedef vec<y::int32, 3> ivec3;
   typedef vec<y::int32, 4> ivec4;
