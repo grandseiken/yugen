@@ -13,7 +13,7 @@ namespace sf {
   class Event;
 }
 
-class Yugen : public Modal, public y::no_copy {
+class Yugen : public Modal {
 public:
 
   Yugen(Window& window, GlUtil& gl, RenderUtil& util,

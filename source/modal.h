@@ -10,7 +10,7 @@ class ModalStack;
 class Window;
 
 // Interface to an entry in the ModalStack.
-class Modal {
+class Modal : public y::no_copy {
 public:
 
   Modal();

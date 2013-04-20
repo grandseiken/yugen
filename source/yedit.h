@@ -12,7 +12,7 @@ namespace sf {
   class Event;
 }
 
-class Yedit : public Modal, public y::no_copy {
+class Yedit : public Modal {
 public:
 
   Yedit(Databank& bank, Window& window, GlUtil& gl, RenderUtil& util);
