@@ -124,7 +124,7 @@ public:
   y::size get_height() const;
 
   // Render to framebuffer, rather than window.
-  void bind() const;
+  void bind(bool clear) const;
 
 protected:
 
@@ -257,6 +257,8 @@ public:
   // Returns true iff everything was initialised without problems.
   operator bool_type() const;
 
+  const Window& get_window() const;
+
   // Make an OpenGL buffer.
   template<typename T, y::size N>
   GlBuffer<T, N> make_buffer(GLenum target, GLenum usage_hint);
@@ -298,7 +300,7 @@ public:
   void delete_program(const y::string_vector& shaders);
 
   // Render to window, rather than any framebuffer.
-  void bind_window() const;
+  void bind_window(bool clear) const;
 
 private:
 

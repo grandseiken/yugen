@@ -18,11 +18,11 @@ public:
   Databank(const Filesystem& filesystem, GlUtil& gl);
 
   // Get list of tileset names.
-  const y::string_vector& get_tileset_list() const;
+  const y::string_vector& get_tilesets() const;
   // Get list of cell names.
-  const y::string_vector& get_cell_list() const;
+  const y::string_vector& get_cells() const;
   // Get list of map names.
-  const y::string_vector& get_map_list() const;
+  const y::string_vector& get_maps() const;
 
   const Tileset& get_tileset(const y::string& name) const;
   /***/ Tileset& get_tileset(const y::string& name);
@@ -32,6 +32,15 @@ public:
 
   const CellMap& get_map(const y::string& name) const;
   /***/ CellMap& get_map(const y::string& name);
+
+  const Tileset& get_tileset(y::size index) const;
+  /***/ Tileset& get_tileset(y::size index);
+
+  const CellBlueprint& get_cell(y::size index) const;
+  /***/ CellBlueprint& get_cell(y::size index);
+
+  const CellMap& get_map(y::size index) const;
+  /***/ CellMap& get_map(y::size index);
 
 private:
 

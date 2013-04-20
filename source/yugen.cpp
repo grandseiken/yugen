@@ -14,34 +14,30 @@ const GLfloat vertex_data[] = {
     -1.f,  1.f,
      1.f,  1.f};
 
-Yugen::Yugen(Window& window, GlUtil& gl, RenderUtil& util,
-             GlFramebuffer& framebuffer)
-  : _window(window)
-  , _gl(gl)
-  , _util(util)
+Yugen::Yugen(RenderUtil& util, GlFramebuffer& framebuffer)
+  : _util(util)
   , _framebuffer(framebuffer)
   , _direction(true)
   , _fade_factor(0.f)
-  , _hello_program(gl.make_program({
+  , _hello_program(util.get_gl().make_program({
       "/shaders/hello.v.glsl",
       "/shaders/hello.f.glsl"}))
-  , _post_program(gl.make_program({
+  , _post_program(util.get_gl().make_program({
       "/shaders/post.v.glsl",
       "/shaders/post.f.glsl"}))
   , _textures({
-      gl.make_texture("/bg0.png"),
-      gl.make_texture("/bg1.png"),
-      gl.make_texture("/bg2.png")})
-  , _vertex_buffer(gl.make_buffer<GLfloat, 2>(
+      util.get_gl().make_texture("/bg0.png"),
+      util.get_gl().make_texture("/bg1.png"),
+      util.get_gl().make_texture("/bg2.png")})
+  , _vertex_buffer(util.get_gl().make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data)))
 {
 }
 
 void Yugen::event(const sf::Event& e)
 {
-  if (e.type == sf::Event::Closed ||
-      (e.type == sf::Event::KeyPressed &&
-       e.key.code == sf::Keyboard::Escape)) {
+  if (e.type == sf::Event::KeyPressed &&
+      e.key.code == sf::Keyboard::Escape) {
     end();
   }
 }
@@ -70,7 +66,7 @@ void Yugen::draw() const
     total /= samples;
   }
 
-  _framebuffer.bind();
+  _framebuffer.bind(true);
   _hello_program.bind();
   _hello_program.bind_attribute("position", _vertex_buffer);
   _hello_program.bind_uniform("fade_factor", _fade_factor);
@@ -87,8 +83,8 @@ void Yugen::draw() const
     _util.render_text(ss.str(), 16.f, 16.f, 0.f, 0.f, 0.f, 1.f);
   }
 
-  const Resolution& screen = _window.get_mode();
-  _gl.bind_window();
+  const Resolution& screen = _util.get_window().get_mode();
+  _util.get_gl().bind_window(true);
   _post_program.bind();
   _post_program.bind_attribute("position", _vertex_buffer);
   _post_program.bind_uniform("integral_scale_lock", true);
@@ -118,7 +114,7 @@ int main(int argc, char** argv)
   RenderUtil util(gl);
 
   ModalStack stack;
-  stack.push(y::move_unique(new Yugen(window, gl, util, framebuffer)));
+  stack.push(y::move_unique(new Yugen(util, framebuffer)));
   stack.run(window);
   return 0;
 }

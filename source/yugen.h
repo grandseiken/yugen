@@ -16,8 +16,7 @@ namespace sf {
 class Yugen : public Modal {
 public:
 
-  Yugen(Window& window, GlUtil& gl, RenderUtil& util,
-        GlFramebuffer& framebuffer);
+  Yugen(RenderUtil& util, GlFramebuffer& framebuffer);
   virtual ~Yugen() {}
 
   virtual void event(const sf::Event& e);
@@ -30,8 +29,6 @@ private:
   sf::Clock _clock;
   y::vector<y::size> _measurements;
 
-  Window& _window;
-  GlUtil& _gl;
   RenderUtil& _util;
   GlFramebuffer& _framebuffer;
 

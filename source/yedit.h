@@ -15,7 +15,7 @@ namespace sf {
 class Yedit : public Modal {
 public:
 
-  Yedit(Databank& bank, Window& window, GlUtil& gl, RenderUtil& util);
+  Yedit(Databank& bank, RenderUtil& util);
   virtual ~Yedit() {}
 
   virtual void event(const sf::Event& e);
@@ -25,9 +25,9 @@ public:
 private:
 
   Databank& _bank;
-  Window& _window;
-  GlUtil& _gl;
   RenderUtil& _util;
+
+  y::size _map_select;
 
 };
 

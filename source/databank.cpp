@@ -31,17 +31,17 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   }
 }
 
-const y::string_vector& Databank::get_tileset_list() const
+const y::string_vector& Databank::get_tilesets() const
 {
   return _tileset_list;
 }
 
-const y::string_vector& Databank::get_cell_list() const
+const y::string_vector& Databank::get_cells() const
 {
   return _cell_list;
 }
 
-const y::string_vector& Databank::get_map_list() const
+const y::string_vector& Databank::get_maps() const
 {
   return _map_list;
 }
@@ -103,6 +103,54 @@ CellMap& Databank::get_map(const y::string& name)
     return *it->second;
   }
   std::cerr << "Couldn't find map " << name << std::endl;
+  return _default_map;
+}
+
+const Tileset& Databank::get_tileset(y::size index) const
+{
+  if (index < get_tilesets().size()) {
+    return get_tileset(get_tilesets()[index]);
+  }
+  return _default_tileset;
+}
+
+Tileset& Databank::get_tileset(y::size index)
+{
+  if (index < get_tilesets().size()) {
+    return get_tileset(get_tilesets()[index]);
+  }
+  return _default_tileset;
+}
+
+const CellBlueprint& Databank::get_cell(y::size index) const
+{
+  if (index < get_cells().size()) {
+    return get_cell(get_cells()[index]);
+  }
+  return _default_cell;
+}
+
+CellBlueprint& Databank::get_cell(y::size index)
+{
+  if (index < get_cells().size()) {
+    return get_cell(get_cells()[index]);
+  }
+  return _default_cell;
+}
+
+const CellMap& Databank::get_map(y::size index) const
+{
+  if (index < get_maps().size()) {
+    return get_map(get_maps()[index]);
+  }
+  return _default_map;
+}
+
+CellMap& Databank::get_map(y::size index)
+{
+  if (index < get_maps().size()) {
+    return get_map(get_maps()[index]);
+  }
   return _default_map;
 }
 

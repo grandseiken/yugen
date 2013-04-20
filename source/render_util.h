@@ -56,11 +56,16 @@ private:
 
 };
 
+class Window;
+
 class RenderUtil {
 public:
 
   RenderUtil(GlUtil& gl);
   ~RenderUtil();
+
+  /***/ GlUtil& get_gl() const;
+  const Window& get_window() const;
 
   typedef GlBuffer<GLushort, 1> GlQuad;
 

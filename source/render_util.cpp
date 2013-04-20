@@ -95,6 +95,16 @@ RenderUtil::~RenderUtil()
   _gl.delete_buffer(_element_buffer);
 }
 
+GlUtil& RenderUtil::get_gl() const
+{
+  return _gl;
+}
+
+const Window& RenderUtil::get_window() const
+{
+  return get_gl().get_window();
+}
+
 const RenderUtil::GlQuad& RenderUtil::quad() const
 {
   return _quad;

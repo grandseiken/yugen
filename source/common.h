@@ -30,6 +30,12 @@ namespace y {
   typedef std::stringstream sstream;
 
   template<typename T>
+  auto clamp(T t, T start, T end) -> decltype(std::max(t, std::min(t, t)))
+  {
+    return std::max(start, std::min(end - 1, t));
+  }
+
+  template<typename T>
   using vector = std::vector<T>;
   template<typename T, typename H = std::hash<T>>
   using set = std::unordered_set<T, H>;

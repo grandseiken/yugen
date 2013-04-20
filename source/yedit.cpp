@@ -2,6 +2,7 @@
 
 #include "databank.h"
 #include "gl_util.h"
+#include "map_editor.h"
 #include "physical_filesystem.h"
 #include "render_util.h"
 #include "tileset.h"
@@ -9,35 +10,50 @@
 
 #include <SFML/Window.hpp>
 
-Yedit::Yedit(Databank& bank, Window& window, GlUtil& gl, RenderUtil& util)
+Yedit::Yedit(Databank& bank, RenderUtil& util)
   : _bank(bank)
-  , _window(window)
-  , _gl(gl)
   , _util(util)
+  , _map_select(0)
 {
 }
 
 void Yedit::event(const sf::Event& e)
 {
-  if (e.type == sf::Event::Closed ||
-      (e.type == sf::Event::KeyPressed &&
-       e.key.code == sf::Keyboard::Escape)) {
-    end();
+  if (e.type != sf::Event::KeyPressed) {
+    return;
+  }
+
+  switch (e.key.code) {
+    case sf::Keyboard::Down:
+      ++_map_select;
+      break;
+    case sf::Keyboard::Up:
+      --_map_select;
+      break;
+    case sf::Keyboard::Return:
+      push(y::move_unique(new MapEditor(
+          _bank, _util, _bank.get_map(_map_select))));
+      break;
+    case sf::Keyboard::Escape:
+      end();
+      break;
+    default: {}
   }
 }
 
 void Yedit::update()
 {
+  _map_select = y::clamp<y::size>(_map_select, 0, _bank.get_maps().size());
 }
 
 void Yedit::draw() const
 {
-  _gl.bind_window();
-  const Resolution& screen = _window.get_mode();
+  _util.get_gl().bind_window(true);
+  const Resolution& screen = _util.get_window().get_mode();
   _util.set_resolution(screen.width, screen.height);
 
   RenderBatch batch;
-  const Tileset& t = _bank.get_tileset(_bank.get_tileset_list()[0]);
+  const Tileset& t = _bank.get_tileset(_bank.get_tilesets()[0]);
   batch.add_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height,
                    256, 8, 4, 0);
   batch.add_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height,
@@ -49,24 +65,26 @@ void Yedit::draw() const
   _util.render_batch(batch);
 
   Colour white(1.f, 1.f, 1.f);
+  Colour red(1.f, 0.f, 0.f);
   Colour grey(.5f, .5f, .5f);
 
   y::size i = 1;
   _util.render_text_grid("Tilesets", 1, i++, grey);
-  for (const auto& s :_bank.get_tileset_list()) {
+  for (const auto& s :_bank.get_tilesets()) {
     _util.render_text_grid(s, 2, i++, white);
   }
 
   i++;
   _util.render_text_grid("Cells", 1, i++, grey);
-  for (const auto& s :_bank.get_cell_list()) {
+  for (const auto& s :_bank.get_cells()) {
     _util.render_text_grid(s, 2, i++, white);
   }
 
   i++;
+  y::size n = 0;
   _util.render_text_grid("Maps", 1, i++, grey);
-  for (const auto& s :_bank.get_map_list()) {
-    _util.render_text_grid(s, 2, i++, white);
+  for (const auto& s :_bank.get_maps()) {
+    _util.render_text_grid(s, 2, i++, n++ == _map_select ? red : white);
   }
 }
 
@@ -82,7 +100,7 @@ int main(int argc, char** argv)
   RenderUtil util(gl);
 
   ModalStack stack;
-  stack.push(y::move_unique(new Yedit(databank, window, gl, util)));
+  stack.push(y::move_unique(new Yedit(databank, util)));
   stack.run(window);
   return 0;
 }

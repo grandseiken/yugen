@@ -45,6 +45,9 @@ void ModalStack::run(Window& window)
   while (!empty()) {
     sf::Event e;
     while (window.poll_event(e)) {
+      if (e.type == sf::Event::Closed) {
+        return;
+      }
       event(e);
       if (clear_ended()) {
         break;

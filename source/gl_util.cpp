@@ -76,11 +76,13 @@ y::size GlFramebuffer::get_height() const
   return get_texture().get_height();
 }
 
-void GlFramebuffer::bind() const
+void GlFramebuffer::bind(bool clear) const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, get_handle());
   glViewport(0, 0, get_texture().get_width(), get_texture().get_height());
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  if (clear) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  }
 }
 
 GLuint GlFramebuffer::get_depth_handle() const
@@ -359,6 +361,11 @@ GlUtil::~GlUtil()
 GlUtil::operator bool_type() const
 {
   return _setup_ok ? &GlUtil::no_bool_comparison : 0;
+}
+
+const Window& GlUtil::get_window() const
+{
+  return _window;
 }
 
 GlFramebuffer GlUtil::make_framebuffer(y::size width, y::size height)
@@ -646,10 +653,12 @@ void GlUtil::delete_program(const y::string_vector& shaders)
   }
 }
 
-void GlUtil::bind_window() const
+void GlUtil::bind_window(bool clear) const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   const Resolution& mode = _window.get_mode();
   glViewport(0, 0, mode.width, mode.height);
-  glClear(GL_COLOR_BUFFER_BIT);
+  if (clear) {
+    glClear(GL_COLOR_BUFFER_BIT);
+  }
 }
