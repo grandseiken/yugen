@@ -67,7 +67,8 @@ for cpp in source/*.cpp; do
       list="source/${include_graph[$i]} $list"
       let i=$i+1
     done
-    for include in `echo $list | xargs cat | grep "#include \+\"" | sed "s/#include \+\"\([^\"]\+\)\"/\1/g"`; do
+    vals=`grep -h ' \+#include \+\"' $list | sed 's/#include \+"\([^"]\+\)"/\1/g'`
+    for include in $vals; do
       seen=0
       i=0
       while [ $i -lt $include_count ]; do
