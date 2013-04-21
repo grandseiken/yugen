@@ -115,11 +115,17 @@ public:
   // is not preserved.
   void render_batch(const RenderBatch& batch);
 
-private:
+  // Render a sprite immediately.
+  void render_sprite(const GlTexture& sprite,
+                     y::int32 frame_width, y::int32 frame_height,
+                     y::int32 left, y::int32 top,
+                     y::int32 frame_x, y::int32 frame_y);
 
   // Font width and height.
-  const y::size font_width = 8;
-  const y::size font_height = 8;
+  static const y::size font_width = 8;
+  static const y::size font_height = 8;
+
+private:
 
   GlUtil& _gl;
   GlQuad _quad;

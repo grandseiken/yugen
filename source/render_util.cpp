@@ -319,3 +319,13 @@ void RenderUtil::render_batch(const RenderBatch& batch)
     render_batch();
   }
 }
+
+void RenderUtil::render_sprite(const GlTexture& sprite,
+                               y::int32 frame_width, y::int32 frame_height,
+                               y::int32 left, y::int32 top,
+                               y::int32 frame_x, y::int32 frame_y)
+{
+  set_sprite(sprite, frame_width, frame_height);
+  batch_sprite(left, top, frame_x, frame_y);
+  render_batch();
+}
