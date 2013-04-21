@@ -76,11 +76,11 @@ void Yugen::draw() const
   _hello_program.bind_uniform(1, "textures", 1);
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
 
-  _util.set_resolution(_framebuffer.get_width(), _framebuffer.get_height());
+  _util.set_resolution(_framebuffer.get_size());
   if (total) {
     y::sstream ss;
     ss << total << " ticks (" << (1000.f / total) << " fps)";
-    _util.render_text(ss.str(), 16.f, 16.f, 0.f, 0.f, 0.f, 1.f);
+    _util.render_text(ss.str(), {16, 16}, 0.f, 0.f, 0.f, 1.f);
   }
 
   const Resolution& screen = _util.get_window().get_mode();
@@ -89,9 +89,9 @@ void Yugen::draw() const
   _post_program.bind_attribute("position", _vertex_buffer);
   _post_program.bind_uniform("integral_scale_lock", true);
   _post_program.bind_uniform("native_res",
-      GLint(_framebuffer.get_width()), GLint(_framebuffer.get_height()));
+      GLint(_framebuffer.get_size()[xx]), GLint(_framebuffer.get_size()[yy]));
   _post_program.bind_uniform("screen_res",
-      GLint(screen.width), GLint(screen.height));
+      GLint(screen.size[xx]), GLint(screen.size[yy]));
   _framebuffer.get_texture().bind(GL_TEXTURE0);
   _post_program.bind_uniform("framebuffer", 0);
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
@@ -104,16 +104,15 @@ int main(int argc, char** argv)
 
   World world;
 
-  const y::size native_width = 640;
-  const y::size native_height = 360;
+  const y::ivec2 native_size{640, 360};
 
-  Window window("Crunk Yugen", 24, native_width, native_height, true, false);
+  Window window("Crunk Yugen", 24, native_size, true, false);
   PhysicalFilesystem filesystem("data");
   GlUtil gl(filesystem, window);
   if (!gl) {
     return 1;
   }
-  GlFramebuffer framebuffer = gl.make_framebuffer(native_width, native_height);
+  GlFramebuffer framebuffer = gl.make_framebuffer(native_size);
   RenderUtil util(gl);
 
   ModalStack stack;

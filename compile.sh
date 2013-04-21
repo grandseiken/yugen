@@ -67,8 +67,8 @@ for cpp in source/*.cpp; do
       list="source/${include_graph[$i]} $list"
       let i=$i+1
     done
-    vals=`grep -h '^#include \+\"' $list`
-    vals=`echo $vals | sed 's/#include \+"\([^"]\+\)"/\1/g'`
+    vals=$(grep -h '^#include \+\"' $list 2> /dev/null)
+    vals=$(echo $vals | sed 's/#include \+"\([^"]\+\)"/\1/g' 2> /dev/null)
     for include in $vals; do
       seen=0
       i=0
@@ -91,13 +91,15 @@ for cpp in source/*.cpp; do
     list="source/${include_graph[$i]} $list"
     let i=$i+1
   done
-  if [ -f bin/$base.md5 ] && [ "`cat bin/$base.md5`" == "`md5sum $list`" ]; then
+  old=$(cat bin/$base.md5 2> /dev/null)
+  new=$(md5sum $list 2> /dev/null)
+  if [ -f bin/$base.md5 ] && [ "$old" == "$new" ]; then
     echo "Up to date: $cpp"
   else
     echo "Compiling $cpp..."
     $gcc -c $cflag -o bin/$base.o $cpp
     if [ $? -eq 0 ]; then
-      md5sum $list > bin/$base.md5
+      md5sum $list > bin/$base.md5 2> /dev/null
     else
       if [ -f bin/$base.md5 ]; then
         rm bin/$base.md5

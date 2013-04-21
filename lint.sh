@@ -16,4 +16,5 @@ for file in source/*; do
   lint_highlight '\( | \)|\[ | \]|\{ |[^ ] \}|[^ ]  +[^ ]' 'Line \1 whitespace'
   lint_highlight ' +$' 'Line \1 trailing whitespace'
   lint_highlight 'const +static' 'Line \1 bad order'
+  lint_highlight ',\S' 'Line \1 missing space'
 done

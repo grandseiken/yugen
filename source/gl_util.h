@@ -2,6 +2,7 @@
 #define GL_UTIL_H
 
 #include "common.h"
+#include "vector.h"
 
 #include <GL/glew.h>
 #include <SFML/OpenGL.hpp>
@@ -98,18 +99,16 @@ public:
 
   void bind(GLenum target) const;
 
-  y::size get_width() const;
-  y::size get_height() const;
+  const y::ivec2& get_size() const;
 
 protected:
 
   friend class GlUtil;
-  GlTexture(GLuint handle, y::size width, y::size height);
+  GlTexture(GLuint handle, const y::ivec2& size);
 
 private:
 
-  y::size _width;
-  y::size _height;
+  y::ivec2 _size;
 
 };
 
@@ -120,8 +119,7 @@ public:
   virtual ~GlFramebuffer() {}
 
   const GlTexture& get_texture() const;
-  y::size get_width() const;
-  y::size get_height() const;
+  const y::ivec2& get_size() const;
 
   // Render to framebuffer, rather than window.
   void bind(bool clear) const;
@@ -162,6 +160,7 @@ namespace std {
 }
 
 // Lightweight handle to a GLSL shader program.
+// TODO: allow binding vectors with vectors.
 class GlProgram : public GlHandle {
 public:
 
@@ -274,7 +273,7 @@ public:
   void delete_buffer(const GlBuffer<T, N>& buffer);
 
   // Make an OpenGL framebuffer.
-  GlFramebuffer make_framebuffer(y::size width, y::size height);
+  GlFramebuffer make_framebuffer(const y::ivec2& size);
   // Delete an existing framebuffer.
   void delete_framebuffer(const GlFramebuffer& framebuffer);
 

@@ -18,7 +18,7 @@ void UndoStack::new_action(y::unique<StackAction> action)
 {
   action->redo();
   _undo_stack.push_back(Element());
-  _undo_stack[_undo_stack.size() - 1].swap(action);
+  (_undo_stack.end() - 1)->swap(action);
   _redo_stack.clear();
 }
 
@@ -28,10 +28,9 @@ void UndoStack::undo()
     return;
   }
 
-  _undo_stack[_undo_stack.size() - 1]->undo();
+  (*(_undo_stack.end() - 1))->undo();
   _redo_stack.push_back(Element());
-  _undo_stack[_undo_stack.size() - 1].swap(
-      _redo_stack[_redo_stack.size() - 1]);
+  (_undo_stack.end() - 1)->swap(*(_redo_stack.end() - 1));
   _undo_stack.erase(_undo_stack.end() - 1);
 }
 
@@ -41,10 +40,9 @@ void UndoStack::redo()
     return;
   }
 
-  _redo_stack[_redo_stack.size() - 1]->redo();
+  (*(_redo_stack.end() - 1))->redo();
   _undo_stack.push_back(Element());
-  _redo_stack[_redo_stack.size() - 1].swap(
-      _undo_stack[_undo_stack.size() - 1]);
+  (_redo_stack.end() - 1)->swap(*(_undo_stack.end() - 1));
   _redo_stack.erase(_redo_stack.end() - 1);
 }
 
@@ -163,10 +161,10 @@ void PanelUi::draw(RenderUtil& util) const
 {
   for (Panel* panel : _panels) {
     // Transform rendering into panel coordinates.
-    const y::ivec2& size = panel->get_size();
-    util.add_translation(size[xx], size[yy]);
+    const y::ivec2& origin = panel->get_origin();
+    util.add_translation(origin);
     panel->draw(util);
-    util.add_translation(-size[xx], -size[yy]);
+    util.add_translation(-origin);
   }
 }
 
@@ -193,7 +191,7 @@ void PanelUi::update_mouse_overs(bool in_window, int x, int y)
       e.type = sf::Event::MouseEntered;
       e.mouseMove.x = x;
       e.mouseMove.y = y;
-      if (panel->event(e)) {  
+      if (panel->event(e)) {
         first = false;
       }
       _mouse_over.insert(panel);

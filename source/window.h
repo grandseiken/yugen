@@ -2,6 +2,7 @@
 #define WINDOW_H
 
 #include "common.h"
+#include "vector.h"
 
 struct Resolution {
   Resolution();
@@ -9,8 +10,7 @@ struct Resolution {
   bool operator==(const Resolution& r) const;
   bool operator!=(const Resolution& r) const;
 
-  y::size width;
-  y::size height;
+  y::ivec2 size;
   y::size bpp;
 };
 
@@ -28,7 +28,7 @@ public:
   // unless choice is allowed. In windowed, parameters are the defaults but
   // the window can be resized.
   Window(const y::string& title, y::size default_bpp,
-         y::size default_width, y::size default_height,
+         const y::ivec2& default_size,
          bool default_fullscreen, bool skip_choice);
 
   const Resolution& get_mode() const;

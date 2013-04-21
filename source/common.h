@@ -37,6 +37,9 @@ namespace y {
   template<typename T>
   void roll(T& t, T start, T end)
   {
+    while (t < 0) {
+      t += end - start;
+    }
     t = start + (t - start) % (end - start);
   }
 

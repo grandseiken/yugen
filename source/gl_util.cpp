@@ -30,10 +30,9 @@ GLuint GlHandle::get_handle() const
   return _handle;
 }
 
-GlTexture::GlTexture(GLuint handle, y::size width, y::size height)
+GlTexture::GlTexture(GLuint handle, const y::ivec2& size)
   : GlHandle(handle)
-  , _width(width)
-  , _height(height)
+  , _size(size)
 {
 }
 
@@ -43,14 +42,9 @@ void GlTexture::bind(GLenum target) const
   glBindTexture(GL_TEXTURE_2D, get_handle());
 }
 
-y::size GlTexture::get_width() const
+const y::ivec2& GlTexture::get_size() const
 {
-  return _width;
-}
-
-y::size GlTexture::get_height() const
-{
-  return _height;
+  return _size;
 }
 
 GlFramebuffer::GlFramebuffer(GLuint handle, const GlTexture& texture,
@@ -66,20 +60,15 @@ const GlTexture& GlFramebuffer::get_texture() const
   return _texture;
 }
 
-y::size GlFramebuffer::get_width() const
+const y::ivec2& GlFramebuffer::get_size() const
 {
-  return get_texture().get_width();
-}
-
-y::size GlFramebuffer::get_height() const
-{
-  return get_texture().get_height();
+  return get_texture().get_size();
 }
 
 void GlFramebuffer::bind(bool clear) const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, get_handle());
-  glViewport(0, 0, get_texture().get_width(), get_texture().get_height());
+  glViewport(0, 0, get_texture().get_size()[xx], get_texture().get_size()[yy]);
   if (clear) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   }
@@ -368,7 +357,7 @@ const Window& GlUtil::get_window() const
   return _window;
 }
 
-GlFramebuffer GlUtil::make_framebuffer(y::size width, y::size height)
+GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size)
 {
   GLuint framebuffer;
   glGenFramebuffers(1, &framebuffer);
@@ -381,7 +370,7 @@ GlFramebuffer GlUtil::make_framebuffer(y::size width, y::size height)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size[xx], size[yy],
                0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -392,7 +381,8 @@ GlFramebuffer GlUtil::make_framebuffer(y::size width, y::size height)
   GLuint depth;
   glGenRenderbuffers(1, &depth);
   glBindRenderbuffer(GL_RENDERBUFFER, depth);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
+                        size[xx], size[yy]);
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                             GL_RENDERBUFFER, depth);
 
@@ -401,13 +391,13 @@ GlFramebuffer GlUtil::make_framebuffer(y::size width, y::size height)
     glDeleteFramebuffers(1, &framebuffer);
     glDeleteTextures(1, &texture);
     glDeleteRenderbuffers(1, &depth);
-    return GlFramebuffer(0, GlTexture(0, 0, 0), 0);
+    return GlFramebuffer(0, GlTexture(0, {0, 0}), 0);
   }
 
   _framebuffer_set.insert(framebuffer);
   _framebuffer_texture_set.insert(texture);
   _framebuffer_depth_set.insert(depth);
-  return GlFramebuffer(framebuffer, GlTexture(texture, width, height), depth);
+  return GlFramebuffer(framebuffer, GlTexture(texture, size), depth);
 }
 
 void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
@@ -438,13 +428,13 @@ GlTexture GlUtil::make_texture(const y::string& filename)
   _filesystem.read_file(data, filename);
   if (data.empty()) {
     std::cerr << "Couldn't read file " << filename << std::endl;
-    return GlTexture(0, 0, 0);
+    return GlTexture(0, y::ivec2());
   }
 
   sf::Image image;
   if (!image.loadFromMemory(&data[0], data.length())) {
     std::cerr << "Couldn't load image " << filename << std::endl;
-    return GlTexture(0, 0, 0);
+    return GlTexture(0, y::ivec2());
   }
   GLuint texture;
   glGenTextures(1, &texture);
@@ -462,7 +452,8 @@ GlTexture GlUtil::make_texture(const y::string& filename)
     glDeleteTextures(1, &handle);
     _texture_map.erase(it);
   }
-  GlTexture r(texture, image.getSize().x, image.getSize().y);
+  GlTexture r(texture, {y::int32(image.getSize().x),
+                        y::int32(image.getSize().y)});
   _texture_map.insert(y::make_pair(filename, r));
   return r;
 }
@@ -470,7 +461,7 @@ GlTexture GlUtil::make_texture(const y::string& filename)
 GlTexture GlUtil::get_texture(const y::string& filename) const
 {
   auto it = _texture_map.find(filename);
-  return it == _texture_map.end() ? GlTexture(0, 0, 0) : it->second;
+  return it == _texture_map.end() ? GlTexture(0, y::ivec2()) : it->second;
 }
 
 void GlUtil::delete_texture(const y::string& filename)
@@ -657,7 +648,7 @@ void GlUtil::bind_window(bool clear) const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   const Resolution& mode = _window.get_mode();
-  glViewport(0, 0, mode.width, mode.height);
+  glViewport(0, 0, mode.size[xx], mode.size[yy]);
   if (clear) {
     glClear(GL_COLOR_BUFFER_BIT);
   }

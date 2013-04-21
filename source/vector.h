@@ -8,7 +8,9 @@
 namespace y {
 
   template<y::size N>
-  struct element_accessor {};
+  struct element_accessor {
+    element_accessor() {}
+  };
 
   template<typename T, y::size N>
   class vec {

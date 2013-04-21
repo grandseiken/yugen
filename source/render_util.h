@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "gl_util.h"
+#include "vector.h"
 
 struct Colour {
   Colour(float r, float g, float b);
@@ -15,12 +16,10 @@ struct Colour {
 };
 
 struct BatchedTexture {
-  BatchedTexture(const GlTexture& sprite,
-                 y::int32 frame_width, y::int32 frame_height);
+  BatchedTexture(const GlTexture& sprite, const y::ivec2& frame_size);
 
   GlTexture sprite;
-  y::int32 frame_width;
-  y::int32 frame_height;
+  y::ivec2 frame_size;
 };
 
 struct BatchedSprite {
@@ -40,10 +39,8 @@ struct BatchedTextureLess {
 class RenderBatch {
 public:
 
-  void add_sprite(const GlTexture& sprite,
-                  y::int32 frame_width, y::int32 frame_height,
-                  y::int32 left, y::int32 top,
-                  y::int32 frame_x, y::int32 frame_y);
+  void add_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
+                  const y::ivec2& origin, const y::ivec2& frame);
 
   typedef y::vector<BatchedSprite> BatchedSpriteList;
   typedef y::ordered_map<BatchedTexture, BatchedSpriteList,
@@ -58,7 +55,6 @@ private:
 
 class Window;
 
-// TODO: use ivec2 instead of int pairs. Also, rectangles?
 class RenderUtil {
 public:
 
@@ -75,44 +71,38 @@ public:
 
   // Native (target framebuffer) resolution must be set for utility methods
   // to behave correctly.
-  void set_resolution(y::size native_width, y::size native_height);
+  void set_resolution(const y::ivec2& native_size);
 
   // Offset all render operations.
-  void add_translation(y::int32 x, y::int32 y); 
+  void add_translation(const y::ivec2& translation);
 
   // Render text (at pixel coordinates).
-  void render_text(const y::string& text, y::int32 left, y::int32 top,
+  void render_text(const y::string& text, const y::ivec2& origin,
                    float r, float g, float b, float a) const;
-  void render_text(const y::string& text, y::int32 left, y::int32 top,
+  void render_text(const y::string& text, const y::ivec2& origin,
                    const Colour& colour) const;
 
   // Render text (at font-size grid coordinates).
-  void render_text_grid(const y::string& text, y::int32 left, y::int32 top,
+  void render_text_grid(const y::string& text, const y::ivec2& origin,
                         float r, float g, float b, float a) const;
-  void render_text_grid(const y::string& text, y::int32 left, y::int32 top,
+  void render_text_grid(const y::string& text, const y::ivec2& origin,
                         const Colour& colour) const;
 
   // Render colour (at pixel coordinates).
-  void render_colour(y::int32 left, y::int32 top,
-                     y::int32 width, y::int32 height,
+  void render_colour(const y::ivec2& origin, const y::ivec2& size,
                      float r, float g, float b, float a) const;
-  void render_colour(y::int32 left, y::int32 top,
-                     y::int32 width, y::int32 height,
+  void render_colour(const y::ivec2& origin, const y::ivec2& size,
                      const Colour& colour) const;
 
   // Render colour (at font-size grid coordinates).
-  void render_colour_grid(y::int32 left, y::int32 top,
-                          y::int32 width, y::int32 height,
+  void render_colour_grid(const y::ivec2& origin, const y::ivec2& size,
                           float r, float g, float b, float a) const;
-  void render_colour_grid(y::int32 left, y::int32 top,
-                          y::int32 width, y::int32 height,
+  void render_colour_grid(const y::ivec2& origin, const y::ivec2& size,
                           const Colour& colour) const;
 
   // Batch and render sprites (at pixel coordinates).
-  void set_sprite(const GlTexture& sprite,
-                  y::int32 frame_width, y::int32 frame_height);
-  void batch_sprite(y::int32 left, y::int32 top,
-                    y::int32 frame_x, y::int32 frame_y) const;
+  void set_sprite(const GlTexture& sprite, const y::ivec2& frame_size);
+  void batch_sprite(const y::ivec2& origin, const y::ivec2& frame) const;
   void render_batch() const;
 
   // Render an entire set of batches at once. Sprite set with set_sprite
@@ -120,25 +110,20 @@ public:
   void render_batch(const RenderBatch& batch);
 
   // Render a sprite immediately.
-  void render_sprite(const GlTexture& sprite,
-                     y::int32 frame_width, y::int32 frame_height,
-                     y::int32 left, y::int32 top,
-                     y::int32 frame_x, y::int32 frame_y);
+  void render_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
+                     const y::ivec2& origin, const y::ivec2& frame);
 
   // Font width and height.
-  static const y::size font_width = 8;
-  static const y::size font_height = 8;
+  static const y::int32 font_width = 8;
+  static const y::int32 font_height = 8;
 
 private:
 
   GlUtil& _gl;
   GlQuad _quad;
 
-  y::size _native_width;
-  y::size _native_height;
-
-  y::int32 _translate_x;
-  y::int32 _translate_y;
+  y::ivec2 _native_size;
+  y::ivec2 _translation;
 
   GlTexture _font;
   GlProgram _text_program;
@@ -155,8 +140,7 @@ private:
   GlBuffer<GLushort, 1> _element_buffer;
 
   GlTexture _sprite;
-  int _frame_width;
-  int _frame_height;
+  y::ivec2 _frame_size;
   mutable y::vector<BatchedSprite> _batched_sprites;
   GlProgram _sprite_program;
 

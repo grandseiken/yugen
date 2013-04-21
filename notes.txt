@@ -4,4 +4,5 @@ MILESTONES
  + Lighting using radial corner swoop / stencil buffer algorithm
  + Water, bump mapping
  + Physics, hook shot, long shot
+ + Procedural fog, weather, lightning, snow, etc
 

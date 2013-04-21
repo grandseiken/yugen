@@ -11,10 +11,44 @@ class RenderUtil;
 class CellCoord;
 class CellMap;
 
+class TilePanel : public Panel {
+public:
+
+  TilePanel(const Databank& bank);
+  virtual ~TilePanel() {}
+
+  virtual bool event(const sf::Event& e);
+  virtual void update();
+  virtual void draw(RenderUtil& util) const;
+
+private:
+
+  const Databank& _bank;
+  y::int32 _tileset_select;
+
+};
+
+class LayerPanel : public Panel {
+public:
+
+  LayerPanel();
+  virtual ~LayerPanel() {}
+
+  virtual bool event(const sf::Event& e);
+  virtual void update();
+  virtual void draw(RenderUtil& util) const;
+
+private:
+
+  y::int8 _layer_select;
+
+};
+
 class MapEditor: public Modal {
 public:
 
   MapEditor(Databank& bank, RenderUtil& util, CellMap& map);
+  virtual ~MapEditor() {}
 
   virtual void event(const sf::Event& e);
   virtual void update();
@@ -34,8 +68,8 @@ private:
 
   y::ivec2 _camera;
 
-  y::int32 _tileset_select;
-  y::int8 _layer_select;
+  TilePanel _tile_panel;
+  LayerPanel _layer_panel;
 
 };
 

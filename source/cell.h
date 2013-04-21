@@ -2,6 +2,7 @@
 #define CELL_H
 
 #include "common.h"
+#include "vector.h"
 
 class CellBlueprint;
 class Tileset;
@@ -84,13 +85,13 @@ struct Tile {
 class Cell : public y::no_copy {
 public:
 
-  static const y::size cell_width = 40;
-  static const y::size cell_height = 30;
+  static const y::int32 cell_width = 40;
+  static const y::int32 cell_height = 30;
 
   // Number of background and foreground layers, not including the collision
   // layer.
-  static const y::size background_layers = 1;
-  static const y::size foreground_layers = 1;
+  static const y::int32 background_layers = 1;
+  static const y::int32 foreground_layers = 1;
 
   // Layer enumeration.
   static const y::int8 layer_background = -1;

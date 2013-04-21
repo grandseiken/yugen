@@ -3,20 +3,20 @@
 
 #include "common.h"
 #include "gl_util.h"
+#include "vector.h"
 
 class GlTexture;
 
 class Tileset {
 public:
 
-  static const y::size tile_width = 32;
-  static const y::size tile_height = 32;
+  static const y::int32 tile_width = 32;
+  static const y::int32 tile_height = 32;
 
   Tileset(const GlTexture& texture);
 
   const GlTexture& get_texture() const;
-  y::size get_width() const;
-  y::size get_height() const;
+  const y::ivec2& get_size() const;
   y::size get_tile_count() const;
 
 private:
@@ -24,8 +24,7 @@ private:
   GlTexture _texture;
 
   // Width and height, in tiles.
-  y::size _width;
-  y::size _height;
+  y::ivec2 _size;
 
 };
 

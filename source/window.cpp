@@ -6,15 +6,14 @@
 #include <iostream>
 
 Resolution::Resolution()
-  : width(0)
-  , height(0)
+  : size{0, 0}
   , bpp(0)
 {
 }
 
 bool Resolution::operator==(const Resolution& r) const
 {
-  return width == r.width && height == r.height && bpp == r.bpp;
+  return size == r.size && bpp == r.bpp;
 }
 
 bool Resolution::operator!=(const Resolution& r) const
@@ -23,7 +22,7 @@ bool Resolution::operator!=(const Resolution& r) const
 }
 
 Window::Window(const y::string& title, y::size default_bpp,
-               y::size default_width, y::size default_height,
+               const y::ivec2& default_size,
                bool default_fullscreen, bool skip_choice)
   : _window(y::null)
 {
@@ -33,8 +32,7 @@ Window::Window(const y::string& title, y::size default_bpp,
   y::vector<Resolution> supported_modes;
   get_supported_modes(supported_modes, 0);
 
-  _resolution.width = default_width;
-  _resolution.height = default_height;
+  _resolution.size = default_size;
   _resolution.bpp = default_bpp;
 
   // Let the user choose the resolution.
@@ -42,7 +40,7 @@ Window::Window(const y::string& title, y::size default_bpp,
     y::size i = 0;
     for (const Resolution& r : supported_modes) {
       std::cout << i++ << ") " <<
-          r.width << "x" << r.height << " " << r.bpp << "bpp";
+          r.size[xx] << "x" << r.size[yy] << " " << r.bpp << "bpp";
       if (desktop == r) {
         std::cout << " (*)";
       }
@@ -71,28 +69,28 @@ Window::Window(const y::string& title, y::size default_bpp,
 
   // In fullscreen mode, find the closest mode to the given aspect ratio.
   if (default_fullscreen) {
-    float aspect_ratio = _resolution.height ?
-        float(_resolution.width) / _resolution.height : 0.f;
+    float aspect_ratio = _resolution.size[yy] ?
+        float(_resolution.size[xx]) / _resolution.size[yy] : 0.f;
     float best_distance = 1000.f;
     y::size best_match = 0;
     Resolution best_resolution;
 
     for (const Resolution& r : supported_modes) {
-      float distance = fabs(aspect_ratio - float(r.width) / r.height);
+      float distance = fabs(aspect_ratio - float(r.size[xx]) / r.size[yy]);
       y::size match = (r == desktop) + (r.bpp == _resolution.bpp);
 
       bool best_so_far = false;
-      if (_resolution.height) {
+      if (_resolution.size[yy]) {
         // Heuristic for closest mode.
         best_so_far =
             distance < best_distance ||
             (distance == best_distance && match > best_match) ||
             (distance == best_distance && match == best_match &&
-             r.width > best_resolution.width);
+             r.size[xx] > best_resolution.size[xx]);
       }
       else {
         best_so_far = match > best_match ||
-            (match == best_match && r.width > best_resolution.width);
+            (match == best_match && r.size[xx] > best_resolution.size[xx]);
       }
 
       if (best_so_far) {
@@ -110,9 +108,8 @@ Window::Window(const y::string& title, y::size default_bpp,
     }
   }
 
-  if (_resolution.width == 0 || _resolution.height == 0) {
-    _resolution.width = desktop.width / 2;
-    _resolution.height = desktop.height / 2;
+  if (_resolution.size[xx] == 0 || _resolution.size[yy] == 0) {
+    _resolution.size = desktop.size / 2;
   }
 
   sf::ContextSettings settings;
@@ -123,7 +120,8 @@ Window::Window(const y::string& title, y::size default_bpp,
   settings.minorVersion = 1;
 
   _window = y::move_unique(new sf::RenderWindow(
-      sf::VideoMode(_resolution.width, _resolution.height, _resolution.bpp),
+      sf::VideoMode(_resolution.size[xx], _resolution.size[yy],
+                    _resolution.bpp),
       title, default_fullscreen ? sf::Style::Fullscreen : sf::Style::Default,
       settings));
   _window->setFramerateLimit(framerate);
@@ -140,8 +138,8 @@ bool Window::poll_event(sf::Event& output)
 {
   while (_window->pollEvent(output)) {
     if (output.type == sf::Event::Resized) {
-      _resolution.width = output.size.width;
-      _resolution.height = output.size.height;
+      _resolution.size = {y::int32(output.size.width),
+                          y::int32(output.size.height)};
       continue;
     }
     return true;
@@ -167,8 +165,7 @@ void Window::get_supported_modes(y::vector<Resolution>& output, y::size bpp)
       continue;
     }
     Resolution r;
-    r.width = mode.width;
-    r.height = mode.height;
+    r.size = {y::int32(mode.width), y::int32(mode.height)};
     r.bpp = mode.bitsPerPixel;
     output.push_back(r);
   }
@@ -177,7 +174,6 @@ void Window::get_supported_modes(y::vector<Resolution>& output, y::size bpp)
 void Window::get_desktop_mode(Resolution& output)
 {
   sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
-  output.width = desktop.width;
-  output.height = desktop.height;
+  output.size = {y::int32(desktop.width), y::int32(desktop.height)};
   output.bpp = desktop.bitsPerPixel;
 }
