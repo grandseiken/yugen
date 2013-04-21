@@ -56,6 +56,12 @@ namespace std {
 
 }
 
+CellMap::CellMap()
+  : _min(0, 0)
+  , _max(0, 0)
+{
+}
+
 bool CellMap::is_coord_used(const CellCoord& cell_coord) const
 {
   return _map.find(cell_coord) != _map.end();
@@ -72,6 +78,34 @@ void CellMap::clear_coord(const CellCoord& cell_coord)
 void CellMap::set_coord(const CellCoord& cell_coord, CellBlueprint& blueprint)
 {
   _map[cell_coord] = &blueprint;
+}
+
+const CellCoord& CellMap::get_boundary_min() const
+{
+  return _min;
+}
+
+const CellCoord& CellMap::get_boundary_max() const
+{
+  return _max;
+}
+
+void CellMap::recalculate_boundary()
+{
+  bool first = true;
+  for (const auto& pair : _map) {
+    if (first) {
+      _max = {1 + pair.first.x, 1 + pair.first.y};
+      _min = {pair.first.x, pair.first.y};
+    }
+    else {
+      _max = {std::max(_max.x, 1 + pair.first.x),
+              std::max(_max.y, 1 + pair.first.y)};
+      _min = {std::min(_min.x, pair.first.x),
+              std::min(_min.y, pair.first.y)};
+    }
+    first = false;
+  }
 }
 
 const CellBlueprint* CellMap::get_coord(const CellCoord& cell_coord) const

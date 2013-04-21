@@ -91,9 +91,7 @@ for cpp in source/*.cpp; do
     list="source/${include_graph[$i]} $list"
     let i=$i+1
   done
-  old=`cat bin/$base.md5`
-  new=`md5sum $list`
-  if [ -f bin/$base.md5 ] && [ "$old" == "$new" ]; then
+  if [ -f bin/$base.md5 ] && [ "`cat bin/$base.md5`" == "`md5sum $list`" ]; then
     echo "Up to date: $cpp"
   else
     echo "Compiling $cpp..."

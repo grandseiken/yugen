@@ -5,7 +5,6 @@
 #include "map_editor.h"
 #include "physical_filesystem.h"
 #include "render_util.h"
-#include "tileset.h"
 #include "window.h"
 
 #include <SFML/Window.hpp>
@@ -51,19 +50,6 @@ void Yedit::draw() const
   _util.get_gl().bind_window(true);
   const Resolution& screen = _util.get_window().get_mode();
   _util.set_resolution(screen.width, screen.height);
-
-  _util.render_colour(256 - 8, 0, 16 + 32 * 4, 16 + 32, 1.f, 1.f, 1.f, .5f);
-  RenderBatch batch;
-  const Tileset& t = _bank.get_tileset(_bank.get_tilesets()[0]);
-  batch.add_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height,
-                   256, 8, 4, 0);
-  batch.add_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height,
-                   256, 40, 5, 0);
-  batch.add_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height,
-                   256, 72, 6, 0);
-  batch.add_sprite(t.get_texture(), Tileset::tile_width, Tileset::tile_height,
-                   256, 104, 7, 0);
-  _util.render_batch(batch);
 
   Colour white(1.f, 1.f, 1.f);
   Colour red(1.f, 0.f, 0.f);

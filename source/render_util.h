@@ -91,18 +91,18 @@ public:
   // Render colour (at pixel coordinates).
   void render_colour(y::int32 left, y::int32 top,
                      y::int32 width, y::int32 height,
-                     float r, float g, float b, float a);
+                     float r, float g, float b, float a) const;
   void render_colour(y::int32 left, y::int32 top,
                      y::int32 width, y::int32 height,
-                     const Colour& colour);
+                     const Colour& colour) const;
 
   // Render colour (at font-size grid coordinates).
   void render_colour_grid(y::int32 left, y::int32 top,
                           y::int32 width, y::int32 height,
-                          float r, float g, float b, float a);
+                          float r, float g, float b, float a) const;
   void render_colour_grid(y::int32 left, y::int32 top,
                           y::int32 width, y::int32 height,
-                          const Colour& colour);
+                          const Colour& colour) const;
 
   // Batch and render sprites (at pixel coordinates).
   void set_sprite(const GlTexture& sprite,

@@ -51,7 +51,7 @@ namespace y {
   };
 
   template<typename T, y::size N>
-  class vec : vec_accessors<T, N> {
+  class vec : public vec_accessors<T, N> {
   public:
 
     typedef vec<T, N> V;

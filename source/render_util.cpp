@@ -174,7 +174,7 @@ void RenderUtil::render_text_grid(const y::string& text, int left, int top,
 
 void RenderUtil::render_colour(y::int32 left, y::int32 top,
                                y::int32 width, y::int32 height,
-                               float r, float g, float b, float a)
+                               float r, float g, float b, float a) const
 {
   if (!_native_width || !_native_height) {
     return;
@@ -201,7 +201,7 @@ void RenderUtil::render_colour(y::int32 left, y::int32 top,
 
 void RenderUtil::render_colour(y::int32 left, y::int32 top,
                                y::int32 width, y::int32 height,
-                               const Colour& colour)
+                               const Colour& colour) const
 {
   render_colour(left, top, width, height,
                 colour.r, colour.g, colour.b, colour.a);
@@ -209,7 +209,7 @@ void RenderUtil::render_colour(y::int32 left, y::int32 top,
 
 void RenderUtil::render_colour_grid(y::int32 left, y::int32 top,
                                     y::int32 width, y::int32 height,
-                                    float r, float g, float b, float a)
+                                    float r, float g, float b, float a) const
 {
   render_colour(left * font_width, top * font_height,
                 width * font_width, height * font_height, r, g, b, a);
@@ -217,7 +217,7 @@ void RenderUtil::render_colour_grid(y::int32 left, y::int32 top,
 
 void RenderUtil::render_colour_grid(y::int32 left, y::int32 top,
                                     y::int32 width, y::int32 height,
-                                    const Colour& colour)
+                                    const Colour& colour) const
 {
   render_colour_grid(left, top, width, height,
                      colour.r, colour.g, colour.b, colour.a);

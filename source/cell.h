@@ -38,6 +38,8 @@ namespace std {
 class CellMap : public y::no_copy {
 public:
 
+  CellMap();
+
   bool is_coord_used(const CellCoord& cell_coord) const;
 
   void clear_coord(const CellCoord& cell_coord);
@@ -47,10 +49,20 @@ public:
   const CellBlueprint* get_coord(const CellCoord& cell_coord) const;
   /***/ CellBlueprint* get_coord(const CellCoord& cell_coord);
 
+  // Get low (inclusive) cell boundary.
+  const CellCoord& get_boundary_min() const;
+  // Get high (exclusive) cell boundary.
+  const CellCoord& get_boundary_max() const;
+
 private:
+
+  void recalculate_boundary();
 
   typedef y::map<CellCoord, CellBlueprint*> blueprint_map;
   blueprint_map _map;
+
+  CellCoord _min;
+  CellCoord _max;
 
 };
 
