@@ -27,7 +27,7 @@ private:
   Databank& _bank;
   RenderUtil& _util;
 
-  y::size _map_select;
+  y::int32 _map_select;
 
 };
 

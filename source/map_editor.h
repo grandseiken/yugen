@@ -34,6 +34,9 @@ private:
 
   y::ivec2 _camera;
 
+  y::int32 _tileset_select;
+  y::int8 _layer_select;
+
 };
 
 #endif

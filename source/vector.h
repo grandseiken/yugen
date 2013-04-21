@@ -7,79 +7,35 @@
 
 namespace y {
 
-  template<typename T, y::size N>
-  struct vec_accessors {
-    vec_accessors(T* elements)
-      : x(*elements)
-      , y(*(1 + elements))
-      , z(*(2 + elements))
-      , w(*(3 + elements))
-    {}
-
-    const T& x; const T& y; const T& z; const T& w;
-  };
-  template<typename T>
-  struct vec_accessors<T, 3> {
-    vec_accessors(T* elements)
-      : x(*elements)
-      , y(*(1 + elements))
-      , z(*(2 + elements))
-    {}
-
-    const T& x; const T& y; const T& z;
-  };
-  template<typename T>
-  struct vec_accessors<T, 2> {
-    vec_accessors(T* elements)
-      : x(*elements)
-      , y(*(1 + elements))
-    {}
-
-    const T& x; const T& y;
-  };
-  template<typename T>
-  struct vec_accessors<T, 1> {
-    vec_accessors(T* elements)
-      : x(*elements)
-    {}
-
-    const T& x;
-  };
-  template<typename T>
-  struct vec_accessors<T, 0> {
-    vec_accessors(T* elements) {}
-  };
+  template<y::size N>
+  struct element_accessor {};
 
   template<typename T, y::size N>
-  class vec : public vec_accessors<T, N> {
+  class vec {
   public:
 
     typedef vec<T, N> V;
     T elements[N];
 
     vec()
-      : vec_accessors<T, N>(elements)
-      , elements{0}
+      : elements{0}
     {
     }
 
     template<typename... U,
              typename std::enable_if<N == sizeof...(U), int>::type = 0>
     vec(U... args)
-      : vec_accessors<T, N>(elements)
-      , elements{args...}
+      : elements{args...}
     {
     }
 
     vec(const T args[N])
-      : vec_accessors<T, N>(elements)
-      , elements{args}
+      : elements{args}
     {
     }
 
     vec(const V& arg)
-      : vec_accessors<T, N>(elements)
-      , elements{}
+      : elements{}
     {
       operator=(arg);
     }
@@ -100,6 +56,18 @@ namespace y {
     const T& operator[](y::size i) const
     {
       return elements[i];
+    }
+
+    template<y::size M, typename std::enable_if<(N > M), int>::type = 0>
+    T& operator[](const element_accessor<M>& e)
+    {
+      return elements[M];
+    }
+
+    template<y::size M, typename std::enable_if<(N > M), int>::type = 0>
+    const T& operator[](const element_accessor<M>& e) const
+    {
+      return elements[M];
     }
 
     bool operator==(const V& arg) const
@@ -258,4 +226,10 @@ namespace y {
 
 }
 
+namespace {
+  const y::element_accessor<0> x;
+  const y::element_accessor<1> y;
+  const y::element_accessor<2> z;
+  const y::element_accessor<3> w;
+}
 #endif

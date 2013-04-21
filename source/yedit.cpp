@@ -42,7 +42,7 @@ void Yedit::event(const sf::Event& e)
 
 void Yedit::update()
 {
-  _map_select = y::clamp<y::size>(_map_select, 0, _bank.get_maps().size());
+  y::clamp<y::int32>(_map_select, 0, _bank.get_maps().size());
 }
 
 void Yedit::draw() const
@@ -68,7 +68,7 @@ void Yedit::draw() const
   }
 
   i++;
-  y::size n = 0;
+  y::int32 n = 0;
   _util.render_text_grid("Maps", 1, i++, grey);
   for (const auto& s :_bank.get_maps()) {
     _util.render_text_grid(s, 2, i++, n++ == _map_select ? red : white);

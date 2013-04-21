@@ -1,6 +1,7 @@
 #include "map_editor.h"
 
 #include "cell.h"
+#include "databank.h"
 #include "render_util.h"
 #include "tileset.h"
 #include "window.h"
@@ -34,12 +35,32 @@ void MapEditor::event(const sf::Event& e)
     case sf::Keyboard::Up:
       _camera += {0, -1};
       break;
+    case sf::Keyboard::Q:
+      --_tileset_select;
+      break;
+    case sf::Keyboard::A:
+      ++_tileset_select;
+      break;
+    case sf::Keyboard::Num1:
+      _layer_select = -1;
+      break;
+    case sf::Keyboard::Num2:
+      _layer_select = 0;
+      break;
+    case sf::Keyboard::Num3:
+      _layer_select = 1;
+      break;
+    case sf::Keyboard::Tab:
+      ++_layer_select;
     default: {}
   }
 }
 
 void MapEditor::update()
 {
+  y::roll<y::int32>(_tileset_select, 0, _bank.get_tilesets().size());
+  y::roll<y::int8>(_layer_select, -(signed)Cell::background_layers,
+                   1 + Cell::foreground_layers);
 }
 
 void MapEditor::draw() const
@@ -99,7 +120,7 @@ void MapEditor::draw_cell_layer(
 
       batch.add_sprite(
           t.tileset->get_texture(), Tileset::tile_width, Tileset::tile_height,
-          camera.x, camera.y,
+          camera[x], camera[y],
           t.index % t.tileset->get_width(),
           t.index / t.tileset->get_width());
     }
