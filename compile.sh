@@ -11,8 +11,8 @@ targets[0]="yugen"
 targets[1]="yedit"
 targets_size=2
 
-cflag="-Wall -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/lua_5_2_2/include"
-lflag="-Wall -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib -L./depend/lua_5_2_2/lib"
+cflag="-Werror -Wall -Wextra -pedantic -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/lua_5_2_2/include"
+lflag="-Werror -Wall -Wextra -pedantic -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib -L./depend/lua_5_2_2/lib"
 libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -llua -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
 
 first=0

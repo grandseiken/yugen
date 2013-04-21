@@ -77,6 +77,9 @@ void Yedit::draw() const
 
 int main(int argc, char** argv)
 {
+  (void)argc;
+  (void)argv;
+
   Window window("Crunk Yedit", 24, 0, 0, false, true);
   PhysicalFilesystem filesystem("data");
   GlUtil gl(filesystem, window);

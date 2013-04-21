@@ -11,8 +11,8 @@
 const GLfloat vertex_data[] = {
     -1.f, -1.f,
      1.f, -1.f,
-    -1.f,  1.f,
-     1.f,  1.f};
+    -1.f, +1.f,
+     1.f, +1.f};
 
 Yugen::Yugen(RenderUtil& util, GlFramebuffer& framebuffer)
   : _util(util)
@@ -99,6 +99,9 @@ void Yugen::draw() const
 
 int main(int argc, char** argv)
 {
+  (void)argc;
+  (void)argv;
+
   World world;
 
   const y::size native_width = 640;

@@ -61,12 +61,14 @@ namespace y {
     template<y::size M, typename std::enable_if<(N > M), int>::type = 0>
     T& operator[](const element_accessor<M>& e)
     {
+      (void)e;
       return elements[M];
     }
 
     template<y::size M, typename std::enable_if<(N > M), int>::type = 0>
     const T& operator[](const element_accessor<M>& e) const
     {
+      (void)e;
       return elements[M];
     }
 
@@ -181,9 +183,9 @@ namespace y {
                               std::is_same<T, U>::value, int>::type = 0>
     V cross(const V& arg) const
     {
-      return  V(elements[1] * arg[2] - elements[2] * arg[1],
-                elements[2] * arg[0] - elements[0] * arg[2],
-                elements[0] * arg[1] - elements[1] * arg[0]);
+      return V(elements[1] * arg[2] - elements[2] * arg[1],
+               elements[2] * arg[0] - elements[0] * arg[2],
+               elements[0] * arg[1] - elements[1] * arg[0]);
     }
 
     auto angle(const V& arg) const -> decltype(acos(T()))
@@ -226,10 +228,19 @@ namespace y {
 
 }
 
+template<bool>
+struct element_accessor_instance {
+  static const y::element_accessor<0> x;
+  static const y::element_accessor<1> y;
+  static const y::element_accessor<2> z;
+  static const y::element_accessor<3> w;
+};
+
 namespace {
-  const y::element_accessor<0> x;
-  const y::element_accessor<1> y;
-  const y::element_accessor<2> z;
-  const y::element_accessor<3> w;
+  static const y::element_accessor<0>& xx = element_accessor_instance<true>::x;
+  static const y::element_accessor<1>& yy = element_accessor_instance<true>::y;
+  static const y::element_accessor<2>& zz = element_accessor_instance<true>::z;
+  static const y::element_accessor<3>& ww = element_accessor_instance<true>::w;
 }
+
 #endif

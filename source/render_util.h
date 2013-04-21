@@ -58,6 +58,7 @@ private:
 
 class Window;
 
+// TODO: use ivec2 instead of int pairs. Also, rectangles?
 class RenderUtil {
 public:
 
@@ -75,6 +76,9 @@ public:
   // Native (target framebuffer) resolution must be set for utility methods
   // to behave correctly.
   void set_resolution(y::size native_width, y::size native_height);
+
+  // Offset all render operations.
+  void add_translation(y::int32 x, y::int32 y); 
 
   // Render text (at pixel coordinates).
   void render_text(const y::string& text, y::int32 left, y::int32 top,
@@ -132,6 +136,9 @@ private:
 
   y::size _native_width;
   y::size _native_height;
+
+  y::int32 _translate_x;
+  y::int32 _translate_y;
 
   GlTexture _font;
   GlProgram _text_program;

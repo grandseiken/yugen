@@ -192,7 +192,7 @@ void MapEditor::draw_cell_layer(
 
       batch.add_sprite(
           t.tileset->get_texture(), Tileset::tile_width, Tileset::tile_height,
-          camera[x], camera[y],
+          camera[xx], camera[yy],
           t.index % t.tileset->get_width(),
           t.index / t.tileset->get_width());
     }

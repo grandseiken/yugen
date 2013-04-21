@@ -69,6 +69,8 @@ RenderUtil::RenderUtil(GlUtil& gl)
                                       quad_data, sizeof(quad_data)))
   , _native_width(0)
   , _native_height(0)
+  , _translate_x(0)
+  , _translate_y(0)
   , _font(gl.make_texture("/font.png"))
   , _text_program(gl.make_program({"/shaders/text.v.glsl",
                                    "/shaders/text.f.glsl"}))
@@ -118,12 +120,21 @@ void RenderUtil::set_resolution(y::size native_width, y::size native_height)
   _native_height = native_height;
 }
 
+void RenderUtil::add_translation(y::int32 x, y::int32 y)
+{
+  _translate_x += x;
+  _translate_y += y;
+}
+
 void RenderUtil::render_text(const y::string& text, int left, int top,
                              float r, float g, float b, float a) const
 {
   if (!_native_width || !_native_height) {
     return;
   }
+
+  left += _translate_x;
+  top += _translate_y;
 
   const GLfloat text_data[] = {
       float(left), float(top),
@@ -179,6 +190,9 @@ void RenderUtil::render_colour(y::int32 left, y::int32 top,
   if (!_native_width || !_native_height) {
     return;
   }
+
+  left += _translate_x;
+  top += _translate_y;
 
   const GLfloat rect_data[] = {
       float(left), float(top),
@@ -263,14 +277,17 @@ void RenderUtil::render_batch() const
   for (y::size i = 0; i < length; ++i) {
     const BatchedSprite& s = _batched_sprites[i];
 
+    float left = s.left + _translate_x;
+    float top = s.top + _translate_y;
+
     write_vector(_pixels_data, 8 * i, {
-        s.left, s.top,
-        s.left + _frame_width, s.top,
-        s.left, s.top + _frame_height,
-        s.left + _frame_width, s.top + _frame_height});
+        left, top,
+        left + _frame_width, top,
+        left, top + _frame_height,
+        left + _frame_width, top + _frame_height});
     write_vector(_origin_data, 8 * i, {
-        s.left, s.top, s.left, s.top,
-        s.left, s.top, s.left, s.top});
+        left, top, left, top,
+        left, top, left, top});
     write_vector(_frame_index_data, 8 * i, {
         s.frame_x, s.frame_y, s.frame_x, s.frame_y,
         s.frame_x, s.frame_y, s.frame_x, s.frame_y});

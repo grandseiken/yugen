@@ -94,8 +94,8 @@ public:
 
   // Layer enumeration.
   static const y::int8 layer_background = -1;
-  static const y::int8 layer_collision  =  0;
-  static const y::int8 layer_foreground =  1;
+  static const y::int8 layer_collision = 0;
+  static const y::int8 layer_foreground = 1;
 
   Cell(const CellBlueprint& blueprint);
 
