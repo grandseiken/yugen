@@ -73,25 +73,33 @@ void CellMap::clear_coord(const CellCoord& cell_coord)
   if (it != _map.end()) {
     _map.erase(it);
   }
+  _boundary_dirty = true;
 }
 
 void CellMap::set_coord(const CellCoord& cell_coord, CellBlueprint& blueprint)
 {
   _map[cell_coord] = &blueprint;
+  _boundary_dirty = true;
 }
 
 const CellCoord& CellMap::get_boundary_min() const
 {
+  recalculate_boundary();
   return _min;
 }
 
 const CellCoord& CellMap::get_boundary_max() const
 {
+  recalculate_boundary();
   return _max;
 }
 
-void CellMap::recalculate_boundary()
+void CellMap::recalculate_boundary() const
 {
+  if (!_boundary_dirty) {
+    return;
+  }
+
   bool first = true;
   for (const auto& pair : _map) {
     if (first) {
@@ -106,6 +114,7 @@ void CellMap::recalculate_boundary()
     }
     first = false;
   }
+  _boundary_dirty = false;
 }
 
 const CellBlueprint* CellMap::get_coord(const CellCoord& cell_coord) const

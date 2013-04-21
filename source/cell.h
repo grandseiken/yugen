@@ -56,13 +56,14 @@ public:
 
 private:
 
-  void recalculate_boundary();
+  void recalculate_boundary() const;
 
   typedef y::map<CellCoord, CellBlueprint*> blueprint_map;
   blueprint_map _map;
 
-  CellCoord _min;
-  CellCoord _max;
+  mutable CellCoord _min;
+  mutable CellCoord _max;
+  mutable bool _boundary_dirty;
 
 };
 
