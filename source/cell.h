@@ -2,7 +2,6 @@
 #define CELL_H
 
 #include "common.h"
-#include "vector.h"
 
 class CellBlueprint;
 class Tileset;

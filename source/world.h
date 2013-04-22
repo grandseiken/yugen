@@ -11,7 +11,7 @@ class WorldWindow {
 public:
 
   // Boundary width, in cells, around (0, 0) in the active window.
-  static const y::size active_window_half_size = 1;
+  static const y::int32 active_window_half_size = 1;
 
   // Initialise world with the given coord of the active map at (0, 0) in the
   // active window.

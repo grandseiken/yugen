@@ -219,7 +219,7 @@ void MapEditor::draw() const
   CellCoord c = _map.get_boundary_min();
   const CellCoord& max = _map.get_boundary_max();
 
-  for (y::int32 layer = Cell::background_layers;
+  for (y::int32 layer = -Cell::background_layers;
        layer <= Cell::foreground_layers; ++layer) {
     for (; c.x < max.x; ++c.x) {
       for (; c.y < max.y; ++c.y) {
