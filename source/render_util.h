@@ -89,16 +89,28 @@ public:
                         const Colour& colour) const;
 
   // Render colour (at pixel coordinates).
-  void render_colour(const y::ivec2& origin, const y::ivec2& size,
-                     float r, float g, float b, float a) const;
-  void render_colour(const y::ivec2& origin, const y::ivec2& size,
-                     const Colour& colour) const;
+  void render_fill(const y::ivec2& origin, const y::ivec2& size,
+                   float r, float g, float b, float a) const;
+  void render_fill(const y::ivec2& origin, const y::ivec2& size,
+                   const Colour& colour) const;
 
   // Render colour (at font-size grid coordinates).
-  void render_colour_grid(const y::ivec2& origin, const y::ivec2& size,
-                          float r, float g, float b, float a) const;
-  void render_colour_grid(const y::ivec2& origin, const y::ivec2& size,
-                          const Colour& colour) const;
+  void render_fill_grid(const y::ivec2& origin, const y::ivec2& size,
+                        float r, float g, float b, float a) const;
+  void render_fill_grid(const y::ivec2& origin, const y::ivec2& size,
+                        const Colour& colour) const;
+
+  // Render outline (at pixel coordinates).
+  void render_outline(const y::ivec2& origin, const y::ivec2& size,
+                      float r, float g, float b, float a) const;
+  void render_outline(const y::ivec2& origin, const y::ivec2& size,
+                      const Colour& colour) const;
+
+  // Render outline (at font-size grid coordinates).
+  void render_outline_grid(const y::ivec2& origin, const y::ivec2& size,
+                           float r, float g, float b, float a) const;
+  void render_outline_grid(const y::ivec2& origin, const y::ivec2& size,
+                           const Colour& colour) const;
 
   // Batch and render sprites (at pixel coordinates).
   void set_sprite(const GlTexture& sprite, const y::ivec2& frame_size);

@@ -58,6 +58,11 @@ public:
   const y::ivec2& get_origin() const;
   const y::ivec2& get_size() const;
 
+  void start_drag(const y::ivec2& start);
+  void stop_drag();
+  bool is_dragging() const;
+  const y::ivec2& get_drag_start() const;
+
   virtual bool event(const sf::Event& e) = 0;
   virtual void update() = 0;
   virtual void draw(RenderUtil& util) const = 0;
@@ -71,6 +76,9 @@ private:
   y::ivec2 _origin;
   y::ivec2 _size;
   y::int32 _z_index;
+
+  bool _drag;
+  y::ivec2 _drag_start;
 
 };
 
@@ -94,6 +102,9 @@ public:
   void draw(RenderUtil& util) const;
 
 private:
+
+  // Find a Panel which is in the middle of a drag (or null).
+  Panel* get_drag_panel() const;
 
   // Set mouse target, and potentially fire off MouseEntered/MouseLeft events.
   void update_mouse_overs(bool in_window, int x, int y);

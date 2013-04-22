@@ -30,9 +30,17 @@ namespace y {
   typedef std::stringstream sstream;
 
   template<typename T>
+  T min(const T& a, const T& b) {
+    return std::min(a, b);
+  }
+  template<typename T>
+  T max(const T& a, const T& b) {
+    return std::max(a, b);
+  }
+  template<typename T>
   void clamp(T& t, T start, T end)
   {
-    t = std::max(start, std::min(end - 1, t));
+    t = max(start, min(end - 1, t));
   }
   template<typename T>
   void roll(T& t, T start, T end)

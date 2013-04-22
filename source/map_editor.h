@@ -11,11 +11,24 @@ class RenderUtil;
 class CellCoord;
 class CellMap;
 
-class TilePanel : public Panel {
+struct TileBrush {
+  TileBrush();
+
+  struct Entry {
+    y::int32 tileset;
+    y::int32 index;
+  };
+
+  y::ivec2 size;
+  y::unique<Entry[]> array;
+  static const y::int32 max_size = 16;
+};
+
+class BrushPanel : public Panel {
 public:
 
-  TilePanel(const Databank& bank);
-  virtual ~TilePanel() {}
+  BrushPanel(const Databank& bank, const TileBrush& brush);
+  virtual ~BrushPanel() {}
 
   virtual bool event(const sf::Event& e);
   virtual void update();
@@ -24,7 +37,28 @@ public:
 private:
 
   const Databank& _bank;
+  const TileBrush& _brush;
+
+};
+
+class TilePanel : public Panel {
+public:
+
+  TilePanel(const Databank& bank, TileBrush& brush);
+  virtual ~TilePanel() {}
+
+  virtual bool event(const sf::Event& e);
+  virtual void update();
+  virtual void draw(RenderUtil& util) const;
+
+private:
+
+  y::int32 get_list_height() const;
+
+  const Databank& _bank;
+  TileBrush& _brush;
   y::int32 _tileset_select;
+  y::ivec2 _tile_hover;
 
 };
 
@@ -68,6 +102,8 @@ private:
 
   y::ivec2 _camera;
 
+  TileBrush _tile_brush;
+  BrushPanel _brush_panel;
   TilePanel _tile_panel;
   LayerPanel _layer_panel;
 

@@ -19,6 +19,9 @@ public:
   const y::ivec2& get_size() const;
   y::size get_tile_count() const;
 
+  y::ivec2 from_index(y::int32 index) const;
+  y::int32 to_index(const y::ivec2& coords) const;
+
 private:
 
   GlTexture _texture;

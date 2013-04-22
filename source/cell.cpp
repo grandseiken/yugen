@@ -107,10 +107,10 @@ void CellMap::recalculate_boundary() const
       _min = {pair.first.x, pair.first.y};
     }
     else {
-      _max = {std::max(_max.x, 1 + pair.first.x),
-              std::max(_max.y, 1 + pair.first.y)};
-      _min = {std::min(_min.x, pair.first.x),
-              std::min(_min.y, pair.first.y)};
+      _max = {y::max(_max.x, 1 + pair.first.x),
+              y::max(_max.y, 1 + pair.first.y)};
+      _min = {y::min(_min.x, pair.first.x),
+              y::min(_min.y, pair.first.y)};
     }
     first = false;
   }

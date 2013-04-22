@@ -17,5 +17,5 @@ for file in source/*; do
   lint_highlight ' +$' 'Line \1 trailing whitespace'
   lint_highlight '[^ ] +static' 'Line \1 bad order'
   lint_highlight ',\S' 'Line \1 missing space'
-  lint_highlight $'\t' 'Lint \1 tab'
+  lint_highlight $'\t' 'Line \1 tab'
 done

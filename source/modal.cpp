@@ -50,6 +50,7 @@ Panel::Panel(const y::ivec2& origin, const y::ivec2& size, y::int32 z_index)
   : _origin(origin)
   , _size(size)
   , _z_index(z_index)
+  , _drag(false)
 {
 }
 
@@ -71,6 +72,27 @@ const y::ivec2& Panel::get_origin() const
 const y::ivec2& Panel::get_size() const
 {
   return _size;
+}
+
+void Panel::start_drag(const y::ivec2& start)
+{
+  _drag = true;
+  _drag_start = start;
+}
+
+void Panel::stop_drag()
+{
+  _drag = false;
+}
+
+bool Panel::is_dragging() const
+{
+  return _drag;
+}
+
+const y::ivec2& Panel::get_drag_start() const
+{
+  return _drag_start;
 }
 
 bool Panel::Order::operator()(Panel* a, Panel* b) const
@@ -110,10 +132,16 @@ bool PanelUi::event(const sf::Event& e)
   bool move =
       e.type == sf::Event::MouseMoved || leave || enter;
 
+  Panel* drag = get_drag_panel();
+
   // Just dispatch regular events.
   if (!wheel && !button && !move) {
+    if (drag) {
+      drag->event(e);
+      return true;
+    }
     for (Panel* panel : _panels) {
-      if (panel->event(e)) {
+      if (panel->event(e) || panel->is_dragging()) {
         return true;
       }
     }
@@ -121,7 +149,9 @@ bool PanelUi::event(const sf::Event& e)
   }
 
   if (leave) {
-    update_mouse_overs(false, e.mouseMove.x, e.mouseMove.y);
+    if (!drag) {
+      update_mouse_overs(false, e.mouseMove.x, e.mouseMove.y);
+    }
     return false;
   }
 
@@ -136,6 +166,14 @@ bool PanelUi::event(const sf::Event& e)
   int ox = fx;
   int oy = fy;
 
+  // Mouse drags take priority.
+  if (drag) {
+    fx = ox - drag->get_origin()[xx];
+    fy = oy - drag->get_origin()[yy];
+    drag->event(f);
+    return true;
+  }
+
   update_mouse_overs(true, ox, oy);
 
   for (Panel* panel : _panels) {
@@ -143,7 +181,7 @@ bool PanelUi::event(const sf::Event& e)
     fy = oy - panel->get_origin()[yy];
     if (fx >= 0 && fy >= 0 &&
         fx < panel->get_size()[xx] && fy < panel->get_size()[yy]) {
-      if (panel->event(f)) {
+      if (panel->event(f) || panel->is_dragging()) {
         return !enter;
       }
     }
@@ -153,8 +191,17 @@ bool PanelUi::event(const sf::Event& e)
 
 void PanelUi::update()
 {
+  // Mouse drags take priority.
+  Panel* drag = get_drag_panel();
+  if (drag) {
+    drag->update();
+    return;
+  }
   for (Panel* panel : _panels) {
     panel->update();
+    if (panel->is_dragging()) {
+      return;
+    }
   }
 }
 
@@ -169,13 +216,19 @@ void PanelUi::draw(RenderUtil& util) const
 
     util.add_translation(origin);
     panel->draw(util);
-    // Render border.
-    util.render_colour({-1, -1}, {2 + size[xx], 1}, c);
-    util.render_colour({-1, -1}, {1, 2 + size[yy]}, c);
-    util.render_colour({size[xx], -1}, {1, 2 + size[yy]}, c);
-    util.render_colour({-1, size[yy]}, {2 + size[xx], 1}, c);
+    util.render_outline({-1, -1}, size + y::ivec2{2, 2}, c);
     util.add_translation(-origin);
   }
+}
+
+Panel* PanelUi::get_drag_panel() const
+{
+  for (Panel* panel : _panels) {
+    if (panel->is_dragging()) {
+      return panel;
+    }
+  }
+  return y::null;
 }
 
 void PanelUi::update_mouse_overs(bool in_window, int x, int y)

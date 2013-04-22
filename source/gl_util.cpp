@@ -202,41 +202,41 @@ void composite_type_to_base_and_length(GLenum type, GLenum& type_output,
 
   switch (type) {
     case GL_FLOAT_VEC4:
-      length_output = std::max(length_output, y::size(4));
+      length_output = y::max(length_output, y::size(4));
     case GL_FLOAT_VEC3:
-      length_output = std::max(length_output, y::size(3));
+      length_output = y::max(length_output, y::size(3));
     case GL_FLOAT_VEC2:
-      length_output = std::max(length_output, y::size(2));
+      length_output = y::max(length_output, y::size(2));
     case GL_FLOAT:
       type_output = GL_FLOAT;
       break;
 
     case GL_INT_VEC4:
-      length_output = std::max(length_output, y::size(4));
+      length_output = y::max(length_output, y::size(4));
     case GL_INT_VEC3:
-      length_output = std::max(length_output, y::size(3));
+      length_output = y::max(length_output, y::size(3));
     case GL_INT_VEC2:
-      length_output = std::max(length_output, y::size(2));
+      length_output = y::max(length_output, y::size(2));
     case GL_INT:
       type_output = GL_INT;
       break;
 
     case GL_UNSIGNED_INT_VEC4:
-      length_output = std::max(length_output, y::size(4));
+      length_output = y::max(length_output, y::size(4));
     case GL_UNSIGNED_INT_VEC3:
-      length_output = std::max(length_output, y::size(3));
+      length_output = y::max(length_output, y::size(3));
     case GL_UNSIGNED_INT_VEC2:
-      length_output = std::max(length_output, y::size(2));
+      length_output = y::max(length_output, y::size(2));
     case GL_UNSIGNED_INT:
       type_output = GL_UNSIGNED_INT;
       break;
 
     case GL_BOOL_VEC4:
-      length_output = std::max(length_output, y::size(4));
+      length_output = y::max(length_output, y::size(4));
     case GL_BOOL_VEC3:
-      length_output = std::max(length_output, y::size(3));
+      length_output = y::max(length_output, y::size(3));
     case GL_BOOL_VEC2:
-      length_output = std::max(length_output, y::size(2));
+      length_output = y::max(length_output, y::size(2));
     case GL_BOOL:
       type_output = GL_BOOL;
       break;
