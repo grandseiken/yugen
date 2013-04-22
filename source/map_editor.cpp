@@ -55,8 +55,7 @@ void render_list_grid(
 }
 
 TilePanel::TilePanel(const Databank& bank)
-  : Panel({RenderUtil::font_width,
-           RenderUtil::font_height}, y::ivec2())
+  : Panel(RenderUtil::from_grid(), y::ivec2())
   , _bank(bank)
   , _tileset_select(0)
 {
@@ -90,7 +89,8 @@ void TilePanel::update()
 
   const GlTexture& tex = _bank.get_tileset(_tileset_select).get_texture();
   y::int32 y_max = tex.get_size()[yy] +
-    std::min(y::size(7), _bank.get_tilesets().size()) * RenderUtil::font_height;
+    std::min(y::size(7), _bank.get_tilesets().size()) *
+    RenderUtil::from_grid()[yy];
 
   set_size({tex.get_size()[xx], y_max});
 }
@@ -101,17 +101,17 @@ void TilePanel::draw(RenderUtil& util) const
   const Tileset& t = _bank.get_tileset(_tileset_select);
   const GlTexture& tex = t.get_texture();
 
-  y::int32 tx_max = tex.get_size()[xx] / RenderUtil::font_width;
+  y::int32 tx_max = RenderUtil::to_grid(tex.get_size())[xx];
   y::int32 ty_max = std::min(y::size(7), _bank.get_tilesets().size());
   render_list_grid(util, c_panel, c_item, c_select,
                    _bank.get_tilesets(), _tileset_select,
                    y::ivec2(), {tx_max, ty_max});
 
   // Render tileset.
-  util.render_colour({0, ty_max * RenderUtil::font_height},
+  util.render_colour(RenderUtil::from_grid({0, ty_max}),
                      tex.get_size(), c_dark_panel);
   util.render_sprite(tex, tex.get_size(),
-                     {0, ty_max * RenderUtil::font_height}, y::ivec2());
+                     RenderUtil::from_grid({0, ty_max}), y::ivec2());
 }
 
 LayerPanel::LayerPanel()
@@ -152,8 +152,7 @@ void LayerPanel::update()
 {
   y::roll<y::int8>(_layer_select, -Cell::background_layers,
                    1 + Cell::foreground_layers);
-  set_size({12 * RenderUtil::font_width,
-            3 * RenderUtil::font_width});
+  set_size(RenderUtil::from_grid({12, 3}));
 }
 
 void LayerPanel::draw(RenderUtil& util) const
@@ -208,7 +207,8 @@ void MapEditor::event(const sf::Event& e)
 void MapEditor::update()
 {
   _layer_panel.set_origin(_tile_panel.get_origin() +
-                          y::ivec2{0, _tile_panel.get_size()[yy]});
+                          y::ivec2{0, _tile_panel.get_size()[yy]} +
+                          RenderUtil::from_grid({0, 1}));
 }
 
 void MapEditor::draw() const

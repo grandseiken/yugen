@@ -81,7 +81,8 @@ bool Panel::Order::operator()(Panel* a, Panel* b) const
   if (a->_z_index < b->_z_index) {
     return false;
   }
-  return !std::less<Panel*>()(a, b);
+  static std::less<Panel*> less;
+  return less(b, a);
 }
 
 void PanelUi::add(Panel& panel)
@@ -162,8 +163,17 @@ void PanelUi::draw(RenderUtil& util) const
   for (Panel* panel : _panels) {
     // Transform rendering into panel coordinates.
     const y::ivec2& origin = panel->get_origin();
+    const y::ivec2& size = panel->get_size();
+    Colour c = _mouse_over.find(panel) != _mouse_over.end() ?
+      Colour(.7f, .7f, .7f, 1.f) : Colour(.3f, .3f, .3f, 1.f);
+
     util.add_translation(origin);
     panel->draw(util);
+    // Render border.
+    util.render_colour({-1, -1}, {2 + size[xx], 1}, c);
+    util.render_colour({-1, -1}, {1, 2 + size[yy]}, c);
+    util.render_colour({size[xx], -1}, {1, 2 + size[yy]}, c);
+    util.render_colour({-1, size[yy]}, {2 + size[xx], 1}, c);
     util.add_translation(-origin);
   }
 }
@@ -176,7 +186,7 @@ void PanelUi::update_mouse_overs(bool in_window, int x, int y)
     int py = y - panel->get_origin()[yy];
     bool old_over = _mouse_over.find(panel) != _mouse_over.end();
     bool new_over = in_window && first && px >= 0 && py >= 0 &&
-                    px < panel->get_size()[x] && py < panel->get_size()[y];
+                    px < panel->get_size()[xx] && py < panel->get_size()[yy];
 
     if (old_over && !new_over) {
       sf::Event e;
@@ -186,7 +196,7 @@ void PanelUi::update_mouse_overs(bool in_window, int x, int y)
       panel->event(e);
       _mouse_over.erase(panel);
     }
-    if (new_over && !old_over) {
+    else if (new_over && !old_over) {
       sf::Event e;
       e.type = sf::Event::MouseEntered;
       e.mouseMove.x = x;

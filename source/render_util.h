@@ -113,11 +113,15 @@ public:
   void render_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
                      const y::ivec2& origin, const y::ivec2& frame);
 
+  // Helpers for grid coordinares.
+  static y::ivec2 from_grid(const y::ivec2& grid = {1, 1});
+  static y::ivec2 to_grid(const y::ivec2& pixels);
+
+private:
+
   // Font width and height.
   static const y::int32 font_width = 8;
   static const y::int32 font_height = 8;
-
-private:
 
   GlUtil& _gl;
   GlQuad _quad;

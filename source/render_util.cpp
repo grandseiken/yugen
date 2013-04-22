@@ -127,12 +127,13 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
     return;
   }
 
+  y::ivec2 font_size = from_grid();
   y::ivec2 v = origin + _translation;
   const GLfloat text_data[] = {
       float(v[xx]), float(v[yy]),
       float((v + _native_size)[xx]), float(v[yy]),
-      float(v[xx]), float(v[yy] + font_height),
-      float((v + _native_size)[xx]), float(v[yy] + font_height)};
+      float(v[xx]), float((v + font_size)[yy]),
+      float((v + _native_size)[xx]), float((v + font_size)[yy])};
 
   auto text_buffer = _gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, text_data, sizeof(text_data));
@@ -150,7 +151,7 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   _font.bind(GL_TEXTURE0);
   _text_program.bind_uniform("font", 0);
   _text_program.bind_uniform(
-      "font_size", GLint(font_width), GLint(font_height));
+      "font_size", GLint(font_size[xx]), GLint(font_size[yy]));
   _text_program.bind_uniform("colour", r, g, b, a);
   _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
 
@@ -166,8 +167,7 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
 void RenderUtil::render_text_grid(const y::string& text, const y::ivec2& origin,
                                   float r, float g, float b, float a) const
 {
-  render_text(text, {origin[xx] * font_width, origin[yy] * font_height},
-              r, g, b, a);
+  render_text(text, from_grid(origin), r, g, b, a);
 }
 
 void RenderUtil::render_text_grid(const y::string& text, const y::ivec2& origin,
@@ -213,8 +213,7 @@ void RenderUtil::render_colour_grid(const y::ivec2& origin,
                                     const y::ivec2& size,
                                     float r, float g, float b, float a) const
 {
-  render_colour({origin[xx] * font_width, origin[yy] * font_height},
-                {size[xx] * font_width, size[yy] * font_height}, r, g, b, a);
+  render_colour(from_grid(origin), from_grid(size), r, g, b, a);
 }
 
 void RenderUtil::render_colour_grid(const y::ivec2& origin,
@@ -330,4 +329,14 @@ void RenderUtil::render_sprite(
   set_sprite(sprite, frame_size);
   batch_sprite(origin, frame);
   render_batch();
+}
+
+y::ivec2 RenderUtil::from_grid(const y::ivec2& grid)
+{
+  return {grid[xx] * font_width, grid[yy] * font_height};
+}
+
+y::ivec2 RenderUtil::to_grid(const y::ivec2& pixels)
+{
+  return {pixels[xx] / font_width, pixels[yy] / font_height};
 }
