@@ -7,15 +7,17 @@ function lint {
 }
 
 function lint_highlight {
-  egrep -n "$1" $file | sed -e "s/^\([0-9]\+\):/$2:\t/g" | egrep --color "$1"
+  egrep -n "$1" $file | sed -e "s/^\([0-9]\+\):/$2:\t/g" | egrep -B 9999 -A 9999 --color "$1"i
 }
 
+# TODO: lint things on adjacent lines (for indent checking).
 for file in source/*; do
   echo Linting: $file
   lint '^.{81}.*$' 'Line \1 too long'
   lint_highlight '\( | \)|\[ | \]|\{ |[^ ] \}|[^ ]  +[^ ]' 'Line \1 whitespace'
   lint_highlight ' +$' 'Line \1 trailing whitespace'
   lint_highlight '[^ ] +static' 'Line \1 bad order'
-  lint_highlight ',\S' 'Line \1 missing space'
+  lint_highlight ',[^ ].|;[^ }].|:[^ :A-Za-z_*~].' 'Line \1 separator format'
   lint_highlight $'\t' 'Line \1 tab'
+  lint_highlight '(\]|\)|\])[^, ;)\]}]' 'Line \1 bracket format'
 done

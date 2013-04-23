@@ -30,12 +30,30 @@ namespace y {
   typedef std::stringstream sstream;
 
   template<typename T>
+  T abs(const T& t)
+  {
+    return std::abs(t);
+  }
+  template<typename T>
   T min(const T& a, const T& b) {
     return std::min(a, b);
   }
   template<typename T>
   T max(const T& a, const T& b) {
     return std::max(a, b);
+  }
+  template<typename T>
+  T euclidean_div(const T& n, const T& d)
+  {
+    bool sign = (n < 0) == (d < 0);
+    T t = abs(n) / abs(d);
+    return (d < 0) + (sign ? t : -(1 + t));
+  }
+  template<typename T>
+  T euclidean_mod(const T& n, const T& d)
+  {
+    T div = abs(d);
+    return (n < 0 ? n * (1 + d) : n) % d;
   }
   template<typename T>
   void clamp(T& t, T start, T end)

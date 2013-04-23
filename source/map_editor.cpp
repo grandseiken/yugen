@@ -298,6 +298,10 @@ MapEditor::MapEditor(Databank& bank, RenderUtil& util, CellMap& map)
 
 void MapEditor::event(const sf::Event& e)
 {
+  if (e.type == sf::Event::MouseMoved) {
+    _hover = {e.mouseMove.x, e.mouseMove.y};
+  }
+
   if (e.type != sf::Event::KeyPressed) {
     return;
   }
@@ -348,6 +352,19 @@ void MapEditor::draw() const
         draw_cell_layer(batch, c, layer);
       }
     }
+  }
+
+  y::ivec2 world = camera_to_world(_hover);
+  y::ivec2 tile = {y::euclidean_div(world[xx], Tileset::tile_width),
+                   y::euclidean_div(world[yy], Tileset::tile_height)};
+  y::ivec2 cell = {y::euclidean_div(tile[xx], Cell::cell_width),
+                   y::euclidean_div(tile[yy], Cell::cell_height)};
+  if (_map.is_coord_used(CellCoord(cell[xx], cell[yy]))) {
+    _util.render_outline(
+        world_to_camera({cell[xx] * Tileset::tile_width * Cell::cell_width,
+                         cell[yy] * Tileset::tile_height * Cell::cell_height}),
+        {Tileset::tile_width * Cell::cell_width,
+         Tileset::tile_height * Cell::cell_height}, c_hover);
   }
 
   _util.render_batch(batch);

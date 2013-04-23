@@ -106,6 +106,7 @@ private:
   CellMap& _map;
 
   y::ivec2 _camera;
+  y::ivec2 _hover;
 
   TileBrush _tile_brush;
   BrushPanel _brush_panel;

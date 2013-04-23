@@ -6,6 +6,7 @@
 class CellBlueprint;
 class Tileset;
 
+// TODO: replace with y::ivec2?
 struct CellCoord {
 
   CellCoord(y::int32 x, y::int32 y);

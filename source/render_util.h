@@ -55,6 +55,7 @@ private:
 
 class Window;
 
+// TODO: remove _grid functions?
 class RenderUtil {
 public:
 

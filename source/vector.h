@@ -12,6 +12,8 @@ namespace y {
     element_accessor() {}
   };
 
+  // TODO: allow vec * vec, vec + scalar, etc.
+  // Same semantics as GLSL types. And replace everywhere.
   template<typename T, y::size N>
   class vec {
   public:
