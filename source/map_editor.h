@@ -11,6 +11,7 @@ class RenderUtil;
 class CellCoord;
 class CellMap;
 
+// The current set of tiles stored in the brush.
 struct TileBrush {
   TileBrush();
 
@@ -24,6 +25,7 @@ struct TileBrush {
   static const y::int32 max_size = 16;
 };
 
+// Displays the current contents of the brush on-screen.
 class BrushPanel : public Panel {
 public:
 
@@ -41,6 +43,7 @@ private:
 
 };
 
+// Displays a list of Tilesets and allows picking tiles.
 class TilePanel : public Panel {
 public:
 
@@ -62,6 +65,7 @@ private:
 
 };
 
+// Displays the available layers.
 class LayerPanel : public Panel {
 public:
 
@@ -78,6 +82,7 @@ private:
 
 };
 
+// Combines the above Panels and draws the world underneath.
 class MapEditor: public Modal {
 public:
 

@@ -324,7 +324,7 @@ void MapEditor::event(const sf::Event& e)
 
 void MapEditor::update()
 {
-  y::ivec2 spacing = RenderUtil::from_grid({0, 1});
+  const y::ivec2 spacing = RenderUtil::from_grid({0, 1});
 
   _tile_panel.set_origin(RenderUtil::from_grid());
   _brush_panel.set_origin(_tile_panel.get_origin() + spacing +
