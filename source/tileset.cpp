@@ -1,10 +1,11 @@
 #include "tileset.h"
 #include "gl_util.h"
 
+const y::ivec2 Tileset::tile_size{Tileset::tile_width, Tileset::tile_height};
+
 Tileset::Tileset(const GlTexture& texture)
   : _texture(texture)
-  , _size{texture.get_size()[xx] / tile_width,
-          texture.get_size()[yy] / tile_height}
+  , _size{texture.get_size() / tile_size}
 {
 }
 

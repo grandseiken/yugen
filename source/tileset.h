@@ -12,6 +12,7 @@ public:
 
   static const y::int32 tile_width = 32;
   static const y::int32 tile_height = 32;
+  static const y::ivec2 tile_size;
 
   Tileset(const GlTexture& texture);
 

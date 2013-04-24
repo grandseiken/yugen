@@ -2,6 +2,7 @@
 #define CELL_H
 
 #include "common.h"
+#include "vector.h"
 
 class CellBlueprint;
 class Tileset;
@@ -87,6 +88,7 @@ public:
 
   static const y::int32 cell_width = 40;
   static const y::int32 cell_height = 30;
+  static const y::ivec2 cell_size;
 
   // Number of background and foreground layers, not including the collision
   // layer.

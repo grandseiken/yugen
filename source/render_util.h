@@ -135,6 +135,7 @@ private:
   // Font width and height.
   static const y::int32 font_width = 8;
   static const y::int32 font_height = 8;
+  static const y::ivec2 font_size;
 
   GlUtil& _gl;
   GlQuad _quad;

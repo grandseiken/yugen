@@ -107,7 +107,7 @@ private:
   Panel* get_drag_panel() const;
 
   // Set mouse target, and potentially fire off MouseEntered/MouseLeft events.
-  void update_mouse_overs(bool in_window, int x, int y);
+  void update_mouse_overs(bool in_window, const y::ivec2& v);
 
   typedef y::ordered_set<Panel*, Panel::Order> PanelSet;
   PanelSet _panels;

@@ -150,7 +150,7 @@ bool PanelUi::event(const sf::Event& e)
 
   if (leave) {
     if (!drag) {
-      update_mouse_overs(false, e.mouseMove.x, e.mouseMove.y);
+      update_mouse_overs(false, {e.mouseMove.x, e.mouseMove.y});
     }
     return false;
   }
@@ -163,24 +163,22 @@ bool PanelUi::event(const sf::Event& e)
 
   int& fx = wheel ? f.mouseWheel.x : button ? f.mouseButton.x : f.mouseMove.x;
   int& fy = wheel ? f.mouseWheel.y : button ? f.mouseButton.y : f.mouseMove.y;
-  int ox = fx;
-  int oy = fy;
+  y::ivec2 o{fx, fy};
 
   // Mouse drags take priority.
   if (drag) {
-    fx = ox - drag->get_origin()[xx];
-    fy = oy - drag->get_origin()[yy];
+    fx = o[xx] - drag->get_origin()[xx];
+    fy = o[yy] - drag->get_origin()[yy];
     drag->event(f);
     return true;
   }
 
-  update_mouse_overs(true, ox, oy);
+  update_mouse_overs(true, o);
 
   for (Panel* panel : _panels) {
-    fx = ox - panel->get_origin()[xx];
-    fy = oy - panel->get_origin()[yy];
-    if (fx >= 0 && fy >= 0 &&
-        fx < panel->get_size()[xx] && fy < panel->get_size()[yy]) {
+    fx = o[xx] - panel->get_origin()[xx];
+    fy = o[yy] - panel->get_origin()[yy];
+    if (y::ivec2{fx, fy}.in_region({0, 0}, panel->get_size())) {
       if (panel->event(f) || panel->is_dragging()) {
         return !enter;
       }
@@ -231,29 +229,28 @@ Panel* PanelUi::get_drag_panel() const
   return y::null;
 }
 
-void PanelUi::update_mouse_overs(bool in_window, int x, int y)
+void PanelUi::update_mouse_overs(bool in_window, const y::ivec2& v)
 {
   bool first = true;
   for (Panel* panel : _panels) {
-    int px = x - panel->get_origin()[xx];
-    int py = y - panel->get_origin()[yy];
     bool old_over = _mouse_over.find(panel) != _mouse_over.end();
-    bool new_over = in_window && first && px >= 0 && py >= 0 &&
-                    px < panel->get_size()[xx] && py < panel->get_size()[yy];
+    bool new_over = in_window && first &&
+        v.in_region(panel->get_origin(), panel->get_size());
 
+    y::ivec2 p = v - panel->get_origin();
     if (old_over && !new_over) {
       sf::Event e;
       e.type = sf::Event::MouseLeft;
-      e.mouseMove.x = x;
-      e.mouseMove.y = y;
+      e.mouseMove.x = p[xx];
+      e.mouseMove.y = p[yy];
       panel->event(e);
       _mouse_over.erase(panel);
     }
     else if (new_over && !old_over) {
       sf::Event e;
       e.type = sf::Event::MouseEntered;
-      e.mouseMove.x = x;
-      e.mouseMove.y = y;
+      e.mouseMove.x = p[xx];
+      e.mouseMove.y = p[yy];
       if (panel->event(e)) {
         first = false;
       }

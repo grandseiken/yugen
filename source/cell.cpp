@@ -178,6 +178,8 @@ void change_by_one(y::map<T, U>& map, const T& t, bool increment)
   }
 }
 
+const y::ivec2 Cell::cell_size{Cell::cell_width, Cell::cell_height};
+
 Cell::Cell(const CellBlueprint& blueprint)
   : _blueprint(blueprint)
 {

@@ -12,9 +12,7 @@ namespace y {
     element_accessor() {}
   };
 
-  // TODO: allow vec * vec, vec + scalar, etc.
-  // Same semantics as GLSL types. And replace everywhere.
-  template<typename T, y::size N>
+  template<typename T, y::size N, bool non_strict = true>
   class vec {
   public:
 
@@ -95,7 +93,7 @@ namespace y {
     {
       V v;
       for (y::size i = 0; i < N; ++i) {
-        v[i] = elements[i] + arg.elements[i];
+        v[i] = elements[i] + arg[i];
       }
       return v;
     }
@@ -104,7 +102,7 @@ namespace y {
     {
       V v;
       for (y::size i = 0; i < N; ++i) {
-        v[i] = elements[i] - arg.elements[i];
+        v[i] = elements[i] - arg[i];
       }
       return v;
     }
@@ -123,6 +121,26 @@ namespace y {
       V v;
       for (y::size i = 0; i < N; ++i) {
         v[i] = elements[i] / arg;
+      }
+      return v;
+    }
+
+    template<typename std::enable_if<non_strict, int>::type = 0>
+    V operator*(const V& arg) const
+    {
+      V v;
+      for (y::size i = 0; i < N; ++i) {
+        v[i] = elements[i] * arg[i];
+      }
+      return v;
+    }
+
+    template<typename std::enable_if<non_strict, int>::type = 0>
+    V operator/(const V& arg) const
+    {
+      V v;
+      for (y::size i = 0; i < N; ++i) {
+        v[i] = elements[i] / arg[i];
       }
       return v;
     }
@@ -153,6 +171,18 @@ namespace y {
     }
 
     V& operator/=(const T& arg)
+    {
+      return operator=(operator/(arg));
+    }
+
+    template<typename std::enable_if<non_strict, int>::type = 0>
+    V& operator*=(const V& arg)
+    {
+      return operator=(operator*(arg));
+    }
+
+    template<typename std::enable_if<non_strict, int>::type = 0>
+    V& operator/=(const V& arg)
     {
       return operator=(operator/(arg));
     }
@@ -198,6 +228,34 @@ namespace y {
         return acos(T());
       }
       return acos(dot(arg) / (length() * arg.length()));
+    }
+
+    bool in_region(const V& origin, const V& size) const
+    {
+      for (y::size i = 0; i < N; ++i) {
+        if (elements[i] < origin[i] || elements[i] >= origin[i] + size[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+ 
+    V euclidean_div(const V& arg) const
+    {
+      vec<T, N> v;
+      for (y::size i = 0; i < N; ++i) {
+        v[i] = y::euclidean_div(elements[i], arg[i]);
+      }
+      return v;
+    }
+
+    V euclidean_mod(const V& arg) const
+    {
+      vec<T, N> v;
+      for (y::size i = 0; i < N; ++i) {
+        v[i] = y::euclidean_mod(elements[i], arg[i]);
+      }
+      return v;
     }
 
   };

@@ -77,8 +77,7 @@ bool BrushPanel::event(const sf::Event& e)
 void BrushPanel::update()
 {
   y::ivec2 tiles = y::max({1, 1}, _brush.size);
-  set_size({tiles[xx] * Tileset::tile_width,
-            tiles[yy] * Tileset::tile_height});
+  set_size(tiles * Tileset::tile_size);
 }
 
 void BrushPanel::draw(RenderUtil& util) const
@@ -94,11 +93,8 @@ void BrushPanel::draw(RenderUtil& util) const
           _brush.array[v[xx] + v[yy] * TileBrush::max_size];
       const Tileset& t = _bank.get_tileset(e.tileset);
 
-      y::ivec2 pos = {v[xx] * Tileset::tile_width,
-                      v[yy] * Tileset::tile_height};
-      batch.add_sprite(t.get_texture(),
-                       {Tileset::tile_width, Tileset::tile_height},
-                       pos, t.from_index(e.index));
+      batch.add_sprite(t.get_texture(), Tileset::tile_size,
+                       v * Tileset::tile_size, t.from_index(e.index));
     }
   }
   util.render_batch(batch);
@@ -123,9 +119,8 @@ bool TilePanel::event(const sf::Event& e)
       _tile_hover = {-1, -1};
     }
     else {
-      _tile_hover = {
-        e.mouseMove.x / Tileset::tile_width,
-        (e.mouseMove.y - get_list_height()) / Tileset::tile_height};
+      _tile_hover = {e.mouseMove.x, e.mouseMove.y - get_list_height()};
+      _tile_hover /= Tileset::tile_size;
     }
     return true;
   }
@@ -211,16 +206,12 @@ void TilePanel::draw(RenderUtil& util) const
   y::ivec2 min = y::min(start, _tile_hover);
   y::ivec2 max = y::max(start, _tile_hover);
 
-  if ((_tile_hover[xx] >= 0 && _tile_hover[yy] >= 0 &&
-      _tile_hover[xx] < t.get_size()[xx] &&
-      _tile_hover[yy] < t.get_size()[yy]) || is_dragging()) {
+  if (_tile_hover.in_region(y::ivec2(), t.get_size()) || is_dragging()) {
     min = y::max(min, {0, 0});
     max = y::min(max, t.get_size() - y::ivec2{1, 1});
     util.render_outline(
-        {min[xx] * Tileset::tile_width,
-         min[yy] * Tileset::tile_height + get_list_height()},
-        {(1 + (max - min)[xx]) * Tileset::tile_width,
-         (1 + (max - min)[yy]) * Tileset::tile_height}, c_hover);
+        min * Tileset::tile_size + y::ivec2{0, get_list_height()},
+        (y::ivec2{1, 1} + (max - min)) * Tileset::tile_size, c_hover);
   }
 }
 
@@ -355,16 +346,13 @@ void MapEditor::draw() const
   }
 
   y::ivec2 world = camera_to_world(_hover);
-  y::ivec2 tile = {y::euclidean_div(world[xx], Tileset::tile_width),
-                   y::euclidean_div(world[yy], Tileset::tile_height)};
-  y::ivec2 cell = {y::euclidean_div(tile[xx], Cell::cell_width),
-                   y::euclidean_div(tile[yy], Cell::cell_height)};
+  y::ivec2 tile = world.euclidean_div(Tileset::tile_size);
+  y::ivec2 cell = tile.euclidean_div(Cell::cell_size);
+
   if (_map.is_coord_used(CellCoord(cell[xx], cell[yy]))) {
     _util.render_outline(
-        world_to_camera({cell[xx] * Tileset::tile_width * Cell::cell_width,
-                         cell[yy] * Tileset::tile_height * Cell::cell_height}),
-        {Tileset::tile_width * Cell::cell_width,
-         Tileset::tile_height * Cell::cell_height}, c_hover);
+        world_to_camera(cell * Tileset::tile_size * Cell::cell_size),
+        Tileset::tile_size * Cell::cell_size, c_hover);
   }
 
   _util.render_batch(batch);
@@ -391,19 +379,18 @@ void MapEditor::draw_cell_layer(
   }
   const CellBlueprint* cell = _map.get_coord(coord);
 
-  for (y::int32 x = 0; x < Cell::cell_width; ++x) {
-    for (y::int32 y = 0; y < Cell::cell_height; ++y) {
-      const Tile& t = cell->get_tile(layer, x, y);
+  y::ivec2 v;
+  for (; v[xx] < Cell::cell_size[xx]; ++v[xx]) {
+    for (v[yy] = 0; v[yy] < Cell::cell_size[yy]; ++v[yy]) {
+      const Tile& t = cell->get_tile(layer, v[xx], v[yy]);
       if (!t.tileset) {
         continue;
       }
 
-      y::ivec2 camera = world_to_camera(y::ivec2(
-          Tileset::tile_width * (x + coord.x * Cell::cell_width),
-          Tileset::tile_height * (y + coord.y * Cell::cell_height)));
+      y::ivec2 camera = world_to_camera(y::ivec2(Tileset::tile_size *
+          (v + y::ivec2{coord.x, coord.y} * Cell::cell_size)));
 
-      batch.add_sprite(t.tileset->get_texture(),
-                       {Tileset::tile_width, Tileset::tile_height},
+      batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
                        camera, t.tileset->from_index(t.index));
     }
   }

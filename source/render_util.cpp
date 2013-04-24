@@ -226,12 +226,10 @@ void RenderUtil::render_fill_grid(const y::ivec2& origin,
 void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
                                 float r, float g, float b, float a) const
 {
-  render_fill({origin[xx], origin[yy]}, {size[xx] - 1, 1}, r, g, b, a);
-  render_fill({origin[xx], 1 + origin[yy]}, {1, size[yy] - 1}, r, g, b, a);
-  render_fill({1 + origin[xx], origin[yy] + size[yy] - 1}, {size[xx] - 1, 1},
-              r, g, b, a);
-  render_fill({origin[xx] + size[xx] - 1, origin[yy]}, {1, size[yy] - 1},
-              r, g, b, a);
+  render_fill(origin, {size[xx] - 1, 1}, r, g, b, a);
+  render_fill(origin + y::ivec2{0, 1}, {1, size[yy] - 1}, r, g, b, a);
+  render_fill(origin + y::ivec2{1, size[yy] - 1}, {size[xx] - 1, 1}, r, g, b, a);
+  render_fill(origin + y::ivec2{size[xx] - 1, 0}, {1, size[yy] - 1}, r, g, b, a);
 }
 
 void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
@@ -330,13 +328,12 @@ void RenderUtil::render_batch() const
   _sprite_program.bind_uniform("resolution",
       GLint(_native_size[xx]), GLint(_native_size[yy]));
 
+  y::ivec2 v = _sprite.get_size() / _frame_size;
   _sprite.bind(GL_TEXTURE0);
   _sprite_program.bind_uniform("sprite", 0);
   _sprite_program.bind_uniform(
       "frame_size", GLint(_frame_size[xx]), GLint(_frame_size[yy]));
-  _sprite_program.bind_uniform("frame_count",
-                               GLint(_sprite.get_size()[xx] / _frame_size[xx]),
-                               GLint(_sprite.get_size()[yy] / _frame_size[yy]));
+  _sprite_program.bind_uniform("frame_count", GLint(v[xx]), GLint(v[yy]));
   _element_buffer.draw_elements(GL_TRIANGLES, 6 * length);
 
   _batched_sprites.clear();
@@ -363,10 +360,13 @@ void RenderUtil::render_sprite(
 
 y::ivec2 RenderUtil::from_grid(const y::ivec2& grid)
 {
-  return {grid[xx] * font_width, grid[yy] * font_height};
+  return grid * font_size;
 }
 
 y::ivec2 RenderUtil::to_grid(const y::ivec2& pixels)
 {
-  return {pixels[xx] / font_width, pixels[yy] / font_height};
+  return pixels / font_size;
 }
+
+const y::ivec2 RenderUtil::font_size{
+    RenderUtil::font_width, RenderUtil::font_height};
