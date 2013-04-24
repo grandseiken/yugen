@@ -8,7 +8,6 @@
 class Databank;
 class RenderBatch;
 class RenderUtil;
-class CellCoord;
 class CellMap;
 
 // The current set of tiles stored in the brush.
@@ -69,7 +68,7 @@ private:
 class LayerPanel : public Panel {
 public:
 
-  LayerPanel();
+  LayerPanel(const y::string& status);
   virtual ~LayerPanel() {}
 
   virtual bool event(const sf::Event& e);
@@ -78,6 +77,7 @@ public:
 
 private:
 
+  const y::string& _status;
   y::int8 _layer_select;
 
 };
@@ -99,7 +99,7 @@ private:
   y::ivec2 camera_to_world(const y::ivec2& v) const;
 
   void draw_cell_layer(
-      RenderBatch& batch, const CellCoord& coord, y::int8 layer) const;
+      RenderBatch& batch, const y::ivec2& coord, y::int8 layer) const;
 
   Databank& _bank;
   RenderUtil& _util;
@@ -107,6 +107,9 @@ private:
 
   y::ivec2 _camera;
   y::ivec2 _hover;
+  y::ivec2 _hover_cell;
+  y::ivec2 _hover_tile;
+  y::string _layer_status;
 
   TileBrush _tile_brush;
   BrushPanel _brush_panel;

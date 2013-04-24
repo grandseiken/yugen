@@ -3,6 +3,7 @@
 
 #include "common.h"
 
+#include <boost/functional/hash.hpp>
 #include <cmath>
 
 namespace y {
@@ -323,6 +324,22 @@ namespace {
   static const y::element_accessor<1>& yy = element_accessor_instance<true>::y;
   static const y::element_accessor<2>& zz = element_accessor_instance<true>::z;
   static const y::element_accessor<3>& ww = element_accessor_instance<true>::w;
+}
+
+namespace std {
+
+  template<typename T, y::size N>
+  struct hash<y::vec<T, N>> {
+    y::size operator()(const y::vec<T, N>& arg) const
+    {
+      y::size seed = 0;
+      for (y::size i = 0; i < N; ++i) {
+        boost::hash_combine(seed, arg[i]);
+      }
+      return seed;
+    }
+  };
+
 }
 
 #endif

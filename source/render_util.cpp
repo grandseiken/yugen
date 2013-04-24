@@ -228,8 +228,10 @@ void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
 {
   render_fill(origin, {size[xx] - 1, 1}, r, g, b, a);
   render_fill(origin + y::ivec2{0, 1}, {1, size[yy] - 1}, r, g, b, a);
-  render_fill(origin + y::ivec2{1, size[yy] - 1}, {size[xx] - 1, 1}, r, g, b, a);
-  render_fill(origin + y::ivec2{size[xx] - 1, 0}, {1, size[yy] - 1}, r, g, b, a);
+  render_fill(
+      origin + y::ivec2{1, size[yy] - 1}, {size[xx] - 1, 1}, r, g, b, a);
+  render_fill(
+      origin + y::ivec2{size[xx] - 1, 0}, {1, size[yy] - 1}, r, g, b, a);
 }
 
 void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,

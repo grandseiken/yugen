@@ -154,11 +154,44 @@ CellMap& Databank::get_map(y::size index)
   return _default_map;
 }
 
+const y::string& Databank::get_tileset_name(Tileset& tileset) const
+{
+  static y::string none = "<no tileset>";
+  for (const auto& pair : _tileset_map) {
+    if (pair.second.get() == &tileset) {
+      return pair.first;
+    }
+  }
+  return none;
+}
+
+const y::string& Databank::get_cell_name(CellBlueprint& cell) const
+{
+  static y::string none = "<no cell>";
+  for (const auto& pair : _cell_map) {
+    if (pair.second.get() == &cell) {
+      return pair.first;
+    }
+  }
+  return none;
+}
+
+const y::string& Databank::get_map_name(CellMap& map) const
+{
+  static y::string none = "<no map>";
+  for (const auto& pair : _map_map) {
+    if (pair.second.get() == &map) {
+      return pair.first;
+    }
+  }
+  return none;
+}
+
 void Databank::make_default_map()
 {
   CellBlueprint* blueprint = new CellBlueprint();
   CellMap* map = new CellMap();
-  map->set_coord(CellCoord(0, 0), *blueprint);
+  map->set_coord(y::ivec2(), *blueprint);
 
   insert_cell("/world/default.cell", blueprint);
   insert_map("/world/default.map", map);
@@ -201,5 +234,4 @@ void Databank::insert_map(const y::string& name, CellMap* map)
   _map_list.push_back(name);
   std::sort(_map_list.begin(), _map_list.end());
   _map_map.insert(y::make_pair(name, y::move_unique(map)));
-
 }

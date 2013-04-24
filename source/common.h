@@ -53,7 +53,7 @@ namespace y {
   T euclidean_mod(const T& n, const T& d)
   {
     T div = abs(d);
-    return (n < 0 ? n * (1 + d) : n) % d;
+    return (n < 0 ? n * (1 - div) : n) % div;
   }
   template<typename T>
   void clamp(T& t, T start, T end)

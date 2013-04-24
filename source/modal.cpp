@@ -107,6 +107,11 @@ bool Panel::Order::operator()(Panel* a, Panel* b) const
   return less(b, a);
 }
 
+PanelUi::PanelUi(Modal& parent)
+  : _parent(parent)
+{
+}
+
 void PanelUi::add(Panel& panel)
 {
   _panels.insert(&panel);
@@ -231,6 +236,9 @@ Panel* PanelUi::get_drag_panel() const
 
 void PanelUi::update_mouse_overs(bool in_window, const y::ivec2& v)
 {
+  bool old_any_over = !_mouse_over.empty();
+
+  sf::Event e;
   bool first = true;
   for (Panel* panel : _panels) {
     bool old_over = _mouse_over.find(panel) != _mouse_over.end();
@@ -238,29 +246,40 @@ void PanelUi::update_mouse_overs(bool in_window, const y::ivec2& v)
         v.in_region(panel->get_origin(), panel->get_size());
 
     y::ivec2 p = v - panel->get_origin();
+    e.mouseMove.x = p[xx];
+    e.mouseMove.y = p[yy];
+
     if (old_over && !new_over) {
-      sf::Event e;
       e.type = sf::Event::MouseLeft;
-      e.mouseMove.x = p[xx];
-      e.mouseMove.y = p[yy];
       panel->event(e);
       _mouse_over.erase(panel);
     }
     else if (new_over && !old_over) {
-      sf::Event e;
       e.type = sf::Event::MouseEntered;
-      e.mouseMove.x = p[xx];
-      e.mouseMove.y = p[yy];
       if (panel->event(e)) {
         first = false;
       }
       _mouse_over.insert(panel);
     }
   }
+
+  bool new_any_over = !_mouse_over.empty();
+  e.mouseMove.x = v[xx];
+  e.mouseMove.y = v[yy];
+
+  if (old_any_over && !new_any_over) {
+    e.type = sf::Event::MouseEntered;
+    _parent.event(e);
+  }
+  else if (new_any_over && !old_any_over) {
+    e.type = sf::Event::MouseLeft;
+    _parent.event(e);
+  }
 }
 
 Modal::Modal()
   : _end(false)
+  , _panel_ui(*this)
 {
 }
 

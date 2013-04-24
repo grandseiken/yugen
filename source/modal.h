@@ -7,6 +7,7 @@
 namespace sf {
   class Event;
 }
+class Modal;
 class ModalStack;
 class RenderUtil;
 class Window;
@@ -86,6 +87,8 @@ private:
 class PanelUi : public y::no_copy {
 public:
 
+  PanelUi(Modal& parent);
+
   // Add and remove panels. The caller of these functions must ensure that the
   // panel is not destroyed before it is removed.
   void add(Panel& panel);
@@ -108,6 +111,8 @@ private:
 
   // Set mouse target, and potentially fire off MouseEntered/MouseLeft events.
   void update_mouse_overs(bool in_window, const y::ivec2& v);
+
+  Modal& _parent;
 
   typedef y::ordered_set<Panel*, Panel::Order> PanelSet;
   PanelSet _panels;

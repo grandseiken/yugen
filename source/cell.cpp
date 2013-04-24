@@ -1,73 +1,18 @@
 #include "cell.h"
 #include "tileset.h"
 
-#include <boost/functional/hash.hpp>
-
-CellCoord::CellCoord(y::int32 x, y::int32 y)
-  : x(x)
-  , y(y)
-{
-}
-
-bool CellCoord::operator==(const CellCoord& cell_coord) const
-{
-  return x == cell_coord.x && y == cell_coord.y;
-}
-
-bool CellCoord::operator!=(const CellCoord& cell_coord) const
-{
-  return !operator==(cell_coord);
-}
-
-CellCoord CellCoord::operator+(const CellCoord& cell_coord) const
-{
-  return CellCoord(x + cell_coord.x, y + cell_coord.y);
-}
-
-CellCoord CellCoord::operator-(const CellCoord& cell_coord) const
-{
-  return CellCoord(x - cell_coord.x, y - cell_coord.y);
-}
-
-CellCoord CellCoord::operator-() const
-{
-  return CellCoord(-x, -y);
-}
-
-CellCoord& CellCoord::operator+=(const CellCoord& cell_coord)
-{
-  return operator=(operator+(cell_coord));
-}
-
-CellCoord& CellCoord::operator-=(const CellCoord& cell_coord)
-{
-  return operator=(operator-(cell_coord));
-}
-
-namespace std {
-
-  y::size hash<CellCoord>::operator()(const CellCoord& cell_coord) const
-  {
-    y::size seed = 0;
-    boost::hash_combine(seed, cell_coord.x);
-    boost::hash_combine(seed, cell_coord.y);
-    return seed;
-  }
-
-}
-
 CellMap::CellMap()
   : _min(0, 0)
   , _max(0, 0)
 {
 }
 
-bool CellMap::is_coord_used(const CellCoord& cell_coord) const
+bool CellMap::is_coord_used(const y::ivec2& cell_coord) const
 {
   return _map.find(cell_coord) != _map.end();
 }
 
-void CellMap::clear_coord(const CellCoord& cell_coord)
+void CellMap::clear_coord(const y::ivec2& cell_coord)
 {
   auto it = _map.find(cell_coord);
   if (it != _map.end()) {
@@ -76,19 +21,19 @@ void CellMap::clear_coord(const CellCoord& cell_coord)
   _boundary_dirty = true;
 }
 
-void CellMap::set_coord(const CellCoord& cell_coord, CellBlueprint& blueprint)
+void CellMap::set_coord(const y::ivec2& cell_coord, CellBlueprint& blueprint)
 {
   _map[cell_coord] = &blueprint;
   _boundary_dirty = true;
 }
 
-const CellCoord& CellMap::get_boundary_min() const
+const y::ivec2& CellMap::get_boundary_min() const
 {
   recalculate_boundary();
   return _min;
 }
 
-const CellCoord& CellMap::get_boundary_max() const
+const y::ivec2& CellMap::get_boundary_max() const
 {
   recalculate_boundary();
   return _max;
@@ -103,27 +48,25 @@ void CellMap::recalculate_boundary() const
   bool first = true;
   for (const auto& pair : _map) {
     if (first) {
-      _max = {1 + pair.first.x, 1 + pair.first.y};
-      _min = {pair.first.x, pair.first.y};
+      _max = y::ivec2{1, 1} + pair.first;
+      _min = pair.first;
     }
     else {
-      _max = {y::max(_max.x, 1 + pair.first.x),
-              y::max(_max.y, 1 + pair.first.y)};
-      _min = {y::min(_min.x, pair.first.x),
-              y::min(_min.y, pair.first.y)};
+      _max = y::max(_max, y::ivec2{1, 1} + pair.first);
+      _min = y::min(_min, pair.first);
     }
     first = false;
   }
   _boundary_dirty = false;
 }
 
-const CellBlueprint* CellMap::get_coord(const CellCoord& cell_coord) const
+const CellBlueprint* CellMap::get_coord(const y::ivec2& cell_coord) const
 {
   auto it = _map.find(cell_coord);
   return it != _map.end() ? it->second : y::null;
 }
 
-CellBlueprint* CellMap::get_coord(const CellCoord& cell_coord)
+CellBlueprint* CellMap::get_coord(const y::ivec2& cell_coord)
 {
   auto it = _map.find(cell_coord);
   return it != _map.end() ? it->second : y::null;

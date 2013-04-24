@@ -7,64 +7,35 @@
 class CellBlueprint;
 class Tileset;
 
-// TODO: replace with y::ivec2?
-struct CellCoord {
-
-  CellCoord(y::int32 x, y::int32 y);
-
-  bool operator==(const CellCoord& cell_coord) const;
-  bool operator!=(const CellCoord& cell_coord) const;
-
-  CellCoord operator+(const CellCoord& cell_coord) const;
-  CellCoord operator-(const CellCoord& cell_coord) const;
-  CellCoord operator-() const;
-
-  CellCoord& operator+=(const CellCoord& cell_coord);
-  CellCoord& operator-=(const CellCoord& cell_coord);
-
-  y::int32 x;
-  y::int32 y;
-
-};
-
-namespace std {
-
-  template<>
-  struct hash<CellCoord> {
-    y::size operator()(const CellCoord& cell_coord) const;
-  };
-
-}
-
 // Sparse spatial map of CellBlueprints.
 class CellMap : public y::no_copy {
 public:
 
   CellMap();
 
-  bool is_coord_used(const CellCoord& cell_coord) const;
+  bool is_coord_used(const y::ivec2& cell_coord) const;
 
-  void clear_coord(const CellCoord& cell_coord);
+  void clear_coord(const y::ivec2& cell_coord);
 
-  void set_coord(const CellCoord& cell_coord, CellBlueprint& blueprint);
+  void set_coord(const y::ivec2& cell_coord, CellBlueprint& blueprint);
 
-  const CellBlueprint* get_coord(const CellCoord& cell_coord) const;
-  /***/ CellBlueprint* get_coord(const CellCoord& cell_coord);
+  const CellBlueprint* get_coord(const y::ivec2& cell_coord) const;
+  /***/ CellBlueprint* get_coord(const y::ivec2& cell_coord);
 
   // Get low (inclusive) cell boundary.
-  const CellCoord& get_boundary_min() const;
+  const y::ivec2& get_boundary_min() const;
   // Get high (exclusive) cell boundary.
-  const CellCoord& get_boundary_max() const;
+  const y::ivec2& get_boundary_max() const;
 
 private:
 
   void recalculate_boundary() const;
 
-  typedef y::map<CellCoord, CellBlueprint*> blueprint_map;
+  typedef y::map<y::ivec2, CellBlueprint*> blueprint_map;
   blueprint_map _map;
 
-  mutable CellCoord _min;
-  mutable CellCoord _max;
+  mutable y::ivec2 _min;
+  mutable y::ivec2 _max;
   mutable bool _boundary_dirty;
 
 };

@@ -221,8 +221,9 @@ y::int32 TilePanel::get_list_height() const
       y::min(y::size(7), _bank.get_tilesets().size());
 }
 
-LayerPanel::LayerPanel()
+LayerPanel::LayerPanel(const y::string& status)
   : Panel(y::ivec2(), y::ivec2())
+  , _status(status)
   , _layer_select(0)
 {
 }
@@ -247,6 +248,9 @@ bool LayerPanel::event(const sf::Event& e)
     case sf::Keyboard::Num3:
       _layer_select = 1;
       break;
+    case sf::Keyboard::Num4:
+      _layer_select = 2;
+      break;
     case sf::Keyboard::Tab:
       ++_layer_select;
       break;
@@ -258,8 +262,8 @@ bool LayerPanel::event(const sf::Event& e)
 void LayerPanel::update()
 {
   y::roll<y::int8>(_layer_select, -Cell::background_layers,
-                   1 + Cell::foreground_layers);
-  set_size(RenderUtil::from_grid({12, 3}));
+                   2 + Cell::foreground_layers);
+  set_size(RenderUtil::from_grid({y::max(y::int32(_status.length()), 12), 5}));
 }
 
 void LayerPanel::draw(RenderUtil& util) const
@@ -267,20 +271,25 @@ void LayerPanel::draw(RenderUtil& util) const
   static y::string_vector layer_names{
     "1 Background",
     "2 Collision",
-    "3 Foreground"};
+    "3 Foreground",
+    "4 Actors"};
 
   render_list_grid(
       util, c_panel, c_item, c_select,
       layer_names, Cell::background_layers + _layer_select,
-      {0, 0}, {12, 3});
+      {0, 0}, {y::max(y::int32(_status.length()), 12), 4});
+
+  util.render_text_grid(_status, {0, 4}, c_item);
 }
 
 MapEditor::MapEditor(Databank& bank, RenderUtil& util, CellMap& map)
   : _bank(bank)
   , _util(util)
   , _map(map)
+  , _hover{-1, -1}
   , _brush_panel(bank, _tile_brush)
   , _tile_panel(bank, _tile_brush)
+  , _layer_panel(_layer_status)
 {
   get_panel_ui().add(_brush_panel);
   get_panel_ui().add(_tile_panel);
@@ -292,6 +301,9 @@ void MapEditor::event(const sf::Event& e)
   if (e.type == sf::Event::MouseMoved) {
     _hover = {e.mouseMove.x, e.mouseMove.y};
   }
+  if (e.type == sf::Event::MouseLeft) {
+    _hover = {-1, -1};
+  }
 
   if (e.type != sf::Event::KeyPressed) {
     return;
@@ -302,16 +314,16 @@ void MapEditor::event(const sf::Event& e)
       end();
       break;
     case sf::Keyboard::Right:
-      _camera += {1, 0};
+      _camera += {8, 0};
       break;
     case sf::Keyboard::Left:
-      _camera += {-1, 0};
+      _camera += {-8, 0};
       break;
     case sf::Keyboard::Down:
-      _camera += {0, 1};
+      _camera += {0, 8};
       break;
     case sf::Keyboard::Up:
-      _camera += {0, -1};
+      _camera += {0, -8};
       break;
     default: {}
   }
@@ -326,6 +338,21 @@ void MapEditor::update()
                           y::ivec2{0, _tile_panel.get_size()[yy]});
   _layer_panel.set_origin(_brush_panel.get_origin() + spacing +
                           y::ivec2{0, _brush_panel.get_size()[yy]});
+
+  if (_hover[xx] >= 0 && _hover[yy] >= 0) {
+    y::ivec2 world = camera_to_world(_hover);
+    _hover_tile = world.euclidean_div(Tileset::tile_size);
+    _hover_cell = _hover_tile.euclidean_div(Cell::cell_size);
+    _hover_tile = _hover_tile.euclidean_mod(Cell::cell_size);
+
+    y::sstream ss;
+    ss << _hover_cell[xx] << ", " << _hover_cell[yy];
+    if (_map.is_coord_used(_hover_cell)) {
+      ss << " : " << _bank.get_cell_name(*_map.get_coord(_hover_cell));
+    }
+    ss << " : " << _hover_tile[xx] << ", " << _hover_tile[yy];
+    _layer_status = ss.str();
+  }
 }
 
 void MapEditor::draw() const
@@ -333,26 +360,26 @@ void MapEditor::draw() const
   _util.get_gl().bind_window(true);
 
   RenderBatch batch;
-  CellCoord c = _map.get_boundary_min();
-  const CellCoord& max = _map.get_boundary_max();
+  y::ivec2 c = _map.get_boundary_min();
+  const y::ivec2& max = _map.get_boundary_max();
 
   for (y::int32 layer = -Cell::background_layers;
        layer <= Cell::foreground_layers; ++layer) {
-    for (; c.x < max.x; ++c.x) {
-      for (; c.y < max.y; ++c.y) {
+    for (; c[xx] < max[xx]; ++c[xx]) {
+      for (c[yy] = 0; c[yy] < max[yy]; ++c[yy]) {
         draw_cell_layer(batch, c, layer);
+
+        _util.render_outline(
+            world_to_camera(c * Tileset::tile_size * Cell::cell_size),
+            Tileset::tile_size * Cell::cell_size, c_panel);
       }
     }
   }
 
-  y::ivec2 world = camera_to_world(_hover);
-  y::ivec2 tile = world.euclidean_div(Tileset::tile_size);
-  y::ivec2 cell = tile.euclidean_div(Cell::cell_size);
-
-  if (_map.is_coord_used(CellCoord(cell[xx], cell[yy]))) {
-    _util.render_outline(
-        world_to_camera(cell * Tileset::tile_size * Cell::cell_size),
-        Tileset::tile_size * Cell::cell_size, c_hover);
+  if (_hover[xx] >= 0 && _hover[yy] >= 0 && _map.is_coord_used(_hover_cell)) {
+    y::ivec2 t =
+        (_hover_tile + _hover_cell * Cell::cell_size) * Tileset::tile_size;
+    _util.render_outline(world_to_camera(t), Tileset::tile_size, c_hover);
   }
 
   _util.render_batch(batch);
@@ -372,7 +399,7 @@ y::ivec2 MapEditor::camera_to_world(const y::ivec2& v) const
 }
 
 void MapEditor::draw_cell_layer(
-    RenderBatch& batch, const CellCoord& coord, y::int8 layer) const
+    RenderBatch& batch, const y::ivec2& coord, y::int8 layer) const
 {
   if (!_map.is_coord_used(coord)) {
     return;
@@ -387,8 +414,8 @@ void MapEditor::draw_cell_layer(
         continue;
       }
 
-      y::ivec2 camera = world_to_camera(y::ivec2(Tileset::tile_size *
-          (v + y::ivec2{coord.x, coord.y} * Cell::cell_size)));
+      y::ivec2 camera = world_to_camera(
+          Tileset::tile_size * (v + coord * Cell::cell_size));
 
       batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
                        camera, t.tileset->from_index(t.index));

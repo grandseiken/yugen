@@ -42,6 +42,11 @@ public:
   const CellMap& get_map(y::size index) const;
   /***/ CellMap& get_map(y::size index);
 
+  // Get the names that resources are stored as.
+  const y::string& get_tileset_name(Tileset& tileset) const;
+  const y::string& get_cell_name(CellBlueprint& cell) const;
+  const y::string& get_map_name(CellMap& map) const;
+
 private:
 
   void make_default_map();

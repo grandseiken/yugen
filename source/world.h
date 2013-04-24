@@ -15,30 +15,29 @@ public:
 
   // Initialise world with the given coord of the active map at (0, 0) in the
   // active window.
-  WorldWindow(const CellMap& active_map, const CellCoord& active_coord);
+  WorldWindow(const CellMap& active_map, const y::ivec2& active_coord);
 
   // Sets the active map with the given coord at (0, 0) in the active window.
   // Avoids reloading cells whenever possible.
-  void set_active_map(const CellMap& active_map, const CellCoord& active_coord);
+  void set_active_map(const CellMap& active_map, const y::ivec2& active_coord);
 
   // Sets the given coord to (0, 0) in the active window. Avoids reloading cells
   // whenever possible.
-  void set_active_coord(const CellCoord& active_coord);
+  void set_active_coord(const y::ivec2& active_coord);
 
   // Moves the active window. Avoids reloading cells whenever possible.
-  void move_active_window(const CellCoord& offset);
+  void move_active_window(const y::ivec2& offset);
 
-  // Get (possibly null) blueprint at (x, y) in
+  // Get (possibly null) blueprint at v in
   // [-half_width, half_width] * [-half_width, half_width].
-  const CellBlueprint* get_active_window_blueprint(y::int32 x,
-                                                   y::int32 y) const;
+  const CellBlueprint* get_active_window_blueprint(const y::ivec2& v) const;
 
   // Get (possibly null) blueprint at (0, 0).
   const CellBlueprint* get_active_window_blueprint() const;
 
-  // Get (possibly null) cell at (x, y) in
+  // Get (possibly null) cell at v in
   // [-half_width, half_width] * [-half_width, half_width].
-  Cell* get_active_window_cell(y::int32 x, y::int32 y) const;
+  Cell* get_active_window_cell(const y::ivec2& v) const;
 
   // Get (possibly null) cell at (0, 0).
   Cell* get_active_window_cell() const;
@@ -46,21 +45,20 @@ public:
 private:
 
   // Give (x, y) in [-half_width, half_width] * [-half_width, half_width].
-  static y::size to_internal_index(y::int32 active_window_x,
-                                   y::int32 active_window_y);
+  static y::size to_internal_index(const y::ivec2& active_window);
 
-  const CellBlueprint* active_window_target(y::int32 active_window_x,
-                                            y::int32 active_window_y) const;
+  const CellBlueprint* active_window_target(
+      const y::ivec2& active_window) const;
 
   // Update all cells in the active window.
   void update_active_window();
 
   // Update the single cell at (x, y) in
   // [-half_width, half_width] * [-half_width, half_width].
-  void update_active_window_cell(y::int32 x, y::int32 y);
+  void update_active_window_cell(const y::ivec2& v);
 
   const CellMap* _active_map;
-  CellCoord _active_map_offset;
+  y::ivec2 _active_map_offset;
 
   struct ActiveWindowEntry {
 

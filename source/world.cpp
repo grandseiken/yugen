@@ -1,7 +1,7 @@
 #include "world.h"
 
 WorldWindow::WorldWindow(const CellMap& active_map,
-                         const CellCoord& active_coord)
+                         const y::ivec2& active_coord)
   : _active_map(&active_map)
   , _active_map_offset(-active_coord)
   , _active_window(new ActiveWindowEntry[
@@ -11,7 +11,7 @@ WorldWindow::WorldWindow(const CellMap& active_map,
 }
 
 void WorldWindow::set_active_map(const CellMap& active_map,
-                                 const CellCoord& active_coord)
+                                 const y::ivec2& active_coord)
 {
   if (_active_map == &active_map) {
     set_active_coord(active_coord);
@@ -22,14 +22,14 @@ void WorldWindow::set_active_map(const CellMap& active_map,
   update_active_window();
 }
 
-void WorldWindow::set_active_coord(const CellCoord& active_coord)
+void WorldWindow::set_active_coord(const y::ivec2& active_coord)
 {
   move_active_window(_active_map_offset + active_coord);
 }
 
-void WorldWindow::move_active_window(const CellCoord& offset)
+void WorldWindow::move_active_window(const y::ivec2& offset)
 {
-  if (offset == CellCoord(0, 0)) {
+  if (offset == y::ivec2()) {
     return;
   }
   const y::int32 half_size = active_window_half_size;
@@ -46,7 +46,7 @@ void WorldWindow::move_active_window(const CellCoord& offset)
   // Copy the active window into the temporary copy.
   for (y::int32 x = -half_size; x <= half_size; ++x) {
     for (y::int32 y = -half_size; y <= half_size; ++y) {
-      y::size internal_index = to_internal_index(x, y);
+      y::size internal_index = to_internal_index({x, y});
       copy[internal_index].blueprint = _active_window[internal_index].blueprint;
       copy[internal_index].cell.swap(_active_window[internal_index].cell);
       used[internal_index] = done[internal_index] = false;
@@ -56,11 +56,11 @@ void WorldWindow::move_active_window(const CellCoord& offset)
   // Move the cells that are still in view from the copy to the new window.
   for (y::int32 x = -half_size; x <= half_size; ++x) {
     for (y::int32 y = -half_size; y <= half_size; ++y) {
-      CellCoord source = CellCoord(x, y) + offset;
-      y::size internal_index = to_internal_index(x, y);
-      if (source.x >= -half_size && source.x <= half_size &&
-          source.y >= -half_size && source.y <= half_size) {
-        y::size copy_index = to_internal_index(source.x, source.y);
+      y::ivec2 source = y::ivec2{x, y} + offset;
+      y::size internal_index = to_internal_index({x, y});
+      if (source[xx] >= -half_size && source[xx] <= half_size &&
+          source[yy] >= -half_size && source[yy] <= half_size) {
+        y::size copy_index = to_internal_index(source);
         _active_window[internal_index].blueprint = copy[copy_index].blueprint;
         _active_window[internal_index].cell.swap(copy[copy_index].cell);
         used[copy_index] = done[internal_index] = true;
@@ -71,11 +71,11 @@ void WorldWindow::move_active_window(const CellCoord& offset)
   // Create or swap the remaining unfilled cells in the active window.
   for (y::int32 x = -half_size; x <= half_size; ++x) {
     for (y::int32 y = -half_size; y <= half_size; ++y) {
-      y::size internal_index = to_internal_index(x, y);
+      y::size internal_index = to_internal_index({x, y});
       if (done[internal_index]) {
         continue;
       }
-      const CellBlueprint* new_blueprint = active_window_target(x, y);
+      const CellBlueprint* new_blueprint = active_window_target({x, y});
       _active_window[internal_index].blueprint = new_blueprint;
 
       // If the cell happens to be unchanged, swap it in.
@@ -92,42 +92,39 @@ void WorldWindow::move_active_window(const CellCoord& offset)
   }
 }
 
-const CellBlueprint* WorldWindow::get_active_window_blueprint(y::int32 x,
-                                                              y::int32 y) const
+const CellBlueprint* WorldWindow::get_active_window_blueprint(
+    const y::ivec2& v) const
 {
-  return _active_window[to_internal_index(x, y)].blueprint;
+  return _active_window[to_internal_index(v)].blueprint;
 }
 
 const CellBlueprint* WorldWindow::get_active_window_blueprint() const
 {
-  return get_active_window_blueprint(0, 0);
+  return get_active_window_blueprint(y::ivec2());
 }
 
-Cell* WorldWindow::get_active_window_cell(y::int32 x, y::int32 y) const
+Cell* WorldWindow::get_active_window_cell(const y::ivec2& v) const
 {
-  return _active_window[to_internal_index(x, y)].cell.get();
+  return _active_window[to_internal_index(v)].cell.get();
 }
 
 Cell* WorldWindow::get_active_window_cell() const
 {
-  return get_active_window_cell(0, 0);
+  return get_active_window_cell(y::ivec2());
 }
 
-y::size WorldWindow::to_internal_index(y::int32 active_window_x,
-                                       y::int32 active_window_y)
+y::size WorldWindow::to_internal_index(const y::ivec2& active_window)
 {
   const y::int32 half_size = active_window_half_size;
-  y::int32 x = active_window_x + half_size;
-  y::int32 y = active_window_y + half_size;
+  y::int32 x = active_window[xx] + half_size;
+  y::int32 y = active_window[yy] + half_size;
   return y * (1 + 2 * half_size) + x;
 }
 
 const CellBlueprint* WorldWindow::active_window_target(
-    y::int32 active_window_x, y::int32 active_window_y) const
+    const y::ivec2& active_window) const
 {
-  CellCoord map_pos =
-      CellCoord(active_window_x, active_window_y) - _active_map_offset;
-  return _active_map->get_coord(map_pos);
+  return _active_map->get_coord(active_window - _active_map_offset);
 }
 
 void WorldWindow::update_active_window()
@@ -135,17 +132,17 @@ void WorldWindow::update_active_window()
   const y::int32 half_size = active_window_half_size;
   for (y::int32 x = -half_size; x <= half_size; ++x) {
     for (y::int32 y = -half_size; y <= half_size; ++y) {
-      update_active_window_cell(x, y);
+      update_active_window_cell({x, y});
     }
   }
 }
 
-void WorldWindow::update_active_window_cell(y::int32 x, y::int32 y)
+void WorldWindow::update_active_window_cell(const y::ivec2& v)
 {
-  y::size internal_index = to_internal_index(x, y);
+  y::size internal_index = to_internal_index(v);
 
   const CellBlueprint* old_blueprint = _active_window[internal_index].blueprint;
-  const CellBlueprint* new_blueprint = active_window_target(x, y);
+  const CellBlueprint* new_blueprint = active_window_target(v);
 
   if (old_blueprint != new_blueprint) {
     Cell* new_cell = y::null;
@@ -166,6 +163,6 @@ WorldWindow::ActiveWindowEntry::ActiveWindowEntry()
 
 World::World()
   : _test_map()
-  , _window(_test_map, CellCoord(0, 0))
+  , _window(_test_map, y::ivec2())
 {
 }
