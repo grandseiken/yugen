@@ -74,10 +74,10 @@ public:
   Cell(const CellBlueprint& blueprint);
 
   // Get the tile at a given position.
-  const Tile& get_tile(y::int8 layer, y::size x, y::size y) const;
+  const Tile& get_tile(y::int8 layer, const y::ivec2& v) const;
 
   // Set the tile at a given position.
-  /****/ void set_tile(y::int8 layer, y::size x, y::size y, const Tile& tile);
+  /****/ void set_tile(y::int8 layer, const y::ivec2& v, const Tile& tile);
 
   // Returns true iff the tileset is currently used for any tile.
   bool is_tileset_used(const Tileset& tileset) const;
@@ -97,10 +97,10 @@ public:
   CellBlueprint();
 
   // Get the tile at a given position.
-  const Tile& get_tile(y::int8 layer, y::size x, y::size y) const;
+  const Tile& get_tile(y::int8 layer, const y::ivec2& v) const;
 
   // Set the tile at a given position.
-  /****/ void set_tile(y::int8 layer, y::size x, y::size y, const Tile& tile);
+  /****/ void set_tile(y::int8 layer, const y::ivec2& v, const Tile& tile);
 
   // Returns true iff the tileset is currently used for any tile.
   bool is_tileset_used(const Tileset& tileset) const;

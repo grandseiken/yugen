@@ -46,8 +46,27 @@ private:
 
 };
 
+// UI element that can handle a mouse drag.
+class Draggable {
+public:
+
+  Draggable();
+  virtual ~Draggable() {}
+
+  void start_drag(const y::ivec2& start);
+  void stop_drag();
+  bool is_dragging() const;
+  const y::ivec2& get_drag_start() const;
+
+private:
+
+  bool _drag;
+  y::ivec2 _drag_start;
+
+};
+
 // A panel in the UI.
-class Panel : public y::no_copy {
+class Panel : public y::no_copy, public Draggable {
 public:
 
   Panel(const y::ivec2& origin, const y::ivec2& size, y::int32 z_index = 0);
@@ -58,11 +77,6 @@ public:
 
   const y::ivec2& get_origin() const;
   const y::ivec2& get_size() const;
-
-  void start_drag(const y::ivec2& start);
-  void stop_drag();
-  bool is_dragging() const;
-  const y::ivec2& get_drag_start() const;
 
   virtual bool event(const sf::Event& e) = 0;
   virtual void update() = 0;
@@ -77,9 +91,6 @@ private:
   y::ivec2 _origin;
   y::ivec2 _size;
   y::int32 _z_index;
-
-  bool _drag;
-  y::ivec2 _drag_start;
 
 };
 
@@ -121,7 +132,7 @@ private:
 };
 
 // Interface to an entry in the ModalStack.
-class Modal : public y::no_copy {
+class Modal : public y::no_copy, public Draggable {
 public:
 
   Modal();

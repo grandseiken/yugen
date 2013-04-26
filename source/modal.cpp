@@ -46,12 +46,37 @@ void UndoStack::redo()
   _redo_stack.erase(_redo_stack.end() - 1);
 }
 
+Draggable::Draggable()
+  : _drag(false)
+{
+}
+
 Panel::Panel(const y::ivec2& origin, const y::ivec2& size, y::int32 z_index)
   : _origin(origin)
   , _size(size)
   , _z_index(z_index)
-  , _drag(false)
 {
+}
+
+void Draggable::start_drag(const y::ivec2& start)
+{
+  _drag = true;
+  _drag_start = start;
+}
+
+void Draggable::stop_drag()
+{
+  _drag = false;
+}
+
+bool Draggable::is_dragging() const
+{
+  return _drag;
+}
+
+const y::ivec2& Draggable::get_drag_start() const
+{
+  return _drag_start;
 }
 
 void Panel::set_origin(const y::ivec2& origin)
@@ -72,27 +97,6 @@ const y::ivec2& Panel::get_origin() const
 const y::ivec2& Panel::get_size() const
 {
   return _size;
-}
-
-void Panel::start_drag(const y::ivec2& start)
-{
-  _drag = true;
-  _drag_start = start;
-}
-
-void Panel::stop_drag()
-{
-  _drag = false;
-}
-
-bool Panel::is_dragging() const
-{
-  return _drag;
-}
-
-const y::ivec2& Panel::get_drag_start() const
-{
-  return _drag_start;
 }
 
 bool Panel::Order::operator()(Panel* a, Panel* b) const
@@ -363,21 +367,23 @@ void ModalStack::event(const sf::Event& e)
     return;
   }
 
+  Element& top = *(_stack.end() - 1);
+
   // Automatically handle undo/redo.
   if (e.type == sf::Event::KeyPressed &&
       e.key.code == sf::Keyboard::Z && e.key.control) {
     if (e.key.shift) {
-      _stack[_stack.size() - 1]->get_undo_stack().redo();
+      top->get_undo_stack().redo();
     }
     else {
-      _stack[_stack.size() - 1]->get_undo_stack().undo();
+      top->get_undo_stack().undo();
     }
     return;
   }
 
-  // Hand off to UI first.
-  if (!_stack[_stack.size() - 1]->get_panel_ui().event(e)) {
-    _stack[_stack.size() - 1]->event(e);
+  // Hand off to dragging first, then UI, then non-dragging.
+  if (top->is_dragging() || !top->get_panel_ui().event(e)) {
+    top->event(e);
   }
 }
 
@@ -386,8 +392,10 @@ void ModalStack::update()
   if (empty()) {
     return;
   }
-  _stack[_stack.size() - 1]->get_panel_ui().update();
-  _stack[_stack.size() - 1]->update();
+
+  Element& top = *(_stack.end() - 1);
+  top->get_panel_ui().update();
+  top->update();
 }
 
 void ModalStack::draw() const

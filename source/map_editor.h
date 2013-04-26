@@ -1,6 +1,7 @@
 #ifndef MAP_EDITOR_H
 #define MAP_EDITOR_H
 
+#include "cell.h"
 #include "common.h"
 #include "modal.h"
 #include "vector.h"
@@ -9,6 +10,23 @@ class Databank;
 class RenderBatch;
 class RenderUtil;
 class CellMap;
+
+struct TileEditAction : public StackAction {
+  TileEditAction(CellMap& map, y::int8 layer);
+
+  CellMap& map;
+  y::int8 layer;
+
+  struct Entry {
+    Tile old_tile;
+    Tile new_tile;
+  };
+
+  y::map<y::ivec2, Entry> edits;
+
+  virtual void redo() const;
+  virtual void undo() const;
+};
 
 // The current set of tiles stored in the brush.
 struct TileBrush {
@@ -71,6 +89,8 @@ public:
   LayerPanel(const y::string& status);
   virtual ~LayerPanel() {}
 
+  y::int8 get_layer() const;
+
   virtual bool event(const sf::Event& e);
   virtual void update();
   virtual void draw(RenderUtil& util) const;
@@ -115,6 +135,8 @@ private:
   BrushPanel _brush_panel;
   TilePanel _tile_panel;
   LayerPanel _layer_panel;
+
+  y::unique<TileEditAction> _tile_edit_action;
 
 };
 

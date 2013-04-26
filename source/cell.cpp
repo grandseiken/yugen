@@ -89,9 +89,9 @@ bool Tile::operator!=(const Tile& tile) const
   return !operator==(tile);
 }
 
-y::size to_internal_index(y::int8 layer, y::size x, y::size y)
+y::size to_internal_index(y::int8 layer, const y::ivec2& v)
 {
-  return y * Cell::cell_width + x +
+  return v[yy] * Cell::cell_width + v[xx] +
       (layer + Cell::background_layers) * Cell::cell_width * Cell::cell_height;
 }
 
@@ -128,27 +128,27 @@ Cell::Cell(const CellBlueprint& blueprint)
 {
 }
 
-const Tile& Cell::get_tile(y::int8 layer, y::size x, y::size y) const
+const Tile& Cell::get_tile(y::int8 layer, const y::ivec2& v) const
 {
-  auto it = _changed_tiles.find(to_internal_index(layer, x, y));
+  auto it = _changed_tiles.find(to_internal_index(layer, v));
   if (it != _changed_tiles.end()) {
     return it->second;
   }
-  return _blueprint.get_tile(layer, x, y);
+  return _blueprint.get_tile(layer, v);
 }
 
-void Cell::set_tile(y::int8 layer, y::size x, y::size y, const Tile& tile)
+void Cell::set_tile(y::int8 layer, const y::ivec2& v, const Tile& tile)
 {
   change_by_one(_changed_tilesets, tile.tileset, true);
 
-  y::size internal_index = to_internal_index(layer, x, y);
+  y::size internal_index = to_internal_index(layer, v);
   auto it = _changed_tiles.find(internal_index);
 
   // Keep track of which tilesets are used in the diff.
   if (it != _changed_tiles.end()) {
     change_by_one(_changed_tilesets, it->second.tileset, false);
 
-    if (tile == _blueprint.get_tile(layer, x, y)) {
+    if (tile == _blueprint.get_tile(layer, v)) {
       _changed_tiles.erase(it);
       return;
     }
@@ -156,7 +156,7 @@ void Cell::set_tile(y::int8 layer, y::size x, y::size y, const Tile& tile)
   }
   else {
     change_by_one(_changed_tilesets,
-                  _blueprint.get_tile(layer, x, y).tileset, false);
+                  _blueprint.get_tile(layer, v).tileset, false);
 
     _changed_tiles[internal_index] = tile;
   }
@@ -175,15 +175,15 @@ CellBlueprint::CellBlueprint()
 {
 }
 
-const Tile& CellBlueprint::get_tile(y::int8 layer, y::size x, y::size y) const
+const Tile& CellBlueprint::get_tile(y::int8 layer, const y::ivec2& v) const
 {
-  return _tiles[to_internal_index(layer, x, y)];
+  return _tiles[to_internal_index(layer, v)];
 }
 
-void CellBlueprint::set_tile(y::int8 layer, y::size x, y::size y,
+void CellBlueprint::set_tile(y::int8 layer, const y::ivec2& v,
                              const Tile& tile)
 {
-  y::size internal_index = to_internal_index(layer, x, y);
+  y::size internal_index = to_internal_index(layer, v);
   change_by_one(_tilesets, _tiles[internal_index].tileset, false);
   _tiles[internal_index] = tile;
   change_by_one(_tilesets, tile.tileset, true);
