@@ -64,7 +64,7 @@ TileBrush::TileBrush()
   entry.index = 0;
 }
 
-TileEditAction::TileEditAction(CellMap& map, y::int8 layer)
+TileEditAction::TileEditAction(CellMap& map, y::int32 layer)
   : map(map)
   , layer(layer)
 {
@@ -72,10 +72,18 @@ TileEditAction::TileEditAction(CellMap& map, y::int8 layer)
 
 void TileEditAction::redo() const
 {
+  for (const auto& pair : edits) {
+    CellBlueprint* cell = map.get_coord(pair.first.first);
+    cell->set_tile(layer, pair.first.second, pair.second.new_tile);
+  }
 }
 
 void TileEditAction::undo() const
 {
+  for (const auto& pair : edits) {
+    CellBlueprint* cell = map.get_coord(pair.first.first);
+    cell->set_tile(layer, pair.first.second, pair.second.old_tile);
+  }
 }
 
 BrushPanel::BrushPanel(const Databank& bank, const TileBrush& brush)
@@ -153,7 +161,7 @@ bool TilePanel::event(const sf::Event& e)
 
   // End drag and update brush.
   if (e.type == sf::Event::MouseButtonReleased &&
-      e.mouseButton.button == sf::Mouse::Left) {
+      e.mouseButton.button == sf::Mouse::Left && is_dragging()) {
     stop_drag();
     y::ivec2 min = y::min(get_drag_start(), _tile_hover);
     y::ivec2 max = y::max(get_drag_start(), _tile_hover);
@@ -245,7 +253,7 @@ LayerPanel::LayerPanel(const y::string& status)
 {
 }
 
-y::int8 LayerPanel::get_layer() const
+y::int32 LayerPanel::get_layer() const
 {
   return _layer_select;
 }
@@ -283,7 +291,7 @@ bool LayerPanel::event(const sf::Event& e)
 
 void LayerPanel::update()
 {
-  y::roll<y::int8>(_layer_select, -Cell::background_layers,
+  y::roll<y::int32>(_layer_select, -Cell::background_layers,
                    2 + Cell::foreground_layers);
   set_size(RenderUtil::from_grid({y::max(y::int32(_status.length()), 12), 5}));
 }
@@ -332,14 +340,14 @@ void MapEditor::event(const sf::Event& e)
   if (e.type == sf::Event::MouseButtonPressed &&
       e.mouseButton.button == sf::Mouse::Left &&
       _layer_panel.get_layer() <= Cell::foreground_layers) {
-    start_drag(_hover);
+    start_drag(camera_to_world(_hover).euclidean_div(Tileset::tile_size));
     _tile_edit_action = y::move_unique(
         new TileEditAction(_map, _layer_panel.get_layer()));
   }
 
   // End draw and commit tile edit.
   if (e.type == sf::Event::MouseButtonReleased &&
-      e.mouseButton.button == sf::Mouse::Left) {
+      e.mouseButton.button == sf::Mouse::Left && is_dragging()) {
     stop_drag();
     get_undo_stack().new_action(y::move_unique(_tile_edit_action));
   }
@@ -385,8 +393,7 @@ void MapEditor::update()
   }
 
   // Update hover and status text.
-  y::ivec2 world = camera_to_world(_hover);
-  y::ivec2 tile = world.euclidean_div(Tileset::tile_size);
+  y::ivec2 tile = camera_to_world(_hover).euclidean_div(Tileset::tile_size);
   _hover_cell = tile.euclidean_div(Cell::cell_size);
   _hover_tile = tile.euclidean_mod(Cell::cell_size);
 
@@ -398,10 +405,12 @@ void MapEditor::update()
   ss << " : " << _hover_tile[xx] << ", " << _hover_tile[yy];
   _layer_status = ss.str();
 
-  // Continue tile drawing.
+  // Continuous tile drawing.
   if (!is_dragging()) {
     return;
   }
+  y::int32 layer = _tile_edit_action->layer;
+  y::ivec2 start = get_drag_start();
   y::ivec2 v;
   for (; v[xx] < _tile_brush.size[xx]; ++v[xx]) {
     for (v[yy] = 0; v[yy] < _tile_brush.size[yy]; ++v[yy]) {
@@ -411,12 +420,21 @@ void MapEditor::update()
         continue;
       }
 
-      // TODO: not working.
       CellBlueprint* cell = _map.get_coord(c);
+      y::ivec2 vt = (tile + v - start).euclidean_mod(_tile_brush.size);
+
       const TileBrush::Entry& e =
-          _tile_brush.array[v[xx] + v[yy] * TileBrush::max_size];
-      Tile new_tile(&_bank.get_tileset(e.tileset), e.index);
-      cell->set_tile(_tile_edit_action->layer, t, new_tile);
+          _tile_brush.array[vt[xx] + vt[yy] * TileBrush::max_size];
+      const auto& p = y::make_pair(c, t);
+
+      auto it = _tile_edit_action->edits.find(p);
+      if (it == _tile_edit_action->edits.end()) {
+        auto& edit = _tile_edit_action->edits[p];
+        edit.old_tile = cell->get_tile(layer, t);
+        it = _tile_edit_action->edits.find(p);
+      }
+      it->second.new_tile.tileset = &_bank.get_tileset(e.tileset);
+      it->second.new_tile.index = e.index;
     }
   }
 }
@@ -432,17 +450,22 @@ void MapEditor::draw() const
 
   for (y::int32 layer = -Cell::background_layers;
        layer <= Cell::foreground_layers; ++layer) {
-    for (; c[xx] < max[xx]; ++c[xx]) {
+    for (c[xx] = 0; c[xx] < max[xx]; ++c[xx]) {
       for (c[yy] = 0; c[yy] < max[yy]; ++c[yy]) {
         draw_cell_layer(batch, c, layer);
-
-        _util.render_outline(
-            world_to_camera(c * Tileset::tile_size * Cell::cell_size),
-            Tileset::tile_size * Cell::cell_size, c_panel);
       }
     }
   }
   _util.render_batch(batch);
+
+  // Draw cell-grid.
+  for (c[xx] = 0; c[xx] < max[xx]; ++c[xx]) {
+    for (c[yy] = 0; c[yy] < max[yy]; ++c[yy]) {
+      _util.render_outline(
+          world_to_camera(c * Tileset::tile_size * Cell::cell_size),
+          Tileset::tile_size * Cell::cell_size, c_panel);
+    }
+  }
 
   // Draw cursor.
   if (_hover[xx] >= 0 && _hover[yy] >= 0 && _map.is_coord_used(_hover_cell)) {
@@ -469,7 +492,7 @@ y::ivec2 MapEditor::camera_to_world(const y::ivec2& v) const
 }
 
 void MapEditor::draw_cell_layer(
-    RenderBatch& batch, const y::ivec2& coord, y::int8 layer) const
+    RenderBatch& batch, const y::ivec2& coord, y::int32 layer) const
 {
   if (!_map.is_coord_used(coord)) {
     return;
@@ -479,7 +502,14 @@ void MapEditor::draw_cell_layer(
   y::ivec2 v;
   for (; v[xx] < Cell::cell_size[xx]; ++v[xx]) {
     for (v[yy] = 0; v[yy] < Cell::cell_size[yy]; ++v[yy]) {
-      const Tile& t = cell->get_tile(layer, v);
+      y::map<TileEditAction::Key, TileEditAction::Entry>::const_iterator it;
+      bool edit = is_dragging() && _tile_edit_action->layer == layer;
+      if (edit) {
+        it = _tile_edit_action->edits.find(y::make_pair(coord, v));
+        edit &= it != _tile_edit_action->edits.end();
+      }
+
+      const Tile& t = edit ? it->second.new_tile : cell->get_tile(layer, v);
       if (!t.tileset) {
         continue;
       }

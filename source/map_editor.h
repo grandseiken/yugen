@@ -12,17 +12,18 @@ class RenderUtil;
 class CellMap;
 
 struct TileEditAction : public StackAction {
-  TileEditAction(CellMap& map, y::int8 layer);
+  TileEditAction(CellMap& map, y::int32 layer);
 
   CellMap& map;
-  y::int8 layer;
+  y::int32 layer;
 
   struct Entry {
     Tile old_tile;
     Tile new_tile;
   };
 
-  y::map<y::ivec2, Entry> edits;
+  typedef y::pair<y::ivec2, y::ivec2> Key;
+  y::map<Key, Entry> edits;
 
   virtual void redo() const;
   virtual void undo() const;
@@ -89,7 +90,7 @@ public:
   LayerPanel(const y::string& status);
   virtual ~LayerPanel() {}
 
-  y::int8 get_layer() const;
+  y::int32 get_layer() const;
 
   virtual bool event(const sf::Event& e);
   virtual void update();
@@ -98,7 +99,7 @@ public:
 private:
 
   const y::string& _status;
-  y::int8 _layer_select;
+  y::int32 _layer_select;
 
 };
 
@@ -119,7 +120,7 @@ private:
   y::ivec2 camera_to_world(const y::ivec2& v) const;
 
   void draw_cell_layer(
-      RenderBatch& batch, const y::ivec2& coord, y::int8 layer) const;
+      RenderBatch& batch, const y::ivec2& coord, y::int32 layer) const;
 
   Databank& _bank;
   RenderUtil& _util;

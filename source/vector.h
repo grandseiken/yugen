@@ -332,9 +332,10 @@ namespace std {
   struct hash<y::vec<T, N>> {
     y::size operator()(const y::vec<T, N>& arg) const
     {
+      static const std::hash<T> t;
       y::size seed = 0;
       for (y::size i = 0; i < N; ++i) {
-        boost::hash_combine(seed, arg[i]);
+        boost::hash_combine(seed, t(arg[i]));
       }
       return seed;
     }

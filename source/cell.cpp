@@ -89,7 +89,7 @@ bool Tile::operator!=(const Tile& tile) const
   return !operator==(tile);
 }
 
-y::size to_internal_index(y::int8 layer, const y::ivec2& v)
+y::size to_internal_index(y::int32 layer, const y::ivec2& v)
 {
   return v[yy] * Cell::cell_width + v[xx] +
       (layer + Cell::background_layers) * Cell::cell_width * Cell::cell_height;
@@ -128,7 +128,7 @@ Cell::Cell(const CellBlueprint& blueprint)
 {
 }
 
-const Tile& Cell::get_tile(y::int8 layer, const y::ivec2& v) const
+const Tile& Cell::get_tile(y::int32 layer, const y::ivec2& v) const
 {
   auto it = _changed_tiles.find(to_internal_index(layer, v));
   if (it != _changed_tiles.end()) {
@@ -137,7 +137,7 @@ const Tile& Cell::get_tile(y::int8 layer, const y::ivec2& v) const
   return _blueprint.get_tile(layer, v);
 }
 
-void Cell::set_tile(y::int8 layer, const y::ivec2& v, const Tile& tile)
+void Cell::set_tile(y::int32 layer, const y::ivec2& v, const Tile& tile)
 {
   change_by_one(_changed_tilesets, tile.tileset, true);
 
@@ -175,12 +175,12 @@ CellBlueprint::CellBlueprint()
 {
 }
 
-const Tile& CellBlueprint::get_tile(y::int8 layer, const y::ivec2& v) const
+const Tile& CellBlueprint::get_tile(y::int32 layer, const y::ivec2& v) const
 {
   return _tiles[to_internal_index(layer, v)];
 }
 
-void CellBlueprint::set_tile(y::int8 layer, const y::ivec2& v,
+void CellBlueprint::set_tile(y::int32 layer, const y::ivec2& v,
                              const Tile& tile)
 {
   y::size internal_index = to_internal_index(layer, v);

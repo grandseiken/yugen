@@ -67,17 +67,17 @@ public:
   static const y::int32 foreground_layers = 1;
 
   // Layer enumeration.
-  static const y::int8 layer_background = -1;
-  static const y::int8 layer_collision = 0;
-  static const y::int8 layer_foreground = 1;
+  static const y::int32 layer_background = -1;
+  static const y::int32 layer_collision = 0;
+  static const y::int32 layer_foreground = 1;
 
   Cell(const CellBlueprint& blueprint);
 
   // Get the tile at a given position.
-  const Tile& get_tile(y::int8 layer, const y::ivec2& v) const;
+  const Tile& get_tile(y::int32 layer, const y::ivec2& v) const;
 
   // Set the tile at a given position.
-  /****/ void set_tile(y::int8 layer, const y::ivec2& v, const Tile& tile);
+  /****/ void set_tile(y::int32 layer, const y::ivec2& v, const Tile& tile);
 
   // Returns true iff the tileset is currently used for any tile.
   bool is_tileset_used(const Tileset& tileset) const;
@@ -97,10 +97,10 @@ public:
   CellBlueprint();
 
   // Get the tile at a given position.
-  const Tile& get_tile(y::int8 layer, const y::ivec2& v) const;
+  const Tile& get_tile(y::int32 layer, const y::ivec2& v) const;
 
   // Set the tile at a given position.
-  /****/ void set_tile(y::int8 layer, const y::ivec2& v, const Tile& tile);
+  /****/ void set_tile(y::int32 layer, const y::ivec2& v, const Tile& tile);
 
   // Returns true iff the tileset is currently used for any tile.
   bool is_tileset_used(const Tileset& tileset) const;

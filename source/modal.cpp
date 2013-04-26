@@ -36,7 +36,7 @@ void UndoStack::undo()
 
 void UndoStack::redo()
 {
-  if (!can_undo()) {
+  if (!can_redo()) {
     return;
   }
 

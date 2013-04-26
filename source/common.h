@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <boost/functional/hash.hpp>
 #include <boost/utility.hpp>
 #include <cstddef>
 #include <map>
@@ -106,6 +107,24 @@ namespace y {
   }
 
   typedef boost::noncopyable no_copy;
+
+}
+
+namespace std {
+
+  template<typename T, typename U>
+  struct hash<y::pair<T, U>> {
+    y::size operator()(const y::pair<T, U>& arg) const
+    {
+      static const std::hash<T> t;
+      static const std::hash<U> u;
+
+      y::size seed = 0;
+      boost::hash_combine(seed, u(arg.first));
+      boost::hash_combine(seed, t(arg.second));
+      return seed;
+    }
+  };
 
 }
 
