@@ -66,7 +66,7 @@ void Yugen::draw() const
     total /= samples;
   }
 
-  _framebuffer.bind(true);
+  _framebuffer.bind(true, true);
   _hello_program.bind();
   _hello_program.bind_attribute("position", _vertex_buffer);
   _hello_program.bind_uniform("fade_factor", _fade_factor);
@@ -84,7 +84,7 @@ void Yugen::draw() const
   }
 
   const Resolution& screen = _util.get_window().get_mode();
-  _util.get_gl().bind_window(true);
+  _util.get_gl().bind_window(true, true);
   _post_program.bind();
   _post_program.bind_attribute("position", _vertex_buffer);
   _post_program.bind_uniform("integral_scale_lock", true);

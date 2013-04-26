@@ -47,7 +47,7 @@ void Yedit::update()
 
 void Yedit::draw() const
 {
-  _util.get_gl().bind_window(true);
+  _util.get_gl().bind_window(true, true);
   const Resolution& screen = _util.get_window().get_mode();
   _util.set_resolution(screen.size);
 

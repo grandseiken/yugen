@@ -65,13 +65,11 @@ const y::ivec2& GlFramebuffer::get_size() const
   return get_texture().get_size();
 }
 
-void GlFramebuffer::bind(bool clear) const
+void GlFramebuffer::bind(bool clear, bool clear_depth) const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, get_handle());
   glViewport(0, 0, get_texture().get_size()[xx], get_texture().get_size()[yy]);
-  if (clear) {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  }
+  glClear((GL_COLOR_BUFFER_BIT * clear) | (GL_DEPTH_BUFFER_BIT * clear_depth));
 }
 
 GLuint GlFramebuffer::get_depth_handle() const
@@ -644,12 +642,22 @@ void GlUtil::delete_program(const y::string_vector& shaders)
   }
 }
 
-void GlUtil::bind_window(bool clear) const
+void GlUtil::bind_window(bool clear, bool clear_depth) const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   const Resolution& mode = _window.get_mode();
   glViewport(0, 0, mode.size[xx], mode.size[yy]);
-  if (clear) {
-    glClear(GL_COLOR_BUFFER_BIT);
+  glClear((GL_COLOR_BUFFER_BIT * clear) | (GL_DEPTH_BUFFER_BIT * clear_depth));
+}
+
+void GlUtil::enable_depth(bool depth) const
+{
+  if (depth) {
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glDepthRange(-256.f, 255.f);
+  }
+  else {
+    glDisable(GL_DEPTH_TEST);
   }
 }

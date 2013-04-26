@@ -154,7 +154,7 @@ CellMap& Databank::get_map(y::size index)
   return _default_map;
 }
 
-const y::string& Databank::get_tileset_name(Tileset& tileset) const
+const y::string& Databank::get_tileset_name(const Tileset& tileset) const
 {
   static y::string none = "<no tileset>";
   for (const auto& pair : _tileset_map) {
@@ -165,7 +165,7 @@ const y::string& Databank::get_tileset_name(Tileset& tileset) const
   return none;
 }
 
-const y::string& Databank::get_cell_name(CellBlueprint& cell) const
+const y::string& Databank::get_cell_name(const CellBlueprint& cell) const
 {
   static y::string none = "<no cell>";
   for (const auto& pair : _cell_map) {
@@ -176,7 +176,7 @@ const y::string& Databank::get_cell_name(CellBlueprint& cell) const
   return none;
 }
 
-const y::string& Databank::get_map_name(CellMap& map) const
+const y::string& Databank::get_map_name(const CellMap& map) const
 {
   static y::string none = "<no map>";
   for (const auto& pair : _map_map) {
@@ -185,6 +185,42 @@ const y::string& Databank::get_map_name(CellMap& map) const
     }
   }
   return none;
+}
+
+y::size Databank::get_tileset_index(const Tileset& tileset) const
+{
+  for (y::size i = 0; i < _tileset_list.size(); ++i) {
+    const y::string& s = _tileset_list[i];
+    auto it = _tileset_map.find(s);
+    if (it != _tileset_map.end() && it->second.get() == &tileset) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+y::size Databank::get_cell_index(const CellBlueprint& cell) const
+{
+  for (y::size i = 0; i < _cell_list.size(); ++i) {
+    const y::string& s = _cell_list[i];
+    auto it = _cell_map.find(s);
+    if (it != _cell_map.end() && it->second.get() == &cell) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+y::size Databank::get_map_index(const CellMap& map) const
+{
+  for (y::size i = 0; i < _map_list.size(); ++i) {
+    const y::string& s = _map_list[i];
+    auto it = _map_map.find(s);
+    if (it != _map_map.end() && it->second.get() == &map) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 void Databank::make_default_map()

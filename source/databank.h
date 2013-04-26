@@ -43,9 +43,14 @@ public:
   /***/ CellMap& get_map(y::size index);
 
   // Get the names that resources are stored as.
-  const y::string& get_tileset_name(Tileset& tileset) const;
-  const y::string& get_cell_name(CellBlueprint& cell) const;
-  const y::string& get_map_name(CellMap& map) const;
+  const y::string& get_tileset_name(const Tileset& tileset) const;
+  const y::string& get_cell_name(const CellBlueprint& cell) const;
+  const y::string& get_map_name(const CellMap& map) const;
+
+  // Get the indexes that resources are stored as.
+  y::size get_tileset_index(const Tileset& tileset) const;
+  y::size get_cell_index(const CellBlueprint& cell) const;
+  y::size get_map_index(const CellMap& map) const;
 
 private:
 

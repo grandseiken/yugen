@@ -87,7 +87,7 @@ private:
 class LayerPanel : public Panel {
 public:
 
-  LayerPanel(const y::string& status);
+  LayerPanel(const y::string_vector& status);
   virtual ~LayerPanel() {}
 
   y::int32 get_layer() const;
@@ -98,7 +98,7 @@ public:
 
 private:
 
-  const y::string& _status;
+  const y::string_vector& _status;
   y::int32 _layer_select;
 
 };
@@ -130,7 +130,7 @@ private:
   y::ivec2 _hover;
   y::ivec2 _hover_cell;
   y::ivec2 _hover_tile;
-  y::string _layer_status;
+  y::string_vector _layer_status;
 
   TileBrush _tile_brush;
   BrushPanel _brush_panel;

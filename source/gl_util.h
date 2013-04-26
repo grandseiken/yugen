@@ -122,7 +122,7 @@ public:
   const y::ivec2& get_size() const;
 
   // Render to framebuffer, rather than window.
-  void bind(bool clear) const;
+  void bind(bool clear, bool clear_depth) const;
 
 protected:
 
@@ -299,7 +299,10 @@ public:
   void delete_program(const y::string_vector& shaders);
 
   // Render to window, rather than any framebuffer.
-  void bind_window(bool clear) const;
+  void bind_window(bool clear, bool clear_depth) const;
+
+  // Enable or disable depth test.
+  void enable_depth(bool depth) const;
 
 private:
 

@@ -20,4 +20,5 @@ for file in source/*; do
   lint_highlight ',[^ ].|;[^ }].|:[^ :A-Za-z_*~].' 'Line \1 separator format'
   lint_highlight $'\t' 'Line \1 tab'
   lint_highlight '(\]|\)|\])[^, ;)\]}]' 'Line \1 bracket format'
+  lint_highlight '\} *else' 'Line \1 else line'
 done

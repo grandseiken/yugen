@@ -20,11 +20,14 @@ BatchedTexture::BatchedTexture(const GlTexture& sprite,
 }
 
 BatchedSprite::BatchedSprite(float left, float top,
-                             float frame_x, float frame_y)
+                             float frame_x, float frame_y,
+                             float depth, const Colour& colour)
   : left(left)
   , top(top)
   , frame_x(frame_x)
   , frame_y(frame_y)
+  , depth(depth)
+  , colour(colour)
 {
 }
 
@@ -48,10 +51,11 @@ bool BatchedTextureLess::operator()(const BatchedTexture& l,
 
 void RenderBatch::add_sprite(const GlTexture& sprite,
                              const y::ivec2& frame_size,
-                             const y::ivec2& origin, const y::ivec2& frame)
+                             const y::ivec2& origin, const y::ivec2& frame,
+                             float depth, const Colour& colour)
 {
   BatchedTexture bt(sprite, frame_size);
-  BatchedSprite bs(origin[xx], origin[yy], frame[xx], frame[yy]);
+  BatchedSprite bs(origin[xx], origin[yy], frame[xx], frame[yy], depth, colour);
   _map[bt].push_back(bs);
 }
 
@@ -77,6 +81,8 @@ RenderUtil::RenderUtil(GlUtil& gl)
   , _origin_buffer(gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _frame_index_buffer(
       gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _depth_buffer(gl.make_buffer<float, 1>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _colour_buffer(gl.make_buffer<float, 4>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _element_buffer(
       gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_DYNAMIC_DRAW))
   , _sprite(gl.make_texture("/yedit/missing.png"))
@@ -90,8 +96,9 @@ RenderUtil::~RenderUtil()
 {
   _gl.delete_buffer(_quad);
   _gl.delete_buffer(_pixels_buffer);
-  _gl.delete_buffer(_origin_buffer);
   _gl.delete_buffer(_frame_index_buffer);
+  _gl.delete_buffer(_depth_buffer);
+  _gl.delete_buffer(_colour_buffer);
   _gl.delete_buffer(_element_buffer);
 }
 
@@ -126,6 +133,7 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   if (!_native_size[xx] || !_native_size[yy]) {
     return;
   }
+  _gl.enable_depth(false);
 
   y::ivec2 font_size = from_grid();
   y::ivec2 v = origin + _translation;
@@ -182,6 +190,7 @@ void RenderUtil::render_fill(const y::ivec2& origin, const y::ivec2& size,
   if (!_native_size[xx] || !_native_size[xx]) {
     return;
   }
+  _gl.enable_depth(false);
 
   y::ivec2 v = origin + _translation;
   const GLfloat rect_data[] = {
@@ -261,11 +270,11 @@ void RenderUtil::set_sprite(const GlTexture& texture,
   _batched_sprites.clear();
 }
 
-void RenderUtil::batch_sprite(const y::ivec2& origin,
-                              const y::ivec2& frame) const
+void RenderUtil::batch_sprite(const y::ivec2& origin, const y::ivec2& frame,
+                              float depth, const Colour& colour) const
 {
   _batched_sprites.push_back(BatchedSprite(
-      origin[xx], origin[yy], frame[xx], frame[yy]));
+      origin[xx], origin[yy], frame[xx], frame[yy], depth, colour));
 }
 
 template<typename T>
@@ -288,6 +297,7 @@ void RenderUtil::render_batch() const
       !_sprite || !_frame_size[xx] || !_frame_size[yy]) {
     return;
   }
+  _gl.enable_depth(true);
 
   y::size length = _batched_sprites.size();
   for (y::size i = 0; i < length; ++i) {
@@ -307,12 +317,21 @@ void RenderUtil::render_batch() const
     write_vector(_frame_index_data, 8 * i, {
         s.frame_x, s.frame_y, s.frame_x, s.frame_y,
         s.frame_x, s.frame_y, s.frame_x, s.frame_y});
+    write_vector(_depth_data, 4 * i, {
+        s.depth, s.depth, s.depth, s.depth});
+    write_vector(_colour_data, 16 * i, {
+        s.colour.r, s.colour.g, s.colour.b, s.colour.a,
+        s.colour.r, s.colour.g, s.colour.b, s.colour.a,
+        s.colour.r, s.colour.g, s.colour.b, s.colour.a,
+        s.colour.r, s.colour.g, s.colour.b, s.colour.a});
   }
 
   _pixels_buffer.reupload_data(&_pixels_data[0], sizeof(float) * 8 * length);
-  _origin_buffer.reupload_data(&_origin_data[0], sizeof(float) * 8 * length);
   _frame_index_buffer.reupload_data(&_frame_index_data[0],
                                     sizeof(float) * 8 * length);
+  _origin_buffer.reupload_data(&_origin_data[0], sizeof(float) * 8 * length);
+  _depth_buffer.reupload_data(&_depth_data[0], sizeof(float) * 4 * length);
+  _colour_buffer.reupload_data(&_colour_data[0], sizeof(float) * 16 * length);
 
   if (_element_data.size() / 6 < length) {
     for (y::size i = _element_data.size() / 6; i < length; ++i) {
@@ -327,6 +346,8 @@ void RenderUtil::render_batch() const
   _sprite_program.bind_attribute("pixels", _pixels_buffer);
   _sprite_program.bind_attribute("origin", _origin_buffer);
   _sprite_program.bind_attribute("frame_index", _frame_index_buffer);
+  _sprite_program.bind_attribute("depth", _depth_buffer);
+  _sprite_program.bind_attribute("colour", _colour_buffer);
   _sprite_program.bind_uniform("resolution",
       GLint(_native_size[xx]), GLint(_native_size[yy]));
 
@@ -353,10 +374,11 @@ void RenderUtil::render_batch(const RenderBatch& batch)
 
 void RenderUtil::render_sprite(
     const GlTexture& sprite, const y::ivec2& frame_size,
-    const y::ivec2& origin, const y::ivec2& frame)
+    const y::ivec2& origin, const y::ivec2& frame,
+    float depth, const Colour& colour)
 {
   set_sprite(sprite, frame_size);
-  batch_sprite(origin, frame);
+  batch_sprite(origin, frame, depth, colour);
   render_batch();
 }
 

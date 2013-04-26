@@ -15,6 +15,7 @@ struct Colour {
   float a;
 };
 
+// TODO: z-indexing.
 struct BatchedTexture {
   BatchedTexture(const GlTexture& sprite, const y::ivec2& frame_size);
 
@@ -23,12 +24,15 @@ struct BatchedTexture {
 };
 
 struct BatchedSprite {
-  BatchedSprite(float left, float top, float frame_x, float frame_y);
+  BatchedSprite(float left, float top, float frame_x, float frame_y,
+                float depth, const Colour& colour);
 
   float left;
   float top;
   float frame_x;
   float frame_y;
+  float depth;
+  Colour colour;
 };
 
 struct BatchedTextureLess {
@@ -40,7 +44,8 @@ class RenderBatch {
 public:
 
   void add_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
-                  const y::ivec2& origin, const y::ivec2& frame);
+                  const y::ivec2& origin, const y::ivec2& frame,
+                  float depth, const Colour& colour);
 
   typedef y::vector<BatchedSprite> BatchedSpriteList;
   typedef y::ordered_map<BatchedTexture, BatchedSpriteList,
@@ -115,7 +120,8 @@ public:
 
   // Batch and render sprites (at pixel coordinates).
   void set_sprite(const GlTexture& sprite, const y::ivec2& frame_size);
-  void batch_sprite(const y::ivec2& origin, const y::ivec2& frame) const;
+  void batch_sprite(const y::ivec2& origin, const y::ivec2& frame,
+                    float depth, const Colour& colour) const;
   void render_batch() const;
 
   // Render an entire set of batches at once. Sprite set with set_sprite
@@ -124,7 +130,8 @@ public:
 
   // Render a sprite immediately.
   void render_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
-                     const y::ivec2& origin, const y::ivec2& frame);
+                     const y::ivec2& origin, const y::ivec2& frame,
+                     float depth, const Colour& colour);
 
   // Helpers for grid coordinares.
   static y::ivec2 from_grid(const y::ivec2& grid = {1, 1});
@@ -150,11 +157,15 @@ private:
   mutable y::vector<float> _pixels_data;
   mutable y::vector<float> _origin_data;
   mutable y::vector<float> _frame_index_data;
+  mutable y::vector<float> _depth_data;
+  mutable y::vector<float> _colour_data;
   mutable y::vector<GLushort> _element_data;
 
   GlBuffer<float, 2> _pixels_buffer;
   GlBuffer<float, 2> _origin_buffer;
   GlBuffer<float, 2> _frame_index_buffer;
+  GlBuffer<float, 1> _depth_buffer;
+  GlBuffer<float, 4> _colour_buffer;
   GlBuffer<GLushort, 1> _element_buffer;
 
   GlTexture _sprite;
