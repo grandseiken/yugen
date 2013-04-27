@@ -570,6 +570,8 @@ void MapEditor::draw_cell_layer(
   y::ivec2 v;
   for (; v[xx] < Cell::cell_size[xx]; ++v[xx]) {
     for (v[yy] = 0; v[yy] < Cell::cell_size[yy]; ++v[yy]) {
+      // In the middle of a TileEditAction we need to render the
+      // not-yet-commited drawing.
       y::map<TileEditAction::Key, TileEditAction::Entry>::const_iterator it;
       bool edit = is_dragging() &&
           _tile_edit_action && _tile_edit_action->layer == layer;
@@ -577,8 +579,9 @@ void MapEditor::draw_cell_layer(
         it = _tile_edit_action->edits.find(y::make_pair(coord, v));
         edit &= it != _tile_edit_action->edits.end();
       }
-
       const Tile& t = edit ? it->second.new_tile : cell->get_tile(layer, v);
+
+      // Draw the tile.
       if (!t.tileset) {
         continue;
       }

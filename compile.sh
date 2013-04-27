@@ -1,32 +1,37 @@
 #!/bin/bash
 # Usage: compile.sh [-c compiler] [target1, [target2 ...]]
 cd "$(dirname "$0")"
+# Make output directory.
 if [ ! -d bin ]
 then
   mkdir bin
 fi
 
+# Defaults.
 gcc="g++-4.7 -O3"
 targets[0]="yugen"
 targets[1]="yedit"
 targets_size=2
 
-cflag="-Werror -Wall -Wextra -pedantic -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/lua_5_2_2/include"
-lflag="-Werror -Wall -Wextra -pedantic -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib -L./depend/lua_5_2_2/lib"
-libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -llua -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
+cflag="-Werror -Wall -Wextra -pedantic -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/lua_5_2_2/include -I./depend/protobuf_2_5_0/include"
+lflag="-Werror -Wall -Wextra -pedantic -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib -L./depend/lua_5_2_2/lib -L./depend/protobuf_2_5_0/lib"
+libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -llua -lprotobuf -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
 
+# Grab compiler options.
 first=0
 if [ $# -gt 0 ] && [ $1 == "-c" ]; then
   gcc=$2
   first=2
 fi
 
+# Save compiler options so we can recompile if they change.
 if [ ! -f bin/.cmd ] || [ "`cat bin/.cmd`" != "$gcc" ]; then
   rm -rf bin
   mkdir bin
 fi
 echo "$gcc" > bin/.cmd
 
+# Figure out compile targets.
 compile_targets_size=$targets_size
 if [ $# -gt $first ]; then
   compile_targets_size=$#
@@ -45,15 +50,43 @@ else
   done
 fi
 
-change=0
+# Recompile proto files if necessary.
 error=0
-for o in bin/*.o; do
+change=0
+old=$(cat bin/.proto.md5 2> /dev/null)
+new=$(md5sum source/proto/* 2> /dev/null)
+if [ -f bin/.proto.md5 ] && [ "$old" == "$new" ]; then
+  echo "Up to date: source/proto"
+else
+  echo "Compiling source/proto..."
+  depend/protobuf_2_5_0/bin/protoc -I=source/proto --cpp_out=source/proto source/proto/*.proto
+  success=$?
+  for pb in source/proto/*.pb.cc; do
+    echo "Compiling $pb..."
+    base=$(basename $pb)
+    $gcc -c $cflag -o bin/$base.o $pb
+    let success=$success && $?
+  done
+  if [ $success -eq 0 ]; then
+    md5sum source/proto/* > bin/.proto.md5 2> /dev/null
+  else
+    if [ -f bin/.proto.md5 ]; then
+      rm bin/.proto.md5
+    fi
+    error=1
+  fi
+  change=1
+fi
+
+# Remove checksums for files which are no longer there.
+for o in bin/*.cpp.o; do
   base=$(basename `echo $o | cut -d . -f 1,2`)
   if [ ! -f source/$base ] && [ -f $o ]; then
     rm $o
     rm bin/$base.md5
   fi
 done
+# Recompile source files if necessary.
 for cpp in source/*.cpp; do
   base=$(basename $cpp)
   include_graph[0]=$base
@@ -114,6 +147,7 @@ if [ ! $error -eq 0 ]; then
   exit 1
 fi
 i=0
+# Link binaries.
 while [ $i -lt $compile_targets_size ]; do
   target=${compile_targets[$i]}
   objects=""

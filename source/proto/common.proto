@@ -1,0 +1,6 @@
+package proto;
+
+message ivec2 {
+  required int32 x = 1;
+  required int32 y = 2;
+}

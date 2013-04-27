@@ -15,7 +15,6 @@ struct Colour {
   float a;
 };
 
-// TODO: z-indexing.
 struct BatchedTexture {
   BatchedTexture(const GlTexture& sprite, const y::ivec2& frame_size);
 

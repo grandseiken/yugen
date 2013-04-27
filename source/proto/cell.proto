@@ -1,0 +1,21 @@
+package proto;
+import "common.proto";
+
+message CellBlueprint {
+  message Tile {
+    required uint32 tileset = 1;
+    required uint32 index = 2;
+  }
+
+  repeated string tilesets = 1;
+  repeated Tile tiles = 2;
+}
+
+message CellMap {
+  message Coord {
+    required ivec2 coord = 1;
+    required string cell = 2;
+  }
+
+  repeated Coord coords = 1;
+}
