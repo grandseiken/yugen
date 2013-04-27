@@ -4,6 +4,8 @@
 #include "filesystem.h"
 
 // Implementation of Filesystem that reads from local disk.
+// TODO: wrapper implementation which gzips certain filetypes,
+// or maybe do that automatically in save.h.
 class PhysicalFilesystem : public Filesystem {
 public:
 

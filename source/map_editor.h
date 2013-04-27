@@ -4,6 +4,7 @@
 #include "cell.h"
 #include "common.h"
 #include "modal.h"
+#include "ui_util.h"
 #include "vector.h"
 
 class Databank;
@@ -76,8 +77,12 @@ private:
 
   y::int32 get_list_height() const;
 
+  void copy_drag_to_brush() const;
+
   const Databank& _bank;
   TileBrush& _brush;
+
+  UiList _list;
   y::int32 _tileset_select;
   y::ivec2 _tile_hover;
 
@@ -99,6 +104,7 @@ public:
 private:
 
   const y::string_vector& _status;
+  UiList _list;
   y::int32 _layer_select;
 
 };
@@ -118,6 +124,9 @@ private:
 
   y::ivec2 world_to_camera(const y::ivec2& v) const;
   y::ivec2 camera_to_world(const y::ivec2& v) const;
+
+  void copy_drag_to_brush();
+  void copy_brush_to_map() const;
 
   void draw_cell_layer(
       RenderBatch& batch, const y::ivec2& coord, y::int32 layer) const;

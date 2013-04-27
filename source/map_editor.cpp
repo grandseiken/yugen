@@ -17,47 +17,6 @@ const Colour c_white(1.f, 1.f, 1.f, 1.f);
 const Colour c_dark(.5f, .5f, .5f, 1.f);
 const Colour c_transparent(1.f, 1.f, 1.f, .5f);
 
-// TODO: take this out into a nice happy class.
-void render_list_grid(
-    RenderUtil& util,
-    const Colour& panel, const y::vector<Colour>& items,
-    const y::string_vector& source, y::size select,
-    const y::ivec2& origin, const y::ivec2& size)
-{
-  util.render_fill_grid(origin, size, panel);
-
-  y::int32 w = size[xx];
-  y::int32 h = size[yy];
-  y::int32 offset = y::max<y::int32>(0,
-    select >= source.size() - h / 2 - 1 ? source.size() - h : select - h / 2);
-
-  for (y::int32 i = 0; i < h; ++i) {
-    if (i + offset >= y::int32(items.size()) ||
-        i + offset >= y::int32(source.size())) {
-      break;
-    }
-
-    y::string s = source[i + offset];
-    s = y::int32(s.length()) > w ? s.substr(0, w - 3) + "..." : s;
-    util.render_text_grid(s, origin + y::ivec2{0, i}, items[i + offset]);
-  }
-}
-
-// TODO: likewise.
-void render_list_grid(
-    RenderUtil& util,
-    const Colour& panel, const Colour& item, const Colour& s_item,
-    const y::string_vector& source, y::size select,
-    const y::ivec2& origin, const y::ivec2& size)
-{
-  y::vector<Colour> items;
-  for (y::size n = 0; n < source.size(); ++n) {
-    items.push_back(n == select ? s_item : item);
-  }
-
-  render_list_grid(util, panel, items, source, select, origin, size);
-}
-
 TileBrush::TileBrush()
   : size{1, 1}
   , array(new Entry[max_size * max_size])
@@ -132,6 +91,7 @@ TilePanel::TilePanel(const Databank& bank, TileBrush& brush)
   : Panel(y::ivec2(), y::ivec2())
   , _bank(bank)
   , _brush(brush)
+  , _list(y::ivec2(), y::ivec2(), c_panel, c_item, c_select)
   , _tileset_select(0)
   , _tile_hover{-1, -1}
 {
@@ -139,15 +99,14 @@ TilePanel::TilePanel(const Databank& bank, TileBrush& brush)
 
 bool TilePanel::event(const sf::Event& e)
 {
-  const Tileset& t = _bank.tilesets.get(_tileset_select);
-
   // Update hover position.
   if (e.type == sf::Event::MouseMoved) {
-    if (e.mouseMove.y < get_list_height()) {
+    if (e.mouseMove.y < RenderUtil::from_grid(_list.get_size())[yy]) {
       _tile_hover = {-1, -1};
     }
     else {
-      _tile_hover = {e.mouseMove.x, e.mouseMove.y - get_list_height()};
+      _tile_hover = {e.mouseMove.x, e.mouseMove.y -
+                     RenderUtil::from_grid(_list.get_size())[yy]};
       _tile_hover /= Tileset::tile_size;
     }
     return true;
@@ -165,21 +124,8 @@ bool TilePanel::event(const sf::Event& e)
   // End drag and update brush.
   if (e.type == sf::Event::MouseButtonReleased &&
       e.mouseButton.button == sf::Mouse::Left && is_dragging()) {
+    copy_drag_to_brush();
     stop_drag();
-    y::ivec2 min = y::min(get_drag_start(), _tile_hover);
-    y::ivec2 max = y::max(get_drag_start(), _tile_hover);
-    min = y::max(min, {0, 0});
-    max = y::min(max, t.get_size() - y::ivec2{1, 1});
-    max = y::min(max, min + y::ivec2{TileBrush::max_size - 1,
-                                     TileBrush::max_size - 1});
-    _brush.size = y::ivec2{1, 1} + max - min;
-    for (y::int32 x = 0; x < _brush.size[xx]; ++x) {
-      for (y::int32 y = 0; y < _brush.size[yy]; ++y) {
-        auto& entry = _brush.array[x + y * TileBrush::max_size];
-        entry.tileset = _tileset_select;
-        entry.index = t.to_index(y::ivec2{x, y} + min);
-      }
-    }
   }
 
   // Change tileset.
@@ -208,7 +154,11 @@ void TilePanel::update()
   y::roll<y::int32>(_tileset_select, 0, _bank.tilesets.size());
 
   const GlTexture& tex = _bank.tilesets.get(_tileset_select).get_texture();
-  set_size(tex.get_size() + y::ivec2{0, get_list_height()});
+  y::int32 tx_max = RenderUtil::to_grid(tex.get_size())[xx];
+  y::int32 ty_max = y::min(y::size(7), _bank.tilesets.size());
+
+  set_size(tex.get_size() + RenderUtil::from_grid() * y::ivec2{0, ty_max});
+  _list.set_size({tx_max, ty_max});
 }
 
 void TilePanel::draw(RenderUtil& util) const
@@ -217,18 +167,14 @@ void TilePanel::draw(RenderUtil& util) const
   const Tileset& t = _bank.tilesets.get(_tileset_select);
   const GlTexture& tex = t.get_texture();
 
-  y::int32 tx_max = RenderUtil::to_grid(tex.get_size())[xx];
-  y::int32 ty_max = y::min(y::size(7), _bank.tilesets.size());
-  render_list_grid(util, c_panel, c_item, c_select,
-                   _bank.tilesets.get_names(), _tileset_select,
-                   y::ivec2(), {tx_max, ty_max});
+  _list.draw(util, _bank.tilesets.get_names(), _tileset_select);
 
   // Render tileset.
-  util.render_fill(RenderUtil::from_grid({0, ty_max}),
+  util.render_fill({0, RenderUtil::from_grid(_list.get_size())[yy]},
                    tex.get_size(), c_dark_panel);
   util.render_sprite(tex, tex.get_size(),
-                     RenderUtil::from_grid({0, ty_max}), y::ivec2(),
-                     0.f, c_white);
+                     {0, RenderUtil::from_grid(_list.get_size())[yy]},
+                     y::ivec2(), 0.f, c_white);
 
   // Render hover.
   y::ivec2 start = is_dragging() ? get_drag_start() : _tile_hover;
@@ -239,20 +185,36 @@ void TilePanel::draw(RenderUtil& util) const
     min = y::max(min, {0, 0});
     max = y::min(max, t.get_size() - y::ivec2{1, 1});
     util.render_outline(
-        min * Tileset::tile_size + y::ivec2{0, get_list_height()},
+        min * Tileset::tile_size +
+            y::ivec2{0,RenderUtil::from_grid(_list.get_size())[yy]},
         (y::ivec2{1, 1} + (max - min)) * Tileset::tile_size, c_hover);
   }
 }
 
-y::int32 TilePanel::get_list_height() const
+void TilePanel::copy_drag_to_brush() const
 {
-  return RenderUtil::from_grid()[yy] *
-      y::min(y::size(7), _bank.tilesets.size());
+  const Tileset& t = _bank.tilesets.get(_tileset_select);
+
+  y::ivec2 min = y::min(get_drag_start(), _tile_hover);
+  y::ivec2 max = y::max(get_drag_start(), _tile_hover);
+  min = y::max(min, {0, 0});
+  max = y::min(max, t.get_size() - y::ivec2{1, 1});
+  max = y::min(max, min + y::ivec2{TileBrush::max_size - 1,
+                                   TileBrush::max_size - 1});
+  _brush.size = y::ivec2{1, 1} + max - min;
+  for (y::int32 x = 0; x < _brush.size[xx]; ++x) {
+    for (y::int32 y = 0; y < _brush.size[yy]; ++y) {
+      auto& entry = _brush.array[x + y * TileBrush::max_size];
+      entry.tileset = _tileset_select;
+      entry.index = t.to_index(y::ivec2{x, y} + min);
+    }
+  }
 }
 
 LayerPanel::LayerPanel(const y::string_vector& status)
   : Panel(y::ivec2(), y::ivec2())
   , _status(status)
+  , _list(y::ivec2(), y::ivec2(), c_panel, c_item, c_select)
   , _layer_select(0)
 {
 }
@@ -306,6 +268,7 @@ void LayerPanel::update()
   }
   set_size(RenderUtil::from_grid({
       y::int32(len), 4 + y::int32(_status.size())}));
+  _list.set_size({y::int32(len), 4});
 }
 
 void LayerPanel::draw(RenderUtil& util) const
@@ -316,15 +279,7 @@ void LayerPanel::draw(RenderUtil& util) const
     "3 Foreground",
     "4 Actors"};
 
-  y::size len = 12;
-  for (const y::string& s : _status) {
-    len = y::max(len, s.length());
-  }
-
-  render_list_grid(
-      util, c_panel, c_item, c_select,
-      layer_names, Cell::background_layers + _layer_select,
-      {0, 0}, {y::int32(len), 4});
+  _list.draw(util, layer_names, Cell::background_layers + _layer_select);
 
   y::int32 i = 0;
   for (const y::string& s : _status) {
@@ -369,44 +324,15 @@ void MapEditor::event(const sf::Event& e)
   }
 
   if (e.type == sf::Event::MouseButtonReleased && is_dragging()) {
-    stop_drag();
     // End draw and commit tile edit.
     if (_tile_edit_action) {
       get_undo_stack().new_action(y::move_unique(_tile_edit_action));
     }
     // End pick and copy tiles.
     else {
-      y::ivec2 t =
-          (_hover_tile + _hover_cell * Cell::cell_size);
-      y::ivec2 u = get_drag_start();
-      y::ivec2 min = y::min(t, u);
-      y::ivec2 max = y::max(t, u);
-      y::ivec2 v;
-      for (v[xx] = min[xx]; v[xx] <= max[xx]; ++v[xx]) {
-        for (v[yy] = min[yy]; v[yy] <= max[yy]; ++v[yy]) {
-          u = v - min;
-          if (u[xx] >= TileBrush::max_size || u[yy] >= TileBrush::max_size) {
-            continue;
-          }
-          y::ivec2 c = v.euclidean_div(Cell::cell_size);
-          t = v.euclidean_mod(Cell::cell_size);
-          TileBrush::Entry& e =
-              _tile_brush.array[u[xx] + u[yy] * TileBrush::max_size];
-          if (!_map.is_coord_used(c)) {
-            e.tileset = 0;
-            e.index = 0;
-          }
-          else {
-            CellBlueprint* cell = _map.get_coord(c);
-            e.tileset = _bank.tilesets.get_index(
-                *cell->get_tile(_layer_panel.get_layer(), t).tileset);
-            e.index = cell->get_tile(_layer_panel.get_layer(), t).index;
-          }
-        }
-      }
-      _tile_brush.size = y::min(y::ivec2{1, 1} + max - min,
-                                {TileBrush::max_size, TileBrush::max_size});
+      copy_drag_to_brush();
     }
+    stop_drag();
   }
 
   if (e.type != sf::Event::KeyPressed) {
@@ -467,34 +393,7 @@ void MapEditor::update()
   if (!is_dragging() || !_tile_edit_action) {
     return;
   }
-  y::int32 layer = _tile_edit_action->layer;
-  y::ivec2 start = get_drag_start();
-  y::ivec2 v;
-  for (; v[xx] < _tile_brush.size[xx]; ++v[xx]) {
-    for (v[yy] = 0; v[yy] < _tile_brush.size[yy]; ++v[yy]) {
-      y::ivec2 c = (tile + v).euclidean_div(Cell::cell_size);
-      y::ivec2 t = (tile + v).euclidean_mod(Cell::cell_size);
-      if (!_map.is_coord_used(c)) {
-        continue;
-      }
-
-      CellBlueprint* cell = _map.get_coord(c);
-      y::ivec2 vt = (tile + v - start).euclidean_mod(_tile_brush.size);
-
-      const TileBrush::Entry& e =
-          _tile_brush.array[vt[xx] + vt[yy] * TileBrush::max_size];
-      const auto& p = y::make_pair(c, t);
-
-      auto it = _tile_edit_action->edits.find(p);
-      if (it == _tile_edit_action->edits.end()) {
-        auto& edit = _tile_edit_action->edits[p];
-        edit.old_tile = cell->get_tile(layer, t);
-        it = _tile_edit_action->edits.find(p);
-      }
-      it->second.new_tile.tileset = &_bank.tilesets.get(e.tileset);
-      it->second.new_tile.index = e.index;
-    }
-  }
+  copy_brush_to_map();
 }
 
 void MapEditor::draw() const
@@ -557,6 +456,72 @@ y::ivec2 MapEditor::camera_to_world(const y::ivec2& v) const
 {
   const Resolution& r = _util.get_window().get_mode();
   return v + _camera - r.size / 2;
+}
+
+void MapEditor::copy_drag_to_brush()
+{
+  y::ivec2 t = _hover_tile + _hover_cell * Cell::cell_size;
+  y::ivec2 u = get_drag_start();
+  y::ivec2 min = y::min(t, u);
+  y::ivec2 max = y::max(t, u);
+  y::ivec2 v;
+  for (v[xx] = min[xx]; v[xx] <= max[xx]; ++v[xx]) {
+    for (v[yy] = min[yy]; v[yy] <= max[yy]; ++v[yy]) {
+      u = v - min;
+      if (u[xx] >= TileBrush::max_size || u[yy] >= TileBrush::max_size) {
+        continue;
+      }
+      y::ivec2 c = v.euclidean_div(Cell::cell_size);
+      t = v.euclidean_mod(Cell::cell_size);
+      TileBrush::Entry& e =
+          _tile_brush.array[u[xx] + u[yy] * TileBrush::max_size];
+      if (!_map.is_coord_used(c)) {
+        e.tileset = 0;
+        e.index = 0;
+      }
+      else {
+        CellBlueprint* cell = _map.get_coord(c);
+        e.tileset = _bank.tilesets.get_index(
+            *cell->get_tile(_layer_panel.get_layer(), t).tileset);
+        e.index = cell->get_tile(_layer_panel.get_layer(), t).index;
+      }
+    }
+  }
+  _tile_brush.size = y::min(y::ivec2{1, 1} + max - min,
+                            {TileBrush::max_size, TileBrush::max_size});
+}
+
+void MapEditor::copy_brush_to_map() const
+{
+  y::ivec2 tile = camera_to_world(_hover).euclidean_div(Tileset::tile_size);
+  y::int32 layer = _tile_edit_action->layer;
+  y::ivec2 start = get_drag_start();
+  y::ivec2 v;
+  for (; v[xx] < _tile_brush.size[xx]; ++v[xx]) {
+    for (v[yy] = 0; v[yy] < _tile_brush.size[yy]; ++v[yy]) {
+      y::ivec2 c = (tile + v).euclidean_div(Cell::cell_size);
+      y::ivec2 t = (tile + v).euclidean_mod(Cell::cell_size);
+      if (!_map.is_coord_used(c)) {
+        continue;
+      }
+
+      CellBlueprint* cell = _map.get_coord(c);
+      y::ivec2 vt = (tile + v - start).euclidean_mod(_tile_brush.size);
+
+      const TileBrush::Entry& e =
+          _tile_brush.array[vt[xx] + vt[yy] * TileBrush::max_size];
+      const auto& p = y::make_pair(c, t);
+
+      auto it = _tile_edit_action->edits.find(p);
+      if (it == _tile_edit_action->edits.end()) {
+        auto& edit = _tile_edit_action->edits[p];
+        edit.old_tile = cell->get_tile(layer, t);
+        it = _tile_edit_action->edits.find(p);
+      }
+      it->second.new_tile.tileset = &_bank.tilesets.get(e.tileset);
+      it->second.new_tile.index = e.index;
+    }
+  }
 }
 
 void MapEditor::draw_cell_layer(

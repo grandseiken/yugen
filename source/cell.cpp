@@ -243,6 +243,11 @@ void CellBlueprint::load_from_proto(Databank& bank,
     vector.push_back(&bank.tilesets.get(proto.tilesets(i)));
   }
   for (y::int32 i = 0; i < proto.tiles_size(); ++i) {
+    // Handle empty cells.
+    if (vector.empty()) {
+      set_tile_internal(y::size(i), Tile(0, 0));
+      continue;
+    }
     set_tile_internal(y::size(i), Tile(vector[proto.tiles(i).tileset()],
                                        proto.tiles(i).index()));
   }
