@@ -2,13 +2,18 @@
 #define CELL_H
 
 #include "common.h"
+#include "save.h"
 #include "vector.h"
 
 class CellBlueprint;
 class Tileset;
+namespace proto {
+  class CellMap;
+  class CellBlueprint;
+}
 
 // Sparse spatial map of CellBlueprints.
-class CellMap : public y::no_copy {
+class CellMap : public y::no_copy, public y::io<proto::CellMap> {
 public:
 
   CellMap();
@@ -26,6 +31,11 @@ public:
   const y::ivec2& get_boundary_min() const;
   // Get high (exclusive) cell boundary.
   const y::ivec2& get_boundary_max() const;
+
+protected:
+
+  virtual void save_to_proto(const Databank& bank, proto::CellMap& proto) const;
+  virtual void load_from_proto(Databank& bank, const proto::CellMap& proto);
 
 private:
 
@@ -91,8 +101,12 @@ private:
 
 };
 
-class CellBlueprint : public y::no_copy {
+class CellBlueprint : public y::no_copy, public y::io<proto::CellBlueprint> {
 public:
+
+  static const y::int32 raw_size =
+      Cell::cell_width * Cell::cell_height * (
+          1 + Cell::foreground_layers + Cell::background_layers);
 
   CellBlueprint();
 
@@ -108,7 +122,16 @@ public:
   // Returns the number of tiles that use the tileset.
   y::size get_tileset_use_count(const Tileset& tileset) const;
 
+protected:
+
+  virtual void save_to_proto(const Databank& bank,
+                             proto::CellBlueprint& proto) const;
+  virtual void load_from_proto(Databank& bank,
+                               const proto::CellBlueprint& proto);
+
 private:
+
+  void set_tile_internal(y::size internal_index, const Tile& tile);
 
   y::map<const Tileset*, y::size> _tilesets;
   y::unique<Tile[]> _tiles;

@@ -5,6 +5,7 @@
 #include "modal.h"
 
 class Databank;
+class Filesystem;
 class GlUtil;
 class RenderUtil;
 class Window;
@@ -15,7 +16,7 @@ namespace sf {
 class Yedit : public Modal {
 public:
 
-  Yedit(Databank& bank, RenderUtil& util);
+  Yedit(Filesystem& output, Databank& bank, RenderUtil& util);
   virtual ~Yedit() {}
 
   virtual void event(const sf::Event& e);
@@ -24,6 +25,7 @@ public:
 
 private:
 
+  Filesystem& _output;
   Databank& _bank;
   RenderUtil& _util;
 

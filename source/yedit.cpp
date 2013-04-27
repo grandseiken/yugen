@@ -4,13 +4,15 @@
 #include "gl_util.h"
 #include "map_editor.h"
 #include "physical_filesystem.h"
+#include "proto/cell.pb.h"
 #include "render_util.h"
 #include "window.h"
 
 #include <SFML/Window.hpp>
 
-Yedit::Yedit(Databank& bank, RenderUtil& util)
-  : _bank(bank)
+Yedit::Yedit(Filesystem& output, Databank& bank, RenderUtil& util)
+  : _output(output)
+  , _bank(bank)
   , _util(util)
   , _map_select(0)
 {
@@ -31,9 +33,12 @@ void Yedit::event(const sf::Event& e)
       break;
     case sf::Keyboard::Return:
       push(y::move_unique(new MapEditor(
-          _bank, _util, _bank.get_map(_map_select))));
+          _bank, _util, _bank.maps.get(_map_select))));
       break;
     case sf::Keyboard::Escape:
+      // TODO: work out where saving should happen.
+      _bank.save_all<CellBlueprint, proto::CellBlueprint>(_output);
+      _bank.save_all<CellMap, proto::CellMap>(_output);
       end();
       break;
     default: {}
@@ -42,7 +47,7 @@ void Yedit::event(const sf::Event& e)
 
 void Yedit::update()
 {
-  y::clamp<y::int32>(_map_select, 0, _bank.get_maps().size());
+  y::clamp<y::int32>(_map_select, 0, _bank.maps.size());
 }
 
 void Yedit::draw() const
@@ -57,20 +62,20 @@ void Yedit::draw() const
 
   y::int32 i = 1;
   _util.render_text_grid("Tilesets", {1, i++}, grey);
-  for (const auto& s :_bank.get_tilesets()) {
+  for (const auto& s :_bank.tilesets.get_names()) {
     _util.render_text_grid(s, {2, i++}, white);
   }
 
   i++;
   _util.render_text_grid("Cells", {1, i++}, grey);
-  for (const auto& s :_bank.get_cells()) {
+  for (const auto& s :_bank.cells.get_names()) {
     _util.render_text_grid(s, {2, i++}, white);
   }
 
   i++;
   y::int32 n = 0;
   _util.render_text_grid("Maps", {1, i++}, grey);
-  for (const auto& s :_bank.get_maps()) {
+  for (const auto& s :_bank.maps.get_names()) {
     _util.render_text_grid(s, {2, i++}, n++ == _map_select ? red : white);
   }
 }
@@ -90,7 +95,7 @@ int main(int argc, char** argv)
   RenderUtil util(gl);
 
   ModalStack stack;
-  stack.push(y::move_unique(new Yedit(databank, util)));
+  stack.push(y::move_unique(new Yedit(filesystem, databank, util)));
   stack.run(window);
   return 0;
 }

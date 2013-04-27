@@ -118,7 +118,7 @@ void BrushPanel::draw(RenderUtil& util) const
     for (v[yy] = 0; v[yy] < _brush.size[yy]; ++v[yy]) {
       const TileBrush::Entry e =
           _brush.array[v[xx] + v[yy] * TileBrush::max_size];
-      const Tileset& t = _bank.get_tileset(e.tileset);
+      const Tileset& t = _bank.tilesets.get(e.tileset);
 
       batch.add_sprite(t.get_texture(), Tileset::tile_size,
                        v * Tileset::tile_size, t.from_index(e.index),
@@ -139,7 +139,7 @@ TilePanel::TilePanel(const Databank& bank, TileBrush& brush)
 
 bool TilePanel::event(const sf::Event& e)
 {
-  const Tileset& t = _bank.get_tileset(_tileset_select);
+  const Tileset& t = _bank.tilesets.get(_tileset_select);
 
   // Update hover position.
   if (e.type == sf::Event::MouseMoved) {
@@ -205,22 +205,22 @@ bool TilePanel::event(const sf::Event& e)
 
 void TilePanel::update()
 {
-  y::roll<y::int32>(_tileset_select, 0, _bank.get_tilesets().size());
+  y::roll<y::int32>(_tileset_select, 0, _bank.tilesets.size());
 
-  const GlTexture& tex = _bank.get_tileset(_tileset_select).get_texture();
+  const GlTexture& tex = _bank.tilesets.get(_tileset_select).get_texture();
   set_size(tex.get_size() + y::ivec2{0, get_list_height()});
 }
 
 void TilePanel::draw(RenderUtil& util) const
 {
   // Render panel.
-  const Tileset& t = _bank.get_tileset(_tileset_select);
+  const Tileset& t = _bank.tilesets.get(_tileset_select);
   const GlTexture& tex = t.get_texture();
 
   y::int32 tx_max = RenderUtil::to_grid(tex.get_size())[xx];
-  y::int32 ty_max = y::min(y::size(7), _bank.get_tilesets().size());
+  y::int32 ty_max = y::min(y::size(7), _bank.tilesets.size());
   render_list_grid(util, c_panel, c_item, c_select,
-                   _bank.get_tilesets(), _tileset_select,
+                   _bank.tilesets.get_names(), _tileset_select,
                    y::ivec2(), {tx_max, ty_max});
 
   // Render tileset.
@@ -247,7 +247,7 @@ void TilePanel::draw(RenderUtil& util) const
 y::int32 TilePanel::get_list_height() const
 {
   return RenderUtil::from_grid()[yy] *
-      y::min(y::size(7), _bank.get_tilesets().size());
+      y::min(y::size(7), _bank.tilesets.size());
 }
 
 LayerPanel::LayerPanel(const y::string_vector& status)
@@ -398,7 +398,7 @@ void MapEditor::event(const sf::Event& e)
           }
           else {
             CellBlueprint* cell = _map.get_coord(c);
-            e.tileset = _bank.get_tileset_index(
+            e.tileset = _bank.tilesets.get_index(
                 *cell->get_tile(_layer_panel.get_layer(), t).tileset);
             e.index = cell->get_tile(_layer_panel.get_layer(), t).index;
           }
@@ -460,7 +460,7 @@ void MapEditor::update()
       " : " << _hover_tile[xx] << ", " << _hover_tile[yy];
   _layer_status.push_back(ss.str());
   if (_map.is_coord_used(_hover_cell)) {
-    _layer_status.push_back(_bank.get_cell_name(*_map.get_coord(_hover_cell)));
+    _layer_status.push_back(_bank.cells.get_name(*_map.get_coord(_hover_cell)));
   }
 
   // Continuous tile drawing.
@@ -491,7 +491,7 @@ void MapEditor::update()
         edit.old_tile = cell->get_tile(layer, t);
         it = _tile_edit_action->edits.find(p);
       }
-      it->second.new_tile.tileset = &_bank.get_tileset(e.tileset);
+      it->second.new_tile.tileset = &_bank.tilesets.get(e.tileset);
       it->second.new_tile.index = e.index;
     }
   }

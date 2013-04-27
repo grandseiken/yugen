@@ -1,4 +1,6 @@
 #include "cell.h"
+#include "databank.h"
+#include "proto/cell.pb.h"
 #include "tileset.h"
 
 CellMap::CellMap()
@@ -37,6 +39,24 @@ const y::ivec2& CellMap::get_boundary_max() const
 {
   recalculate_boundary();
   return _max;
+}
+
+void CellMap::save_to_proto(const Databank& bank, proto::CellMap& proto) const
+{
+  for (const auto& pair : _map) {
+    auto coord = proto.add_coords();
+    y::save_to_proto(pair.first, *coord->mutable_coord());
+    coord->set_cell(bank.cells.get_name(*pair.second));
+  }
+}
+
+void CellMap::load_from_proto(Databank& bank, const proto::CellMap& proto)
+{
+  for (y::int32 i = 0; i < proto.coords_size(); ++i) {
+    y::ivec2 v;
+    y::load_from_proto(v, proto.coords(i).coord());
+    set_coord(v, bank.cells.get(proto.coords(i).cell()));
+  }
 }
 
 void CellMap::recalculate_boundary() const
@@ -170,8 +190,7 @@ bool Cell::is_tileset_used(const Tileset& tileset) const
 }
 
 CellBlueprint::CellBlueprint()
-  : _tiles(new Tile[Cell::cell_width * Cell::cell_height * (
-      1 + Cell::foreground_layers + Cell::background_layers)])
+  : _tiles(new Tile[raw_size])
 {
 }
 
@@ -183,10 +202,7 @@ const Tile& CellBlueprint::get_tile(y::int32 layer, const y::ivec2& v) const
 void CellBlueprint::set_tile(y::int32 layer, const y::ivec2& v,
                              const Tile& tile)
 {
-  y::size internal_index = to_internal_index(layer, v);
-  change_by_one(_tilesets, _tiles[internal_index].tileset, false);
-  _tiles[internal_index] = tile;
-  change_by_one(_tilesets, tile.tileset, true);
+  set_tile_internal(to_internal_index(layer, v), tile);
 }
 
 bool CellBlueprint::is_tileset_used(const Tileset& tileset) const
@@ -198,4 +214,43 @@ y::size CellBlueprint::get_tileset_use_count(const Tileset& tileset) const
 {
   auto it = _tilesets.find(&tileset);
   return it != _tilesets.end() ? it->second : 0;
+}
+
+void CellBlueprint::save_to_proto(const Databank& bank,
+                                  proto::CellBlueprint& proto) const
+{
+  y::map<const Tileset*, y::size> map;
+  y::size n = 0;
+  for (const auto& pair : _tilesets) {
+    if (!pair.second) {
+      continue;
+    }
+    map.insert(y::make_pair(pair.first, n++));
+    proto.add_tilesets(bank.tilesets.get_name(*pair.first));
+  }
+  for (y::int32 i = 0; i < raw_size; ++i) {
+    auto tile = proto.add_tiles();
+    tile->set_tileset(map[_tiles[i].tileset]);
+    tile->set_index(_tiles[i].index);
+  }
+}
+
+void CellBlueprint::load_from_proto(Databank& bank,
+                                    const proto::CellBlueprint& proto)
+{
+  y::vector<const Tileset*> vector;
+  for (y::int32 i = 0; i < proto.tilesets_size(); ++i) {
+    vector.push_back(&bank.tilesets.get(proto.tilesets(i)));
+  }
+  for (y::int32 i = 0; i < proto.tiles_size(); ++i) {
+    set_tile_internal(y::size(i), Tile(vector[proto.tiles(i).tileset()],
+                                       proto.tiles(i).index()));
+  }
+}
+
+void CellBlueprint::set_tile_internal(y::size internal_index, const Tile& tile)
+{
+  change_by_one(_tilesets, _tiles[internal_index].tileset, false);
+  _tiles[internal_index] = tile;
+  change_by_one(_tilesets, tile.tileset, true);
 }

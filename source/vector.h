@@ -6,6 +6,10 @@
 #include <boost/functional/hash.hpp>
 #include <cmath>
 
+namespace proto {
+  class ivec2;
+}
+
 namespace y {
 
   template<y::size N>
@@ -308,6 +312,9 @@ namespace y {
   typedef vec<float, 2> fvec2;
   typedef vec<float, 3> fvec3;
   typedef vec<float, 4> fvec4;
+
+  void save_to_proto(const y::ivec2& v, proto::ivec2& proto);
+  void load_from_proto(y::ivec2& v, const proto::ivec2& proto);
 
 }
 

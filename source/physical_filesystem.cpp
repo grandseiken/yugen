@@ -62,8 +62,12 @@ void PhysicalFilesystem::read_file_internal(y::string& output,
     file.seekg(0, std::ios::beg);
     file.read(&output[first], output.length());
   }
-  catch (const boost::filesystem::filesystem_error& e) {}
-  catch (const std::ifstream::failure& e) {}
+  catch (const boost::filesystem::filesystem_error& e) {
+    std::cerr << "Write of " << path << " failed" << std::endl;
+  }
+  catch (const std::ofstream::failure& e) {
+    std::cerr << "Write of " << path << " failed" << std::endl;
+  }
 }
 
 void PhysicalFilesystem::write_file_internal(const y::string& data,
@@ -75,6 +79,10 @@ void PhysicalFilesystem::write_file_internal(const y::string& data,
                        std::ios::out | std::ios::binary | std::ios::trunc);
     file << data;
   }
-  catch (const boost::filesystem::filesystem_error& e) {}
-  catch (const std::ofstream::failure& e) {}
+  catch (const boost::filesystem::filesystem_error& e) {
+    std::cerr << "Write of " << path << " failed" << std::endl;
+  }
+  catch (const std::ofstream::failure& e) {
+    std::cerr << "Write of " << path << " failed" << std::endl;
+  }
 }
