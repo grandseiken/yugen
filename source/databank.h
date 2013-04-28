@@ -175,6 +175,7 @@ const T& Dataset<T>::get(y::size index) const
   if (index < get_names().size()) {
     return get(get_names()[index]);
   }
+  std::cerr << "Couldn't find resource " << index << std::endl;
   return _default;
 }
 
@@ -184,6 +185,7 @@ T& Dataset<T>::get(y::size index)
   if (index < get_names().size()) {
     return get(get_names()[index]);
   }
+  std::cerr << "Couldn't find resource " << index << std::endl;
   return _default;
 }
 
@@ -196,6 +198,7 @@ const y::string& Dataset<T>::get_name(const T& resource) const
       return pair.first;
     }
   }
+  std::cerr << "Could find name of resource" << std::endl;
   return none;
 }
 
@@ -209,6 +212,7 @@ y::size Dataset<T>::get_index(const T& resource) const
       return i;
     }
   }
+  std::cerr << "Could find index of resource" << std::endl;
   return -1;
 }
 

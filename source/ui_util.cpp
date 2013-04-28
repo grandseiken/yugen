@@ -85,7 +85,7 @@ TextInputModal::TextInputModal(RenderUtil& util, const y::string& default_text,
 
 void TextInputModal::event(const sf::Event& e)
 {
-  const static y::string allowed =
+  static const y::string allowed =
       y::string("abcdefghijklmnopqrstuvwxyz") +
       y::string("ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
       y::string("0123456789[](){}_-+=@#&./ ");
@@ -132,7 +132,7 @@ void TextInputModal::event(const sf::Event& e)
       end();
       break;
     default: {}
-  } 
+  }
 }
 
 void TextInputModal::update()
@@ -143,7 +143,7 @@ void TextInputModal::draw() const
 {
   const Resolution& r = _util.get_window().get_mode();
   y::ivec2 size = RenderUtil::from_grid({
-      y::int32(y::max(_label.length(), _output.result.length())), 2});
+      y::int32(y::max(_label.length(), 1 + _output.result.length())), 2});
   y::ivec2 origin = r.size / 2 - size / 2;
   _util.render_fill(origin, {size[xx], RenderUtil::from_grid()[yy]},
                     Colour::panel);

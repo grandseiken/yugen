@@ -222,7 +222,7 @@ void CellBlueprint::save_to_proto(const Databank& bank,
   y::map<const Tileset*, y::size> map;
   y::size n = 0;
   for (const auto& pair : _tilesets) {
-    if (!pair.second) {
+    if (!pair.second || !pair.first) {
       continue;
     }
     map.insert(y::make_pair(pair.first, n++));
@@ -230,7 +230,7 @@ void CellBlueprint::save_to_proto(const Databank& bank,
   }
   for (y::int32 i = 0; i < raw_size; ++i) {
     auto tile = proto.add_tiles();
-    tile->set_tileset(map[_tiles[i].tileset]);
+    tile->set_tileset(_tiles[i].tileset ? map[_tiles[i].tileset] : -1);
     tile->set_index(_tiles[i].index);
   }
 }
@@ -245,11 +245,13 @@ void CellBlueprint::load_from_proto(Databank& bank,
   for (y::int32 i = 0; i < proto.tiles_size(); ++i) {
     // Handle empty cells.
     if (vector.empty()) {
-      set_tile_internal(y::size(i), Tile(0, 0));
+      set_tile_internal(y::size(i), Tile(y::null, 0));
       continue;
     }
-    set_tile_internal(y::size(i), Tile(vector[proto.tiles(i).tileset()],
-                                       proto.tiles(i).index()));
+    set_tile_internal(y::size(i), Tile(
+        proto.tiles(i).tileset() >= 0 ?
+            vector[proto.tiles(i).tileset()] : y::null,
+        proto.tiles(i).index()));
   }
 }
 

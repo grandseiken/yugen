@@ -10,7 +10,7 @@
 
 TileBrush::TileBrush()
   : size{1, 1}
-  , array(new Entry[max_size * max_size])
+  , array(new Tile[max_size * max_size])
 {
   auto& entry = array[0];
   entry.tileset = 0;
@@ -66,12 +66,14 @@ void BrushPanel::draw(RenderUtil& util) const
   RenderBatch batch;
   for (y::ivec2 v; v[xx] < _brush.size[xx]; ++v[xx]) {
     for (v[yy] = 0; v[yy] < _brush.size[yy]; ++v[yy]) {
-      const TileBrush::Entry e =
+      const Tile& e =
           _brush.array[v[xx] + v[yy] * TileBrush::max_size];
-      const Tileset& t = _bank.tilesets.get(e.tileset);
+      if (!e.tileset) {
+        continue;
+      }
 
-      batch.add_sprite(t.get_texture(), Tileset::tile_size,
-                       v * Tileset::tile_size, t.from_index(e.index),
+      batch.add_sprite(e.tileset->get_texture(), Tileset::tile_size,
+                       v * Tileset::tile_size, e.tileset->from_index(e.index),
                        0.f, Colour::white);
     }
   }
@@ -195,8 +197,8 @@ void TilePanel::copy_drag_to_brush() const
   _brush.size = y::ivec2{1, 1} + max - min;
   for (y::int32 x = 0; x < _brush.size[xx]; ++x) {
     for (y::int32 y = 0; y < _brush.size[yy]; ++y) {
-      auto& entry = _brush.array[x + y * TileBrush::max_size];
-      entry.tileset = _tileset_select;
+      Tile& entry = _brush.array[x + y * TileBrush::max_size];
+      entry.tileset = &_bank.tilesets.get(_tileset_select);
       entry.index = t.to_index(y::ivec2{x, y} + min);
     }
   }
@@ -511,17 +513,16 @@ void MapEditor::copy_drag_to_brush()
       }
       y::ivec2 c = v.euclidean_div(Cell::cell_size);
       t = v.euclidean_mod(Cell::cell_size);
-      TileBrush::Entry& e =
-          _tile_brush.array[u[xx] + u[yy] * TileBrush::max_size];
+      Tile& e = _tile_brush.array[u[xx] + u[yy] * TileBrush::max_size];
       if (!_map.is_coord_used(c)) {
-        e.tileset = 0;
+        e.tileset = y::null;
         e.index = 0;
       }
       else {
         CellBlueprint* cell = _map.get_coord(c);
-        e.tileset = _bank.tilesets.get_index(
-            *cell->get_tile(_layer_panel.get_layer(), t).tileset);
-        e.index = cell->get_tile(_layer_panel.get_layer(), t).index;
+        const Tile& tile = cell->get_tile(_layer_panel.get_layer(), t);
+        e.tileset = tile.tileset;
+        e.index = tile.index;
       }
     }
   }
@@ -546,8 +547,7 @@ void MapEditor::copy_brush_to_map() const
       CellBlueprint* cell = _map.get_coord(c);
       y::ivec2 vt = (tile + v - start).euclidean_mod(_tile_brush.size);
 
-      const TileBrush::Entry& e =
-          _tile_brush.array[vt[xx] + vt[yy] * TileBrush::max_size];
+      const Tile& e = _tile_brush.array[vt[xx] + vt[yy] * TileBrush::max_size];
       const auto& p = y::make_pair(c, t);
 
       auto it = _tile_edit_action->edits.find(p);
@@ -556,7 +556,7 @@ void MapEditor::copy_brush_to_map() const
         edit.old_tile = cell->get_tile(layer, t);
         it = _tile_edit_action->edits.find(p);
       }
-      it->second.new_tile.tileset = &_bank.tilesets.get(e.tileset);
+      it->second.new_tile.tileset = e.tileset;
       it->second.new_tile.index = e.index;
     }
   }
@@ -570,19 +570,26 @@ void MapEditor::draw_cell_layer(
   }
   const CellBlueprint* cell = _map.get_coord(coord);
 
+  y::int32 active_layer = _layer_panel.get_layer();
+  const Colour& c = active_layer > Cell::foreground_layers ? Colour::white :
+      layer < active_layer ? Colour::dark :
+      layer == active_layer ? Colour::white :
+      Colour::transparent;
+
+  bool edit = is_dragging() &&
+      _tile_edit_action && _tile_edit_action->layer == layer;
+
   y::ivec2 v;
   for (; v[xx] < Cell::cell_size[xx]; ++v[xx]) {
     for (v[yy] = 0; v[yy] < Cell::cell_size[yy]; ++v[yy]) {
       // In the middle of a TileEditAction we need to render the
-      // not-yet-commited drawing.
+      // uncommited drawing.
       y::map<TileEditAction::Key, TileEditAction::Entry>::const_iterator it;
-      bool edit = is_dragging() &&
-          _tile_edit_action && _tile_edit_action->layer == layer;
       if (edit) {
         it = _tile_edit_action->edits.find(y::make_pair(coord, v));
-        edit &= it != _tile_edit_action->edits.end();
       }
-      const Tile& t = edit ? it->second.new_tile : cell->get_tile(layer, v);
+      const Tile& t = edit && it != _tile_edit_action->edits.end() ?
+          it->second.new_tile : cell->get_tile(layer, v);
 
       // Draw the tile.
       if (!t.tileset) {
@@ -592,13 +599,11 @@ void MapEditor::draw_cell_layer(
       y::ivec2 camera = world_to_camera(
           Tileset::tile_size * (v + coord * Cell::cell_size));
 
-      y::int32 active_layer = _layer_panel.get_layer();
-      const Colour& c = active_layer > Cell::foreground_layers ? Colour::white :
-          layer < active_layer ? Colour::dark :
-          layer == active_layer ? Colour::white :
-          Colour::transparent;
       batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
-                       camera, t.tileset->from_index(t.index), layer, c);
+                       camera, t.tileset->from_index(t.index),
+                       (layer + Cell::background_layers) /
+                           (1 + Cell::background_layers +
+                            Cell::foreground_layers), c);
     }
   }
 }

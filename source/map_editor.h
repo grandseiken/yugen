@@ -34,13 +34,8 @@ struct TileEditAction : public StackAction {
 struct TileBrush {
   TileBrush();
 
-  struct Entry {
-    y::int32 tileset;
-    y::int32 index;
-  };
-
   y::ivec2 size;
-  y::unique<Entry[]> array;
+  y::unique<Tile[]> array;
   static const y::int32 max_size = 16;
 };
 

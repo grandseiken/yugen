@@ -41,7 +41,7 @@ struct TextInputResult {
   TextInputResult();
 
   bool success;
-  y::string result; 
+  y::string result;
 };
 
 class TextInputModal : public Modal {

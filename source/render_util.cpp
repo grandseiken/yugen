@@ -163,7 +163,7 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   _text_program.bind_uniform("resolution",
       GLint(_native_size[xx]), GLint(_native_size[yy]));
   _text_program.bind_uniform("origin",
-      GLint(text_data[0]), GLint(text_data[0]));
+      GLint(text_data[0]), GLint(text_data[1]));
   for (y::size i = 0; i < 1024; ++i) {
     _text_program.bind_uniform(i, "string",
         GLint(i < text.length() ? text[i] : 0));
