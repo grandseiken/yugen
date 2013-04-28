@@ -216,7 +216,7 @@ template<typename T>
 void Dataset<T>::rename(const T& resource, const y::string& new_name)
 {
   y::size i = get_index(resource);
-  if (i == -1) {
+  if (i == y::size(-1)) {
     return;
   }
   _list.erase(_list.begin() + i);

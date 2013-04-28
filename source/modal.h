@@ -182,7 +182,7 @@ public:
 
 private:
 
-  void event(const sf::Event& e);
+  void event(const sf::Event& e, y::size index);
   void update();
   void draw() const;
   bool clear_ended();

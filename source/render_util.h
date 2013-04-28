@@ -5,6 +5,7 @@
 #include "gl_util.h"
 #include "vector.h"
 
+// TODO: replace with fvec4?
 struct Colour {
   Colour(float r, float g, float b);
   Colour(float r, float g, float b, float a);
@@ -13,6 +14,18 @@ struct Colour {
   float g;
   float b;
   float a;
+
+  static const Colour outline;
+  static const Colour dark_outline;
+  static const Colour panel;
+  static const Colour dark_panel;
+  static const Colour item;
+  static const Colour hover;
+  static const Colour select;
+  static const Colour white;
+  static const Colour black;
+  static const Colour dark;
+  static const Colour transparent;
 };
 
 struct BatchedTexture {

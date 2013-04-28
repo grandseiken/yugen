@@ -8,15 +8,6 @@
 
 #include <SFML/Window.hpp>
 
-const Colour c_panel(.2f, .2f, .2f, .7f);
-const Colour c_dark_panel(0.f, 0.f, 0.f, .7f);
-const Colour c_item(.6f, .6f, .6f, 1.f);
-const Colour c_hover(.9f, .9f, .9f, .5f);
-const Colour c_select(.9f, .9f, .9f, 1.f);
-const Colour c_white(1.f, 1.f, 1.f, 1.f);
-const Colour c_dark(.5f, .5f, .5f, 1.f);
-const Colour c_transparent(1.f, 1.f, 1.f, .5f);
-
 TileBrush::TileBrush()
   : size{1, 1}
   , array(new Entry[max_size * max_size])
@@ -81,7 +72,7 @@ void BrushPanel::draw(RenderUtil& util) const
 
       batch.add_sprite(t.get_texture(), Tileset::tile_size,
                        v * Tileset::tile_size, t.from_index(e.index),
-                       0.f, c_white);
+                       0.f, Colour::white);
     }
   }
   util.render_batch(batch);
@@ -91,7 +82,7 @@ TilePanel::TilePanel(const Databank& bank, TileBrush& brush)
   : Panel(y::ivec2(), y::ivec2())
   , _bank(bank)
   , _brush(brush)
-  , _list(y::ivec2(), y::ivec2(), c_panel, c_item, c_select)
+  , _list(y::ivec2(), y::ivec2(), Colour::panel, Colour::item, Colour::select)
   , _tileset_select(0)
   , _tile_hover{-1, -1}
 {
@@ -171,10 +162,10 @@ void TilePanel::draw(RenderUtil& util) const
 
   // Render tileset.
   util.render_fill({0, RenderUtil::from_grid(_list.get_size())[yy]},
-                   tex.get_size(), c_dark_panel);
+                   tex.get_size(), Colour::dark_panel);
   util.render_sprite(tex, tex.get_size(),
                      {0, RenderUtil::from_grid(_list.get_size())[yy]},
-                     y::ivec2(), 0.f, c_white);
+                     y::ivec2(), 0.f, Colour::white);
 
   // Render hover.
   y::ivec2 start = is_dragging() ? get_drag_start() : _tile_hover;
@@ -187,7 +178,7 @@ void TilePanel::draw(RenderUtil& util) const
     util.render_outline(
         min * Tileset::tile_size +
             y::ivec2{0, RenderUtil::from_grid(_list.get_size())[yy]},
-        (y::ivec2{1, 1} + (max - min)) * Tileset::tile_size, c_hover);
+        (y::ivec2{1, 1} + (max - min)) * Tileset::tile_size, Colour::hover);
   }
 }
 
@@ -214,7 +205,7 @@ void TilePanel::copy_drag_to_brush() const
 LayerPanel::LayerPanel(const y::string_vector& status)
   : Panel(y::ivec2(), y::ivec2())
   , _status(status)
-  , _list(y::ivec2(), y::ivec2(), c_panel, c_item, c_select)
+  , _list(y::ivec2(), y::ivec2(), Colour::panel, Colour::item, Colour::select)
   , _layer_select(0)
 {
 }
@@ -283,7 +274,7 @@ void LayerPanel::draw(RenderUtil& util) const
 
   y::int32 i = 0;
   for (const y::string& s : _status) {
-    util.render_text_grid(s, {0, 4 + i++}, c_item);
+    util.render_text_grid(s, {0, 4 + i++}, Colour::item);
   }
 }
 
@@ -352,11 +343,17 @@ void MapEditor::event(const sf::Event& e)
     return;
   }
 
-  // Quit!
   switch (e.key.code) {
     case sf::Keyboard::Escape:
       end();
       break;
+    case sf::Keyboard::R:
+      if (_map.is_coord_used(_hover_cell)) {
+        const y::string& name =
+            _bank.cells.get_name(*_map.get_coord(_hover_cell));
+        push(y::move_unique(new TextInputModal(
+            _util, name, _input_result, "Rename cell " + name + " to:")));
+      }
     default: {}
   }
 }
@@ -419,6 +416,12 @@ void MapEditor::update()
     return;
   }
 
+  // Rename cell.
+  if (_input_result.success) {
+    _bank.cells.rename(*_map.get_coord(_hover_cell), _input_result.result);
+    _input_result.success = false;
+  }
+
   // Continuous tile drawing.
   if (!is_dragging() || !_tile_edit_action) {
     return;
@@ -455,7 +458,7 @@ void MapEditor::draw() const
           (c == _hover_cell && _hover[xx] >= 0 && _hover[yy] >= 0)) {
         _util.render_outline(
             world_to_camera(c * Tileset::tile_size * Cell::cell_size),
-            Tileset::tile_size * Cell::cell_size, c_panel);
+            Tileset::tile_size * Cell::cell_size, Colour::panel);
       }
     }
   }
@@ -469,12 +472,12 @@ void MapEditor::draw() const
     y::ivec2 max = y::max(t, u);
     _util.render_outline(
         world_to_camera(min * Tileset::tile_size),
-        Tileset::tile_size * (y::ivec2{1, 1} + max - min), c_hover);
+        Tileset::tile_size * (y::ivec2{1, 1} + max - min), Colour::hover);
   }
   else if (_hover[xx] >= 0 && _hover[yy] >= 0 &&
            _map.is_coord_used(_hover_cell)) {
     _util.render_outline(world_to_camera(t * Tileset::tile_size),
-                         Tileset::tile_size * _tile_brush.size, c_hover);
+                         Tileset::tile_size * _tile_brush.size, Colour::hover);
   }
 
   // Draw UI.
@@ -590,10 +593,10 @@ void MapEditor::draw_cell_layer(
           Tileset::tile_size * (v + coord * Cell::cell_size));
 
       y::int32 active_layer = _layer_panel.get_layer();
-      const Colour& c = active_layer > Cell::foreground_layers ? c_white :
-          layer < active_layer ? c_dark :
-          layer == active_layer ? c_white :
-          c_transparent;
+      const Colour& c = active_layer > Cell::foreground_layers ? Colour::white :
+          layer < active_layer ? Colour::dark :
+          layer == active_layer ? Colour::white :
+          Colour::transparent;
       batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
                        camera, t.tileset->from_index(t.index), layer, c);
     }

@@ -2,9 +2,11 @@
 #define UI_UTIL_H
 
 #include "common.h"
+#include "modal.h"
 #include "render_util.h"
 #include "vector.h"
 
+// List UI element.
 class UiList {
 public:
 
@@ -25,7 +27,6 @@ public:
   void draw(RenderUtil& util,
             const y::string_vector& source, y::size select) const;
 
-
 private:
 
   y::ivec2 _origin;
@@ -33,6 +34,33 @@ private:
   Colour _panel;
   Colour _item;
   Colour _s_item;
+
+};
+
+struct TextInputResult {
+  TextInputResult();
+
+  bool success;
+  y::string result; 
+};
+
+class TextInputModal : public Modal {
+public:
+
+  TextInputModal(RenderUtil& util, const y::string& default_text,
+                 TextInputResult& output, const y::string& label);
+  virtual ~TextInputModal() {}
+
+  virtual void event(const sf::Event& e);
+  virtual void update();
+  virtual void draw() const;
+
+private:
+
+  RenderUtil& _util;
+  TextInputResult& _output;
+  y::string _label;
+  y::size _cursor;
 
 };
 

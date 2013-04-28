@@ -219,7 +219,7 @@ void PanelUi::draw(RenderUtil& util) const
     const y::ivec2& origin = panel->get_origin();
     const y::ivec2& size = panel->get_size();
     Colour c = _mouse_over.find(panel) != _mouse_over.end() ?
-      Colour(.7f, .7f, .7f, 1.f) : Colour(.3f, .3f, .3f, 1.f);
+        Colour::outline : Colour::dark_outline;
 
     util.add_translation(origin);
     panel->draw(util);
@@ -343,12 +343,13 @@ bool ModalStack::empty() const
 void ModalStack::run(Window& window)
 {
   while (!empty()) {
+    y::size top = _stack.size() - 1;
     sf::Event e;
     while (window.poll_event(e)) {
       if (e.type == sf::Event::Closed) {
         return;
       }
-      event(e);
+      event(e, top);
       if (clear_ended()) {
         break;
       }
@@ -362,13 +363,13 @@ void ModalStack::run(Window& window)
   }
 }
 
-void ModalStack::event(const sf::Event& e)
+void ModalStack::event(const sf::Event& e, y::size index)
 {
-  if (empty()) {
+  if (empty() || index >= _stack.size()) {
     return;
   }
 
-  Element& top = *(_stack.end() - 1);
+  Element& top = _stack[index];
 
   // Automatically handle undo/redo.
   if (e.type == sf::Event::KeyPressed &&

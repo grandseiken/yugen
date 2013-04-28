@@ -149,6 +149,8 @@ private:
 
   y::unique<TileEditAction> _tile_edit_action;
 
+  TextInputResult _input_result;
+
 };
 
 #endif

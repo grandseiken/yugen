@@ -1,4 +1,7 @@
 #include "ui_util.h"
+#include "window.h"
+
+#include <SFML/Window.hpp>
 
 UiList::UiList(const y::ivec2& origin, const y::ivec2& size,
                const Colour& panel, const Colour& item, const Colour& s_item)
@@ -61,4 +64,99 @@ void UiList::draw(RenderUtil& util,
   }
 
   draw(util, items, source, select);
+}
+
+TextInputResult::TextInputResult()
+  : success(false)
+  , result("")
+{
+}
+
+TextInputModal::TextInputModal(RenderUtil& util, const y::string& default_text,
+                               TextInputResult& output, const y::string& label)
+  : _util(util)
+  , _output(output)
+  , _label(label)
+  , _cursor(default_text.length())
+{
+  output.success = false;
+  output.result = default_text;
+}
+
+void TextInputModal::event(const sf::Event& e)
+{
+  const static y::string allowed =
+      y::string("abcdefghijklmnopqrstuvwxyz") +
+      y::string("ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
+      y::string("0123456789[](){}_-+=@#&./ ");
+  if (e.type == sf::Event::TextEntered && e.text.unicode < 128 &&
+      allowed.find_first_of(char(e.text.unicode)) != y::string::npos) {
+    _output.result = _output.result.substr(0, _cursor) +
+        char(e.text.unicode) + _output.result.substr(_cursor);
+    ++_cursor;
+  }
+  if (e.type != sf::Event::KeyPressed) {
+    return;
+  }
+
+  switch (e.key.code) {
+    case sf::Keyboard::Left:
+      if (_cursor) {
+        --_cursor;
+      }
+      break;
+    case sf::Keyboard::Right:
+      if (_cursor < _output.result.size()) {
+        ++_cursor;
+      }
+      break;
+    case sf::Keyboard::BackSpace:
+      if (_cursor) {
+        _output.result = _output.result.substr(0, _cursor - 1) +
+            _output.result.substr(_cursor);
+        --_cursor;
+      }
+      break;
+    case sf::Keyboard::Delete:
+      if (_cursor < _output.result.size()) {
+        _output.result = _output.result.substr(0, _cursor) +
+            _output.result.substr(_cursor + 1);
+      }
+      break;
+    case sf::Keyboard::Return:
+      _output.success = true;
+      end();
+      break;
+    case sf::Keyboard::Escape:
+      _output.success = false;
+      end();
+      break;
+    default: {}
+  } 
+}
+
+void TextInputModal::update()
+{
+}
+
+void TextInputModal::draw() const
+{
+  const Resolution& r = _util.get_window().get_mode();
+  y::ivec2 size = RenderUtil::from_grid({
+      y::int32(y::max(_label.length(), _output.result.length())), 2});
+  y::ivec2 origin = r.size / 2 - size / 2;
+  _util.render_fill(origin, {size[xx], RenderUtil::from_grid()[yy]},
+                    Colour::panel);
+  _util.render_outline(origin - y::ivec2{1, 1},
+                       y::ivec2{2, 2} + size, Colour::outline);
+  _util.render_fill(origin + RenderUtil::from_grid({y::int32(_cursor), 1}),
+                    RenderUtil::from_grid(), Colour::item);
+  _util.render_text(_label, origin, Colour::item);
+  _util.render_text(_output.result, origin + RenderUtil::from_grid({0, 1}),
+                    Colour::select);
+  if (_cursor < _output.result.length()) {
+    _util.render_text(_output.result.substr(_cursor, 1),
+                      origin + RenderUtil::from_grid({y::int32(_cursor), 1}),
+                      Colour::black);
+  }
 }

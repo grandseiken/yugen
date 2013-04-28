@@ -12,6 +12,18 @@ Colour::Colour(float r, float g, float b, float a)
 {
 }
 
+const Colour Colour::outline(.7f, .7f, .7f, 1.f);
+const Colour Colour::dark_outline(.3f, .3f, .3f, 1.f);
+const Colour Colour::panel(.2f, .2f, .2f, .7f);
+const Colour Colour::dark_panel(0.f, 0.f, 0.f, .7f);
+const Colour Colour::item(.6f, .6f, .6f, 1.f);
+const Colour Colour::hover(.9f, .9f, .9f, .5f);
+const Colour Colour::select(.9f, .9f, .9f, 1.f);
+const Colour Colour::white(1.f, 1.f, 1.f, 1.f);
+const Colour Colour::black(0.f, 0.f, 0.f, 1.f);
+const Colour Colour::dark(.5f, .5f, .5f, 1.f);
+const Colour Colour::transparent(1.f, 1.f, 1.f, .5f);
+
 BatchedTexture::BatchedTexture(const GlTexture& sprite,
                                const y::ivec2& frame_size)
   : sprite(sprite)
