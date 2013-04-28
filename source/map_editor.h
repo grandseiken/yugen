@@ -135,6 +135,7 @@ private:
   RenderUtil& _util;
   CellMap& _map;
 
+  bool _camera_drag;
   y::ivec2 _camera;
   y::ivec2 _hover;
   y::ivec2 _hover_cell;

@@ -21,4 +21,5 @@ for file in source/*.* source/proto/*.proto; do
   lint_highlight $'\t' 'Line \1 tab'
   lint_highlight '(\]|\)|\])[^, ;)\]}]' 'Line \1 bracket format'
   lint_highlight '\} *else' 'Line \1 else line'
+  lint_highlight '[^A-Za-z_0-9](delete|int|short|long)[^A-Za-z_0-9]' 'Line \1 not allowed'
 done

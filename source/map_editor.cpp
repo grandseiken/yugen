@@ -141,7 +141,7 @@ bool TilePanel::event(const sf::Event& e)
     case sf::Keyboard::Q:
       --_tileset_select;
       break;
-    case sf::Keyboard::A:
+    case sf::Keyboard::E:
       ++_tileset_select;
       break;
     default: {}
@@ -186,7 +186,7 @@ void TilePanel::draw(RenderUtil& util) const
     max = y::min(max, t.get_size() - y::ivec2{1, 1});
     util.render_outline(
         min * Tileset::tile_size +
-            y::ivec2{0,RenderUtil::from_grid(_list.get_size())[yy]},
+            y::ivec2{0, RenderUtil::from_grid(_list.get_size())[yy]},
         (y::ivec2{1, 1} + (max - min)) * Tileset::tile_size, c_hover);
   }
 }
@@ -291,6 +291,7 @@ MapEditor::MapEditor(Databank& bank, RenderUtil& util, CellMap& map)
   : _bank(bank)
   , _util(util)
   , _map(map)
+  , _camera_drag(false)
   , _hover{-1, -1}
   , _brush_panel(bank, _tile_brush)
   , _tile_panel(bank, _tile_brush)
@@ -310,12 +311,23 @@ void MapEditor::event(const sf::Event& e)
   if (e.type == sf::Event::MouseLeft) {
     _hover = {-1, -1};
   }
+  if (e.type == sf::Event::MouseWheelMoved) {
+    _layer_panel.event(e);
+  }
 
+  // Start camera drag.
+  if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
+      (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
+       sf::Keyboard::isKeyPressed(sf::Keyboard::RShift) ||
+       e.mouseButton.button == sf::Mouse::Middle)) {
+    start_drag(_hover);
+    _camera_drag = true;
+  }
   // Start draw or pick.
-  if (e.type == sf::Event::MouseButtonPressed &&
-      (e.mouseButton.button == sf::Mouse::Left ||
-       e.mouseButton.button == sf::Mouse::Right) &&
-      _layer_panel.get_layer() <= Cell::foreground_layers) {
+  else if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
+           (e.mouseButton.button == sf::Mouse::Left ||
+            e.mouseButton.button == sf::Mouse::Right) &&
+           _layer_panel.get_layer() <= Cell::foreground_layers) {
     start_drag(camera_to_world(_hover).euclidean_div(Tileset::tile_size));
     if (e.mouseButton.button == sf::Mouse::Left) {
       _tile_edit_action = y::move_unique(
@@ -329,32 +341,21 @@ void MapEditor::event(const sf::Event& e)
       get_undo_stack().new_action(y::move_unique(_tile_edit_action));
     }
     // End pick and copy tiles.
-    else {
+    else if (!_camera_drag) {
       copy_drag_to_brush();
     }
     stop_drag();
+    _camera_drag = false;
   }
 
   if (e.type != sf::Event::KeyPressed) {
     return;
   }
 
-  // Control camera.
+  // Quit!
   switch (e.key.code) {
     case sf::Keyboard::Escape:
       end();
-      break;
-    case sf::Keyboard::Right:
-      _camera += {8, 0};
-      break;
-    case sf::Keyboard::Left:
-      _camera += {-8, 0};
-      break;
-    case sf::Keyboard::Down:
-      _camera += {0, 8};
-      break;
-    case sf::Keyboard::Up:
-      _camera += {0, -8};
       break;
     default: {}
   }
@@ -370,6 +371,28 @@ void MapEditor::update()
                           y::ivec2{0, _tile_panel.get_size()[yy]});
   _brush_panel.set_origin(_layer_panel.get_origin() + spacing +
                           y::ivec2{0, _layer_panel.get_size()[yy]});
+
+  // Move camera with arrow keys.
+  y::int32 speed = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
+                   sf::Keyboard::isKeyPressed(sf::Keyboard::RShift) ? 32 : 8;
+  y::ivec2 d;
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) ||
+      sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+    --d[yy];
+  }
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) ||
+      sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+    ++d[yy];
+  }
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) ||
+      sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+    --d[xx];
+  }
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) ||
+      sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+    ++d[xx];
+  }
+  _camera += speed * d;
 
   if (_hover[xx] < 0 || _hover[yy] < 0) {
     return;
@@ -389,6 +412,13 @@ void MapEditor::update()
     _layer_status.push_back(_bank.cells.get_name(*_map.get_coord(_hover_cell)));
   }
 
+  // Drag camera.
+  if (_camera_drag) {
+    _camera += get_drag_start() - _hover;
+    start_drag(_hover);
+    return;
+  }
+
   // Continuous tile drawing.
   if (!is_dragging() || !_tile_edit_action) {
     return;
@@ -401,13 +431,13 @@ void MapEditor::draw() const
   _util.get_gl().bind_window(true, true);
 
   // Draw cells.
-  y::ivec2 c = _map.get_boundary_min();
-  const y::ivec2& max = _map.get_boundary_max();
-
+  y::ivec2 min = _map.get_boundary_min();
+  y::ivec2 max = _map.get_boundary_max();
+  y::ivec2 c;
   for (y::int32 layer = -Cell::background_layers;
        layer <= Cell::foreground_layers; ++layer) {
-    for (c[xx] = 0; c[xx] < max[xx]; ++c[xx]) {
-      for (c[yy] = 0; c[yy] < max[yy]; ++c[yy]) {
+    for (c[xx] = min[xx]; c[xx] < max[xx]; ++c[xx]) {
+      for (c[yy] = min[yy]; c[yy] < max[yy]; ++c[yy]) {
         RenderBatch batch;
         draw_cell_layer(batch, c, layer);
         _util.render_batch(batch);
@@ -417,18 +447,23 @@ void MapEditor::draw() const
   }
 
   // Draw cell-grid.
-  for (c[xx] = 0; c[xx] < max[xx]; ++c[xx]) {
-    for (c[yy] = 0; c[yy] < max[yy]; ++c[yy]) {
-      _util.render_outline(
-          world_to_camera(c * Tileset::tile_size * Cell::cell_size),
-          Tileset::tile_size * Cell::cell_size, c_panel);
+  min = y::min(min, _hover_cell);
+  max = y::max(max, y::ivec2{1, 1} + _hover_cell);
+  for (c[xx] = min[xx]; c[xx] < max[xx]; ++c[xx]) {
+    for (c[yy] = min[yy]; c[yy] < max[yy]; ++c[yy]) {
+      if (_map.is_coord_used(c) ||
+          (c == _hover_cell && _hover[xx] >= 0 && _hover[yy] >= 0)) {
+        _util.render_outline(
+            world_to_camera(c * Tileset::tile_size * Cell::cell_size),
+            Tileset::tile_size * Cell::cell_size, c_panel);
+      }
     }
   }
 
   // Draw cursor.
   y::ivec2 t =
       (_hover_tile + _hover_cell * Cell::cell_size);
-  if (is_dragging() && !_tile_edit_action) {
+  if (is_dragging() && !_tile_edit_action && !_camera_drag) {
     y::ivec2 u = get_drag_start();
     y::ivec2 min = y::min(t, u);
     y::ivec2 max = y::max(t, u);

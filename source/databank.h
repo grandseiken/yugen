@@ -49,6 +49,9 @@ public:
   // Get index resource is stored at.
   y::size get_index(const T& resource) const;
 
+  // Rename resource.
+  void rename(const T& resource, const y::string& new_name);
+
 private:
 
   typedef y::map<y::string, y::unique<T>> map_type;
@@ -207,6 +210,30 @@ y::size Dataset<T>::get_index(const T& resource) const
     }
   }
   return -1;
+}
+
+template<typename T>
+void Dataset<T>::rename(const T& resource, const y::string& new_name)
+{
+  y::size i = get_index(resource);
+  if (i == -1) {
+    return;
+  }
+  _list.erase(_list.begin() + i);
+
+  const y::string& name = get_name(resource);
+  auto it = _map.find(name);
+  if (it == _map.end()) {
+    return;
+  }
+  y::unique<T> temp;
+  temp.swap(it->second);
+  _map.erase(it);
+
+  _list.push_back(new_name);
+  std::sort(_list.begin(), _list.end());
+  auto jt = _map.insert(y::make_pair(new_name, y::unique<T>()));
+  jt.first->second.swap(temp);
 }
 
 template<>

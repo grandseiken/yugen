@@ -15,8 +15,8 @@ struct Resolution {
 };
 
 namespace sf {
-  class Window;
   class Event;
+  class Window;
 }
 
 class Window : public y::no_copy {

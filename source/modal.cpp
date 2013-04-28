@@ -282,7 +282,8 @@ void PanelUi::update_mouse_overs(bool in_window, const y::ivec2& v)
 }
 
 Modal::Modal()
-  : _end(false)
+  : _stack(y::null)
+  , _end(false)
   , _panel_ui(*this)
 {
 }
