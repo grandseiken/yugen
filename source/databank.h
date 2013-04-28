@@ -35,6 +35,8 @@ public:
 
   // Get list of loaded resource names.
   const y::string_vector& get_names() const;
+  // Check if a name is used.
+  bool is_name_used(const y::string& name) const;
 
   // Get resource by name.
   const T& get(const y::string& name) const;
@@ -145,6 +147,17 @@ template<typename T>
 const y::string_vector& Dataset<T>::get_names() const
 {
   return _list;
+}
+
+template<typename T>
+bool Dataset<T>::is_name_used(const y::string& name) const
+{
+  for (const y::string& s : _list) {
+    if (s == name) {
+      return true;
+    }
+  }
+  return false;
 }
 
 template<typename T>

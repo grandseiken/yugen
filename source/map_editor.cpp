@@ -346,15 +346,23 @@ void MapEditor::event(const sf::Event& e)
   }
 
   switch (e.key.code) {
+    // Quit!
     case sf::Keyboard::Escape:
       end();
       break;
+    // Rename cell.
     case sf::Keyboard::R:
       if (_map.is_coord_used(_hover_cell)) {
         const y::string& name =
             _bank.cells.get_name(*_map.get_coord(_hover_cell));
         push(y::move_unique(new TextInputModal(
             _util, name, _input_result, "Rename cell " + name + " to:")));
+      }
+    // New cell.
+    case sf::Keyboard::N:
+      if (!_map.is_coord_used(_hover_cell)) {
+        push(y::move_unique(new TextInputModal(
+            _util, "/world/new.cell", _input_result, "Add cell using name:")));
       }
     default: {}
   }
@@ -418,9 +426,18 @@ void MapEditor::update()
     return;
   }
 
-  // Rename cell.
+  // Rename or add cell.
   if (_input_result.success) {
-    _bank.cells.rename(*_map.get_coord(_hover_cell), _input_result.result);
+    const y::string& result = _input_result.result;
+    if (_map.is_coord_used(_hover_cell)) {
+      _bank.cells.rename(*_map.get_coord(_hover_cell), result);
+    }
+    else {
+      if (!_bank.cells.is_name_used(result)) {
+        _bank.cells.insert(result, y::move_unique(new CellBlueprint()));
+      }
+      _map.set_coord(_hover_cell, _bank.cells.get(result));
+    }
     _input_result.success = false;
   }
 
