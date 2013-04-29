@@ -158,6 +158,9 @@ public:
 
 private:
 
+  void render_fill_internal(const y::fvec2& origin, const y::fvec2& size,
+                            float r, float g, float b, float a) const;
+
   // Font width and height.
   static const y::int32 font_width = 8;
   static const y::int32 font_height = 8;

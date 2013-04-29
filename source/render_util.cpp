@@ -207,29 +207,7 @@ void RenderUtil::render_text_grid(const y::string& text, const y::ivec2& origin,
 void RenderUtil::render_fill(const y::ivec2& origin, const y::ivec2& size,
                              float r, float g, float b, float a) const
 {
-  if (!_native_size[xx] || !_native_size[xx]) {
-    return;
-  }
-  _gl.enable_depth(false);
-
-  const GLfloat rect_data[] = {
-      float(origin[xx]), float(origin[yy]),
-      float((origin + size)[xx]), float(origin[yy]),
-      float(origin[xx]), float((origin + size)[yy]),
-      float((origin + size)[xx]), float((origin + size)[yy])};
-
-  auto rect_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, rect_data, sizeof(rect_data));
-
-  _draw_program.bind();
-  _draw_program.bind_attribute("pixels", rect_buffer);
-  _draw_program.bind_uniform("resolution", _native_size);
-  _draw_program.bind_uniform("translation", y::fvec2(_translation));
-  _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
-  _draw_program.bind_uniform("colour", r, g, b, a);
-  _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
-
-  _gl.delete_buffer(rect_buffer);
+  render_fill_internal(y::fvec2(origin), y::fvec2(size), r, g, b, a);
 }
 
 void RenderUtil::render_fill(const y::ivec2& origin, const y::ivec2& size,
@@ -255,12 +233,20 @@ void RenderUtil::render_fill_grid(const y::ivec2& origin,
 void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
                                 float r, float g, float b, float a) const
 {
-  render_fill(origin, {size[xx] - 1, 1}, r, g, b, a);
-  render_fill(origin + y::ivec2{0, 1}, {1, size[yy] - 1}, r, g, b, a);
-  render_fill(
-      origin + y::ivec2{1, size[yy] - 1}, {size[xx] - 1, 1}, r, g, b, a);
-  render_fill(
-      origin + y::ivec2{size[xx] - 1, 0}, {1, size[yy] - 1}, r, g, b, a);
+  // In order to keep lines 1 pixel wide we need to divide by the scale.
+  float pixel = 1.f / _scale;
+  render_fill_internal(
+      y::fvec2(origin), {size[xx] - pixel, pixel},
+      r, g, b, a);
+  render_fill_internal(
+      y::fvec2(origin) + y::fvec2{0.f, pixel}, {pixel, size[yy] - pixel},
+      r, g, b, a);
+  render_fill_internal(
+      y::fvec2(origin) + y::fvec2{pixel, size[yy] - pixel}, {size[xx] - pixel, pixel},
+      r, g, b, a);
+  render_fill_internal(
+      y::fvec2(origin) + y::fvec2{size[xx] - pixel, 0.f}, {pixel, size[yy] - pixel},
+      r, g, b, a);
 }
 
 void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
@@ -399,6 +385,35 @@ void RenderUtil::render_sprite(
   set_sprite(sprite, frame_size);
   batch_sprite(origin, frame, depth, colour);
   render_batch();
+}
+  
+void RenderUtil::render_fill_internal(
+    const y::fvec2& origin, const y::fvec2& size,
+    float r, float g, float b, float a) const
+{
+  if (!_native_size[xx] || !_native_size[xx]) {
+    return;
+  }
+  _gl.enable_depth(false);
+
+  const GLfloat rect_data[] = {
+      origin[xx], origin[yy],
+      (origin + size)[xx], origin[yy],
+      origin[xx], (origin + size)[yy],
+      (origin + size)[xx], (origin + size)[yy]};
+
+  auto rect_buffer = _gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, rect_data, sizeof(rect_data));
+
+  _draw_program.bind();
+  _draw_program.bind_attribute("pixels", rect_buffer);
+  _draw_program.bind_uniform("resolution", _native_size);
+  _draw_program.bind_uniform("translation", y::fvec2(_translation));
+  _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
+  _draw_program.bind_uniform("colour", r, g, b, a);
+  _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
+
+  _gl.delete_buffer(rect_buffer);
 }
 
 y::ivec2 RenderUtil::from_grid(const y::ivec2& grid)

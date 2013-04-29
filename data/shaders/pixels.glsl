@@ -8,7 +8,8 @@ const float correction = 0.375;
 
 vec4 pos_from_pixels()
 {
-  vec2 v = scale * 2.0 * (pixels + translation + correction) / vec2(resolution) - 1.0;
+  vec2 v = 2.0 * (scale * pixels + translation + correction) /
+      vec2(resolution) - 1.0;
   return vec4(v.x, -v.y, 0.0, 1.0);
 }
 

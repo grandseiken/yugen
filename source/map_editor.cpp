@@ -284,6 +284,105 @@ void LayerPanel::draw(RenderUtil& util) const
 
 static const y::vector<float> zoom_array{.25f, .5f, 1.f, 2.f, 3.f, 4.f};
 
+MinimapPanel::MinimapPanel(const CellMap& map,
+                           y::ivec2& camera, const y::int32& zoom)
+  : Panel(y::ivec2(), y::ivec2())
+  , _map(map)
+  , _camera(camera)
+  , _zoom(zoom)
+{
+}
+
+bool MinimapPanel::event(const sf::Event& e)
+{
+  // Start drag.
+  if (e.type == sf::Event::MouseButtonPressed &&
+      (e.mouseButton.button == sf::Mouse::Left ||
+       e.mouseButton.button == sf::Mouse::Right)) {
+    start_drag(y::ivec2());
+  }
+  if (e.type == sf::Event::MouseButtonReleased && is_dragging() &&
+      (e.mouseButton.button == sf::Mouse::Left ||
+       e.mouseButton.button == sf::Mouse::Right)) {
+    stop_drag();
+  }
+
+  // Update camera position.
+  if ((e.type == sf::Event::MouseMoved ||
+       e.type == sf::Event::MouseButtonPressed) && is_dragging()) {
+    y::ivec2 v = e.type == sf::Event::MouseMoved ?
+        y::ivec2{e.mouseMove.x, e.mouseMove.y} :
+        y::ivec2{e.mouseButton.x, e.mouseButton.y};
+    _camera = v * scale +
+        _map.get_boundary_min() * Cell::cell_size * Tileset::tile_size;
+  }
+  if (e.type == sf::Event::MouseMoved) {
+    return true;
+  }
+  return false;
+}
+
+void MinimapPanel::update()
+{
+  set_size((_map.get_boundary_max() - _map.get_boundary_min()) *
+           (Tileset::tile_size / scale) * Cell::cell_size);
+}
+
+void MinimapPanel::draw(RenderUtil& util) const
+{
+  util.render_fill(y::ivec2(), get_size(), Colour::dark_panel);
+  util.set_scale(1.f / scale);
+  const y::ivec2& min = _map.get_boundary_min();
+  const y::ivec2& max = _map.get_boundary_max();
+  y::ivec2 c;
+  for (y::int32 layer = -Cell::background_layers;
+       layer <= Cell::foreground_layers; ++layer) {
+    // TODO: get depth working so we can move this outside.
+    RenderBatch batch;
+    for (c[xx] = min[xx]; c[xx] < max[xx]; ++c[xx]) {
+      for (c[yy] = min[yy]; c[yy] < max[yy]; ++c[yy]) {
+        if (!_map.is_coord_used(c)) {
+          continue;
+        }
+        const CellBlueprint* cell = _map.get_coord(c);
+
+        y::ivec2 v;
+        for (; v[xx] < Cell::cell_size[xx]; ++v[xx]) {
+          for (v[yy] = 0; v[yy] < Cell::cell_size[yy]; ++v[yy]) {
+            const Tile& t = cell->get_tile(layer, v);
+            // Draw the tile.
+            if (!t.tileset) {
+              continue;
+            }
+
+            y::ivec2 u = Tileset::tile_size * (v + (c - min) * Cell::cell_size);
+            batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
+                             u, t.tileset->from_index(t.index),
+                             (layer + Cell::background_layers) /
+                                 (1 + Cell::background_layers +
+                                  Cell::foreground_layers), Colour::white);
+          }
+        }
+      }
+    }
+    util.render_batch(batch);
+    util.get_gl().bind_window(false, true);
+  }
+  // Draw viewport.
+  const Resolution& r = util.get_window().get_mode();
+  y::ivec2 vmin =
+      _camera - y::ivec2(y::fvec2(r.size) / (2.f * zoom_array[_zoom])) -
+      Tileset::tile_size * min * Cell::cell_size;
+  y::ivec2 vmax = vmin + y::ivec2(y::fvec2(r.size) / zoom_array[_zoom]);
+
+  vmin = y::max(vmin, y::ivec2());
+  vmax = y::min(vmax, (max - min) * Cell::cell_size * Tileset::tile_size);
+  if (vmin[xx] < vmax[xx] && vmin[yy] < vmax[yy]) {
+    util.render_outline(vmin, vmax - vmin, Colour::outline);
+  }
+  util.set_scale(1.f);
+}
+
 MapEditor::MapEditor(Databank& bank, RenderUtil& util, CellMap& map)
   : _bank(bank)
   , _util(util)
@@ -294,10 +393,12 @@ MapEditor::MapEditor(Databank& bank, RenderUtil& util, CellMap& map)
   , _brush_panel(bank, _tile_brush)
   , _tile_panel(bank, _tile_brush)
   , _layer_panel(_layer_status)
+  , _minimap_panel(map, _camera, _zoom)
 {
   get_panel_ui().add(_brush_panel);
   get_panel_ui().add(_tile_panel);
   get_panel_ui().add(_layer_panel);
+  get_panel_ui().add(_minimap_panel);
 }
 
 void MapEditor::event(const sf::Event& e)
@@ -359,8 +460,10 @@ void MapEditor::event(const sf::Event& e)
       end();
       break;
     // Rename cell.
+    // TODO: make undoable.
     case sf::Keyboard::R:
-      if (_map.is_coord_used(_hover_cell)) {
+      if (_hover[xx] >= 0 && _hover[yy] >= 0 &&
+          _map.is_coord_used(_hover_cell)) {
         const y::string& name =
             _bank.cells.get_name(*_map.get_coord(_hover_cell));
         push(y::move_unique(new TextInputModal(
@@ -368,8 +471,10 @@ void MapEditor::event(const sf::Event& e)
       }
       break;
     // New cell.
+    // TODO: make undoable.
     case sf::Keyboard::N:
-      if (!_map.is_coord_used(_hover_cell)) {
+      if (_hover[xx] >= 0 && _hover[yy] >= 0 &&
+          !_map.is_coord_used(_hover_cell)) {
         push(y::move_unique(new TextInputModal(
             _util, "/world/new.cell", _input_result, "Add cell using name:")));
       }
@@ -399,6 +504,7 @@ void MapEditor::update()
   y::clamp(_zoom, 0, y::int32(zoom_array.size()));
 
   // Layout UI.
+  const Resolution& r = _util.get_window().get_mode();
   const y::ivec2 spacing = RenderUtil::from_grid({0, 1});
 
   _tile_panel.set_origin(RenderUtil::from_grid());
@@ -406,6 +512,8 @@ void MapEditor::update()
                           y::ivec2{0, _tile_panel.get_size()[yy]});
   _brush_panel.set_origin(_layer_panel.get_origin() + spacing +
                           y::ivec2{0, _layer_panel.get_size()[yy]});
+  _minimap_panel.set_origin(r.size - _minimap_panel.get_size() -
+                            RenderUtil::from_grid());
 
   // Move camera with arrow keys.
   y::int32 speed = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
@@ -488,14 +596,14 @@ void MapEditor::draw() const
   y::ivec2 c;
   for (y::int32 layer = -Cell::background_layers;
        layer <= Cell::foreground_layers; ++layer) {
+    RenderBatch batch;
     for (c[xx] = min[xx]; c[xx] < max[xx]; ++c[xx]) {
       for (c[yy] = min[yy]; c[yy] < max[yy]; ++c[yy]) {
-        RenderBatch batch;
         draw_cell_layer(batch, c, layer);
-        _util.render_batch(batch);
       }
-      _util.get_gl().bind_window(false, true);
     }
+    _util.render_batch(batch);
+    _util.get_gl().bind_window(false, true);
   }
 
   // Draw cell-grid.

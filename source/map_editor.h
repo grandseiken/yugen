@@ -7,11 +7,12 @@
 #include "ui_util.h"
 #include "vector.h"
 
+class CellMap;
 class Databank;
 class RenderBatch;
 class RenderUtil;
-class CellMap;
 
+// Action that changes a set of tiles.
 struct TileEditAction : public StackAction {
   TileEditAction(CellMap& map, y::int32 layer);
 
@@ -104,6 +105,27 @@ private:
 
 };
 
+// Displays the minimap.
+class MinimapPanel : public Panel {
+public:
+
+  MinimapPanel(const CellMap& map, y::ivec2& camera, const y::int32& zoom);
+  virtual ~MinimapPanel() {}
+
+  virtual bool event(const sf::Event& e);
+  virtual void update();
+  virtual void draw(RenderUtil& util) const;
+
+private:
+
+  static const y::int32 scale = 16;
+
+  const CellMap& _map;
+  y::ivec2& _camera;
+  const y::int32& _zoom;
+
+};
+
 // Combines the above Panels and draws the world underneath.
 class MapEditor: public Modal {
 public:
@@ -116,6 +138,8 @@ public:
   virtual void draw() const;
 
 private:
+
+  friend class MinimapPanel;
 
   y::ivec2 world_to_camera(const y::ivec2& v) const;
   y::ivec2 camera_to_world(const y::ivec2& v) const;
@@ -142,6 +166,7 @@ private:
   BrushPanel _brush_panel;
   TilePanel _tile_panel;
   LayerPanel _layer_panel;
+  MinimapPanel _minimap_panel;
 
   y::unique<TileEditAction> _tile_edit_action;
 

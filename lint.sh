@@ -11,7 +11,7 @@ function lint_highlight {
 }
 
 # TODO: lint things on adjacent lines (for indent checking).
-for file in source/*.* source/proto/*.proto; do
+for file in source/*.* source/proto/*.proto data/shaders/*; do
   echo Linting: $file
   lint '^.{81}.*$' 'Line \1 too long'
   lint_highlight '\( | \)|\[ | \]|\{ |[^ ] \}|[^ ]  +[^ ]' 'Line \1 whitespace'
