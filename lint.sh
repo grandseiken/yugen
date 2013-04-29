@@ -17,7 +17,7 @@ for file in source/*.* source/proto/*.proto; do
   lint_highlight '\( | \)|\[ | \]|\{ |[^ ] \}|[^ ]  +[^ ]' 'Line \1 whitespace'
   lint_highlight ' +$' 'Line \1 trailing whitespace'
   lint_highlight '[^ ] +static' 'Line \1 bad order'
-  lint_highlight ',[^ ].|;[^ }].|:[^ :A-Za-z_*~].' 'Line \1 separator format'
+  lint_highlight ',[^ "].|;[^ }"].|:[^ :A-Za-z_*~"].' 'Line \1 separator format'
   lint_highlight $'\t' 'Line \1 tab'
   lint_highlight '(\]|\)|\])[^, ;)\]}]' 'Line \1 bracket format'
   lint_highlight '\} *else' 'Line \1 else line'

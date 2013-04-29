@@ -76,6 +76,10 @@ class Window;
 class RenderUtil {
 public:
 
+  static const y::int32 native_width = 640;
+  static const y::int32 native_height = 360;
+  static const y::ivec2 native_size;
+
   RenderUtil(GlUtil& gl);
   ~RenderUtil();
 
@@ -93,6 +97,9 @@ public:
 
   // Offset all render operations.
   void add_translation(const y::ivec2& translation);
+
+  // Scale all render operations.
+  void set_scale(float scale);
 
   // Render text (at pixel coordinates).
   void render_text(const y::string& text, const y::ivec2& origin,
@@ -161,6 +168,7 @@ private:
 
   y::ivec2 _native_size;
   y::ivec2 _translation;
+  float _scale;
 
   GlTexture _font;
   GlProgram _text_program;

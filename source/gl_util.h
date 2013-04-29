@@ -160,7 +160,6 @@ namespace std {
 }
 
 // Lightweight handle to a GLSL shader program.
-// TODO: allow binding vectors with vectors.
 class GlProgram : public GlHandle {
 public:
 
@@ -169,7 +168,7 @@ public:
   // Render using this shader.
   void bind() const;
 
-  // Bind the vlaue of an attribute variable.
+  // Bind the value of an attribute variable.
   template<typename T, y::size N>
   bool bind_attribute(const y::string& name,
                       const GlBuffer<T, N>& buffer) const;
@@ -183,6 +182,13 @@ public:
   bool bind_uniform(const y::string& name, T a, T b, T c) const;
   template<typename T>
   bool bind_uniform(const y::string& name, T a, T b, T c, T d) const;
+
+  template<typename T>
+  bool bind_uniform(const y::string& name, const y::vec<T, 2>& arg) const;
+  template<typename T>
+  bool bind_uniform(const y::string& name, const y::vec<T, 3>& arg) const;
+  template<typename T>
+  bool bind_uniform(const y::string& name, const y::vec<T, 4>& arg) const;
 
   // Bind the value of an attribute variable in an array.
   template<typename T, y::size N>
@@ -202,6 +208,16 @@ public:
   template<typename T>
   bool bind_uniform(y::size index, const y::string& name,
                     T a, T b, T c, T d) const;
+
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    const y::vec<T, 2>& arg) const;
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    const y::vec<T, 3>& arg) const;
+  template<typename T>
+  bool bind_uniform(y::size index, const y::string& name,
+                    const y::vec<T, 4>& arg) const;
 
 protected:
 
@@ -463,6 +479,27 @@ bool GlProgram::bind_uniform(const y::string& name, T a, T b, T c, T d) const
   return true;
 }
 
+template<typename T>
+bool GlProgram::bind_uniform(
+    const y::string& name, const y::vec<T, 2>& arg) const
+{
+  return bind_uniform(name, arg[xx], arg[yy]);
+}
+
+template<typename T>
+bool GlProgram::bind_uniform(
+    const y::string& name, const y::vec<T, 3>& arg) const
+{
+  return bind_uniform(name, arg[xx], arg[yy], arg[zz]);
+}
+
+template<typename T>
+bool GlProgram::bind_uniform(
+    const y::string& name, const y::vec<T, 4>& arg) const
+{
+  return bind_uniform(name, arg[xx], arg[yy], arg[zz], arg[ww]);
+}
+
 template<typename T, y::size N>
 bool GlProgram::bind_attribute(y::size index, const y::string& name,
                                const GlBuffer<T, N>& buffer) const
@@ -529,6 +566,27 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
   GLint location = get_uniform_location(name, index);
   GlUniform<T>::uniform4(location, a, b, c, d);
   return true;
+}
+
+template<typename T>
+bool GlProgram::bind_uniform(
+    y::size index, const y::string& name, const y::vec<T, 2>& arg) const
+{
+  return bind_uniform(index, name, arg[xx], arg[yy]);
+}
+
+template<typename T>
+bool GlProgram::bind_uniform(
+    y::size index, const y::string& name, const y::vec<T, 3>& arg) const
+{
+  return bind_uniform(index, name, arg[xx], arg[yy], arg[zz]);
+}
+
+template<typename T>
+bool GlProgram::bind_uniform(
+    y::size index, const y::string& name, const y::vec<T, 4>& arg) const
+{
+  return bind_uniform(index, name, arg[xx], arg[yy], arg[zz], arg[ww]);
 }
 
 #endif

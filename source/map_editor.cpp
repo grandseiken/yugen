@@ -110,13 +110,15 @@ bool TilePanel::event(const sf::Event& e)
 
   // Start drag.
   if (e.type == sf::Event::MouseButtonPressed &&
-      e.mouseButton.button == sf::Mouse::Left) {
+      (e.mouseButton.button == sf::Mouse::Left ||
+       e.mouseButton.button == sf::Mouse::Right)) {
     start_drag(_tile_hover);
   }
 
   // End drag and update brush.
-  if (e.type == sf::Event::MouseButtonReleased &&
-      e.mouseButton.button == sf::Mouse::Left && is_dragging()) {
+  if (e.type == sf::Event::MouseButtonReleased && is_dragging() &&
+      (e.mouseButton.button == sf::Mouse::Left ||
+       e.mouseButton.button == sf::Mouse::Right)) {
     copy_drag_to_brush();
     stop_drag();
   }
@@ -280,11 +282,14 @@ void LayerPanel::draw(RenderUtil& util) const
   }
 }
 
+static const y::vector<float> zoom_array{.25f, .5f, 1.f, 2.f, 3.f, 4.f};
+
 MapEditor::MapEditor(Databank& bank, RenderUtil& util, CellMap& map)
   : _bank(bank)
   , _util(util)
   , _map(map)
   , _camera_drag(false)
+  , _zoom(2)
   , _hover{-1, -1}
   , _brush_panel(bank, _tile_brush)
   , _tile_panel(bank, _tile_brush)
@@ -299,7 +304,8 @@ void MapEditor::event(const sf::Event& e)
 {
   // Update hover position.
   if (e.type == sf::Event::MouseMoved) {
-    _hover = {e.mouseMove.x, e.mouseMove.y};
+    _hover = y::ivec2(y::fvec2(float(e.mouseMove.x), float(e.mouseMove.y)) /
+                      zoom_array[_zoom]);
   }
   if (e.type == sf::Event::MouseLeft) {
     _hover = {-1, -1};
@@ -317,6 +323,7 @@ void MapEditor::event(const sf::Event& e)
     _camera_drag = true;
   }
   // Start draw or pick.
+  // TODO: control + draw should draw a rectangle.
   else if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
            (e.mouseButton.button == sf::Mouse::Left ||
             e.mouseButton.button == sf::Mouse::Right) &&
@@ -345,6 +352,7 @@ void MapEditor::event(const sf::Event& e)
     return;
   }
 
+  y::int32 old_zoom = _zoom;
   switch (e.key.code) {
     // Quit!
     case sf::Keyboard::Escape:
@@ -358,18 +366,38 @@ void MapEditor::event(const sf::Event& e)
         push(y::move_unique(new TextInputModal(
             _util, name, _input_result, "Rename cell " + name + " to:")));
       }
+      break;
     // New cell.
     case sf::Keyboard::N:
       if (!_map.is_coord_used(_hover_cell)) {
         push(y::move_unique(new TextInputModal(
             _util, "/world/new.cell", _input_result, "Add cell using name:")));
       }
+      break;
+    // Zoom in.
+    case sf::Keyboard::Z:
+      ++_zoom;
+      if (_zoom >= 0 && _zoom < y::int32(zoom_array.size())) {
+        _hover = y::ivec2(y::fvec2(_hover) *
+                          zoom_array[old_zoom] / zoom_array[_zoom]);
+      }
+      break;
+    // Zoom out.
+    case sf::Keyboard::X:
+      --_zoom;
+      if (_zoom >= 0 && _zoom < y::int32(zoom_array.size())) {
+        _hover = y::ivec2(y::fvec2(_hover) *
+                          zoom_array[old_zoom] / zoom_array[_zoom]);
+      }
+      break;
     default: {}
   }
 }
 
 void MapEditor::update()
 {
+  y::clamp(_zoom, 0, y::int32(zoom_array.size()));
+
   // Layout UI.
   const y::ivec2 spacing = RenderUtil::from_grid({0, 1});
 
@@ -413,7 +441,8 @@ void MapEditor::update()
   _layer_status.clear();
   y::sstream ss;
   ss << _hover_cell[xx] << ", " << _hover_cell[yy] <<
-      " : " << _hover_tile[xx] << ", " << _hover_tile[yy];
+      " : " << _hover_tile[xx] << ", " << _hover_tile[yy] <<
+      " [" << zoom_array[_zoom] << "X]";
   _layer_status.push_back(ss.str());
   if (_map.is_coord_used(_hover_cell)) {
     _layer_status.push_back(_bank.cells.get_name(*_map.get_coord(_hover_cell)));
@@ -451,6 +480,7 @@ void MapEditor::update()
 void MapEditor::draw() const
 {
   _util.get_gl().bind_window(true, true);
+  _util.set_scale(zoom_array[_zoom]);
 
   // Draw cells.
   y::ivec2 min = _map.get_boundary_min();
@@ -482,6 +512,13 @@ void MapEditor::draw() const
     }
   }
 
+  // Draw native resolution indicator.
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
+    const Resolution& r = _util.get_window().get_mode();
+    _util.render_outline(r.size / 2 - RenderUtil::native_size / 2,
+                         RenderUtil::native_size, Colour::outline);
+  }
+
   // Draw cursor.
   y::ivec2 t =
       (_hover_tile + _hover_cell * Cell::cell_size);
@@ -500,19 +537,20 @@ void MapEditor::draw() const
   }
 
   // Draw UI.
+  _util.set_scale(1.f);
   get_panel_ui().draw(_util);
 }
 
 y::ivec2 MapEditor::world_to_camera(const y::ivec2& v) const
 {
   const Resolution& r = _util.get_window().get_mode();
-  return v - _camera + r.size / 2;
+  return v - _camera + y::ivec2(y::fvec2(r.size / 2) / zoom_array[_zoom]);
 }
 
 y::ivec2 MapEditor::camera_to_world(const y::ivec2& v) const
 {
   const Resolution& r = _util.get_window().get_mode();
-  return v + _camera - r.size / 2;
+  return v - y::ivec2(y::fvec2(r.size / 2) / zoom_array[_zoom]) + _camera;
 }
 
 void MapEditor::copy_drag_to_brush()

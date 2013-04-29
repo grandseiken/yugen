@@ -88,10 +88,8 @@ void Yugen::draw() const
   _post_program.bind();
   _post_program.bind_attribute("position", _vertex_buffer);
   _post_program.bind_uniform("integral_scale_lock", true);
-  _post_program.bind_uniform("native_res",
-      GLint(_framebuffer.get_size()[xx]), GLint(_framebuffer.get_size()[yy]));
-  _post_program.bind_uniform("screen_res",
-      GLint(screen.size[xx]), GLint(screen.size[yy]));
+  _post_program.bind_uniform("native_res", _framebuffer.get_size());
+  _post_program.bind_uniform("screen_res", screen.size);
   _framebuffer.get_texture().bind(GL_TEXTURE0);
   _post_program.bind_uniform("framebuffer", 0);
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
@@ -104,15 +102,13 @@ int main(int argc, char** argv)
 
   World world;
 
-  const y::ivec2 native_size{640, 360};
-
-  Window window("Crunk Yugen", 24, native_size, true, false);
+  Window window("Crunk Yugen", 24, RenderUtil::native_size, true, false);
   PhysicalFilesystem filesystem("data");
   GlUtil gl(filesystem, window);
   if (!gl) {
     return 1;
   }
-  GlFramebuffer framebuffer = gl.make_framebuffer(native_size);
+  GlFramebuffer framebuffer = gl.make_framebuffer(RenderUtil::native_size);
   RenderUtil util(gl);
 
   ModalStack stack;

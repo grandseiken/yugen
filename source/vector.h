@@ -47,6 +47,15 @@ namespace y {
       operator=(arg);
     }
 
+    template<typename U>
+    explicit vec(const vec<U, N>& arg)
+      : elements{}
+    {
+      for (y::size i = 0; i < N; ++i) {
+        elements[i] = T(arg.elements[i]);
+      }
+    }
+
     V& operator=(const V& arg)
     {
       for (y::size i = 0; i < N; ++i) {

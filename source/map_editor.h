@@ -131,6 +131,7 @@ private:
   CellMap& _map;
 
   bool _camera_drag;
+  y::int32 _zoom;
   y::ivec2 _camera;
   y::ivec2 _hover;
   y::ivec2 _hover_cell;

@@ -78,12 +78,16 @@ const RenderBatch::BatchedTextureMap& RenderBatch::get_map() const
 
 static const GLushort quad_data[] = {0, 1, 2, 3};
 
+const y::ivec2 RenderUtil::native_size{RenderUtil::native_width,
+                                       RenderUtil::native_height};
+
 RenderUtil::RenderUtil(GlUtil& gl)
   : _gl(gl)
   , _quad(gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
                                       quad_data, sizeof(quad_data)))
   , _native_size{0, 0}
   , _translation{0, 0}
+  , _scale(1.f)
   , _font(gl.make_texture("/font.png"))
   , _text_program(gl.make_program({"/shaders/text.v.glsl",
                                    "/shaders/text.f.glsl"}))
@@ -139,6 +143,11 @@ void RenderUtil::add_translation(const y::ivec2& translation)
   _translation += translation;
 }
 
+void RenderUtil::set_scale(float scale)
+{
+  _scale = scale;
+}
+
 void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
                              float r, float g, float b, float a) const
 {
@@ -148,20 +157,18 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   _gl.enable_depth(false);
 
   y::ivec2 font_size = from_grid();
-  y::ivec2 v = origin + _translation;
   const GLfloat text_data[] = {
-      float(v[xx]), float(v[yy]),
-      float((v + _native_size)[xx]), float(v[yy]),
-      float(v[xx]), float((v + font_size)[yy]),
-      float((v + _native_size)[xx]), float((v + font_size)[yy])};
+      float(origin[xx]), float(origin[yy]),
+      float((origin + _native_size)[xx]), float(origin[yy]),
+      float(origin[xx]), float((origin + font_size)[yy]),
+      float((origin + _native_size)[xx]), float((origin + font_size)[yy])};
 
   auto text_buffer = _gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, text_data, sizeof(text_data));
 
   _text_program.bind();
   _text_program.bind_attribute("pixels", text_buffer);
-  _text_program.bind_uniform("resolution",
-      GLint(_native_size[xx]), GLint(_native_size[yy]));
+  _text_program.bind_uniform("resolution", _native_size);
   _text_program.bind_uniform("origin",
       GLint(text_data[0]), GLint(text_data[1]));
   for (y::size i = 0; i < 1024; ++i) {
@@ -170,8 +177,9 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   }
   _font.bind(GL_TEXTURE0);
   _text_program.bind_uniform("font", 0);
-  _text_program.bind_uniform(
-      "font_size", GLint(font_size[xx]), GLint(font_size[yy]));
+  _text_program.bind_uniform("font_size", font_size);
+  _text_program.bind_uniform("translation", y::fvec2(_translation));
+  _text_program.bind_uniform("scale", y::fvec2{_scale, _scale});
   _text_program.bind_uniform("colour", r, g, b, a);
   _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
 
@@ -204,20 +212,20 @@ void RenderUtil::render_fill(const y::ivec2& origin, const y::ivec2& size,
   }
   _gl.enable_depth(false);
 
-  y::ivec2 v = origin + _translation;
   const GLfloat rect_data[] = {
-      float(v[xx]), float(v[yy]),
-      float((v + size)[xx]), float(v[yy]),
-      float(v[xx]), float((v + size)[yy]),
-      float((v + size)[xx]), float((v + size)[yy])};
+      float(origin[xx]), float(origin[yy]),
+      float((origin + size)[xx]), float(origin[yy]),
+      float(origin[xx]), float((origin + size)[yy]),
+      float((origin + size)[xx]), float((origin + size)[yy])};
 
   auto rect_buffer = _gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, rect_data, sizeof(rect_data));
 
   _draw_program.bind();
   _draw_program.bind_attribute("pixels", rect_buffer);
-  _draw_program.bind_uniform("resolution",
-      GLint(_native_size[xx]), GLint(_native_size[yy]));
+  _draw_program.bind_uniform("resolution", _native_size);
+  _draw_program.bind_uniform("translation", y::fvec2(_translation));
+  _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
   _draw_program.bind_uniform("colour", r, g, b, a);
   _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
 
@@ -314,9 +322,8 @@ void RenderUtil::render_batch() const
   y::size length = _batched_sprites.size();
   for (y::size i = 0; i < length; ++i) {
     const BatchedSprite& s = _batched_sprites[i];
-
-    float left = s.left + _translation[xx];
-    float top = s.top + _translation[yy];
+    float left = s.left;
+    float top = s.top;
 
     write_vector(_pixels_data, 8 * i, {
         left, top,
@@ -360,15 +367,15 @@ void RenderUtil::render_batch() const
   _sprite_program.bind_attribute("frame_index", _frame_index_buffer);
   _sprite_program.bind_attribute("depth", _depth_buffer);
   _sprite_program.bind_attribute("colour", _colour_buffer);
-  _sprite_program.bind_uniform("resolution",
-      GLint(_native_size[xx]), GLint(_native_size[yy]));
+  _sprite_program.bind_uniform("resolution", _native_size);
+  _sprite_program.bind_uniform("translation", y::fvec2(_translation));
+  _sprite_program.bind_uniform("scale", y::fvec2{_scale, _scale});
 
   y::ivec2 v = _sprite.get_size() / _frame_size;
   _sprite.bind(GL_TEXTURE0);
   _sprite_program.bind_uniform("sprite", 0);
-  _sprite_program.bind_uniform(
-      "frame_size", GLint(_frame_size[xx]), GLint(_frame_size[yy]));
-  _sprite_program.bind_uniform("frame_count", GLint(v[xx]), GLint(v[yy]));
+  _sprite_program.bind_uniform("frame_size", _frame_size);
+  _sprite_program.bind_uniform("frame_count", v);
   _element_buffer.draw_elements(GL_TRIANGLES, 6 * length);
 
   _batched_sprites.clear();

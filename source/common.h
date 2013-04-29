@@ -47,7 +47,7 @@ namespace y {
   T euclidean_div(const T& n, const T& d)
   {
     bool sign = (n < 0) == (d < 0);
-    T t = abs(n) / abs(d);
+    T t = (n < 0 ? -(1 + n) : n) / abs(d);
     return (d < 0) + (sign ? t : -(1 + t));
   }
   template<typename T>
