@@ -1,3 +1,3 @@
 #!/bin/bash
 # Usage: wc.sh
-wc notes.txt *.sh data/shaders/* source/*.* source/proto/*.proto
+wc notes.txt *.sh data/shaders/* data/scripts/* source/*.* source/proto/*.proto

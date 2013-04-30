@@ -1,5 +1,6 @@
 #!/bin/bash
 # Usage: compile.sh [-c compiler] [target1, [target2 ...]]
+# Compile script that grew too large and should be refactored.
 cd "$(dirname "$0")"
 # Make output directory.
 if [ ! -d bin ]
@@ -13,9 +14,9 @@ targets[0]="yugen"
 targets[1]="yedit"
 targets_size=2
 
-cflag="-Werror -Wall -Wextra -pedantic -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/lua_5_2_2/include -I./depend/protobuf_2_5_0/include"
+cflag="-Werror -Wall -Wextra -pedantic -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/lua_5_2_2/src -I./depend/protobuf_2_5_0/include"
 lflag="-Werror -Wall -Wextra -pedantic -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib -L./depend/lua_5_2_2/lib -L./depend/protobuf_2_5_0/lib"
-libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -llua -lprotobuf -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
+libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lprotobuf -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
 
 # Grab compiler options.
 first=0
@@ -65,13 +66,40 @@ else
     echo "Compiling $pb..."
     base=$(basename $pb)
     $gcc -c $cflag -o bin/$base.o $pb
-    let success=$success && $?
+    let success=$success+$?
   done
   if [ $success -eq 0 ]; then
     md5sum source/proto/* > bin/.proto.md5 2> /dev/null
   else
     if [ -f bin/.proto.md5 ]; then
       rm bin/.proto.md5
+    fi
+    error=1
+  fi
+  change=1
+fi
+
+# Recompile lua if necessary.
+error=0
+change=0
+old=$(cat bin/.lua.md5 2> /dev/null)
+new=$(md5sum depend/lua_5_2_2/src/lua/* 2> /dev/null)
+if [ -f bin/.lua.md5 ] && [ "$old" == "$new" ]; then
+  echo "Up to date: lua"
+else
+  echo "Compiling lua..."
+  success=0
+  for c in depend/lua_5_2_2/src/lua/*.c; do
+    echo "Compiling $c..."
+    base=$(basename $c)
+    $gcc -c $cflag -o bin/$base.o $c
+    let success=$success+$?
+  done
+  if [ $success -eq 0 ]; then
+    md5sum depend/lua_5_2_2/src/lua/* > bin/.lua.md5 2> /dev/null
+  else
+    if [ -f bin/.lua.md5 ]; then
+      rm bin/.lua.md5
     fi
     error=1
   fi

@@ -94,6 +94,10 @@ int main(int argc, char** argv)
   Databank databank(filesystem, gl);
   RenderUtil util(gl);
 
+  // TODO: testing.
+  databank.scripts.get("/scripts/hello.lua").run();
+  databank.scripts.get("/scripts/hello.lua").run();
+
   ModalStack stack;
   stack.push(y::move_unique(new Yedit(filesystem, databank, util)));
   stack.run(window);

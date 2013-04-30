@@ -383,6 +383,8 @@ void MinimapPanel::draw(RenderUtil& util) const
   util.set_scale(1.f);
 }
 
+const y::int32 MinimapPanel::scale = 16;
+
 MapEditor::MapEditor(Databank& bank, RenderUtil& util, CellMap& map)
   : _bank(bank)
   , _util(util)

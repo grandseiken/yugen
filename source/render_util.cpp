@@ -236,16 +236,20 @@ void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
   // In order to keep lines 1 pixel wide we need to divide by the scale.
   float pixel = 1.f / _scale;
   render_fill_internal(
-      y::fvec2(origin), {size[xx] - pixel, pixel},
+      y::fvec2(origin),
+      {size[xx] - pixel, pixel},
       r, g, b, a);
   render_fill_internal(
-      y::fvec2(origin) + y::fvec2{0.f, pixel}, {pixel, size[yy] - pixel},
+      y::fvec2(origin) + y::fvec2{0.f, pixel},
+      {pixel, size[yy] - pixel},
       r, g, b, a);
   render_fill_internal(
-      y::fvec2(origin) + y::fvec2{pixel, size[yy] - pixel}, {size[xx] - pixel, pixel},
+      y::fvec2(origin) + y::fvec2{pixel, size[yy] - pixel},
+      {size[xx] - pixel, pixel},
       r, g, b, a);
   render_fill_internal(
-      y::fvec2(origin) + y::fvec2{size[xx] - pixel, 0.f}, {pixel, size[yy] - pixel},
+      y::fvec2(origin) + y::fvec2{size[xx] - pixel, 0.f},
+      {pixel, size[yy] - pixel},
       r, g, b, a);
 }
 

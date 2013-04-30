@@ -118,7 +118,7 @@ public:
 
 private:
 
-  static const y::int32 scale = 16;
+  static const y::int32 scale;
 
   const CellMap& _map;
   y::ivec2& _camera;

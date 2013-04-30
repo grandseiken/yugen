@@ -24,7 +24,7 @@ void main()
       viewport = vec2(1.0, screen_aspect / native_aspect);
     }
     else {
-      viewport = vec2(native_aspect / screen_aspect, 1.0); 
+      viewport = vec2(native_aspect / screen_aspect, 1.0);
     }
   }
   gl_Position = vec4(position * viewport, 0.0, 1.0);

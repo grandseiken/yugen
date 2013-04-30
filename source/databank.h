@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "cell.h"
+#include "lua.h"
 #include "tileset.h"
 
 #include <algorithm>
@@ -65,6 +66,7 @@ private:
 
 class Databank : public y::no_copy {
 
+  Script _default_script;
   Tileset _default_tileset;
   CellBlueprint _default_cell;
   CellMap _default_map;
@@ -84,6 +86,7 @@ public:
   template<typename T, typename P>
   void save_all(Filesystem& filesystem) const;
 
+  Dataset<Script> scripts;
   Dataset<Tileset> tilesets;
   Dataset<CellBlueprint> cells;
   Dataset<CellMap> maps;
@@ -251,6 +254,18 @@ void Dataset<T>::rename(const T& resource, const y::string& new_name)
   std::sort(_list.begin(), _list.end());
   auto jt = _map.insert(y::make_pair(new_name, y::unique<T>()));
   jt.first->second.swap(temp);
+}
+
+template<>
+inline const Dataset<Script>& Databank::get_set<Script>() const
+{
+  return scripts;
+}
+
+template<>
+inline Dataset<Script>& Databank::get_set<Script>()
+{
+  return scripts;
 }
 
 template<>
