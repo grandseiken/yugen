@@ -20,14 +20,15 @@ int hello(lua_State* state)
 
 int twice(lua_State* state)
 {
-  lua_pushinteger(state, 2 * lua_tointeger(state, 1));
-
-  // Return number of return values.
+  // Better checking?
+  int d = luaL_checkinteger(state, -1);
+  lua_pushinteger(state, 2 * d);
   return 1;
 }
 
-// TODO: figure out code-sharing between scripts; engine integration,
-// library, etc.
+// TODO: figure out code-sharing between scripts (make some master lua functions
+// in a file and chuck them into the global state of each new script?); engine
+// integration, C library, etc.
 Script::Script(const Filesystem& filesystem, const y::string& path)
   : _path(path)
   // Use standard allocator and panic function.
@@ -71,6 +72,9 @@ void Script::run() const
   };
 
   local data_struct{_data, false};
+  // TODO: can we avoid parsing it every time?
+  // Idea: we just parse the script to get the (update, draw...) functions
+  // defined and stored/ in _state. Then, it's easy to call them whenever.
   if (lua_load(_state, local::read, &data_struct, _path.c_str(), y::null) ||
       // TODO: use a nice error function with tracebacks.
       lua_pcall(_state, 0, 0, 0)) {
