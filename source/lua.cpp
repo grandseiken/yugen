@@ -5,39 +5,147 @@
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
 
-// Test function.
-int hello(lua_State* state)
-{
-  // Example error-checking.
-  if (lua_gettop(state) == 0 || !lua_isnumber(state, -1)) {
-    std::cerr << "hello called with invalid thing" << std::endl;
+// Template / overload functions for interopability of different types
+// with Lua.
+namespace ylib {
+
+  typedef y::int32 ylib_int;
+
+  template<typename T>
+  inline T check(lua_State* state, ylib_int index);
+
+  // Integral values.
+  template<>
+  inline ylib_int check<ylib_int>(lua_State* state, ylib_int index)
+  {
+    return luaL_checkinteger(state, index);
   }
-  std::cout << "hello you passed " << lua_tointeger(state, 1) << std::endl;
 
-  // Return number of return values.
-  return 0;
+  inline void push(lua_State* state, ylib_int arg)
+  {
+    lua_pushinteger(state, arg);
+  }
+
+  // Floating-point values.
+  template<>
+  inline float check<float>(lua_State* state, ylib_int index)
+  {
+    return luaL_checknumber(state, index);
+  }
+
+  inline void push(lua_State* state, float arg)
+  {
+    lua_pushnumber(state, arg);
+  }
+
+  // Boolean values.
+  template<>
+  inline bool check<bool>(lua_State* state, ylib_int index)
+  {
+    return lua_toboolean(state, index);
+  }
+
+  inline void push(lua_State* state, bool arg)
+  {
+    lua_pushboolean(state, arg);
+  }
+
+  // String values.
+  template<>
+  inline y::string check<y::string>(lua_State* state, ylib_int index)
+  {
+    return y::string(luaL_checkstring(state, index));
+  }
+
+  inline void push(lua_State* state, const y::string& arg)
+  {
+    lua_pushstring(state, arg.c_str());
+  }
+
+  // Variadic push.
+  inline ylib_int push_all(lua_State* state)
+  {
+    (void)state;
+    return 0;
+  }
+
+  template<typename T, typename... U>
+  inline ylib_int push_all(lua_State* state, const T& arg, const U&... args)
+  {
+    push(state, arg);
+    push_all(state, args...);
+    return 1 + sizeof...(U);
+  }
+
 }
 
-int twice(lua_State* state)
-{
-  // Better checking?
-  int d = luaL_checkinteger(state, -1);
-  lua_pushinteger(state, 2 * d);
-  return 1;
-}
+/******************************************************************************/
+/**** Preprocessor magic for defining functions callable by Lua in a style ****/
+/**** that sort of approximates C functions:                               ****/
+/******************************************************************************/
+/***/ #define ylib_api(name)                                               /**/\
+/***/ namespace _ylib_api_##name {                                         /**/\
+/***/   ylib::ylib_int _ylib_api(lua_State* _ylib_state);                  /**/\
+/***/   typedef ylib::ylib_int _ylib_api_type(lua_State* _ylib_state);     /**/\
+/***/   static const char* const _ylib_name = #name;                       /**/\
+/***/   static _ylib_api_type* const _ylib_ref = _ylib_api;                /**/\
+/***/   ylib::ylib_int _ylib_api(lua_State* _ylib_state)                   /**/\
+/***/   {                                                                  /**/\
+/***/     ylib::ylib_int _ylib_stack = 0;                                  /***/
+/***/ #define ylib_arg(T, name)                                            /**/\
+/***/     T name = ylib::check<T>(_ylib_state, ++_ylib_stack);             /***/
+/***/ #define ylib_return(...)                                             /**/\
+/***/       return ylib::push_all(_ylib_state, __VA_ARGS__);               /**/\
+/***/     }                                                                /**/\
+/***/   } void _ylib_no_op()                                               /***/
+/***/ #define ylib_void()                                                  /**/\
+/***/       return 0;                                                      /**/\
+/***/     }                                                                /**/\
+/***/   } void _ylib_no_op()                                               /***/
+/***/ #include "lua_api.h"                                                 /***/
+/******************************************************************************/
+/**** Preprocessor magic for enumerating the library of functions and      ****/
+/**** storing them in a Lua stack:                                         ****/
+/******************************************************************************/
+/***/ #undef ylib_api                                                      /***/
+/***/ #undef ylib_arg                                                      /***/
+/***/ #undef ylib_return                                                   /***/
+/***/ #undef ylib_void                                                     /***/
+/***/ #define ylib_api(name)                                               /**/\
+/***/   lua_register(_YLIB_LUA_STATE,                                      /**/\
+/***/                _ylib_api_##name::_ylib_name,                         /**/\
+/***/                _ylib_api_##name::_ylib_ref);                         /**/\
+/***/   struct _ylib_no_op_struct_##name {                                 /**/\
+/***/     static void no_op()                                              /**/\
+/***/     {                                                                /***/
+/***/ #define ylib_arg(T, name)                                            /**/\
+/***/       T name = ylib::check<T>(y::null, 0);                           /**/\
+/***/       (void)name;                                                    /***/
+/***/ #define ylib_return(...)                                             /**/\
+/***/       }                                                              /**/\
+/***/     }                                                                /**/\
+/***/   }; while (false) {(void)0                                          /***/
+/***/ #define ylib_void() ylib_return()                                    /***/
+/***/ void ylib_register(lua_State* _YLIB_LUA_STATE)                       /***/
+/***/ {                                                                    /***/
+/***/   #include "lua_api.h"                                               /***/
+/***/ }                                                                    /***/
+/******************************************************************************/
+/**** End of proprocessor magic.                                           ****/
+/******************************************************************************/
 
-// TODO: figure out code-sharing between scripts (make some master lua functions
-// in a file and chuck them into the global state of each new script?); engine
-// integration, C library, etc.
+// TODO: figure out code-sharing between scripts. (Make some master lua code
+// in a file and chuck it into the global state of each new script?)
 Script::Script(const Filesystem& filesystem, const y::string& path)
   : _path(path)
   // Use standard allocator and panic function.
   , _state(luaL_newstate())
 {
   filesystem.read_file(_data, path);
-  // Register test functions.
-  lua_register(_state, "hello", hello);
-  lua_register(_state, "twice", twice);
+  // Load the Lua standard library.
+  luaL_openlibs(_state);
+  // Register Lua API.
+  ylib_register(_state);
 }
 
 Script::~Script()

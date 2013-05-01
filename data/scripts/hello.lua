@@ -1,3 +1,5 @@
 -- hello.lua ---
-hello(twice(3))
+a, b = twice(3)
+hello(a)
+hello(b)
 hello("four")
