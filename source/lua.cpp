@@ -102,7 +102,8 @@ namespace ylib {
 /***/       return 0;                                                      /**/\
 /***/     }                                                                /**/\
 /***/   } void _ylib_no_op()                                               /***/
-/***/ #include "lua_api.h"                                                 /***/
+/******************************************************************************/
+#include "lua_api.h"
 /******************************************************************************/
 /**** Preprocessor magic for enumerating the library of functions and      ****/
 /**** storing them in a Lua stack:                                         ****/

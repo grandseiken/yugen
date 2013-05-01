@@ -7,7 +7,7 @@ function lint {
 }
 
 function lint_highlight {
-  egrep -n "$1" $file | sed -e "s/^\([0-9]\+\):/$2:\t/g" | egrep -B 9999 -A 9999 --color "$1"
+  sed -e "s/ *\(\/\|*\)\*\*\+\/\?//g" $file | egrep -n "$1" | sed -e "s/^\([0-9]\+\):/$2:\t/g" | egrep -B 9999 -A 9999 --color "$1"
 }
 
 # TODO: lint things on adjacent lines (for indent checking).
