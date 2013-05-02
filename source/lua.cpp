@@ -166,10 +166,14 @@ Script::Script(const y::string& path, const y::string& contents)
     }
   };
 
+  // Use traceback error handler (stored in stack at position 1 always).
+  lua_getglobal(_state, "debug");
+  lua_getfield(_state, 1, "traceback");
+  lua_remove(_state, 1);
+
   local data_struct{contents, false};
-  // TODO: use a nice error function with tracebacks.
   if (lua_load(_state, local::read, &data_struct, _path.c_str(), y::null) ||
-      lua_pcall(_state, 0, 0, 0)) {
+      lua_pcall(_state, 0, 0, 1)) {
     const char* error = lua_tostring(_state, -1);
     std::cerr << "Loading script " << _path << " failed";
     if (error) {
@@ -192,8 +196,7 @@ const y::string& Script::get_path() const
 void Script::call(const y::string& function_name)
 {
   lua_getglobal(_state, function_name.c_str());
-  // TODO: tracebacks here, too.
-  if (lua_pcall(_state, 0, 0, 0)) {
+  if (lua_pcall(_state, 0, 0, 1)) {
     const char* error = lua_tostring(_state, -1);
     std::cerr << "Calling function " << _path << ":" <<
         function_name << " failed";

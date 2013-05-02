@@ -584,7 +584,6 @@ void MapEditor::event(const sf::Event& e)
       end();
       break;
     // Rename cell.
-    // TODO: make undoable.
     case sf::Keyboard::R:
       if (_hover[xx] >= 0 && _hover[yy] >= 0 && cell) {
         const y::string& name =
@@ -594,7 +593,6 @@ void MapEditor::event(const sf::Event& e)
       }
       break;
     // New cell.
-    // TODO: make undoable.
     case sf::Keyboard::N:
       if (_hover[xx] >= 0 && _hover[yy] >= 0 && !cell) {
         push(y::move_unique(new TextInputModal(
@@ -693,6 +691,7 @@ void MapEditor::update()
   }
 
   // Rename or add cell.
+  // TODO: make undoable.
   if (_input_result.success) {
     const y::string& result = _input_result.result;
     if (_map.is_coord_used(_hover_cell)) {
