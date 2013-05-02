@@ -52,7 +52,8 @@ Draggable::Draggable()
 }
 
 Panel::Panel(const y::ivec2& origin, const y::ivec2& size, y::int32 z_index)
-  : _origin(origin)
+  : _visible(true)
+  , _origin(origin)
   , _size(size)
   , _z_index(z_index)
 {
@@ -89,6 +90,11 @@ void Panel::set_size(const y::ivec2& size)
   _size = size;
 }
 
+void Panel::set_visible(bool visible)
+{
+  _visible = visible;
+}
+
 const y::ivec2& Panel::get_origin() const
 {
   return _origin;
@@ -97,6 +103,11 @@ const y::ivec2& Panel::get_origin() const
 const y::ivec2& Panel::get_size() const
 {
   return _size;
+}
+
+bool Panel::is_visible() const
+{
+  return _visible;
 }
 
 bool Panel::Order::operator()(Panel* a, Panel* b) const
@@ -150,7 +161,7 @@ bool PanelUi::event(const sf::Event& e)
       return true;
     }
     for (Panel* panel : _panels) {
-      if (panel->event(e) || panel->is_dragging()) {
+      if (panel->is_visible() && (panel->event(e) || panel->is_dragging())) {
         return true;
       }
     }
@@ -188,7 +199,7 @@ bool PanelUi::event(const sf::Event& e)
     fx = o[xx] - panel->get_origin()[xx];
     fy = o[yy] - panel->get_origin()[yy];
     if (y::ivec2{fx, fy}.in_region({0, 0}, panel->get_size())) {
-      if (panel->event(f) || panel->is_dragging()) {
+      if (panel->is_visible() && (panel->event(f) || panel->is_dragging())) {
         return !enter;
       }
     }
@@ -215,6 +226,9 @@ void PanelUi::update()
 void PanelUi::draw(RenderUtil& util) const
 {
   for (Panel* panel : _panels) {
+    if (!panel->is_visible()) {
+      continue;
+    }
     // Transform rendering into panel coordinates.
     const y::ivec2& origin = panel->get_origin();
     const y::ivec2& size = panel->get_size();
@@ -246,7 +260,7 @@ void PanelUi::update_mouse_overs(bool in_window, const y::ivec2& v)
   bool first = true;
   for (Panel* panel : _panels) {
     bool old_over = _mouse_over.find(panel) != _mouse_over.end();
-    bool new_over = in_window && first &&
+    bool new_over = in_window && first && panel->is_visible() &&
         v.in_region(panel->get_origin(), panel->get_size());
 
     y::ivec2 p = v - panel->get_origin();

@@ -137,30 +137,16 @@ namespace ylib {
 
 // TODO: figure out code-sharing between scripts. (Make some master lua code
 // in a file and chuck it into the global state of each new script?)
-Script::Script(const Filesystem& filesystem, const y::string& path)
+Script::Script(const y::string& path, const y::string& contents)
   : _path(path)
   // Use standard allocator and panic function.
   , _state(luaL_newstate())
 {
-  filesystem.read_file(_data, path);
   // Load the Lua standard library.
   luaL_openlibs(_state);
   // Register Lua API.
   ylib_register(_state);
-}
 
-Script::~Script()
-{
-  lua_close(_state);
-}
-
-const y::string& Script::get_path() const
-{
-  return _path;
-}
-
-void Script::run() const
-{
   // Chunk reader function.
   struct local {
     const y::string& data;
@@ -180,20 +166,40 @@ void Script::run() const
     }
   };
 
-  local data_struct{_data, false};
-  // TODO: can we avoid parsing it every time?
-  // Idea: we just parse the script to get the (update, draw...) functions
-  // defined and stored/ in _state. Then, it's easy to call them whenever.
+  local data_struct{contents, false};
+  // TODO: use a nice error function with tracebacks.
   if (lua_load(_state, local::read, &data_struct, _path.c_str(), y::null) ||
-      // TODO: use a nice error function with tracebacks.
       lua_pcall(_state, 0, 0, 0)) {
     const char* error = lua_tostring(_state, -1);
+    std::cerr << "Loading script " << _path << " failed";
     if (error) {
-      std::cerr << "Running script " << _path << " failed: " <<
-          error << std::endl;
+      std::cerr << ": " << error;
     }
-    else {
-      std::cerr << "Running script " << _path << " failed" << std::endl;
+    std::cerr << std::endl;
+  }
+}
+
+Script::~Script()
+{
+  lua_close(_state);
+}
+
+const y::string& Script::get_path() const
+{
+  return _path;
+}
+
+void Script::call(const y::string& function_name)
+{
+  lua_getglobal(_state, function_name.c_str());
+  // TODO: tracebacks here, too.
+  if (lua_pcall(_state, 0, 0, 0)) {
+    const char* error = lua_tostring(_state, -1);
+    std::cerr << "Calling function " << _path << ":" <<
+        function_name << " failed";
+    if (error) {
+      std::cerr << ": " << error;
     }
+    std::cerr << std::endl;
   }
 }

@@ -80,6 +80,8 @@ void Yedit::draw() const
   }
 }
 
+// TODO: testing.
+#include "lua.h"
 int main(int argc, char** argv)
 {
   (void)argc;
@@ -95,8 +97,10 @@ int main(int argc, char** argv)
   RenderUtil util(gl);
 
   // TODO: testing.
-  databank.scripts.get("/scripts/hello.lua").run();
-  databank.scripts.get("/scripts/hello.lua").run();
+  LuaFile& lua_file = databank.scripts.get("/scripts/hello.lua");
+  Script s(lua_file.path, lua_file.contents);
+  s.call("test");
+  s.call("test");
 
   ModalStack stack;
   stack.push(y::move_unique(new Yedit(filesystem, databank, util)));

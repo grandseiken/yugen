@@ -84,6 +84,25 @@ private:
 
 };
 
+// Displays a list of Scripts and allows picking them.
+class ScriptPanel : public Panel {
+public:
+
+  ScriptPanel(const Databank& bank);
+  virtual ~ScriptPanel() {}
+
+  virtual bool event(const sf::Event& e);
+  virtual void update();
+  virtual void draw(RenderUtil& util) const;
+
+private:
+
+  const Databank& _bank;
+  UiList _list;
+  y::int32 _script_select;
+
+};
+
 // Displays the available layers.
 class LayerPanel : public Panel {
 public:
@@ -165,6 +184,7 @@ private:
   TileBrush _tile_brush;
   BrushPanel _brush_panel;
   TilePanel _tile_panel;
+  ScriptPanel _script_panel;
   LayerPanel _layer_panel;
   MinimapPanel _minimap_panel;
 

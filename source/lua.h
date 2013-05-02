@@ -9,17 +9,16 @@ struct lua_State;
 class Script {
 public:
 
-  Script(const Filesystem& filesystem, const y::string& path);
+  Script(const y::string& path, const y::string& contents);
   ~Script();
 
   const y::string& get_path() const;
 
-  void run() const;
+  void call(const y::string& function_name);
 
 private:
 
   y::string _path;
-  y::string _data;
   lua_State* _state;
 
 };

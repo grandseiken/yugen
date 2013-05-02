@@ -206,6 +206,53 @@ void TilePanel::copy_drag_to_brush() const
   }
 }
 
+ScriptPanel::ScriptPanel(const Databank& bank)
+  : Panel(y::ivec2(), y::ivec2())
+  , _bank(bank)
+  , _list(y::ivec2(), y::ivec2(), Colour::panel, Colour::item, Colour::select)
+  , _script_select(0)
+{
+}
+
+bool ScriptPanel::event(const sf::Event& e)
+{
+  // Update hover position.
+  if (e.type == sf::Event::MouseMoved) {
+    return true;
+  }
+
+  // Change tileset.
+  if (e.type == sf::Event::MouseWheelMoved) {
+    _script_select -= e.mouseWheel.delta;
+    return true;
+  }
+
+  switch (e.key.code) {
+    case sf::Keyboard::Q:
+      --_script_select;
+      break;
+    case sf::Keyboard::E:
+      ++_script_select;
+      break;
+    default: {}
+  }
+  return false;
+}
+
+void ScriptPanel::update()
+{
+  y::roll<y::int32>(_script_select, 0, _bank.scripts.size());
+
+  y::ivec2 v = {48, y::min(17, y::int32(_bank.scripts.size()))};
+  set_size(RenderUtil::from_grid(v));
+  _list.set_size(v);
+}
+
+void ScriptPanel::draw(RenderUtil& util) const
+{
+  _list.draw(util, _bank.scripts.get_names(), _script_select);
+}
+
 LayerPanel::LayerPanel(const y::string_vector& status)
   : Panel(y::ivec2(), y::ivec2())
   , _status(status)
@@ -272,7 +319,7 @@ void LayerPanel::draw(RenderUtil& util) const
     "1 Background",
     "2 Collision",
     "3 Foreground",
-    "4 Actors"};
+    "4 Scripts"};
 
   _list.draw(util, layer_names, Cell::background_layers + _layer_select);
 
@@ -394,11 +441,13 @@ MapEditor::MapEditor(Databank& bank, RenderUtil& util, CellMap& map)
   , _hover{-1, -1}
   , _brush_panel(bank, _tile_brush)
   , _tile_panel(bank, _tile_brush)
+  , _script_panel(bank)
   , _layer_panel(_layer_status)
   , _minimap_panel(map, _camera, _zoom)
 {
   get_panel_ui().add(_brush_panel);
   get_panel_ui().add(_tile_panel);
+  get_panel_ui().add(_script_panel);
   get_panel_ui().add(_layer_panel);
   get_panel_ui().add(_minimap_panel);
 }
@@ -509,9 +558,16 @@ void MapEditor::update()
   const Resolution& r = _util.get_window().get_mode();
   const y::ivec2 spacing = RenderUtil::from_grid({0, 1});
 
-  _tile_panel.set_origin(RenderUtil::from_grid());
-  _layer_panel.set_origin(_tile_panel.get_origin() + spacing +
-                          y::ivec2{0, _tile_panel.get_size()[yy]});
+  bool script_layer = _layer_panel.get_layer() > Cell::foreground_layers;
+  _tile_panel.set_visible(!script_layer);
+  _brush_panel.set_visible(!script_layer);
+  _script_panel.set_visible(script_layer);
+  Panel& top_panel = script_layer ?
+      (Panel&)_script_panel : (Panel&)_tile_panel;
+
+  top_panel.set_origin(RenderUtil::from_grid());
+  _layer_panel.set_origin(top_panel.get_origin() + spacing +
+                          y::ivec2{0, top_panel.get_size()[yy]});
   _brush_panel.set_origin(_layer_panel.get_origin() + spacing +
                           y::ivec2{0, _layer_panel.get_size()[yy]});
   _minimap_panel.set_origin(r.size - _minimap_panel.get_size() -

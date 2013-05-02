@@ -4,7 +4,7 @@
 #include "proto/cell.pb.h"
 
 Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
-  : _default_script(filesystem, "/yedit/missing.lua")
+  : _default_script{"/yedit/missing.lua", ""}
   , _default_tileset(gl.make_texture("/yedit/missing.png"))
   , scripts(_default_script)
   , tilesets(_default_tileset)
@@ -14,7 +14,10 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   y::string_vector paths;
   filesystem.list_pattern(paths, "/scripts/**.lua");
   for (const y::string& s : paths) {
-    scripts.insert(s, y::move_unique(new Script(filesystem, s)));
+    LuaFile* lua_file = new LuaFile;
+    lua_file->path = s;
+    filesystem.read_file(lua_file->contents, s);
+    scripts.insert(s, y::move_unique(lua_file));
   }
 
   paths.clear();

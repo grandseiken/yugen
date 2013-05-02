@@ -74,9 +74,11 @@ public:
 
   void set_origin(const y::ivec2& origin);
   void set_size(const y::ivec2& size);
+  void set_visible(bool visible);
 
   const y::ivec2& get_origin() const;
   const y::ivec2& get_size() const;
+  bool is_visible() const;
 
   virtual bool event(const sf::Event& e) = 0;
   virtual void update() = 0;
@@ -87,6 +89,8 @@ public:
   };
 
 private:
+
+  bool _visible;
 
   y::ivec2 _origin;
   y::ivec2 _size;
