@@ -1,6 +1,11 @@
 package proto;
 import "common.proto";
 
+message Script {
+  required ivec2 coord = 1;
+  required string path = 2;
+};
+
 message CellBlueprint {
   message Tile {
     required int32 tileset = 1;
@@ -9,6 +14,7 @@ message CellBlueprint {
 
   repeated string tilesets = 1;
   repeated Tile tiles = 2;
+  repeated Script scripts = 3;
 }
 
 message CellMap {

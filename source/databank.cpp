@@ -11,6 +11,8 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   , cells(_default_cell)
   , maps(_default_map)
 {
+  filesystem.read_file(_default_script.contents, _default_script.path);
+
   y::string_vector paths;
   filesystem.list_pattern(paths, "/scripts/**.lua");
   for (const y::string& s : paths) {

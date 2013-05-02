@@ -39,6 +39,39 @@ void TileEditAction::undo() const
   }
 }
 
+ScriptSetAction::ScriptSetAction(
+    CellMap& map, const y::ivec2& cell, const y::ivec2& tile,
+    const y::string& new_path, const y::string& old_path)
+  : map(map)
+  , cell(cell)
+  , tile(tile)
+  , new_path(new_path)
+  , old_path(old_path)
+{
+}
+
+void ScriptSetAction::redo() const
+{
+  CellBlueprint* c = map.get_coord(cell);
+  if (!new_path.empty()) {
+    c->set_script(tile, new_path);
+  }
+  else if (c->has_script(tile)) {
+    c->remove_script(tile);
+  }
+}
+
+void ScriptSetAction::undo() const
+{
+  CellBlueprint* c = map.get_coord(cell);
+  if (!old_path.empty()) {
+    c->set_script(tile, old_path);
+  }
+  else if (c->has_script(tile)) {
+    c->remove_script(tile);
+  }
+}
+
 BrushPanel::BrushPanel(const Databank& bank, const TileBrush& brush)
   : Panel(y::ivec2(), y::ivec2())
   , _bank(bank)
@@ -214,6 +247,23 @@ ScriptPanel::ScriptPanel(const Databank& bank)
 {
 }
 
+const y::string& ScriptPanel::get_script() const
+{
+  static const y::string& missing = "/yedit/missing.lua";
+  if (y::size(_script_select) >= _bank.scripts.size()) {
+    return missing;
+  }
+  return _bank.scripts.get(_script_select).path;
+}
+
+void ScriptPanel::set_script(const y::string& path)
+{
+  y::int32 index = _bank.scripts.get_index(path);
+  if (index >= 0) {
+    _script_select = index;
+  }
+}
+
 bool ScriptPanel::event(const sf::Event& e)
 {
   // Update hover position.
@@ -227,6 +277,9 @@ bool ScriptPanel::event(const sf::Event& e)
     return true;
   }
 
+  if (e.type != sf::Event::KeyPressed) {
+    return false;
+  }
   switch (e.key.code) {
     case sf::Keyboard::Q:
       --_script_select;
@@ -243,7 +296,7 @@ void ScriptPanel::update()
 {
   y::roll<y::int32>(_script_select, 0, _bank.scripts.size());
 
-  y::ivec2 v = {48, y::min(17, y::int32(_bank.scripts.size()))};
+  y::ivec2 v = {32, y::min(17, y::int32(_bank.scripts.size()))};
   set_size(RenderUtil::from_grid(v));
   _list.set_size(v);
 }
@@ -466,24 +519,44 @@ void MapEditor::event(const sf::Event& e)
     _layer_panel.event(e);
   }
 
+  CellBlueprint* cell = _map.is_coord_used(_hover_cell) ?
+      _map.get_coord(_hover_cell) : y::null;
+  bool shift = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
+               sf::Keyboard::isKeyPressed(sf::Keyboard::RShift);
+  bool control = sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) ||
+                 sf::Keyboard::isKeyPressed(sf::Keyboard::RControl);
+
   // Start camera drag.
   if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
-      (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
-       sf::Keyboard::isKeyPressed(sf::Keyboard::RShift) ||
-       e.mouseButton.button == sf::Mouse::Middle)) {
+      (shift || e.mouseButton.button == sf::Mouse::Middle)) {
     start_drag(_hover);
     _camera_drag = true;
   }
-  // Start draw or pick.
   // TODO: control + draw should draw a rectangle.
+  // TODO: dragging scripts around.
   else if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
            (e.mouseButton.button == sf::Mouse::Left ||
-            e.mouseButton.button == sf::Mouse::Right) &&
-           _layer_panel.get_layer() <= Cell::foreground_layers) {
-    start_drag(camera_to_world(_hover).euclidean_div(Tileset::tile_size));
-    if (e.mouseButton.button == sf::Mouse::Left) {
-      _tile_edit_action = y::move_unique(
-          new TileEditAction(_map, _layer_panel.get_layer()));
+            e.mouseButton.button == sf::Mouse::Right)) {
+    // Start tile draw or pick.
+    if (_layer_panel.get_layer() <= Cell::foreground_layers) {
+      start_drag(camera_to_world(_hover).euclidean_div(Tileset::tile_size));
+      if (e.mouseButton.button == sf::Mouse::Left) {
+        _tile_edit_action = y::move_unique(
+            new TileEditAction(_map, _layer_panel.get_layer()));
+      }
+    }
+    // Set script.
+    else if (e.mouseButton.button == sf::Mouse::Left && cell) {
+      ScriptSetAction* action = new ScriptSetAction(
+          _map, _hover_cell, _hover_tile,
+          control ? "" : _script_panel.get_script(),
+          cell->has_script(_hover_tile) ? cell->get_script(_hover_tile) : "");
+      get_undo_stack().new_action(y::move_unique(action));
+    }
+    // Pick script.
+    else if (e.mouseButton.button == sf::Mouse::Right && cell &&
+             cell->has_script(_hover_tile)) {
+      _script_panel.set_script(cell->get_script(_hover_tile));
     }
   }
 
@@ -513,10 +586,9 @@ void MapEditor::event(const sf::Event& e)
     // Rename cell.
     // TODO: make undoable.
     case sf::Keyboard::R:
-      if (_hover[xx] >= 0 && _hover[yy] >= 0 &&
-          _map.is_coord_used(_hover_cell)) {
+      if (_hover[xx] >= 0 && _hover[yy] >= 0 && cell) {
         const y::string& name =
-            _bank.cells.get_name(*_map.get_coord(_hover_cell));
+            _bank.cells.get_name(*cell);
         push(y::move_unique(new TextInputModal(
             _util, name, _input_result, "Rename cell " + name + " to:")));
       }
@@ -524,8 +596,7 @@ void MapEditor::event(const sf::Event& e)
     // New cell.
     // TODO: make undoable.
     case sf::Keyboard::N:
-      if (_hover[xx] >= 0 && _hover[yy] >= 0 &&
-          !_map.is_coord_used(_hover_cell)) {
+      if (_hover[xx] >= 0 && _hover[yy] >= 0 && !cell) {
         push(y::move_unique(new TextInputModal(
             _util, "/world/new.cell", _input_result, "Add cell using name:")));
       }
@@ -664,7 +735,7 @@ void MapEditor::draw() const
     _util.get_gl().bind_window(false, true);
   }
 
-  // Draw cell-grid.
+  // Draw cell-grid and actors.
   min = y::min(min, _hover_cell);
   max = y::max(max, y::ivec2{1, 1} + _hover_cell);
   for (c[xx] = min[xx]; c[xx] < max[xx]; ++c[xx]) {
@@ -674,6 +745,25 @@ void MapEditor::draw() const
         _util.render_outline(
             world_to_camera(c * Tileset::tile_size * Cell::cell_size),
             Tileset::tile_size * Cell::cell_size, Colour::panel);
+      }
+      if (!_map.is_coord_used(c) ||
+          _layer_panel.get_layer() <= Cell::foreground_layers) {
+        continue;
+      }
+      CellBlueprint* cell = _map.get_coord(c);
+      y::ivec2 t;
+      for (t[xx] = 0; t[xx] < Cell::cell_size[xx]; ++t[xx]) {
+        for (t[yy] = 0; t[yy] < Cell::cell_size[yy]; ++t[yy]) {
+          if (!cell->has_script(t)) {
+            continue;
+          }
+          y::ivec2 v = world_to_camera(
+              (t + c * Cell::cell_size) * Tileset::tile_size);
+          _util.render_outline(v, Tileset::tile_size, Colour::outline);
+          _util.render_text(
+              cell->get_script(t), v, c == _hover_cell && t == _hover_tile ?
+                  Colour::select : Colour::item);
+        }
       }
     }
   }

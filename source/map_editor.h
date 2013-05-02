@@ -31,6 +31,21 @@ struct TileEditAction : public StackAction {
   virtual void undo() const;
 };
 
+// Action that sets a script. Set path to empty string to remove a script.
+struct ScriptSetAction : public StackAction {
+  ScriptSetAction(CellMap& map, const y::ivec2& cell, const y::ivec2& tile,
+                  const y::string& new_path, const y::string& old_path);
+
+  CellMap& map;
+  y::ivec2 cell;
+  y::ivec2 tile;
+  y::string new_path;
+  y::string old_path;
+
+  virtual void redo() const;
+  virtual void undo() const;
+};
+
 // The current set of tiles stored in the brush.
 struct TileBrush {
   TileBrush();
@@ -90,6 +105,9 @@ public:
 
   ScriptPanel(const Databank& bank);
   virtual ~ScriptPanel() {}
+
+  const y::string& get_script() const;
+  void set_script(const y::string& path);
 
   virtual bool event(const sf::Event& e);
   virtual void update();

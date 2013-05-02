@@ -122,6 +122,12 @@ public:
   // Returns the number of tiles that use the tileset.
   y::size get_tileset_use_count(const Tileset& tileset) const;
 
+  // Script manipulation.
+  bool has_script(const y::ivec2& v) const;
+  const y::string& get_script(const y::ivec2& v) const;
+  void set_script(const y::ivec2& v, const y::string& path);
+  void remove_script(const y::ivec2& v);
+
 protected:
 
   virtual void save_to_proto(const Databank& bank,
@@ -135,6 +141,8 @@ private:
 
   y::map<const Tileset*, y::size> _tilesets;
   y::unique<Tile[]> _tiles;
+
+  y::map<y::ivec2, y::string> _scripts;
 
 };
 

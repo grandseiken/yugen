@@ -48,8 +48,10 @@ public:
 
   // Get name resource is stored as.
   const y::string& get_name(const T& resource) const;
+  const y::string& get_name(y::size index) const;
   // Get index resource is stored at.
   y::size get_index(const T& resource) const;
+  y::size get_index(const y::string& name) const;
 
   // Rename resource.
   void rename(const T& resource, const y::string& new_name);
@@ -223,6 +225,12 @@ const y::string& Dataset<T>::get_name(const T& resource) const
 }
 
 template<typename T>
+const y::string& Dataset<T>::get_name(y::size index) const
+{
+  return get_name(get(index));
+}
+
+template<typename T>
 y::size Dataset<T>::get_index(const T& resource) const
 {
   for (y::size i = 0; i < _list.size(); ++i) {
@@ -234,6 +242,12 @@ y::size Dataset<T>::get_index(const T& resource) const
   }
   std::cerr << "Could find index of resource" << std::endl;
   return -1;
+}
+
+template<typename T>
+y::size Dataset<T>::get_index(const y::string& name) const
+{
+  return get_index(get(name));
 }
 
 template<typename T>
