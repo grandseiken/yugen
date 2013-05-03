@@ -41,12 +41,65 @@ const y::ivec2& CellMap::get_boundary_max() const
   return _max;
 }
 
+void CellMap::add_script(const y::ivec2& v, const y::string& path)
+{
+  add_script(v, y::ivec2{1, 1} + v, path);
+}
+
+void CellMap::add_script(const y::ivec2& min, const y::ivec2& max,
+                               const y::string& path)
+{
+  _scripts.push_back({min, max, path});
+}
+
+const CellMap::script_list& CellMap::get_scripts() const
+{
+  return _scripts;
+
+}
+
+bool CellMap::has_script_at(const y::ivec2& v) const
+{
+  for (const ScriptBlueprint& s : _scripts) {
+    if (v.in_region(s.min, y::ivec2{1, 1} + s.max - s.min)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const ScriptBlueprint& CellMap::get_script_at(const y::ivec2& v) const
+{
+  static ScriptBlueprint missing{y::ivec2(), y::ivec2(),
+                                 "/yedit/missing.lua"};
+  for (auto it = _scripts.rbegin(); it != _scripts.rend(); ++it) {
+    if (v.in_region(it->min, y::ivec2{1, 1} + it->max - it->min)) {
+      return *it;
+    }
+  }
+  return missing;
+}
+
+void CellMap::remove_script(y::size index)
+{
+  if (index < _scripts.size()) {
+    _scripts.erase(_scripts.begin() + index);
+  }
+}
+
 void CellMap::save_to_proto(const Databank& bank, proto::CellMap& proto) const
 {
   for (const auto& pair : _map) {
     auto coord = proto.add_coords();
     y::save_to_proto(pair.first, *coord->mutable_coord());
     coord->set_cell(bank.cells.get_name(*pair.second));
+  }
+
+  for (const ScriptBlueprint& s : _scripts) {
+    auto script = proto.add_scripts();
+    y::save_to_proto(s.min, *script->mutable_min());
+    y::save_to_proto(s.max, *script->mutable_max());
+    script->set_path(s.path);
   }
 }
 
@@ -56,6 +109,14 @@ void CellMap::load_from_proto(Databank& bank, const proto::CellMap& proto)
     y::ivec2 v;
     y::load_from_proto(v, proto.coords(i).coord());
     set_coord(v, bank.cells.get(proto.coords(i).cell()));
+  }
+
+  for (y::int32 i = 0; i < proto.scripts_size(); ++i) {
+    ScriptBlueprint s;
+    y::load_from_proto(s.min, proto.scripts(i).min());
+    y::load_from_proto(s.max, proto.scripts(i).max());
+    s.path = proto.scripts(i).path();
+    _scripts.push_back(s);
   }
 }
 
@@ -216,34 +277,6 @@ y::size CellBlueprint::get_tileset_use_count(const Tileset& tileset) const
   return it != _tilesets.end() ? it->second : 0;
 }
 
-bool CellBlueprint::has_script(const y::ivec2& v) const
-{
-  return _scripts.find(v) != _scripts.end();
-}
-
-const y::string& CellBlueprint::get_script(const y::ivec2& v) const
-{
-  static const y::string missing = "/yedit/missing.lua";
-  auto it = _scripts.find(v);
-  if (it != _scripts.end()) {
-    return it->second;
-  }
-  return missing;
-}
-
-void CellBlueprint::set_script(const y::ivec2& v, const y::string& path)
-{
-  _scripts[v] = path;
-}
-
-void CellBlueprint::remove_script(const y::ivec2& v)
-{
-  auto it = _scripts.find(v);
-  if (it != _scripts.end()) {
-    _scripts.erase(it);
-  }
-}
-
 void CellBlueprint::save_to_proto(const Databank& bank,
                                   proto::CellBlueprint& proto) const
 {
@@ -261,12 +294,6 @@ void CellBlueprint::save_to_proto(const Databank& bank,
     auto tile = proto.add_tiles();
     tile->set_tileset(_tiles[i].tileset ? map[_tiles[i].tileset] : -1);
     tile->set_index(_tiles[i].index);
-  }
-
-  for (const auto& pair : _scripts) {
-    auto script = proto.add_scripts();
-    y::save_to_proto(pair.first, *script->mutable_coord());
-    script->set_path(pair.second);
   }
 }
 
@@ -287,12 +314,6 @@ void CellBlueprint::load_from_proto(Databank& bank,
         proto.tiles(i).tileset() >= 0 ?
             vector[proto.tiles(i).tileset()] : y::null,
         proto.tiles(i).index()));
-  }
-
-  for (y::int32 i = 0; i < proto.scripts_size(); ++i) {
-    y::ivec2 v;
-    y::load_from_proto(v, proto.scripts(i).coord());
-    _scripts[v] = proto.scripts(i).path();
   }
 }
 

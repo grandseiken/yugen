@@ -24,25 +24,6 @@ const Colour Colour::black(0.f, 0.f, 0.f, 1.f);
 const Colour Colour::dark(.5f, .5f, .5f, 1.f);
 const Colour Colour::transparent(1.f, 1.f, 1.f, .5f);
 
-BatchedTexture::BatchedTexture(const GlTexture& sprite,
-                               const y::ivec2& frame_size)
-  : sprite(sprite)
-  , frame_size(frame_size)
-{
-}
-
-BatchedSprite::BatchedSprite(float left, float top,
-                             float frame_x, float frame_y,
-                             float depth, const Colour& colour)
-  : left(left)
-  , top(top)
-  , frame_x(frame_x)
-  , frame_y(frame_y)
-  , depth(depth)
-  , colour(colour)
-{
-}
-
 bool BatchedTextureLess::operator()(const BatchedTexture& l,
                                     const BatchedTexture& r) const
 {
@@ -66,8 +47,9 @@ void RenderBatch::add_sprite(const GlTexture& sprite,
                              const y::ivec2& origin, const y::ivec2& frame,
                              float depth, const Colour& colour)
 {
-  BatchedTexture bt(sprite, frame_size);
-  BatchedSprite bs(origin[xx], origin[yy], frame[xx], frame[yy], depth, colour);
+  BatchedTexture bt{sprite, frame_size};
+  BatchedSprite bs{float(origin[xx]), float(origin[yy]),
+                   float(frame[xx]), float(frame[yy]), depth, colour};
   _map[bt].push_back(bs);
 }
 
@@ -283,8 +265,9 @@ void RenderUtil::set_sprite(const GlTexture& texture,
 void RenderUtil::batch_sprite(const y::ivec2& origin, const y::ivec2& frame,
                               float depth, const Colour& colour) const
 {
-  _batched_sprites.push_back(BatchedSprite(
-      origin[xx], origin[yy], frame[xx], frame[yy], depth, colour));
+  _batched_sprites.push_back(BatchedSprite{
+      float(origin[xx]), float(origin[yy]),
+      float(frame[xx]), float(frame[yy]), depth, colour});
 }
 
 template<typename T>

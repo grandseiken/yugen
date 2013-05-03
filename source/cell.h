@@ -12,7 +12,16 @@ namespace proto {
   class CellBlueprint;
 }
 
-// Sparse spatial map of CellBlueprints.
+// A script path with associated region. For simplicity with the common
+// case (1x1 script region), the min and max are both inclusive.
+struct ScriptBlueprint {
+  y::ivec2 min;
+  y::ivec2 max;
+  y::string path;
+};
+
+// Sparse spatial map of CellBlueprints. CellMaps also store the scripts
+// for the whole map.
 class CellMap : public y::no_copy, public y::io<proto::CellMap> {
 public:
 
@@ -32,6 +41,17 @@ public:
   // Get high (exclusive) cell boundary.
   const y::ivec2& get_boundary_max() const;
 
+  typedef y::vector<ScriptBlueprint> script_list;
+
+  // Script manipulation.
+  void add_script(const y::ivec2& v, const y::string& path);
+  void add_script(const y::ivec2& min, const y::ivec2& max,
+                  const y::string& path);
+  const script_list& get_scripts() const;
+  bool has_script_at(const y::ivec2& v) const;
+  const ScriptBlueprint& get_script_at(const y::ivec2& v) const;
+  void remove_script(y::size index);
+
 protected:
 
   virtual void save_to_proto(const Databank& bank, proto::CellMap& proto) const;
@@ -47,6 +67,8 @@ private:
   mutable y::ivec2 _min;
   mutable y::ivec2 _max;
   mutable bool _boundary_dirty;
+
+  script_list _scripts;
 
 };
 
@@ -122,12 +144,6 @@ public:
   // Returns the number of tiles that use the tileset.
   y::size get_tileset_use_count(const Tileset& tileset) const;
 
-  // Script manipulation.
-  bool has_script(const y::ivec2& v) const;
-  const y::string& get_script(const y::ivec2& v) const;
-  void set_script(const y::ivec2& v, const y::string& path);
-  void remove_script(const y::ivec2& v);
-
 protected:
 
   virtual void save_to_proto(const Databank& bank,
@@ -141,8 +157,6 @@ private:
 
   y::map<const Tileset*, y::size> _tilesets;
   y::unique<Tile[]> _tiles;
-
-  y::map<y::ivec2, y::string> _scripts;
 
 };
 

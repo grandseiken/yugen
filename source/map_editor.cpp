@@ -39,37 +39,46 @@ void TileEditAction::undo() const
   }
 }
 
-ScriptSetAction::ScriptSetAction(
-    CellMap& map, const y::ivec2& cell, const y::ivec2& tile,
-    const y::string& new_path, const y::string& old_path)
+ScriptAddAction::ScriptAddAction(
+    CellMap& map, const y::ivec2& min, const y::ivec2& max,
+    const y::string& path)
   : map(map)
-  , cell(cell)
-  , tile(tile)
-  , new_path(new_path)
-  , old_path(old_path)
+  , min(min)
+  , max(max)
+  , path(path)
+  , index(-1)
 {
 }
 
-void ScriptSetAction::redo() const
+void ScriptAddAction::redo() const
 {
-  CellBlueprint* c = map.get_coord(cell);
-  if (!new_path.empty()) {
-    c->set_script(tile, new_path);
-  }
-  else if (c->has_script(tile)) {
-    c->remove_script(tile);
-  }
+  index = map.get_scripts().size();
+  map.add_script(min, max, path);
 }
 
-void ScriptSetAction::undo() const
+void ScriptAddAction::undo() const
 {
-  CellBlueprint* c = map.get_coord(cell);
-  if (!old_path.empty()) {
-    c->set_script(tile, old_path);
-  }
-  else if (c->has_script(tile)) {
-    c->remove_script(tile);
-  }
+  map.remove_script(index);
+}
+
+ScriptRemoveAction::ScriptRemoveAction(CellMap& map, y::size index)
+  : map(map)
+  , index(index)
+{
+}
+
+void ScriptRemoveAction::redo() const
+{
+  const ScriptBlueprint& s = map.get_scripts()[index];
+  min = s.min;
+  max = s.max;
+  path = s.path;
+  map.remove_script(index);
+}
+
+void ScriptRemoveAction::undo() const
+{
+  map.add_script(min, max, path);
 }
 
 BrushPanel::BrushPanel(const Databank& bank, const TileBrush& brush)
@@ -519,12 +528,9 @@ void MapEditor::event(const sf::Event& e)
     _layer_panel.event(e);
   }
 
-  CellBlueprint* cell = _map.is_coord_used(_hover_cell) ?
-      _map.get_coord(_hover_cell) : y::null;
+  y::ivec2 hover_world = _hover_tile + _hover_cell * Cell::cell_size;
   bool shift = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
                sf::Keyboard::isKeyPressed(sf::Keyboard::RShift);
-  bool control = sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) ||
-                 sf::Keyboard::isKeyPressed(sf::Keyboard::RControl);
 
   // Start camera drag.
   if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
@@ -545,18 +551,17 @@ void MapEditor::event(const sf::Event& e)
             new TileEditAction(_map, _layer_panel.get_layer()));
       }
     }
-    // Set script.
-    else if (e.mouseButton.button == sf::Mouse::Left && cell) {
-      ScriptSetAction* action = new ScriptSetAction(
-          _map, _hover_cell, _hover_tile,
-          control ? "" : _script_panel.get_script(),
-          cell->has_script(_hover_tile) ? cell->get_script(_hover_tile) : "");
-      get_undo_stack().new_action(y::move_unique(action));
+    // Start script region drag.
+    else if (e.mouseButton.button == sf::Mouse::Left) {
+      start_drag(hover_world);
+      _script_add_action = y::move_unique(
+          new ScriptAddAction(_map, hover_world, hover_world,
+              _script_panel.get_script()));
     }
     // Pick script.
-    else if (e.mouseButton.button == sf::Mouse::Right && cell &&
-             cell->has_script(_hover_tile)) {
-      _script_panel.set_script(cell->get_script(_hover_tile));
+    else if (e.mouseButton.button == sf::Mouse::Right &&
+             _map.has_script_at(hover_world)) {
+      _script_panel.set_script(_map.get_script_at(hover_world).path);
     }
   }
 
@@ -564,6 +569,10 @@ void MapEditor::event(const sf::Event& e)
     // End draw and commit tile edit.
     if (_tile_edit_action) {
       get_undo_stack().new_action(y::move_unique(_tile_edit_action));
+    }
+    // End drag and add script.
+    else if (_script_add_action) {
+      get_undo_stack().new_action(y::move_unique(_script_add_action));
     }
     // End pick and copy tiles.
     else if (!_camera_drag) {
@@ -577,6 +586,7 @@ void MapEditor::event(const sf::Event& e)
     return;
   }
 
+  CellBlueprint* cell = _map.get_coord(_hover_cell);
   y::int32 old_zoom = _zoom;
   switch (e.key.code) {
     // Quit!
@@ -706,11 +716,19 @@ void MapEditor::update()
     _input_result.success = false;
   }
 
-  // Continuous tile drawing.
-  if (!is_dragging() || !_tile_edit_action) {
+  if (!is_dragging()) {
     return;
   }
-  copy_brush_to_map();
+  // Continuous tile drawing.
+  if (_tile_edit_action) {
+    copy_brush_to_map();
+  }
+  // Script sizing.
+  if (_script_add_action) {
+    y::ivec2 hover_world = _hover_tile + _hover_cell * Cell::cell_size;
+    _script_add_action->min = y::min(get_drag_start(), hover_world);
+    _script_add_action->max = y::max(get_drag_start(), hover_world);
+  }
 }
 
 void MapEditor::draw() const
@@ -745,25 +763,21 @@ void MapEditor::draw() const
             world_to_camera(c * Tileset::tile_size * Cell::cell_size),
             Tileset::tile_size * Cell::cell_size, Colour::panel);
       }
-      if (!_map.is_coord_used(c) ||
-          _layer_panel.get_layer() <= Cell::foreground_layers) {
-        continue;
-      }
-      CellBlueprint* cell = _map.get_coord(c);
-      y::ivec2 t;
-      for (t[xx] = 0; t[xx] < Cell::cell_size[xx]; ++t[xx]) {
-        for (t[yy] = 0; t[yy] < Cell::cell_size[yy]; ++t[yy]) {
-          if (!cell->has_script(t)) {
-            continue;
-          }
-          y::ivec2 v = world_to_camera(
-              (t + c * Cell::cell_size) * Tileset::tile_size);
-          _util.render_outline(v, Tileset::tile_size, Colour::outline);
-          _util.render_text(
-              cell->get_script(t), v, c == _hover_cell && t == _hover_tile ?
-                  Colour::select : Colour::item);
-        }
-      }
+    }
+  }
+
+  // Draw script regions.
+  y::ivec2 hover_world = _hover_tile + _hover_cell * Cell::cell_size;
+  const ScriptBlueprint* hover_script = _map.has_script_at(hover_world) ?
+      &_map.get_script_at(hover_world) : y::null;
+  if (_layer_panel.get_layer() > Cell::foreground_layers) {
+    const CellMap::script_list& scripts = _map.get_scripts();
+    for (const ScriptBlueprint& s : scripts) {
+      y::ivec2 min = world_to_camera(s.min * Tileset::tile_size);
+      y::ivec2 max = world_to_camera(s.max * Tileset::tile_size);
+      _util.render_outline(min, Tileset::tile_size + max - min, Colour::outline);
+      _util.render_text(
+          s.path, min, &s == hover_script ? Colour::select : Colour::item);
     }
   }
 
@@ -787,8 +801,10 @@ void MapEditor::draw() const
   }
   else if (_hover[xx] >= 0 && _hover[yy] >= 0 &&
            _map.is_coord_used(_hover_cell)) {
+    bool actor_layer = _layer_panel.get_layer() > Cell::foreground_layers;
     _util.render_outline(world_to_camera(t * Tileset::tile_size),
-                         Tileset::tile_size * _tile_brush.size, Colour::hover);
+                         Tileset::tile_size * (actor_layer ?
+                             y::ivec2{1, 1} : _tile_brush.size), Colour::hover);
   }
 
   // Draw UI.

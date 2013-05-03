@@ -61,12 +61,10 @@ private:
   y::ivec2 _active_map_offset;
 
   struct ActiveWindowEntry {
-
     ActiveWindowEntry();
 
     const CellBlueprint* blueprint;
     y::unique<Cell> cell;
-
   };
 
   typedef y::unique<ActiveWindowEntry[]> active_window;

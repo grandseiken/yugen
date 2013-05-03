@@ -29,16 +29,11 @@ struct Colour {
 };
 
 struct BatchedTexture {
-  BatchedTexture(const GlTexture& sprite, const y::ivec2& frame_size);
-
   GlTexture sprite;
   y::ivec2 frame_size;
 };
 
 struct BatchedSprite {
-  BatchedSprite(float left, float top, float frame_x, float frame_y,
-                float depth, const Colour& colour);
-
   float left;
   float top;
   float frame_x;

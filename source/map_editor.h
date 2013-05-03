@@ -32,15 +32,28 @@ struct TileEditAction : public StackAction {
 };
 
 // Action that sets a script. Set path to empty string to remove a script.
-struct ScriptSetAction : public StackAction {
-  ScriptSetAction(CellMap& map, const y::ivec2& cell, const y::ivec2& tile,
-                  const y::string& new_path, const y::string& old_path);
+struct ScriptAddAction : public StackAction {
+  ScriptAddAction(CellMap& map, const y::ivec2& min, const y::ivec2& max,
+                  const y::string& path);
 
   CellMap& map;
-  y::ivec2 cell;
-  y::ivec2 tile;
-  y::string new_path;
-  y::string old_path;
+  y::ivec2 min;
+  y::ivec2 max;
+  y::string path;
+  mutable y::size index;
+
+  virtual void redo() const;
+  virtual void undo() const;
+};
+
+struct ScriptRemoveAction : public StackAction {
+  ScriptRemoveAction(CellMap& map, y::size index);
+
+  CellMap& map;
+  y::size index;
+  mutable y::ivec2 min;
+  mutable y::ivec2 max;
+  mutable y::string path;
 
   virtual void redo() const;
   virtual void undo() const;
@@ -207,6 +220,7 @@ private:
   MinimapPanel _minimap_panel;
 
   y::unique<TileEditAction> _tile_edit_action;
+  y::unique<ScriptAddAction> _script_add_action;
 
   TextInputResult _input_result;
 

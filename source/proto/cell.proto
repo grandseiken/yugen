@@ -2,8 +2,9 @@ package proto;
 import "common.proto";
 
 message Script {
-  required ivec2 coord = 1;
-  required string path = 2;
+  required ivec2 min = 1;
+  required ivec2 max = 2;
+  required string path = 3;
 };
 
 message CellBlueprint {
@@ -14,7 +15,6 @@ message CellBlueprint {
 
   repeated string tilesets = 1;
   repeated Tile tiles = 2;
-  repeated Script scripts = 3;
 }
 
 message CellMap {
@@ -24,4 +24,5 @@ message CellMap {
   }
 
   repeated Coord coords = 1;
+  repeated Script scripts = 2;
 }
