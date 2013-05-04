@@ -4,12 +4,12 @@
 #include <SFML/Window.hpp>
 
 UiList::UiList(const y::ivec2& origin, const y::ivec2& size,
-               const Colour& panel, const Colour& item, const Colour& s_item)
+               const Colour& panel, const Colour& item, const Colour& select)
   : _origin(origin)
   , _size(size)
   , _panel(panel)
   , _item(item)
-  , _s_item(s_item)
+  , _select(select)
 {
 }
 
@@ -31,6 +31,21 @@ const y::ivec2& UiList::get_origin() const
 const y::ivec2& UiList::get_size() const
 {
   return _size;
+}
+
+void UiList::set_panel(const Colour& panel)
+{
+  _panel = panel;
+}
+
+void UiList::set_item(const Colour& item)
+{
+  _item = item;
+}
+
+void UiList::set_select(const Colour& select)
+{
+  _select = select;
 }
 
 void UiList::draw(RenderUtil& util, const y::vector<Colour>& items,
@@ -60,7 +75,7 @@ void UiList::draw(RenderUtil& util,
 {
   y::vector<Colour> items;
   for (y::size n = 0; n < source.size(); ++n) {
-    items.push_back(n == select ? _s_item : _item);
+    items.push_back(n == select ? _select : _item);
   }
 
   draw(util, items, source, select);

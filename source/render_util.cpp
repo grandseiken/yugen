@@ -15,6 +15,7 @@ Colour::Colour(float r, float g, float b, float a)
 const Colour Colour::outline(.7f, .7f, .7f, 1.f);
 const Colour Colour::dark_outline(.3f, .3f, .3f, 1.f);
 const Colour Colour::panel(.2f, .2f, .2f, .7f);
+const Colour Colour::faint_panel(.1f, .1f, .1f, .5f);
 const Colour Colour::dark_panel(0.f, 0.f, 0.f, .7f);
 const Colour Colour::item(.6f, .6f, .6f, 1.f);
 const Colour Colour::hover(.9f, .9f, .9f, .5f);

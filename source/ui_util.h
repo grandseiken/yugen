@@ -11,13 +11,17 @@ class UiList {
 public:
 
   UiList(const y::ivec2& origin, const y::ivec2& size,
-         const Colour& panel, const Colour& item, const Colour& s_item);
+         const Colour& panel, const Colour& item, const Colour& select);
 
   void set_origin(const y::ivec2& origin);
   void set_size(const y::ivec2& size);
 
   const y::ivec2& get_origin() const;
   const y::ivec2& get_size() const;
+
+  void set_panel(const Colour& panel);
+  void set_item(const Colour& item);
+  void set_select(const Colour& select);
 
   // Draw with colour lookup from list.
   void draw(RenderUtil& util, const y::vector<Colour>& items,
@@ -33,7 +37,7 @@ private:
   y::ivec2 _size;
   Colour _panel;
   Colour _item;
-  Colour _s_item;
+  Colour _select;
 
 };
 

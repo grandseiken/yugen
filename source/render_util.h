@@ -18,6 +18,7 @@ struct Colour {
   static const Colour outline;
   static const Colour dark_outline;
   static const Colour panel;
+  static const Colour faint_panel;
   static const Colour dark_panel;
   static const Colour item;
   static const Colour hover;

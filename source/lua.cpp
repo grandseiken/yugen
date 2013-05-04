@@ -78,8 +78,7 @@ namespace ylib {
     inline y::vector<T> operator()(lua_State* state, ylib_int index) const
     {
       y::vector<T> t;
-      luaL_argcheck(state, lua_istable(state, index), index,
-                    "array expected");
+      luaL_checktype(state, index, LUA_TTABLE);
 
       ylib_int size = luaL_len(state, index);
       for (ylib_int i = 1; i <= size; ++i) {
@@ -107,11 +106,7 @@ namespace ylib {
   struct check<T*> {
     inline T* operator()(lua_State* state, ylib_int index) const
     {
-      static const y::string error =
-          y::string(type_name<T>::name) + " expected";
-
       void* v = luaL_checkudata(state, index, type_name<T>::name);
-      luaL_argcheck(state, v, index, error.c_str());
       T** t = reinterpret_cast<T**>(v);
 
       return *t;

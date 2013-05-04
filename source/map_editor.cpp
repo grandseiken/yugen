@@ -1,6 +1,5 @@
 #include "map_editor.h"
 
-#include "cell.h"
 #include "databank.h"
 #include "render_util.h"
 #include "tileset.h"

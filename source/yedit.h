@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "modal.h"
+#include "ui_util.h"
 
 class Databank;
 class Filesystem;
@@ -29,7 +30,14 @@ private:
   Databank& _bank;
   RenderUtil& _util;
 
+  UiList _tileset_list;
+  UiList _cell_list;
+  UiList _map_list;
+
+  y::int32 _list_select;
+  y::int32 _tileset_select;
   y::int32 _map_select;
+  y::int32 _cell_select;
 
 };
 
