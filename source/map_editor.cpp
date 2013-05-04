@@ -8,13 +8,65 @@
 
 #include <SFML/Window.hpp>
 
-TileBrush::TileBrush()
-  : size{1, 1}
-  , array(new Tile[max_size * max_size])
+CellAddAction::CellAddAction(Databank& bank, CellMap& map,
+                             const y::ivec2& cell, const y::string& path)
+  : bank(bank)
+  , map(map)
+  , cell(cell)
+  , path(path)
 {
-  auto& entry = array[0];
-  entry.tileset = 0;
-  entry.index = 0;
+}
+
+void CellAddAction::redo() const
+{
+  if (!bank.cells.is_name_used(path)) {
+    bank.cells.insert(path, y::move_unique(new CellBlueprint()));
+  }
+  map.set_coord(cell, bank.cells.get(path));
+}
+
+void CellAddAction::undo() const
+{
+  map.clear_coord(cell);
+}
+
+CellRenameAction::CellRenameAction(Databank& bank, CellMap& map,
+                                   const y::ivec2& cell, const y::string& path)
+  : bank(bank)
+  , map(map)
+  , cell(cell)
+  , new_path(path)
+{
+}
+
+void CellRenameAction::redo() const
+{
+  old_path = bank.cells.get_name(*map.get_coord(cell));
+  bank.cells.rename(*map.get_coord(cell), new_path);
+}
+
+void CellRenameAction::undo() const
+{
+  bank.cells.rename(*map.get_coord(cell), old_path);
+}
+
+CellRemoveAction::CellRemoveAction(Databank& bank, CellMap& map,
+                                   const y::ivec2& cell)
+  : bank(bank)
+  , map(map)
+  , cell(cell)
+{
+}
+
+void CellRemoveAction::redo() const
+{
+  path = bank.cells.get_name(*map.get_coord(cell));
+  map.clear_coord(cell);
+}
+
+void CellRemoveAction::undo() const
+{
+  map.set_coord(cell, bank.cells.get(path));
 }
 
 TileEditAction::TileEditAction(CellMap& map, y::int32 layer)
@@ -46,40 +98,87 @@ ScriptAddAction::ScriptAddAction(
   , min(min)
   , max(max)
   , path(path)
-  , index(-1)
 {
 }
 
 void ScriptAddAction::redo() const
 {
-  index = map.get_scripts().size();
   map.add_script(min, max, path);
 }
 
 void ScriptAddAction::undo() const
 {
-  map.remove_script(index);
+  map.remove_script(map.get_script_index_at(min));
 }
 
-ScriptRemoveAction::ScriptRemoveAction(CellMap& map, y::size index)
+ScriptRemoveAction::ScriptRemoveAction(CellMap& map, const y::ivec2& world)
   : map(map)
-  , index(index)
+  , world(world)
 {
 }
 
 void ScriptRemoveAction::redo() const
 {
-  const ScriptBlueprint& s = map.get_scripts()[index];
+  const ScriptBlueprint& s = map.get_script_at(world);
   min = s.min;
   max = s.max;
   path = s.path;
-  map.remove_script(index);
+  map.remove_script(map.get_script_index_at(world));
 }
 
 void ScriptRemoveAction::undo() const
 {
   map.add_script(min, max, path);
 }
+
+ScriptMoveAction::ScriptMoveAction(CellMap& map,
+                                   const y::ivec2& start, const y::ivec2& end)
+  : map(map)
+  , start(start)
+  , end(end)
+{
+}
+
+void ScriptMoveAction::redo() const
+{
+  const ScriptBlueprint& s = map.get_script_at(start);
+  y::ivec2 min = s.min;
+  y::ivec2 max = s.max;
+  y::string path = s.path;
+  map.remove_script(map.get_script_index_at(start));
+  map.add_script(min + end - start, max + end - start, path); 
+}
+
+void ScriptMoveAction::undo() const
+{
+  const ScriptBlueprint& s = map.get_script_at(end);
+  y::ivec2 min = s.min;
+  y::ivec2 max = s.max;
+  y::string path = s.path;
+  map.remove_script(map.get_script_index_at(end));
+  map.add_script(min + start - end, max + start - end, path); 
+}
+
+TileBrush::TileBrush()
+  : size{1, 1}
+  , array(new Tile[max_size[xx] * max_size[yy]])
+{
+  auto& entry = array[0];
+  entry.tileset = 0;
+  entry.index = 0;
+}
+
+const Tile& TileBrush::get(const y::ivec2& v) const
+{
+  return array[v[xx] + v[yy] * max_size[xx]];
+}
+
+Tile& TileBrush::get(const y::ivec2& v)
+{
+  return array[v[xx] + v[yy] * max_size[xx]];
+}
+
+const y::ivec2 TileBrush::max_size{16, 16};
 
 BrushPanel::BrushPanel(const Databank& bank, const TileBrush& brush)
   : Panel(y::ivec2(), y::ivec2())
@@ -101,23 +200,20 @@ void BrushPanel::update()
 
 void BrushPanel::draw(RenderUtil& util) const
 {
-  if (!_brush.size[xx] || !_brush.size[yy]) {
+  if (!(_brush.size > y::ivec2())) {
     return;
   }
 
   RenderBatch batch;
-  for (y::ivec2 v; v[xx] < _brush.size[xx]; ++v[xx]) {
-    for (v[yy] = 0; v[yy] < _brush.size[yy]; ++v[yy]) {
-      const Tile& e =
-          _brush.array[v[xx] + v[yy] * TileBrush::max_size];
-      if (!e.tileset) {
-        continue;
-      }
-
-      batch.add_sprite(e.tileset->get_texture(), Tileset::tile_size,
-                       v * Tileset::tile_size, e.tileset->from_index(e.index),
-                       0.f, Colour::white);
+  for (auto it = y::cartesian(_brush.size); it; ++it) {
+    const Tile& e = _brush.get(*it);
+    if (!e.tileset) {
+      continue;
     }
+
+    batch.add_sprite(e.tileset->get_texture(), Tileset::tile_size,
+                     *it * Tileset::tile_size, e.tileset->from_index(e.index),
+                     0.f, Colour::white);
   }
   util.render_batch(batch);
 }
@@ -236,15 +332,12 @@ void TilePanel::copy_drag_to_brush() const
   y::ivec2 max = y::max(get_drag_start(), _tile_hover);
   min = y::max(min, {0, 0});
   max = y::min(max, t.get_size() - y::ivec2{1, 1});
-  max = y::min(max, min + y::ivec2{TileBrush::max_size - 1,
-                                   TileBrush::max_size - 1});
+  max = y::min(max, min + TileBrush::max_size - y::ivec2{1, 1});
   _brush.size = y::ivec2{1, 1} + max - min;
-  for (y::int32 x = 0; x < _brush.size[xx]; ++x) {
-    for (y::int32 y = 0; y < _brush.size[yy]; ++y) {
-      Tile& entry = _brush.array[x + y * TileBrush::max_size];
-      entry.tileset = &_bank.tilesets.get(_tileset_select);
-      entry.index = t.to_index(y::ivec2{x, y} + min);
-    }
+  for (auto it = y::cartesian(_brush.size); it; ++it) {
+    Tile& entry = _brush.get(*it);
+    entry.tileset = &_bank.tilesets.get(_tileset_select);
+    entry.index = t.to_index(*it + min);
   }
 }
 
@@ -448,30 +541,27 @@ void MinimapPanel::draw(RenderUtil& util) const
        layer <= Cell::foreground_layers; ++layer) {
     // TODO: get depth working so we can move this outside.
     RenderBatch batch;
-    for (c[xx] = min[xx]; c[xx] < max[xx]; ++c[xx]) {
-      for (c[yy] = min[yy]; c[yy] < max[yy]; ++c[yy]) {
-        if (!_map.is_coord_used(c)) {
+    for (auto it = y::cartesian(min, max); it; ++it) {
+      const y::ivec2& c = *it;
+      if (!_map.is_coord_used(c)) {
+        continue;
+      }
+      const CellBlueprint* cell = _map.get_coord(c);
+
+      for (auto it = y::cartesian(Cell::cell_size); it; ++it) {
+        const y::ivec2& v = *it;
+        const Tile& t = cell->get_tile(layer, v);
+        // Draw the tile.
+        if (!t.tileset) {
           continue;
         }
-        const CellBlueprint* cell = _map.get_coord(c);
 
-        y::ivec2 v;
-        for (; v[xx] < Cell::cell_size[xx]; ++v[xx]) {
-          for (v[yy] = 0; v[yy] < Cell::cell_size[yy]; ++v[yy]) {
-            const Tile& t = cell->get_tile(layer, v);
-            // Draw the tile.
-            if (!t.tileset) {
-              continue;
-            }
-
-            y::ivec2 u = Tileset::tile_size * (v + (c - min) * Cell::cell_size);
-            batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
-                             u, t.tileset->from_index(t.index),
-                             (layer + Cell::background_layers) /
-                                 (1 + Cell::background_layers +
-                                  Cell::foreground_layers), Colour::white);
-          }
-        }
+        y::ivec2 u = Tileset::tile_size * (v + (c - min) * Cell::cell_size);
+        batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
+                         u, t.tileset->from_index(t.index),
+                         (layer + Cell::background_layers) /
+                             (1 + Cell::background_layers +
+                              Cell::foreground_layers), Colour::white);
       }
     }
     util.render_batch(batch);
@@ -486,7 +576,7 @@ void MinimapPanel::draw(RenderUtil& util) const
 
   vmin = y::max(vmin, y::ivec2());
   vmax = y::min(vmax, (max - min) * Cell::cell_size * Tileset::tile_size);
-  if (vmin[xx] < vmax[xx] && vmin[yy] < vmax[yy]) {
+  if (vmin < vmax) {
     util.render_outline(vmin, vmax - vmin, Colour::outline);
   }
   util.set_scale(1.f);
@@ -528,9 +618,10 @@ void MapEditor::event(const sf::Event& e)
     _layer_panel.event(e);
   }
 
-  y::ivec2 hover_world = _hover_tile + _hover_cell * Cell::cell_size;
   bool shift = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
                sf::Keyboard::isKeyPressed(sf::Keyboard::RShift);
+  bool control = sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) ||
+                 sf::Keyboard::isKeyPressed(sf::Keyboard::RControl);
 
   // Start camera drag.
   if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
@@ -539,29 +630,30 @@ void MapEditor::event(const sf::Event& e)
     _camera_drag = true;
   }
   // TODO: control + draw should draw a rectangle.
-  // TODO: dragging scripts around.
   else if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
            (e.mouseButton.button == sf::Mouse::Left ||
             e.mouseButton.button == sf::Mouse::Right)) {
     // Start tile draw or pick.
-    if (_layer_panel.get_layer() <= Cell::foreground_layers) {
+    if (!is_script_layer()) {
       start_drag(camera_to_world(_hover).euclidean_div(Tileset::tile_size));
       if (e.mouseButton.button == sf::Mouse::Left) {
         _tile_edit_action = y::move_unique(
             new TileEditAction(_map, _layer_panel.get_layer()));
       }
     }
-    // Start script region drag.
+    // Start script region create or move.
     else if (e.mouseButton.button == sf::Mouse::Left) {
-      start_drag(hover_world);
-      _script_add_action = y::move_unique(
-          new ScriptAddAction(_map, hover_world, hover_world,
-              _script_panel.get_script()));
+      start_drag(get_hover_world());
+      if (control || !_map.has_script_at(get_hover_world())) {
+        _script_add_action = y::move_unique(
+            new ScriptAddAction(_map, get_hover_world(), get_hover_world(),
+                _script_panel.get_script()));
+      }
     }
     // Pick script.
     else if (e.mouseButton.button == sf::Mouse::Right &&
-             _map.has_script_at(hover_world)) {
-      _script_panel.set_script(_map.get_script_at(hover_world).path);
+             _map.has_script_at(get_hover_world())) {
+      _script_panel.set_script(_map.get_script_at(get_hover_world()).path);
     }
   }
 
@@ -573,6 +665,10 @@ void MapEditor::event(const sf::Event& e)
     // End drag and add script.
     else if (_script_add_action) {
       get_undo_stack().new_action(y::move_unique(_script_add_action));
+    }
+    else if (is_script_layer()) {
+      get_undo_stack().new_action(y::move_unique(
+          new ScriptMoveAction(_map, get_drag_start(), get_hover_world())));
     }
     // End pick and copy tiles.
     else if (!_camera_drag) {
@@ -586,7 +682,7 @@ void MapEditor::event(const sf::Event& e)
     return;
   }
 
-  CellBlueprint* cell = _map.get_coord(_hover_cell);
+  CellBlueprint* cell = _map.get_coord(get_hover_cell());
   y::int32 old_zoom = _zoom;
   switch (e.key.code) {
     // Quit!
@@ -595,7 +691,7 @@ void MapEditor::event(const sf::Event& e)
       break;
     // Rename cell.
     case sf::Keyboard::R:
-      if (_hover[xx] >= 0 && _hover[yy] >= 0 && cell) {
+      if (is_mouse_on_screen() && cell) {
         const y::string& name =
             _bank.cells.get_name(*cell);
         push(y::move_unique(new TextInputModal(
@@ -604,9 +700,20 @@ void MapEditor::event(const sf::Event& e)
       break;
     // New cell.
     case sf::Keyboard::N:
-      if (_hover[xx] >= 0 && _hover[yy] >= 0 && !cell) {
+      if (is_mouse_on_screen() && !cell) {
         push(y::move_unique(new TextInputModal(
             _util, "/world/new.cell", _input_result, "Add cell using name:")));
+      }
+      break;
+    // Remove cell or script.
+    case sf::Keyboard::Delete:
+      if (!is_script_layer() && _map.is_coord_used(get_hover_cell())) {
+        get_undo_stack().new_action(y::move_unique(
+            new CellRemoveAction(_bank, _map, get_hover_cell())));
+      }
+      if (is_script_layer() && _map.has_script_at(get_hover_world())) {
+        get_undo_stack().new_action(y::move_unique(
+            new ScriptRemoveAction(_map, get_hover_world())));
       }
       break;
     // Zoom in.
@@ -674,23 +781,19 @@ void MapEditor::update()
   }
   _camera += speed * d;
 
-  if (_hover[xx] < 0 || _hover[yy] < 0) {
+  // Update hover and status text.
+  if (!is_mouse_on_screen()) {
     return;
   }
 
-  // Update hover and status text.
-  y::ivec2 tile = camera_to_world(_hover).euclidean_div(Tileset::tile_size);
-  _hover_cell = tile.euclidean_div(Cell::cell_size);
-  _hover_tile = tile.euclidean_mod(Cell::cell_size);
-
   _layer_status.clear();
   y::sstream ss;
-  ss << _hover_cell[xx] << ", " << _hover_cell[yy] <<
-      " : " << _hover_tile[xx] << ", " << _hover_tile[yy] <<
+  ss << get_hover_cell() << " : " << get_hover_tile() <<
       " [" << zoom_array[_zoom] << "X]";
   _layer_status.push_back(ss.str());
-  if (_map.is_coord_used(_hover_cell)) {
-    _layer_status.push_back(_bank.cells.get_name(*_map.get_coord(_hover_cell)));
+  if (_map.is_coord_used(get_hover_cell())) {
+    _layer_status.push_back(
+        _bank.cells.get_name(*_map.get_coord(get_hover_cell())));
   }
 
   // Drag camera.
@@ -701,17 +804,16 @@ void MapEditor::update()
   }
 
   // Rename or add cell.
-  // TODO: make undoable.
   if (_input_result.success) {
     const y::string& result = _input_result.result;
-    if (_map.is_coord_used(_hover_cell)) {
-      _bank.cells.rename(*_map.get_coord(_hover_cell), result);
+    if (_map.is_coord_used(get_hover_cell()) &&
+        !_bank.cells.is_name_used(result)) {
+      get_undo_stack().new_action(y::move_unique(
+          new CellRenameAction(_bank, _map, get_hover_cell(), result)));
     }
     else {
-      if (!_bank.cells.is_name_used(result)) {
-        _bank.cells.insert(result, y::move_unique(new CellBlueprint()));
-      }
-      _map.set_coord(_hover_cell, _bank.cells.get(result));
+      get_undo_stack().new_action(y::move_unique(
+          new CellAddAction(_bank, _map, get_hover_cell(), result)));
     }
     _input_result.success = false;
   }
@@ -725,9 +827,8 @@ void MapEditor::update()
   }
   // Script sizing.
   if (_script_add_action) {
-    y::ivec2 hover_world = _hover_tile + _hover_cell * Cell::cell_size;
-    _script_add_action->min = y::min(get_drag_start(), hover_world);
-    _script_add_action->max = y::max(get_drag_start(), hover_world);
+    _script_add_action->min = y::min(get_drag_start(), get_hover_world());
+    _script_add_action->max = y::max(get_drag_start(), get_hover_world());
   }
 }
 
@@ -739,45 +840,45 @@ void MapEditor::draw() const
   // Draw cells.
   y::ivec2 min = _map.get_boundary_min();
   y::ivec2 max = _map.get_boundary_max();
-  y::ivec2 c;
   for (y::int32 layer = -Cell::background_layers;
        layer <= Cell::foreground_layers; ++layer) {
     RenderBatch batch;
-    for (c[xx] = min[xx]; c[xx] < max[xx]; ++c[xx]) {
-      for (c[yy] = min[yy]; c[yy] < max[yy]; ++c[yy]) {
-        draw_cell_layer(batch, c, layer);
-      }
+    for (auto it = y::cartesian(min, max); it; ++it) {
+      draw_cell_layer(batch, *it, layer);
     }
     _util.render_batch(batch);
     _util.get_gl().bind_window(false, true);
   }
 
-  // Draw cell-grid and actors.
-  min = y::min(min, _hover_cell);
-  max = y::max(max, y::ivec2{1, 1} + _hover_cell);
-  for (c[xx] = min[xx]; c[xx] < max[xx]; ++c[xx]) {
-    for (c[yy] = min[yy]; c[yy] < max[yy]; ++c[yy]) {
-      if (_map.is_coord_used(c) ||
-          (c == _hover_cell && _hover[xx] >= 0 && _hover[yy] >= 0)) {
-        _util.render_outline(
-            world_to_camera(c * Tileset::tile_size * Cell::cell_size),
-            Tileset::tile_size * Cell::cell_size, Colour::panel);
-      }
+  // Draw cell-grid.
+  min = y::min(min, get_hover_cell());
+  max = y::max(max, y::ivec2{1, 1} + get_hover_cell());
+  for (auto it = y::cartesian(min, max); it; ++it) {
+    if (_map.is_coord_used(*it) ||
+        (is_mouse_on_screen() && *it == get_hover_cell())) {
+      _util.render_outline(
+          world_to_camera(*it * Tileset::tile_size * Cell::cell_size),
+          Tileset::tile_size * Cell::cell_size, Colour::panel);
     }
   }
 
   // Draw script regions.
-  y::ivec2 hover_world = _hover_tile + _hover_cell * Cell::cell_size;
-  const ScriptBlueprint* hover_script = _map.has_script_at(hover_world) ?
-      &_map.get_script_at(hover_world) : y::null;
-  if (_layer_panel.get_layer() > Cell::foreground_layers) {
+  if (is_script_layer()) {
+    const ScriptBlueprint* hover_script =
+        !is_dragging() && _map.has_script_at(get_hover_world()) ?
+            &_map.get_script_at(get_hover_world()) : y::null;
+    const ScriptBlueprint* drag_script = is_dragging() && !_script_add_action ?
+        &_map.get_script_at(get_drag_start()) : y::null;
     const CellMap::script_list& scripts = _map.get_scripts();
     for (const ScriptBlueprint& s : scripts) {
-      y::ivec2 min = world_to_camera(s.min * Tileset::tile_size);
-      y::ivec2 max = world_to_camera(s.max * Tileset::tile_size);
+      y::ivec2 off = &s == drag_script ?
+          get_hover_world() - get_drag_start() : y::ivec2();
+      y::ivec2 min = world_to_camera((s.min + off) * Tileset::tile_size);
+      y::ivec2 max = world_to_camera((s.max + off) * Tileset::tile_size);
       _util.render_outline(min, Tileset::tile_size + max - min, Colour::outline);
       _util.render_text(
-          s.path, min, &s == hover_script ? Colour::select : Colour::item);
+          s.path, min, &s == hover_script || &s == drag_script ?
+              Colour::select : Colour::item);
     }
   }
 
@@ -789,21 +890,17 @@ void MapEditor::draw() const
   }
 
   // Draw cursor.
-  y::ivec2 t =
-      (_hover_tile + _hover_cell * Cell::cell_size);
-  if (is_dragging() && !_tile_edit_action && !_camera_drag) {
-    y::ivec2 u = get_drag_start();
-    y::ivec2 min = y::min(t, u);
-    y::ivec2 max = y::max(t, u);
+  if (is_dragging() && !_script_add_action && is_script_layer());
+  else if (is_dragging() && !_tile_edit_action && !_camera_drag) {
+    y::ivec2 min = y::min(get_drag_start(), get_hover_world());
+    y::ivec2 max = y::max(get_drag_start(), get_hover_world());
     _util.render_outline(
         world_to_camera(min * Tileset::tile_size),
         Tileset::tile_size * (y::ivec2{1, 1} + max - min), Colour::hover);
   }
-  else if (_hover[xx] >= 0 && _hover[yy] >= 0 &&
-           _map.is_coord_used(_hover_cell)) {
-    bool actor_layer = _layer_panel.get_layer() > Cell::foreground_layers;
-    _util.render_outline(world_to_camera(t * Tileset::tile_size),
-                         Tileset::tile_size * (actor_layer ?
+  else if (is_mouse_on_screen() && _map.is_coord_used(get_hover_cell())) {
+    _util.render_outline(world_to_camera(get_hover_tile() * Tileset::tile_size),
+                         Tileset::tile_size * (is_script_layer() ?
                              y::ivec2{1, 1} : _tile_brush.size), Colour::hover);
   }
 
@@ -826,34 +923,31 @@ y::ivec2 MapEditor::camera_to_world(const y::ivec2& v) const
 
 void MapEditor::copy_drag_to_brush()
 {
-  y::ivec2 t = _hover_tile + _hover_cell * Cell::cell_size;
-  y::ivec2 u = get_drag_start();
-  y::ivec2 min = y::min(t, u);
-  y::ivec2 max = y::max(t, u);
+  y::ivec2 min = y::min(get_drag_start(), get_hover_world());
+  y::ivec2 max = y::max(get_drag_start(), get_hover_world());
   y::ivec2 v;
-  for (v[xx] = min[xx]; v[xx] <= max[xx]; ++v[xx]) {
-    for (v[yy] = min[yy]; v[yy] <= max[yy]; ++v[yy]) {
-      u = v - min;
-      if (u[xx] >= TileBrush::max_size || u[yy] >= TileBrush::max_size) {
-        continue;
-      }
-      y::ivec2 c = v.euclidean_div(Cell::cell_size);
-      t = v.euclidean_mod(Cell::cell_size);
-      Tile& e = _tile_brush.array[u[xx] + u[yy] * TileBrush::max_size];
-      if (!_map.is_coord_used(c)) {
-        e.tileset = y::null;
-        e.index = 0;
-      }
-      else {
-        CellBlueprint* cell = _map.get_coord(c);
-        const Tile& tile = cell->get_tile(_layer_panel.get_layer(), t);
-        e.tileset = tile.tileset;
-        e.index = tile.index;
-      }
+  for (auto it = y::cartesian(min, max); it; ++it) {
+    y::ivec2 u = *it - min;
+    if (!(u < TileBrush::max_size)) {
+      continue;
+    }
+
+    y::ivec2 c = it->euclidean_div(Cell::cell_size);
+    y::ivec2 t = it->euclidean_mod(Cell::cell_size);
+    Tile& e = _tile_brush.get(u);
+
+    if (!_map.is_coord_used(c)) {
+      e.tileset = y::null;
+      e.index = 0;
+    }
+    else {
+      CellBlueprint* cell = _map.get_coord(c);
+      const Tile& tile = cell->get_tile(_layer_panel.get_layer(), t);
+      e.tileset = tile.tileset;
+      e.index = tile.index;
     }
   }
-  _tile_brush.size = y::min(y::ivec2{1, 1} + max - min,
-                            {TileBrush::max_size, TileBrush::max_size});
+  _tile_brush.size = y::min(y::ivec2{1, 1} + max - min, TileBrush::max_size);
 }
 
 void MapEditor::copy_brush_to_map() const
@@ -861,30 +955,26 @@ void MapEditor::copy_brush_to_map() const
   y::ivec2 tile = camera_to_world(_hover).euclidean_div(Tileset::tile_size);
   y::int32 layer = _tile_edit_action->layer;
   y::ivec2 start = get_drag_start();
-  y::ivec2 v;
-  for (; v[xx] < _tile_brush.size[xx]; ++v[xx]) {
-    for (v[yy] = 0; v[yy] < _tile_brush.size[yy]; ++v[yy]) {
-      y::ivec2 c = (tile + v).euclidean_div(Cell::cell_size);
-      y::ivec2 t = (tile + v).euclidean_mod(Cell::cell_size);
-      if (!_map.is_coord_used(c)) {
-        continue;
-      }
-
-      CellBlueprint* cell = _map.get_coord(c);
-      y::ivec2 vt = (tile + v - start).euclidean_mod(_tile_brush.size);
-
-      const Tile& e = _tile_brush.array[vt[xx] + vt[yy] * TileBrush::max_size];
-      const auto& p = y::make_pair(c, t);
-
-      auto it = _tile_edit_action->edits.find(p);
-      if (it == _tile_edit_action->edits.end()) {
-        auto& edit = _tile_edit_action->edits[p];
-        edit.old_tile = cell->get_tile(layer, t);
-        it = _tile_edit_action->edits.find(p);
-      }
-      it->second.new_tile.tileset = e.tileset;
-      it->second.new_tile.index = e.index;
+  for (auto it = y::cartesian(_tile_brush.size); it; ++it) {
+    y::ivec2 c = (tile + *it).euclidean_div(Cell::cell_size);
+    y::ivec2 t = (tile + *it).euclidean_mod(Cell::cell_size);
+    if (!_map.is_coord_used(c)) {
+      continue;
     }
+
+    CellBlueprint* cell = _map.get_coord(c);
+    const Tile& e = _tile_brush.get(
+        (tile + *it - start).euclidean_mod(_tile_brush.size));
+    const auto& p = y::make_pair(c, t);
+
+    auto jt = _tile_edit_action->edits.find(p);
+    if (jt == _tile_edit_action->edits.end()) {
+      auto& edit = _tile_edit_action->edits[p];
+      edit.old_tile = cell->get_tile(layer, t);
+      jt = _tile_edit_action->edits.find(p);
+    }
+    jt->second.new_tile.tileset = e.tileset;
+    jt->second.new_tile.index = e.index;
   }
 }
 
@@ -905,31 +995,53 @@ void MapEditor::draw_cell_layer(
   bool edit = is_dragging() &&
       _tile_edit_action && _tile_edit_action->layer == layer;
 
-  y::ivec2 v;
-  for (; v[xx] < Cell::cell_size[xx]; ++v[xx]) {
-    for (v[yy] = 0; v[yy] < Cell::cell_size[yy]; ++v[yy]) {
-      // In the middle of a TileEditAction we need to render the
-      // uncommited drawing.
-      y::map<TileEditAction::Key, TileEditAction::Entry>::const_iterator it;
-      if (edit) {
-        it = _tile_edit_action->edits.find(y::make_pair(coord, v));
-      }
-      const Tile& t = edit && it != _tile_edit_action->edits.end() ?
-          it->second.new_tile : cell->get_tile(layer, v);
-
-      // Draw the tile.
-      if (!t.tileset) {
-        continue;
-      }
-
-      y::ivec2 camera = world_to_camera(
-          Tileset::tile_size * (v + coord * Cell::cell_size));
-
-      batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
-                       camera, t.tileset->from_index(t.index),
-                       (layer + Cell::background_layers) /
-                           (1 + Cell::background_layers +
-                            Cell::foreground_layers), c);
+  for (auto it = y::cartesian(Cell::cell_size); it; ++it) {
+    // In the middle of a TileEditAction we need to render the
+    // uncommited drawing.
+    y::map<TileEditAction::Key, TileEditAction::Entry>::const_iterator jt;
+    if (edit) {
+      jt = _tile_edit_action->edits.find(y::make_pair(coord, *it));
     }
+    const Tile& t = edit && jt != _tile_edit_action->edits.end() ?
+        jt->second.new_tile : cell->get_tile(layer, *it);
+
+    // Draw the tile.
+    if (!t.tileset) {
+      continue;
+    }
+
+    y::ivec2 camera = world_to_camera(
+        Tileset::tile_size * (*it + coord * Cell::cell_size));
+
+    batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
+                     camera, t.tileset->from_index(t.index),
+                     (layer + Cell::background_layers) /
+                         (1 + Cell::background_layers +
+                          Cell::foreground_layers), c);
   }
+}
+
+bool MapEditor::is_script_layer() const
+{
+  return _layer_panel.get_layer() > Cell::foreground_layers;
+}
+
+bool MapEditor::is_mouse_on_screen() const
+{
+  return _hover >= y::ivec2();
+}
+
+y::ivec2 MapEditor::get_hover_world() const
+{
+  return camera_to_world(_hover).euclidean_div(Tileset::tile_size);
+}
+
+y::ivec2 MapEditor::get_hover_tile() const
+{
+  return get_hover_world().euclidean_mod(Cell::cell_size);
+}
+
+y::ivec2 MapEditor::get_hover_cell() const
+{
+  return get_hover_world().euclidean_div(Cell::cell_size);
 }

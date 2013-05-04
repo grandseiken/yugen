@@ -80,6 +80,18 @@ const ScriptBlueprint& CellMap::get_script_at(const y::ivec2& v) const
   return missing;
 }
 
+y::size CellMap::get_script_index_at(const y::ivec2& v) const
+{
+  y::size n = _scripts.size() - 1;
+  for (auto it = _scripts.rbegin(); it != _scripts.rend(); ++it) {
+    if (v.in_region(it->min, y::ivec2{1, 1} + it->max - it->min)) {
+      return n;
+    }
+    --n;
+  }
+  return -1;
+}
+
 void CellMap::remove_script(y::size index)
 {
   if (index < _scripts.size()) {

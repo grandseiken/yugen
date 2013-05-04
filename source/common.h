@@ -29,6 +29,8 @@ namespace y {
   typedef std::size_t size;
   typedef std::string string;
   typedef std::stringstream sstream;
+  typedef std::ostream ostream;
+  typedef std::istream istream;
 
   template<typename T>
   T abs(const T& t)

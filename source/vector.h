@@ -4,6 +4,7 @@
 #include "common.h"
 
 #include <boost/functional/hash.hpp>
+#include <boost/iterator/iterator_facade.hpp>
 #include <cmath>
 
 namespace proto {
@@ -21,7 +22,7 @@ namespace y {
   class vec {
   public:
 
-    typedef vec<T, N> V;
+    typedef vec<T, N, non_strict> V;
     T elements[N];
 
     vec()
@@ -201,6 +202,50 @@ namespace y {
       return operator=(operator/(arg));
     }
 
+    template<typename std::enable_if<non_strict, int>::type = 0>
+    bool operator<(const V& arg) const
+    {
+      for (y::size i = 0; i < N; ++i) {
+        if (elements[i] >= arg.elements[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    template<typename std::enable_if<non_strict, int>::type = 0>
+    bool operator>(const V& arg) const
+    {
+      for (y::size i = 0; i < N; ++i) {
+        if (elements[i] <= arg.elements[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    template<typename std::enable_if<non_strict, int>::type = 0>
+    bool operator<=(const V& arg) const
+    {
+      for (y::size i = 0; i < N; ++i) {
+        if (elements[i] > arg.elements[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    template<typename std::enable_if<non_strict, int>::type = 0>
+    bool operator>=(const V& arg) const
+    {
+      for (y::size i = 0; i < N; ++i) {
+        if (elements[i] < arg.elements[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     V& normalise()
     {
       return operator=(normalised());
@@ -274,8 +319,8 @@ namespace y {
 
   };
 
-  template<typename T, y::size N>
-  vec<T, N> operator*(const T& t, const vec<T, N>& v)
+  template<typename T, y::size N, bool non_strict>
+  vec<T, N, non_strict> operator*(const T& t, const vec<T, N, non_strict>& v)
   {
     vec<T, N> u;
     for (y::size i = 0; i < N; ++i) {
@@ -312,6 +357,101 @@ namespace y {
       v[i] = max(a[i], b[i]);
     }
     return v;
+  }
+
+  template<typename T, y::size N, bool non_strict>
+  y::ostream& operator<<(y::ostream& o, const vec<T, N, non_strict>& arg)
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (i) {
+        o << ", ";
+      }
+      o << arg.elements[i];
+    }
+    return o;
+  }
+
+  template<typename T, y::size N, bool non_strict>
+  class vec_iterator : public boost::iterator_facade<
+      vec_iterator<T, N, non_strict>,
+      const vec<T, N, non_strict>, boost::forward_traversal_tag> {
+
+    typedef void (vec_iterator<T, N, non_strict>::*bool_type)() const;
+    void no_bool_comparison() const {}
+
+  public:
+
+    typedef vec<T, N, non_strict> V;
+    vec_iterator() : _finished(true) {}
+
+    vec_iterator(const V& min, const V& max)
+      : _min(min)
+      , _size(max - min)
+      , _value(min)
+      , _finished(false)
+    {
+    }
+
+    vec_iterator<T, N, non_strict> end()
+    {
+      return vec_iterator();
+    }
+
+    operator bool_type() const
+    {
+      return _finished ?
+          0 : &vec_iterator<T, N, non_strict>::no_bool_comparison;
+    }
+    
+  private:
+
+    friend class boost::iterator_core_access;
+
+    void increment()
+    {
+      for (y::size i = 0; i < N; ++i) {
+        if (++_value.elements[i] < (_min + _size).elements[i]) {
+          break;
+        }
+        _value.elements[i] = _min.elements[i];
+        _finished = 1 + i == N;
+      }
+    }
+
+    bool equal(const vec_iterator& arg) const
+    {
+      if (_finished && arg._finished) {
+        return true; 
+      }
+      if (_finished != arg._finished) {
+        return false;
+      }
+      return _value == arg._value;
+    }
+
+    const V& dereference() const
+    {
+      return _value;
+    }
+
+    V _min;
+    V _size;
+    V _value;
+    bool _finished;
+
+  };
+
+  template<typename T, y::size N, bool non_strict>
+  vec_iterator<T, N, non_strict> cartesian(const vec<T, N, non_strict>& min,
+                                           const vec<T, N, non_strict>& max)
+  {
+    return vec_iterator<T, N, non_strict>(min, max);
+  }
+
+  template<typename T, y::size N, bool non_strict>
+  vec_iterator<T, N, non_strict> cartesian(const vec<T, N, non_strict>& max)
+  {
+    return cartesian(vec<T, N, non_strict>(), max);
   }
 
   typedef vec<y::int32, 2> ivec2;

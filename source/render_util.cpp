@@ -133,7 +133,7 @@ void RenderUtil::set_scale(float scale)
 void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
                              float r, float g, float b, float a) const
 {
-  if (!_native_size[xx] || !_native_size[yy]) {
+  if (!(_native_size >= y::ivec2())) {
     return;
   }
   _gl.enable_depth(false);
@@ -286,8 +286,8 @@ void write_vector(std::vector<T>& dest, y::size dest_index,
 
 void RenderUtil::render_batch() const
 {
-  if (!_native_size[xx] || !_native_size[yy] ||
-      !_sprite || !_frame_size[xx] || !_frame_size[yy]) {
+  if (!(_native_size >= y::ivec2()) ||
+      !(_frame_size >= y::ivec2()) || !_sprite) {
     return;
   }
   _gl.enable_depth(true);
@@ -378,7 +378,7 @@ void RenderUtil::render_fill_internal(
     const y::fvec2& origin, const y::fvec2& size,
     float r, float g, float b, float a) const
 {
-  if (!_native_size[xx] || !_native_size[xx]) {
+  if (!(_native_size >= y::ivec2())) {
     return;
   }
   _gl.enable_depth(false);

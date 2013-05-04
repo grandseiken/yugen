@@ -108,7 +108,7 @@ Window::Window(const y::string& title, y::size default_bpp,
     }
   }
 
-  if (_resolution.size[xx] == 0 || _resolution.size[yy] == 0) {
+  if (!(_resolution.size > y::ivec2())) {
     _resolution.size = desktop.size / 2;
   }
 

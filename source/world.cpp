@@ -32,7 +32,8 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
   if (offset == y::ivec2()) {
     return;
   }
-  const y::int32 half_size = active_window_half_size;
+  y::int32 half_size = active_window_half_size;
+  y::ivec2 half_v{half_size, half_size};
   _active_map_offset -= offset;
 
   // Temporary copy of the active window.
@@ -44,51 +45,44 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
   y::unique<bool[]> done(new bool[(1 + 2 * half_size) * (1 + 2 * half_size)]);
 
   // Copy the active window into the temporary copy.
-  for (y::int32 x = -half_size; x <= half_size; ++x) {
-    for (y::int32 y = -half_size; y <= half_size; ++y) {
-      y::size internal_index = to_internal_index({x, y});
-      copy[internal_index].blueprint = _active_window[internal_index].blueprint;
-      copy[internal_index].cell.swap(_active_window[internal_index].cell);
-      used[internal_index] = done[internal_index] = false;
-    }
+  for (auto it = y::cartesian(-half_v, y::ivec2{1, 1} + half_v); it; ++it) {
+    y::size internal_index = to_internal_index(*it);
+    copy[internal_index].blueprint = _active_window[internal_index].blueprint;
+    copy[internal_index].cell.swap(_active_window[internal_index].cell);
+    used[internal_index] = done[internal_index] = false;
   }
 
   // Move the cells that are still in view from the copy to the new window.
-  for (y::int32 x = -half_size; x <= half_size; ++x) {
-    for (y::int32 y = -half_size; y <= half_size; ++y) {
-      y::ivec2 source = y::ivec2{x, y} + offset;
-      y::size internal_index = to_internal_index({x, y});
-      if (source[xx] >= -half_size && source[xx] <= half_size &&
-          source[yy] >= -half_size && source[yy] <= half_size) {
-        y::size copy_index = to_internal_index(source);
-        _active_window[internal_index].blueprint = copy[copy_index].blueprint;
-        _active_window[internal_index].cell.swap(copy[copy_index].cell);
-        used[copy_index] = done[internal_index] = true;
-      }
+  for (auto it = y::cartesian(-half_v, y::ivec2{1, 1} + half_v); it; ++it) {
+    y::ivec2 source = *it + offset;
+    y::size internal_index = to_internal_index(*it);
+    if (source >= -half_v && source <= half_v) {
+      y::size copy_index = to_internal_index(source);
+      _active_window[internal_index].blueprint = copy[copy_index].blueprint;
+      _active_window[internal_index].cell.swap(copy[copy_index].cell);
+      used[copy_index] = done[internal_index] = true;
     }
   }
 
   // Create or swap the remaining unfilled cells in the active window.
-  for (y::int32 x = -half_size; x <= half_size; ++x) {
-    for (y::int32 y = -half_size; y <= half_size; ++y) {
-      y::size internal_index = to_internal_index({x, y});
-      if (done[internal_index]) {
-        continue;
-      }
-      const CellBlueprint* new_blueprint = active_window_target({x, y});
-      _active_window[internal_index].blueprint = new_blueprint;
-
-      // If the cell happens to be unchanged, swap it in.
-      if (!used[internal_index] &&
-          copy[internal_index].blueprint == new_blueprint) {
-        _active_window[internal_index].cell.swap(copy[internal_index].cell);
-        continue;
-      }
-
-      // Otherwise create it.
-      _active_window[internal_index].cell =
-          y::move_unique(new Cell(*new_blueprint));
+  for (auto it = y::cartesian(-half_v, y::ivec2{1, 1} + half_v); it; ++it) {
+    y::size internal_index = to_internal_index(*it);
+    if (done[internal_index]) {
+      continue;
     }
+    const CellBlueprint* new_blueprint = active_window_target(*it);
+    _active_window[internal_index].blueprint = new_blueprint;
+
+    // If the cell happens to be unchanged, swap it in.
+    if (!used[internal_index] &&
+        copy[internal_index].blueprint == new_blueprint) {
+      _active_window[internal_index].cell.swap(copy[internal_index].cell);
+      continue;
+    }
+
+    // Otherwise create it.
+    _active_window[internal_index].cell =
+        y::move_unique(new Cell(*new_blueprint));
   }
 }
 
@@ -129,11 +123,9 @@ const CellBlueprint* WorldWindow::active_window_target(
 
 void WorldWindow::update_active_window()
 {
-  const y::int32 half_size = active_window_half_size;
-  for (y::int32 x = -half_size; x <= half_size; ++x) {
-    for (y::int32 y = -half_size; y <= half_size; ++y) {
-      update_active_window_cell({x, y});
-    }
+  const y::ivec2 half_v = {active_window_half_size, active_window_half_size};
+  for (auto it = y::cartesian(-half_v, y::ivec2{1, 1} + half_v); it; ++it) {
+    update_active_window_cell(*it);
   }
 }
 

@@ -12,6 +12,48 @@ class Databank;
 class RenderBatch;
 class RenderUtil;
 
+// Action that adds a cell.
+struct CellAddAction : public StackAction {
+  CellAddAction(Databank& bank, CellMap& map,
+                const y::ivec2& cell, const y::string& path);
+
+  Databank& bank;
+  CellMap& map;
+  y::ivec2 cell;
+  y::string path;
+
+  virtual void redo() const;
+  virtual void undo() const;
+};
+
+// Action that renames a cell.
+struct CellRenameAction : public StackAction {
+  CellRenameAction(Databank& bank, CellMap& map,
+                   const y::ivec2& cell, const y::string& path);
+
+  Databank& bank;
+  CellMap& map;
+  y::ivec2 cell;
+  y::string new_path;
+  mutable y::string old_path;
+
+  virtual void redo() const;
+  virtual void undo() const;
+};
+
+// Action that removes a cell.
+struct CellRemoveAction : public StackAction {
+  CellRemoveAction(Databank& bank, CellMap& map, const y::ivec2& cell);
+
+  Databank& bank;
+  CellMap& map;
+  y::ivec2 cell;
+  mutable y::string path;
+
+  virtual void redo() const;
+  virtual void undo() const;
+};
+
 // Action that changes a set of tiles.
 struct TileEditAction : public StackAction {
   TileEditAction(CellMap& map, y::int32 layer);
@@ -31,7 +73,7 @@ struct TileEditAction : public StackAction {
   virtual void undo() const;
 };
 
-// Action that sets a script. Set path to empty string to remove a script.
+// Action that adds a script.
 struct ScriptAddAction : public StackAction {
   ScriptAddAction(CellMap& map, const y::ivec2& min, const y::ivec2& max,
                   const y::string& path);
@@ -40,20 +82,32 @@ struct ScriptAddAction : public StackAction {
   y::ivec2 min;
   y::ivec2 max;
   y::string path;
-  mutable y::size index;
 
   virtual void redo() const;
   virtual void undo() const;
 };
 
+// Action that removes a script.
 struct ScriptRemoveAction : public StackAction {
-  ScriptRemoveAction(CellMap& map, y::size index);
+  ScriptRemoveAction(CellMap& map, const y::ivec2& world);
 
   CellMap& map;
-  y::size index;
+  y::ivec2 world;
   mutable y::ivec2 min;
   mutable y::ivec2 max;
   mutable y::string path;
+
+  virtual void redo() const;
+  virtual void undo() const;
+};
+
+// Action that moves a script.
+struct ScriptMoveAction : public StackAction {
+  ScriptMoveAction(CellMap& map, const y::ivec2& start, const y::ivec2& end);
+
+  CellMap& map;
+  y::ivec2 start;
+  y::ivec2 end;
 
   virtual void redo() const;
   virtual void undo() const;
@@ -63,9 +117,12 @@ struct ScriptRemoveAction : public StackAction {
 struct TileBrush {
   TileBrush();
 
+  const Tile& get(const y::ivec2& v) const;
+  /***/ Tile& get(const y::ivec2& v);
+
   y::ivec2 size;
   y::unique<Tile[]> array;
-  static const y::int32 max_size = 16;
+  static const y::ivec2 max_size;
 };
 
 // Displays the current contents of the brush on-screen.
@@ -200,6 +257,13 @@ private:
   void draw_cell_layer(
       RenderBatch& batch, const y::ivec2& coord, y::int32 layer) const;
 
+  // Helper accessors.
+  bool is_script_layer() const;
+  bool is_mouse_on_screen() const;
+  y::ivec2 get_hover_world() const;
+  y::ivec2 get_hover_tile() const;
+  y::ivec2 get_hover_cell() const;
+
   Databank& _bank;
   RenderUtil& _util;
   CellMap& _map;
@@ -208,8 +272,6 @@ private:
   y::int32 _zoom;
   y::ivec2 _camera;
   y::ivec2 _hover;
-  y::ivec2 _hover_cell;
-  y::ivec2 _hover_tile;
   y::string_vector _layer_status;
 
   TileBrush _tile_brush;
@@ -221,7 +283,6 @@ private:
 
   y::unique<TileEditAction> _tile_edit_action;
   y::unique<ScriptAddAction> _script_add_action;
-
   TextInputResult _input_result;
 
 };
