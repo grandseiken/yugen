@@ -11,14 +11,15 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   , cells(_default_cell)
   , maps(_default_map)
 {
-  filesystem.read_file(_default_script.contents, _default_script.path);
+  filesystem.read_file_with_includes(_default_script.contents,
+                                     _default_script.path);
 
   y::string_vector paths;
   filesystem.list_pattern(paths, "/scripts/**.lua");
   for (const y::string& s : paths) {
     LuaFile* lua_file = new LuaFile;
     lua_file->path = s;
-    filesystem.read_file(lua_file->contents, s);
+    filesystem.read_file_with_includes(lua_file->contents, s);
     scripts.insert(s, y::move_unique(lua_file));
   }
 

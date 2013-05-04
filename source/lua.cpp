@@ -12,14 +12,18 @@ namespace ylib {
   typedef y::int32 ylib_int;
 
   template<typename T>
-  inline T check(lua_State* state, ylib_int index);
+  struct check {};
+  template<typename T>
+  struct type_name {};
 
   // Integral values.
   template<>
-  inline ylib_int check<ylib_int>(lua_State* state, ylib_int index)
-  {
-    return luaL_checkinteger(state, index);
-  }
+  struct check<ylib_int> {
+    inline ylib_int operator()(lua_State* state, ylib_int index) const
+    {
+      return luaL_checkinteger(state, index);
+    }
+  };
 
   inline void push(lua_State* state, ylib_int arg)
   {
@@ -28,10 +32,12 @@ namespace ylib {
 
   // Floating-point values.
   template<>
-  inline float check<float>(lua_State* state, ylib_int index)
-  {
-    return luaL_checknumber(state, index);
-  }
+  struct check<float> {
+    inline float operator()(lua_State* state, ylib_int index) const
+    {
+      return luaL_checknumber(state, index);
+    }
+  };
 
   inline void push(lua_State* state, float arg)
   {
@@ -40,10 +46,12 @@ namespace ylib {
 
   // Boolean values.
   template<>
-  inline bool check<bool>(lua_State* state, ylib_int index)
-  {
-    return lua_toboolean(state, index);
-  }
+  struct check<bool> {
+    inline bool operator()(lua_State* state, ylib_int index) const
+    {
+      return lua_toboolean(state, index);
+    }
+  };
 
   inline void push(lua_State* state, bool arg)
   {
@@ -52,14 +60,71 @@ namespace ylib {
 
   // String values.
   template<>
-  inline y::string check<y::string>(lua_State* state, ylib_int index)
-  {
-    return y::string(luaL_checkstring(state, index));
-  }
+  struct check<y::string> {
+    inline y::string operator()(lua_State* state, ylib_int index) const
+    {
+      return y::string(luaL_checkstring(state, index));
+    }
+  };
 
   inline void push(lua_State* state, const y::string& arg)
   {
     lua_pushstring(state, arg.c_str());
+  }
+
+  // Array values.
+  template<typename T>
+  struct check<y::vector<T>> {
+    inline y::vector<T> operator()(lua_State* state, ylib_int index) const
+    {
+      y::vector<T> t;
+      luaL_argcheck(state, lua_istable(state, index), index,
+                    "array expected");
+
+      ylib_int size = luaL_len(state, index);
+      for (ylib_int i = 1; i <= size; ++i) {
+        lua_rawgeti(state, index, i);
+        t.push_back(check<T>()(state, lua_gettop(state)));
+      }
+      lua_pop(state, size);
+      return t;
+    }
+  };
+
+  template<typename T>
+  inline void push(lua_State* state, const y::vector<T>& arg)
+  {
+    lua_createtable(state, arg.size(), 0);
+    ylib_int index = lua_gettop(state);
+    for (y::size i = 0; i < arg.size(); ++i) {
+      push(state, arg[i]);
+      lua_rawseti(state, index, 1 + i);
+    }
+  }
+
+  // Pointer values.
+  template<typename T>
+  struct check<T*> {
+    inline T* operator()(lua_State* state, ylib_int index) const
+    {
+      static const y::string error =
+          y::string(type_name<T>::name) + " expected";
+
+      void* v = luaL_checkudata(state, index, type_name<T>::name);
+      luaL_argcheck(state, v, index, error.c_str());
+      T** t = reinterpret_cast<T**>(v);
+
+      return *t;
+    }
+  };
+
+  template<typename T>
+  inline void push(lua_State* state, T* arg)
+  {
+    T** t = reinterpret_cast<T**>(lua_newuserdata(state, sizeof(T*)));
+    luaL_getmetatable(state, type_name<T>::name);
+    lua_setmetatable(state, -2);
+    *t = arg;
   }
 
   // Variadic push.
@@ -80,9 +145,17 @@ namespace ylib {
 }
 
 /******************************************************************************/
-/**** Preprocessor magic for defining functions callable by Lua in a style ****/
-/**** that sort of approximates C functions:                               ****/
+/**** Preprocessor magic for defining types and functions useable by Lua   ****/
+/**** in a style that sort of approximates C functions:                    ****/
 /******************************************************************************/
+/***/ #define ylib_typedef(T)                                              /**/\
+/***/ namespace ylib {                                                     /**/\
+/***/   template<>                                                         /**/\
+/***/   struct type_name<T> {                                              /**/\
+/***/     static const char* const name;                                   /**/\
+/***/   };                                                                 /**/\
+/***/   const char* const type_name<T>::name = "ylib." #T;                 /**/\
+/***/ } void _ylib_typedef_##name_no_op()                                  /***/
 /***/ #define ylib_api(name)                                               /**/\
 /***/ namespace _ylib_api_##name {                                         /**/\
 /***/   ylib::ylib_int _ylib_api(lua_State* _ylib_state);                  /**/\
@@ -91,9 +164,13 @@ namespace ylib {
 /***/   static _ylib_api_type* const _ylib_ref = _ylib_api;                /**/\
 /***/   ylib::ylib_int _ylib_api(lua_State* _ylib_state)                   /**/\
 /***/   {                                                                  /**/\
-/***/     ylib::ylib_int _ylib_stack = 0;                                  /***/
+/***/     ylib::ylib_int _ylib_stack = 0;                                  /**/\
+/***/     (void)_ylib_stack;                                               /***/
 /***/ #define ylib_arg(T, name)                                            /**/\
-/***/     T name = ylib::check<T>(_ylib_state, ++_ylib_stack);             /***/
+/***/     T name = ylib::check<T>()(_ylib_state, ++_ylib_stack);           /***/
+/***/ #define ylib_checked_arg(T, name, assert, message)                   /**/\
+/***/     ylib_arg(T, name)                                                /**/\
+/***/     luaL_argcheck(_ylib_state, (assert), _ylib_stack, (message));    /***/
 /***/ #define ylib_return(...)                                             /**/\
 /***/       return ylib::push_all(_ylib_state, __VA_ARGS__);               /**/\
 /***/     }                                                                /**/\
@@ -106,28 +183,35 @@ namespace ylib {
 #include "lua_api.h"
 /******************************************************************************/
 /**** Preprocessor magic for enumerating the library of functions and      ****/
-/**** storing them in a Lua stack:                                         ****/
+/**** types and storing them in a Lua stack:                               ****/
 /******************************************************************************/
+/***/ #undef ylib_typedef                                                  /***/
 /***/ #undef ylib_api                                                      /***/
 /***/ #undef ylib_arg                                                      /***/
+/***/ #undef ylib_checked_arg                                              /***/
 /***/ #undef ylib_return                                                   /***/
 /***/ #undef ylib_void                                                     /***/
+/***/ #define ylib_typedef(T)                                              /**/\
+/***/   luaL_newmetatable(_ylib_state, ylib::type_name<T>::name);          /**/\
+/***/   lua_pop(_ylib_state, 1)                                            /***/
 /***/ #define ylib_api(name)                                               /**/\
-/***/   lua_register(_YLIB_LUA_STATE,                                      /**/\
+/***/   lua_register(_ylib_state,                                          /**/\
 /***/                _ylib_api_##name::_ylib_name,                         /**/\
 /***/                _ylib_api_##name::_ylib_ref);                         /**/\
 /***/   struct _ylib_no_op_struct_##name {                                 /**/\
 /***/     static void no_op()                                              /**/\
 /***/     {                                                                /***/
 /***/ #define ylib_arg(T, name)                                            /**/\
-/***/       T name = ylib::check<T>(y::null, 0);                           /**/\
+/***/       T name = ylib::check<T>()(y::null, 0);                         /**/\
 /***/       (void)name;                                                    /***/
+/***/ #define ylib_checked_arg(T, name, assert, message)                   /**/\
+/***/       ylib_arg(T, name)                                              /***/
 /***/ #define ylib_return(...)                                             /**/\
 /***/       }                                                              /**/\
 /***/     }                                                                /**/\
 /***/   }; while (false) {(void)0                                          /***/
 /***/ #define ylib_void() ylib_return()                                    /***/
-/***/ void ylib_register(lua_State* _YLIB_LUA_STATE)                       /***/
+/***/ void ylib_register(lua_State* _ylib_state)                           /***/
 /***/ {                                                                    /***/
 /***/   #include "lua_api.h"                                               /***/
 /***/ }                                                                    /***/
@@ -135,8 +219,6 @@ namespace ylib {
 /**** End of proprocessor magic.                                           ****/
 /******************************************************************************/
 
-// TODO: figure out code-sharing between scripts. (Make some master lua code
-// in a file and chuck it into the global state of each new script?)
 Script::Script(const y::string& path, const y::string& contents)
   : _path(path)
   // Use standard allocator and panic function.

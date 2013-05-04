@@ -37,6 +37,10 @@ public:
   /*****/ bool read_file(y::string& output,
                          const y::string& path) const;
 
+  // Reads the given file in, doing textual substitution of #include directives.
+  /*****/ bool read_file_with_includes(y::string& output,
+                                       const y::string& path) const;
+
   // Creates or overwrites the given file with the given contents.
   /*****/ bool write_file(const y::string& data,
                           const y::string& path);

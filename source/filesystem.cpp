@@ -190,6 +190,47 @@ bool Filesystem::read_file(y::string& output,
   return true;
 }
 
+bool Filesystem::read_file_with_includes(y::string& output,
+                                         const y::string& path) const
+{
+  if (!read_file(output, path)) {
+    return false;
+  }
+  static const y::string include_directive = "#include \"";
+  static const y::size include_limit = 128;
+
+  y::size include_count = 0;
+  y::size include = output.find(include_directive);
+  while (include != y::string::npos) {
+    if (++include_count > include_limit) {
+      std::cerr << "Include depth too deep in file " << path << std::endl;
+      return false;
+    }
+    y::size begin = include + include_directive.length();
+    y::size end = output.find_first_of('"', begin);
+    if (end == y::string::npos) {
+      break;
+    }
+
+    y::string include_filename = output.substr(begin, end - begin);
+    if (include_filename[0] != '/') {
+      y::string dir;
+      dirname(dir, path);
+      include_filename = dir + '/' + include_filename;
+    }
+
+    y::string after = output.substr(1 + end);
+    output = output.substr(0, include);
+    if (!read_file(output, include_filename)) {
+      std::cerr << "Couldn't read file " << include_filename << std::endl;
+      return false;
+    }
+    output += after;
+    include = output.find(include_directive, include);
+  }
+  return true;
+}
+
 bool Filesystem::write_file(const y::string& data,
                             const y::string& path)
 {
