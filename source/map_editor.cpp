@@ -75,6 +75,20 @@ TileEditAction::TileEditAction(CellMap& map, y::int32 layer)
 {
 }
 
+void TileEditAction::set_tile(
+    const y::ivec2& cell, const y::ivec2& tile, const Tile& t)
+{
+  const auto& p = y::make_pair(cell, tile);
+
+  auto it = edits.find(p);
+  if (it == edits.end()) {
+    auto& edit = edits[p];
+    edit.old_tile = map.get_coord(cell)->get_tile(layer, tile);
+    it = edits.find(p);
+  }
+  it->second.new_tile = t;
+}
+
 void TileEditAction::redo() const
 {
   for (const auto& pair : edits) {
@@ -146,7 +160,7 @@ void ScriptMoveAction::redo() const
   y::ivec2 max = s.max;
   y::string path = s.path;
   map.remove_script(map.get_script_index_at(start));
-  map.add_script(min + end - start, max + end - start, path); 
+  map.add_script(min + end - start, max + end - start, path);
 }
 
 void ScriptMoveAction::undo() const
@@ -156,7 +170,7 @@ void ScriptMoveAction::undo() const
   y::ivec2 max = s.max;
   y::string path = s.path;
   map.remove_script(map.get_script_index_at(end));
-  map.add_script(min + start - end, max + start - end, path); 
+  map.add_script(min + start - end, max + start - end, path);
 }
 
 TileBrush::TileBrush()
@@ -629,7 +643,6 @@ void MapEditor::event(const sf::Event& e)
     start_drag(_hover);
     _camera_drag = true;
   }
-  // TODO: control + draw should draw a rectangle.
   else if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
            (e.mouseButton.button == sf::Mouse::Left ||
             e.mouseButton.button == sf::Mouse::Right)) {
@@ -637,6 +650,7 @@ void MapEditor::event(const sf::Event& e)
     if (!is_script_layer()) {
       start_drag(camera_to_world(_hover).euclidean_div(Tileset::tile_size));
       if (e.mouseButton.button == sf::Mouse::Left) {
+        _tile_edit_style = control;
         _tile_edit_action = y::move_unique(
             new TileEditAction(_map, _layer_panel.get_layer()));
       }
@@ -689,6 +703,7 @@ void MapEditor::event(const sf::Event& e)
     case sf::Keyboard::Escape:
       end();
       break;
+
     // Rename cell.
     case sf::Keyboard::R:
       if (is_mouse_on_screen() && cell) {
@@ -698,6 +713,7 @@ void MapEditor::event(const sf::Event& e)
             _util, name, _input_result, "Rename cell " + name + " to:")));
       }
       break;
+
     // New cell.
     case sf::Keyboard::N:
       if (is_mouse_on_screen() && !cell) {
@@ -705,6 +721,7 @@ void MapEditor::event(const sf::Event& e)
             _util, "/world/new.cell", _input_result, "Add cell using name:")));
       }
       break;
+
     // Remove cell or script.
     case sf::Keyboard::Delete:
       if (!is_script_layer() && _map.is_coord_used(get_hover_cell())) {
@@ -716,6 +733,7 @@ void MapEditor::event(const sf::Event& e)
             new ScriptRemoveAction(_map, get_hover_world())));
       }
       break;
+
     // Zoom in.
     case sf::Keyboard::Z:
       ++_zoom;
@@ -724,6 +742,7 @@ void MapEditor::event(const sf::Event& e)
                           zoom_array[old_zoom] / zoom_array[_zoom]);
       }
       break;
+
     // Zoom out.
     case sf::Keyboard::X:
       --_zoom;
@@ -732,6 +751,8 @@ void MapEditor::event(const sf::Event& e)
                           zoom_array[old_zoom] / zoom_array[_zoom]);
       }
       break;
+
+    // Unused key.
     default: {}
   }
 }
@@ -823,7 +844,7 @@ void MapEditor::update()
   }
   // Continuous tile drawing.
   if (_tile_edit_action) {
-    copy_brush_to_map();
+    copy_brush_to_action();
   }
   // Script sizing.
   if (_script_add_action) {
@@ -837,7 +858,7 @@ void MapEditor::draw() const
   _util.get_gl().bind_window(true, true);
   _util.set_scale(zoom_array[_zoom]);
 
-  // Draw cells.
+  // Draw cell contents.
   y::ivec2 min = _map.get_boundary_min();
   y::ivec2 max = _map.get_boundary_max();
   for (y::int32 layer = -Cell::background_layers;
@@ -864,22 +885,7 @@ void MapEditor::draw() const
 
   // Draw script regions.
   if (is_script_layer()) {
-    const ScriptBlueprint* hover_script =
-        !is_dragging() && _map.has_script_at(get_hover_world()) ?
-            &_map.get_script_at(get_hover_world()) : y::null;
-    const ScriptBlueprint* drag_script = is_dragging() && !_script_add_action ?
-        &_map.get_script_at(get_drag_start()) : y::null;
-    const CellMap::script_list& scripts = _map.get_scripts();
-    for (const ScriptBlueprint& s : scripts) {
-      y::ivec2 off = &s == drag_script ?
-          get_hover_world() - get_drag_start() : y::ivec2();
-      y::ivec2 min = world_to_camera((s.min + off) * Tileset::tile_size);
-      y::ivec2 max = world_to_camera((s.max + off) * Tileset::tile_size);
-      _util.render_outline(min, Tileset::tile_size + max - min, Colour::outline);
-      _util.render_text(
-          s.path, min, &s == hover_script || &s == drag_script ?
-              Colour::select : Colour::item);
-    }
+    draw_scripts();
   }
 
   // Draw native resolution indicator.
@@ -890,19 +896,7 @@ void MapEditor::draw() const
   }
 
   // Draw cursor.
-  if (is_dragging() && !_script_add_action && is_script_layer());
-  else if (is_dragging() && !_tile_edit_action && !_camera_drag) {
-    y::ivec2 min = y::min(get_drag_start(), get_hover_world());
-    y::ivec2 max = y::max(get_drag_start(), get_hover_world());
-    _util.render_outline(
-        world_to_camera(min * Tileset::tile_size),
-        Tileset::tile_size * (y::ivec2{1, 1} + max - min), Colour::hover);
-  }
-  else if (is_mouse_on_screen() && _map.is_coord_used(get_hover_cell())) {
-    _util.render_outline(world_to_camera(get_hover_tile() * Tileset::tile_size),
-                         Tileset::tile_size * (is_script_layer() ?
-                             y::ivec2{1, 1} : _tile_brush.size), Colour::hover);
-  }
+  draw_cursor();
 
   // Draw UI.
   _util.set_scale(1.f);
@@ -925,8 +919,7 @@ void MapEditor::copy_drag_to_brush()
 {
   y::ivec2 min = y::min(get_drag_start(), get_hover_world());
   y::ivec2 max = y::max(get_drag_start(), get_hover_world());
-  y::ivec2 v;
-  for (auto it = y::cartesian(min, max); it; ++it) {
+  for (auto it = y::cartesian(min, y::ivec2{1, 1} + max); it; ++it) {
     y::ivec2 u = *it - min;
     if (!(u < TileBrush::max_size)) {
       continue;
@@ -950,31 +943,32 @@ void MapEditor::copy_drag_to_brush()
   _tile_brush.size = y::min(y::ivec2{1, 1} + max - min, TileBrush::max_size);
 }
 
-void MapEditor::copy_brush_to_map() const
+void MapEditor::copy_brush_to_action() const
 {
-  y::ivec2 tile = camera_to_world(_hover).euclidean_div(Tileset::tile_size);
-  y::int32 layer = _tile_edit_action->layer;
-  y::ivec2 start = get_drag_start();
-  for (auto it = y::cartesian(_tile_brush.size); it; ++it) {
-    y::ivec2 c = (tile + *it).euclidean_div(Cell::cell_size);
-    y::ivec2 t = (tile + *it).euclidean_mod(Cell::cell_size);
+  y::ivec2 min;
+  y::ivec2 max = _tile_brush.size;
+  y::ivec2 flip{0, 0};
+  if (_tile_edit_style) {
+    _tile_edit_action->edits.clear();
+    min = y::min(get_drag_start(), get_hover_world());
+    max = y::ivec2{1, 1} + y::max(get_drag_start(), get_hover_world());
+    flip = {get_drag_start()[xx] > get_hover_world()[xx],
+            get_drag_start()[yy] > get_hover_world()[yy]};
+  }
+
+  for (auto it = y::cartesian(min, max); it; ++it) {
+    y::ivec2 v = _tile_edit_style ? *it : *it + get_hover_world();
+    y::ivec2 c = v.euclidean_div(Cell::cell_size);
+    y::ivec2 t = v.euclidean_mod(Cell::cell_size);
     if (!_map.is_coord_used(c)) {
       continue;
     }
 
-    CellBlueprint* cell = _map.get_coord(c);
-    const Tile& e = _tile_brush.get(
-        (tile + *it - start).euclidean_mod(_tile_brush.size));
-    const auto& p = y::make_pair(c, t);
-
-    auto jt = _tile_edit_action->edits.find(p);
-    if (jt == _tile_edit_action->edits.end()) {
-      auto& edit = _tile_edit_action->edits[p];
-      edit.old_tile = cell->get_tile(layer, t);
-      jt = _tile_edit_action->edits.find(p);
-    }
-    jt->second.new_tile.tileset = e.tileset;
-    jt->second.new_tile.index = e.index;
+    y::ivec2 u = _tile_edit_style ?
+        (*it - min) * (y::ivec2{1, 1} - flip) + (*it - max) * flip :
+        *it + get_hover_world() - get_drag_start();
+    _tile_edit_action->set_tile(
+        c, t, _tile_brush.get(u.euclidean_mod(_tile_brush.size)));
   }
 }
 
@@ -1018,6 +1012,57 @@ void MapEditor::draw_cell_layer(
                      (layer + Cell::background_layers) /
                          (1 + Cell::background_layers +
                           Cell::foreground_layers), c);
+  }
+}
+
+void MapEditor::draw_scripts() const
+{
+  // Script region the mouse is hovering over.
+  const ScriptBlueprint* hover_script =
+      !is_dragging() && _map.has_script_at(get_hover_world()) ?
+          &_map.get_script_at(get_hover_world()) : y::null;
+
+  // Script being dragged.
+  const ScriptBlueprint* drag_script = is_dragging() && !_script_add_action ?
+      &_map.get_script_at(get_drag_start()) : y::null;
+
+  for (const ScriptBlueprint& s : _map.get_scripts()) {
+    // Need to show an uncommitted script drag.
+    y::ivec2 off = &s == drag_script ?
+        get_hover_world() - get_drag_start() : y::ivec2();
+    y::ivec2 min = world_to_camera((s.min + off) * Tileset::tile_size);
+    y::ivec2 max = world_to_camera((s.max + off) * Tileset::tile_size);
+    _util.render_outline(min, Tileset::tile_size + max - min,
+                         Colour::outline);
+    _util.render_text(
+        s.path, min, &s == hover_script || &s == drag_script ?
+            Colour::select : Colour::item);
+  }
+}
+
+void MapEditor::draw_cursor() const
+{
+  if (is_dragging() && !_script_add_action && is_script_layer()) {
+    return;
+  }
+
+  y::ivec2 cursor_end = get_hover_world() + _tile_brush.size - y::ivec2{1, 1};
+  if (is_dragging() && !_camera_drag &&
+           (!_tile_edit_action || _tile_edit_style)) {
+    y::ivec2 min = y::min(get_drag_start(), get_hover_world());
+    y::ivec2 max = y::max(get_drag_start(), get_hover_world());
+    _util.render_outline(
+        world_to_camera(min * Tileset::tile_size),
+        Tileset::tile_size * (y::ivec2{1, 1} + max - min), Colour::hover);
+  }
+  else if (is_mouse_on_screen() &&
+           (_map.is_coord_used(get_hover_cell()) ||
+            _map.is_coord_used(cursor_end.euclidean_div(Cell::cell_size)))) {
+    _util.render_outline(
+        world_to_camera(get_hover_world() * Tileset::tile_size),
+        Tileset::tile_size * (is_script_layer() ?
+                              y::ivec2{1, 1} : _tile_brush.size),
+        Colour::hover);
   }
 }
 

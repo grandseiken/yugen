@@ -26,9 +26,9 @@ Yugen::Yugen(RenderUtil& util, GlFramebuffer& framebuffer)
       "/shaders/post.v.glsl",
       "/shaders/post.f.glsl"}))
   , _textures({
-      util.get_gl().make_texture("/bg0.png"),
-      util.get_gl().make_texture("/bg1.png"),
-      util.get_gl().make_texture("/bg2.png")})
+      util.get_gl().make_texture("/parallax/bg0.png"),
+      util.get_gl().make_texture("/parallax/bg1.png"),
+      util.get_gl().make_texture("/parallax/bg2.png")})
   , _vertex_buffer(util.get_gl().make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data)))
 {

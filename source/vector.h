@@ -455,12 +455,7 @@ namespace y {
   }
 
   typedef vec<y::int32, 2> ivec2;
-  typedef vec<y::int32, 3> ivec3;
-  typedef vec<y::int32, 4> ivec4;
-
   typedef vec<float, 2> fvec2;
-  typedef vec<float, 3> fvec3;
-  typedef vec<float, 4> fvec4;
 
   void save_to_proto(const y::ivec2& v, proto::ivec2& proto);
   void load_from_proto(y::ivec2& v, const proto::ivec2& proto);

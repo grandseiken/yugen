@@ -58,6 +58,8 @@ struct CellRemoveAction : public StackAction {
 struct TileEditAction : public StackAction {
   TileEditAction(CellMap& map, y::int32 layer);
 
+  void set_tile(const y::ivec2& cell, const y::ivec2& tile, const Tile& t);
+
   CellMap& map;
   y::int32 layer;
 
@@ -233,7 +235,7 @@ private:
 
 };
 
-// Combines the above Panels and draws the world underneath.
+// Combines the classes above into a map editor.
 class MapEditor: public Modal {
 public:
 
@@ -252,10 +254,12 @@ private:
   y::ivec2 camera_to_world(const y::ivec2& v) const;
 
   void copy_drag_to_brush();
-  void copy_brush_to_map() const;
+  void copy_brush_to_action() const;
 
   void draw_cell_layer(
       RenderBatch& batch, const y::ivec2& coord, y::int32 layer) const;
+  void draw_scripts() const;
+  void draw_cursor() const;
 
   // Helper accessors.
   bool is_script_layer() const;
@@ -281,6 +285,7 @@ private:
   LayerPanel _layer_panel;
   MinimapPanel _minimap_panel;
 
+  bool _tile_edit_style;
   y::unique<TileEditAction> _tile_edit_action;
   y::unique<ScriptAddAction> _script_add_action;
   TextInputResult _input_result;
