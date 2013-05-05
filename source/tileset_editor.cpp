@@ -18,10 +18,31 @@ void render_collision(RenderUtil& util, const y::ivec2& pixels,
   }
 }
 
-TilesetPanel::TilesetPanel(Tileset& tileset, y::int32& collide_select)
+SetCollideAction::SetCollideAction(Tileset& tileset, const y::ivec2& coord,
+                                   y::int32 old_collide, y::int32 new_collide)
+  : tileset(tileset)
+  , coord(coord)
+  , old_collide(old_collide)
+  , new_collide(new_collide)
+{
+}
+
+void SetCollideAction::redo() const
+{
+  tileset.set_collision(coord, Tileset::Collision(new_collide));
+}
+
+void SetCollideAction::undo() const
+{
+  tileset.set_collision(coord, Tileset::Collision(old_collide));
+}
+
+TilesetPanel::TilesetPanel(Tileset& tileset, y::int32& collide_select,
+                           UndoStack& undo_stack)
   : Panel(y::ivec2(), y::ivec2(), 0)
   , _tileset(tileset)
   , _collide_select(collide_select)
+  , _undo_stack(undo_stack)
   , _hover{-1, -1}
 {
 }
@@ -38,8 +59,11 @@ bool TilesetPanel::event(const sf::Event& e)
   }
 
   if (e.type == sf::Event::MouseButtonPressed) {
-    if (e.mouseButton.button == sf::Mouse::Left) {
-      _tileset.set_collision(_hover, Tileset::Collision(_collide_select));
+    if (e.mouseButton.button == sf::Mouse::Left &&
+        _tileset.get_collision(_hover) != _collide_select) {
+      _undo_stack.new_action(y::move_unique(new SetCollideAction(
+          _tileset, _hover, _tileset.get_collision(_hover),
+          _collide_select)));
     }
     else if (e.mouseButton.button == sf::Mouse::Right) {
       _collide_select = _tileset.get_collision(_hover);
@@ -126,7 +150,8 @@ bool CollidePanel::event(const sf::Event& e)
 void CollidePanel::update()
 {
   set_size(Tileset::tile_size * y::ivec2{
-      entries_per_row, 1 + (Tileset::COLLIDE_SIZE - 1) / entries_per_row});
+      y::min(entries_per_row, y::int32(Tileset::COLLIDE_SIZE)),
+      1 + (Tileset::COLLIDE_SIZE - 1) / entries_per_row});
 }
 
 void CollidePanel::draw(RenderUtil& util) const
@@ -150,7 +175,7 @@ TilesetEditor::TilesetEditor(Databank& bank, RenderUtil& util, Tileset& tileset)
   , _util(util)
   , _tileset(tileset)
   , _collide_select(0)
-  , _tileset_panel(tileset, _collide_select)
+  , _tileset_panel(tileset, _collide_select, get_undo_stack())
   , _collide_panel(_collide_select)
 {
   get_panel_ui().add(_tileset_panel);

@@ -7,10 +7,24 @@
 class Databank;
 class Tileset;
 
+struct SetCollideAction : public StackAction {
+  SetCollideAction(Tileset& tileset, const y::ivec2& coord,
+                   y::int32 old_collide, y::int32 new_collide);
+
+  Tileset& tileset;
+  y::ivec2 coord;
+  y::int32 old_collide;
+  y::int32 new_collide;
+
+  virtual void redo() const;
+  virtual void undo() const;
+};
+
 class TilesetPanel : public Panel {
 public:
 
-  TilesetPanel(Tileset& tileset, y::int32& collide_select);
+  TilesetPanel(Tileset& tileset, y::int32& collide_select,
+               UndoStack& undo_stack);
   virtual ~TilesetPanel() {}
 
   virtual bool event(const sf::Event& e);
@@ -21,6 +35,7 @@ private:
 
   Tileset& _tileset;
   y::int32& _collide_select;
+  UndoStack& _undo_stack;
   y::ivec2 _hover;
 
 };
