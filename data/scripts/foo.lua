@@ -6,3 +6,7 @@ f = get_file()
 -- print_vector({2, get_script()})
 -- pass_script(f)
 pass_script(s)
+
+-- print(4 == "lol")
+print(s ~= get_script())
+print(f ~= s)

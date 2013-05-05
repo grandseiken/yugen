@@ -33,7 +33,8 @@ ylib_api(print_vector) ylib_arg(y::vector<y::int32>, t)
 
 ylib_api(pass_script) ylib_arg(Script*, t)
 {
-  (void)t;
+  std::cout << "pass_script called" << std::endl;
+  std::cout << t << std::endl;
   ylib_void();
 }
 

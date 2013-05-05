@@ -102,14 +102,12 @@ namespace ylib {
   }
 
   // Pointer values.
-  // TODO: overload quality for these types.
   template<typename T>
   struct check<T*> {
     inline T* operator()(lua_State* state, ylib_int index) const
     {
       void* v = luaL_checkudata(state, index, type_name<T>::name);
       T** t = reinterpret_cast<T**>(v);
-
       return *t;
     }
   };
@@ -122,6 +120,21 @@ namespace ylib {
     lua_setmetatable(state, -2);
     *t = arg;
   }
+
+  // Generic pointer values. These can only be passed from Lua to C++, not
+  // the other way round.
+  template<>
+  struct check<void*> {
+    inline void* operator()(lua_State* state, ylib_int index) const
+    {
+      void* v = lua_touserdata(state, index);
+      bool b = lua_getmetatable(state, index);
+      lua_pop(state, 1);
+      luaL_argcheck(state, v && b, index, "ylib.Void expected");
+      void** t = reinterpret_cast<void**>(v);
+      return *t;
+    }
+  };
 
   // Variadic push.
   inline ylib_int push_all(lua_State* state)
@@ -151,6 +164,10 @@ namespace ylib {
 /***/     static const char* const name;                                   /**/\
 /***/   };                                                                 /**/\
 /***/   const char* const type_name<T>::name = "ylib." #T;                 /**/\
+/***/   ylib_api(T##_eq) ylib_arg(T*, a) ylib_arg(T*, b)                   /**/\
+/***/   {                                                                  /**/\
+/***/     ylib_return(a == b);                                             /**/\
+/***/   }                                                                  /**/\
 /***/ } void _ylib_typedef_##name_no_op()                                  /***/
 /***/ #define ylib_api(name)                                               /**/\
 /***/ namespace _ylib_api_##name {                                         /**/\
@@ -189,6 +206,10 @@ namespace ylib {
 /***/ #undef ylib_void                                                     /***/
 /***/ #define ylib_typedef(T)                                              /**/\
 /***/   luaL_newmetatable(_ylib_state, ylib::type_name<T>::name);          /**/\
+/***/   lua_pushstring(_ylib_state, "__eq");                               /**/\
+/***/   lua_pushcfunction(_ylib_state,                                     /**/\
+/***/                     ylib::_ylib_api_##T##_eq::_ylib_ref);            /**/\
+/***/   lua_settable(_ylib_state, -3);                                     /**/\
 /***/   lua_pop(_ylib_state, 1)                                            /***/
 /***/ #define ylib_api(name)                                               /**/\
 /***/   lua_register(_ylib_state,                                          /**/\
