@@ -51,7 +51,8 @@ void UiList::set_select(const Colour& select)
 void UiList::draw(RenderUtil& util, const y::vector<Colour>& items,
                   const y::string_vector& source, y::size select) const
 {
-  util.render_fill_grid(_origin, _size, _panel);
+  util.render_fill(RenderUtil::from_grid(_origin),
+                   RenderUtil::from_grid(_size), _panel);
 
   y::int32 w = _size[xx];
   y::int32 h = _size[yy];
@@ -66,7 +67,8 @@ void UiList::draw(RenderUtil& util, const y::vector<Colour>& items,
 
     y::string s = source[i + offset];
     s = y::int32(s.length()) > w ? s.substr(0, w - 3) + "..." : s;
-    util.render_text_grid(s, _origin + y::ivec2{0, i}, items[i + offset]);
+    util.render_text(s, RenderUtil::from_grid(_origin + y::ivec2{0, i}),
+                     items[i + offset]);
   }
 }
 

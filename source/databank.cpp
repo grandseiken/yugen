@@ -26,7 +26,14 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   paths.clear();
   filesystem.list_pattern(paths, "/tiles/**.png");
   for (const y::string& s : paths) {
-    tilesets.insert(s, y::move_unique(new Tileset(gl.make_texture(s))));
+    y::string data_path;
+    filesystem.barename(data_path, s);
+    data_path += ".tile";
+    Tileset* tileset = new Tileset(gl.make_texture(s));
+    if (filesystem.exists(data_path)) {
+      tileset->load(filesystem, *this, data_path);
+    }
+    tilesets.insert(data_path, y::move_unique(tileset));
   }
 
   paths.clear();

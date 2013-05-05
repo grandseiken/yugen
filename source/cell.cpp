@@ -41,6 +41,12 @@ const y::ivec2& CellMap::get_boundary_max() const
   return _max;
 }
 
+y::ivec2_iterator CellMap::get_cartesian() const
+{
+  recalculate_boundary();
+  return y::cartesian(_min, _max);
+}
+
 void CellMap::add_script(const y::ivec2& v, const y::string& path)
 {
   add_script(v, y::ivec2{1, 1} + v, path);

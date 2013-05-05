@@ -22,7 +22,7 @@ struct ScriptBlueprint {
 
 // Sparse spatial map of CellBlueprints. CellMaps also store the scripts
 // for the whole map.
-class CellMap : public y::no_copy, public y::io<proto::CellMap> {
+class CellMap : public y::io<proto::CellMap> {
 public:
 
   CellMap();
@@ -40,6 +40,8 @@ public:
   const y::ivec2& get_boundary_min() const;
   // Get high (exclusive) cell boundary.
   const y::ivec2& get_boundary_max() const;
+  // Get iterator to iterate over area enclosed by boundary.
+  y::ivec2_iterator get_cartesian() const;
 
   typedef y::vector<ScriptBlueprint> script_list;
 
@@ -124,7 +126,7 @@ private:
 
 };
 
-class CellBlueprint : public y::no_copy, public y::io<proto::CellBlueprint> {
+class CellBlueprint : public y::io<proto::CellBlueprint> {
 public:
 
   static const y::int32 raw_size =

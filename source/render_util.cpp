@@ -19,6 +19,7 @@ const Colour Colour::faint_panel(.1f, .1f, .1f, .5f);
 const Colour Colour::dark_panel(0.f, 0.f, 0.f, .7f);
 const Colour Colour::item(.6f, .6f, .6f, 1.f);
 const Colour Colour::hover(.9f, .9f, .9f, .5f);
+const Colour Colour::highlight(.9f, .9f, .9f, .2f);
 const Colour Colour::select(.9f, .9f, .9f, 1.f);
 const Colour Colour::white(1.f, 1.f, 1.f, 1.f);
 const Colour Colour::black(0.f, 0.f, 0.f, 1.f);
@@ -175,18 +176,6 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   render_text(text, origin, colour.r, colour.g, colour.b, colour.a);
 }
 
-void RenderUtil::render_text_grid(const y::string& text, const y::ivec2& origin,
-                                  float r, float g, float b, float a) const
-{
-  render_text(text, from_grid(origin), r, g, b, a);
-}
-
-void RenderUtil::render_text_grid(const y::string& text, const y::ivec2& origin,
-                                  const Colour& colour) const
-{
-  render_text_grid(text, origin, colour.r, colour.g, colour.b, colour.a);
-}
-
 void RenderUtil::render_fill(const y::ivec2& origin, const y::ivec2& size,
                              float r, float g, float b, float a) const
 {
@@ -197,20 +186,6 @@ void RenderUtil::render_fill(const y::ivec2& origin, const y::ivec2& size,
                              const Colour& colour) const
 {
   render_fill(origin, size, colour.r, colour.g, colour.b, colour.a);
-}
-
-void RenderUtil::render_fill_grid(const y::ivec2& origin,
-                                  const y::ivec2& size,
-                                  float r, float g, float b, float a) const
-{
-  render_fill(from_grid(origin), from_grid(size), r, g, b, a);
-}
-
-void RenderUtil::render_fill_grid(const y::ivec2& origin,
-                                  const y::ivec2& size,
-                                  const Colour& colour) const
-{
-  render_fill_grid(origin, size, colour.r, colour.g, colour.b, colour.a);
 }
 
 void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
@@ -240,19 +215,6 @@ void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
                                 const Colour& colour) const
 {
   render_outline(origin, size, colour.r, colour.g, colour.b, colour.a);
-}
-
-void RenderUtil::render_outline_grid(
-    const y::ivec2& origin, const y::ivec2& size,
-    float r, float g, float b, float a) const
-{
-  render_outline(from_grid(origin), from_grid(size), r, g, b, a);
-}
-
-void RenderUtil::render_outline_grid(
-    const y::ivec2& origin, const y::ivec2& size, const Colour& colour) const
-{
-  render_outline_grid(origin, size, colour.r, colour.g, colour.b, colour.a);
 }
 
 void RenderUtil::set_sprite(const GlTexture& texture,

@@ -1,5 +1,5 @@
 // Magic include file doesn't need preprocessor guards. Types and functions
-// defined here with the ylib macros are automatically available to Lua.
+// defined here with the ylib macros are automatically exposed to Lua.
 
 ylib_typedef(Filesystem);
 ylib_typedef(Script);

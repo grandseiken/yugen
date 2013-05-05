@@ -102,6 +102,7 @@ namespace ylib {
   }
 
   // Pointer values.
+  // TODO: overload quality for these types.
   template<typename T>
   struct check<T*> {
     inline T* operator()(lua_State* state, ylib_int index) const

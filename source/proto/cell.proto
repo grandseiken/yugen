@@ -7,6 +7,10 @@ message Script {
   required string path = 3;
 };
 
+message Tileset {
+  repeated uint32 collision = 1;
+};
+
 message CellBlueprint {
   message Tile {
     required int32 tileset = 1;

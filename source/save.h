@@ -11,7 +11,7 @@ class Databank;
 namespace y {
 
   template<typename P>
-  class io {
+  class io : public y::no_copy {
   public:
 
     // Save this object to the filesystem, under the given path.

@@ -22,6 +22,7 @@ struct Colour {
   static const Colour dark_panel;
   static const Colour item;
   static const Colour hover;
+  static const Colour highlight;
   static const Colour select;
   static const Colour white;
   static const Colour black;
@@ -68,7 +69,6 @@ private:
 
 class Window;
 
-// TODO: remove _grid functions?
 class RenderUtil {
 public:
 
@@ -103,35 +103,17 @@ public:
   void render_text(const y::string& text, const y::ivec2& origin,
                    const Colour& colour) const;
 
-  // Render text (at font-size grid coordinates).
-  void render_text_grid(const y::string& text, const y::ivec2& origin,
-                        float r, float g, float b, float a) const;
-  void render_text_grid(const y::string& text, const y::ivec2& origin,
-                        const Colour& colour) const;
-
   // Render colour (at pixel coordinates).
   void render_fill(const y::ivec2& origin, const y::ivec2& size,
                    float r, float g, float b, float a) const;
   void render_fill(const y::ivec2& origin, const y::ivec2& size,
                    const Colour& colour) const;
 
-  // Render colour (at font-size grid coordinates).
-  void render_fill_grid(const y::ivec2& origin, const y::ivec2& size,
-                        float r, float g, float b, float a) const;
-  void render_fill_grid(const y::ivec2& origin, const y::ivec2& size,
-                        const Colour& colour) const;
-
   // Render outline (at pixel coordinates).
   void render_outline(const y::ivec2& origin, const y::ivec2& size,
                       float r, float g, float b, float a) const;
   void render_outline(const y::ivec2& origin, const y::ivec2& size,
                       const Colour& colour) const;
-
-  // Render outline (at font-size grid coordinates).
-  void render_outline_grid(const y::ivec2& origin, const y::ivec2& size,
-                           float r, float g, float b, float a) const;
-  void render_outline_grid(const y::ivec2& origin, const y::ivec2& size,
-                           const Colour& colour) const;
 
   // Batch and render sprites (at pixel coordinates).
   void set_sprite(const GlTexture& sprite, const y::ivec2& frame_size);
@@ -148,7 +130,7 @@ public:
                      const y::ivec2& origin, const y::ivec2& frame,
                      float depth, const Colour& colour);
 
-  // Helpers for grid coordinares.
+  // Helpers for font-size grid coordinates.
   static y::ivec2 from_grid(const y::ivec2& grid = {1, 1});
   static y::ivec2 to_grid(const y::ivec2& pixels);
 
