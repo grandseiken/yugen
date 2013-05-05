@@ -121,7 +121,7 @@ void Dataset<T>::save_all(Filesystem& filesystem, const Databank& bank,
     if (it == _map.end()) {
       continue;
     }
-    it->second->y::io<P>::save(filesystem, bank, s, human_readable);
+    it->second->y::template io<P>::save(filesystem, bank, s, human_readable);
   }
 }
 
@@ -325,6 +325,6 @@ inline Dataset<CellMap>& Databank::get_set<CellMap>()
 template<typename T, typename P>
 void Databank::save_all(Filesystem& filesystem) const
 {
-  get_set<T>().save_all<P>(filesystem, *this);
+  get_set<T>().template save_all<P>(filesystem, *this);
 }
 #endif

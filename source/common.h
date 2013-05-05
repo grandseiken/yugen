@@ -118,8 +118,8 @@ namespace std {
   struct hash<y::pair<T, U>> {
     y::size operator()(const y::pair<T, U>& arg) const
     {
-      static const std::hash<T> t;
-      static const std::hash<U> u;
+      std::hash<T> t;
+      std::hash<U> u;
 
       y::size seed = 0;
       boost::hash_combine(seed, u(arg.first));

@@ -9,13 +9,13 @@ then
 fi
 
 # Defaults.
-gcc="g++-4.7 -O3"
+gcc="g++-4.7 -O3 -std=c++11 -Werror -Wall -Wextra -pedantic"
 targets[0]="yugen"
 targets[1]="yedit"
 targets_size=2
 
-cflag="-Werror -Wall -Wextra -pedantic -std=c++0x -I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/lua_5_2_2/src -I./depend/protobuf_2_5_0/include"
-lflag="-Werror -Wall -Wextra -pedantic -L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib -L./depend/lua_5_2_2/lib -L./depend/protobuf_2_5_0/lib"
+cflag="-I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/lua_5_2_2/src -I./depend/protobuf_2_5_0/include"
+lflag="-L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib -L./depend/lua_5_2_2/lib -L./depend/protobuf_2_5_0/lib"
 libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lprotobuf -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
 
 # Grab compiler options.
