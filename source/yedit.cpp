@@ -47,6 +47,9 @@ void Yedit::event(const sf::Event& e)
     return;
   }
 
+  bool shift = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
+               sf::Keyboard::isKeyPressed(sf::Keyboard::RShift);
+
   switch (e.key.code) {
     case sf::Keyboard::S:
     case sf::Keyboard::Down:
@@ -71,8 +74,14 @@ void Yedit::event(const sf::Event& e)
             _bank, _util, _bank.tilesets.get(_tileset_select))));
       }
       else if (_list_select == 1) {
-        push(y::move_unique(new MapEditor(
-            _bank, _util, _bank.maps.get(_map_select))));
+        if (shift) {
+          push(y::move_unique(new TextInputModal(
+              _util, "/world/new.map", _input_result, "Add map using name:")));
+        }
+        else {
+          push(y::move_unique(new MapEditor(
+              _bank, _util, _bank.maps.get(_map_select))));
+        }
       }
       break;
     case sf::Keyboard::Escape:
@@ -116,6 +125,16 @@ void Yedit::update()
       _list_select == 2 ? Colour::faint_panel : Colour::black);
   _script_list.set_panel(
       _list_select == 3 ? Colour::faint_panel : Colour::black);
+
+  if (_input_result.success) {
+    const y::string& result = _input_result.result;
+    if (!_bank.maps.is_name_used(result) &&
+        result.substr(0, 7) == "/world/" &&
+        result.substr(result.length() - 4) == ".map") {
+      _bank.maps.insert(result, y::move_unique(new CellMap()));
+    }
+    _input_result.success = false;
+  }
 }
 
 bool used(const Tileset& tileset, const CellBlueprint& cell)

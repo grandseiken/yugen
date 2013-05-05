@@ -826,14 +826,18 @@ void MapEditor::update()
   // Rename or add cell.
   if (_input_result.success) {
     const y::string& result = _input_result.result;
-    if (_map.is_coord_used(get_hover_cell()) &&
-        !_bank.cells.is_name_used(result)) {
-      get_undo_stack().new_action(y::move_unique(
-          new CellRenameAction(_bank, _map, get_hover_cell(), result)));
-    }
-    else {
-      get_undo_stack().new_action(y::move_unique(
-          new CellAddAction(_bank, _map, get_hover_cell(), result)));
+    if (result.substr(0, 7) == "/world/" &&
+        result.substr(result.length() - 5) == ".cell") {
+      if (_map.is_coord_used(get_hover_cell())) {
+        if (!_bank.cells.is_name_used(result)) {
+          get_undo_stack().new_action(y::move_unique(
+              new CellRenameAction(_bank, _map, get_hover_cell(), result)));
+        }
+      }
+      else {
+        get_undo_stack().new_action(y::move_unique(
+            new CellAddAction(_bank, _map, get_hover_cell(), result)));
+      }
     }
     _input_result.success = false;
   }

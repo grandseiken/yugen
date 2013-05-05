@@ -41,6 +41,8 @@ private:
   y::int32 _cell_select;
   y::int32 _script_select;
 
+  TextInputResult _input_result;
+
 };
 
 #endif

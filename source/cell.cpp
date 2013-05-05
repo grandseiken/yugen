@@ -144,6 +144,12 @@ void CellMap::recalculate_boundary() const
     return;
   }
 
+  if (_map.empty()) {
+    _min = {0, 0};
+    _max = {0, 0};
+    return;
+  }
+
   bool first = true;
   for (const auto& pair : _map) {
     if (first) {
