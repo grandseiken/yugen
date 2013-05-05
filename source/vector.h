@@ -31,7 +31,7 @@ namespace y {
     }
 
     template<typename... U,
-             typename std::enable_if<N == sizeof...(U), int>::type = 0>
+             typename std::enable_if<N == sizeof...(U), bool>::type = 0>
     vec(U... args)
       : elements{args...}
     {
@@ -75,14 +75,14 @@ namespace y {
       return elements[i];
     }
 
-    template<y::size M, typename std::enable_if<(N > M), int>::type = 0>
+    template<y::size M, typename std::enable_if<(N > M), bool>::type = 0>
     T& operator[](const element_accessor<M>& e)
     {
       (void)e;
       return elements[M];
     }
 
-    template<y::size M, typename std::enable_if<(N > M), int>::type = 0>
+    template<y::size M, typename std::enable_if<(N > M), bool>::type = 0>
     const T& operator[](const element_accessor<M>& e) const
     {
       (void)e;
@@ -140,7 +140,7 @@ namespace y {
       return v;
     }
 
-    template<typename std::enable_if<non_strict, int>::type = 0>
+    template<typename std::enable_if<non_strict, bool>::type = 0>
     V operator*(const V& arg) const
     {
       V v;
@@ -150,7 +150,7 @@ namespace y {
       return v;
     }
 
-    template<typename std::enable_if<non_strict, int>::type = 0>
+    template<typename std::enable_if<non_strict, bool>::type = 0>
     V operator/(const V& arg) const
     {
       V v;
@@ -190,19 +190,19 @@ namespace y {
       return operator=(operator/(arg));
     }
 
-    template<typename std::enable_if<non_strict, int>::type = 0>
+    template<typename std::enable_if<non_strict, bool>::type = 0>
     V& operator*=(const V& arg)
     {
       return operator=(operator*(arg));
     }
 
-    template<typename std::enable_if<non_strict, int>::type = 0>
+    template<typename std::enable_if<non_strict, bool>::type = 0>
     V& operator/=(const V& arg)
     {
       return operator=(operator/(arg));
     }
 
-    template<typename std::enable_if<non_strict, int>::type = 0>
+    template<typename std::enable_if<non_strict, bool>::type = 0>
     bool operator<(const V& arg) const
     {
       for (y::size i = 0; i < N; ++i) {
@@ -213,7 +213,7 @@ namespace y {
       return true;
     }
 
-    template<typename std::enable_if<non_strict, int>::type = 0>
+    template<typename std::enable_if<non_strict, bool>::type = 0>
     bool operator>(const V& arg) const
     {
       for (y::size i = 0; i < N; ++i) {
@@ -224,7 +224,7 @@ namespace y {
       return true;
     }
 
-    template<typename std::enable_if<non_strict, int>::type = 0>
+    template<typename std::enable_if<non_strict, bool>::type = 0>
     bool operator<=(const V& arg) const
     {
       for (y::size i = 0; i < N; ++i) {
@@ -235,7 +235,7 @@ namespace y {
       return true;
     }
 
-    template<typename std::enable_if<non_strict, int>::type = 0>
+    template<typename std::enable_if<non_strict, bool>::type = 0>
     bool operator>=(const V& arg) const
     {
       for (y::size i = 0; i < N; ++i) {
@@ -273,7 +273,7 @@ namespace y {
     template<
       typename U = T,
       typename std::enable_if<N == 3 &&
-                              std::is_same<T, U>::value, int>::type = 0>
+                              std::is_same<T, U>::value, bool>::type = 0>
     V cross(const V& arg) const
     {
       return V(elements[1] * arg[2] - elements[2] * arg[1],

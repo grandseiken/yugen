@@ -263,7 +263,7 @@ bool Filesystem::dirname(y::string& output, const y::string& path) const
 }
 
 bool Filesystem::extension(y::string& output, const y::string& path) const
-{ 
+{
   y::string cpath;
   if (!canonicalise_path(cpath, path)) {
     return false;

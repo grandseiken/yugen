@@ -336,7 +336,7 @@ void RenderUtil::render_sprite(
   batch_sprite(origin, frame, depth, colour);
   render_batch();
 }
-  
+
 void RenderUtil::render_fill_internal(
     const y::fvec2& origin, const y::fvec2& size,
     float r, float g, float b, float a) const

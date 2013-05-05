@@ -24,7 +24,7 @@ public:
   // Save all resources to filesystem.
   template<typename P,
            typename std::enable_if<
-               std::is_base_of<y::io<P>, T>::value, int>::type = 0>
+               std::is_base_of<y::io<P>, T>::value, bool>::type = 0>
   void save_all(Filesystem& filesystem, const Databank& bank,
                 bool human_readable = false) const;
 
@@ -112,7 +112,7 @@ Dataset<T>::Dataset(T& default_resource)
 template<typename T>
 template<typename P,
          typename std::enable_if<
-             std::is_base_of<y::io<P>, T>::value, int>::type>
+             std::is_base_of<y::io<P>, T>::value, bool>::type>
 void Dataset<T>::save_all(Filesystem& filesystem, const Databank& bank,
                           bool human_readable) const
 {

@@ -95,7 +95,7 @@ void Yugen::draw() const
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
-int main(int argc, char** argv)
+y::int32 main(y::int32 argc, char** argv)
 {
   (void)argc;
   (void)argv;

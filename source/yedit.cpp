@@ -262,7 +262,7 @@ void Yedit::draw() const
 
 // TODO: testing.
 #include "lua.h"
-int main(int argc, char** argv)
+y::int32 main(y::int32 argc, char** argv)
 {
   (void)argc;
   (void)argv;

@@ -235,7 +235,7 @@ private:
                          GLenum& type_output) const;
 
   // Check if name exists and has correct type and size, or print error message.
-  // TODO: GL allows converting int -> float, etc, so that should work.
+  // TODO: GL allows converting integer -> float, etc, so that should work.
   bool check_match(bool attribute, const y::string& name,
                    bool array, y::size index,
                    GLenum type, y::size length) const;

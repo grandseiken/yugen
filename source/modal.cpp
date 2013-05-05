@@ -181,8 +181,8 @@ bool PanelUi::event(const sf::Event& e)
     f.type = sf::Event::MouseMoved;
   }
 
-  int& fx = wheel ? f.mouseWheel.x : button ? f.mouseButton.x : f.mouseMove.x;
-  int& fy = wheel ? f.mouseWheel.y : button ? f.mouseButton.y : f.mouseMove.y;
+  auto& fx = wheel ? f.mouseWheel.x : button ? f.mouseButton.x : f.mouseMove.x;
+  auto& fy = wheel ? f.mouseWheel.y : button ? f.mouseButton.y : f.mouseMove.y;
   y::ivec2 o{fx, fy};
 
   // Mouse drags take priority.
