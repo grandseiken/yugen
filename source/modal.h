@@ -136,6 +136,7 @@ private:
 };
 
 // Interface to an entry in the ModalStack.
+// TODO: need a mechanism to avoid rendering completely obscured Modals.
 class Modal : public y::no_copy, public Draggable {
 public:
 

@@ -72,16 +72,4 @@ private:
 
 };
 
-class World {
-public:
-
-  World();
-
-private:
-
-  CellMap _test_map;
-  WorldWindow _window;
-
-};
-
 #endif

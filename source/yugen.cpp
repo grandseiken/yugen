@@ -1,10 +1,10 @@
 #include "yugen.h"
 
+#include "databank.h"
 #include "gl_util.h"
 #include "physical_filesystem.h"
 #include "render_util.h"
 #include "window.h"
-#include "world.h"
 
 #include <SFML/Window.hpp>
 
@@ -14,24 +14,21 @@ const GLfloat vertex_data[] = {
     -1.f, +1.f,
      1.f, +1.f};
 
-Yugen::Yugen(RenderUtil& util, GlFramebuffer& framebuffer)
-  : _util(util)
-  , _framebuffer(framebuffer)
-  , _direction(true)
-  , _fade_factor(0.f)
-  , _hello_program(util.get_gl().make_program({
-      "/shaders/hello.v.glsl",
-      "/shaders/hello.f.glsl"}))
+Yugen::Yugen(Databank& bank, RenderUtil& util)
+  : _bank(bank)
+  , _util(util)
+  , _framebuffer(util.get_gl().make_framebuffer(RenderUtil::native_size))
   , _post_program(util.get_gl().make_program({
       "/shaders/post.v.glsl",
       "/shaders/post.f.glsl"}))
-  , _textures({
-      util.get_gl().make_texture("/parallax/bg0.png"),
-      util.get_gl().make_texture("/parallax/bg1.png"),
-      util.get_gl().make_texture("/parallax/bg2.png")})
   , _vertex_buffer(util.get_gl().make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data)))
 {
+}
+
+Yugen::~Yugen()
+{
+  _util.get_gl().delete_framebuffer(_framebuffer);
 }
 
 void Yugen::event(const sf::Event& e)
@@ -44,12 +41,7 @@ void Yugen::event(const sf::Event& e)
 
 void Yugen::update()
 {
-  // TODO: window framerate limiting is untrustworthy. Lock to 60 here.
-  _fade_factor += _direction ? 0.01f : -0.01f;
-  if (_fade_factor >= 1.f || _fade_factor <= 0.f) {
-    _direction = !_direction;
-  }
-
+  // TODO: window framerate limiting is untrustworthy. Lock to 60 somehow?
   _measurements.push_back(_clock.restart().asMilliseconds());
   if (_measurements.size() > samples) {
     _measurements.erase(_measurements.begin());
@@ -67,20 +59,11 @@ void Yugen::draw() const
   }
 
   _framebuffer.bind(true, true);
-  _hello_program.bind();
-  _hello_program.bind_attribute("position", _vertex_buffer);
-  _hello_program.bind_uniform("fade_factor", _fade_factor);
-  _textures[1].bind(GL_TEXTURE0);
-  _textures[2].bind(GL_TEXTURE1);
-  _hello_program.bind_uniform(0, "textures", 0);
-  _hello_program.bind_uniform(1, "textures", 1);
-  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
-
   _util.set_resolution(_framebuffer.get_size());
   if (total) {
     y::sstream ss;
     ss << total << " ticks (" << (1000.f / total) << " fps)";
-    _util.render_text(ss.str(), {16, 16}, 0.f, 0.f, 0.f, 1.f);
+    _util.render_text(ss.str(), {16, 16}, Colour::white);
   }
 
   const Resolution& screen = _util.get_window().get_mode();
@@ -100,19 +83,17 @@ y::int32 main(y::int32 argc, char** argv)
   (void)argc;
   (void)argv;
 
-  World world;
-
   Window window("Crunk Yugen", 24, RenderUtil::native_size, true, false);
   PhysicalFilesystem filesystem("data");
   GlUtil gl(filesystem, window);
   if (!gl) {
     return 1;
   }
-  GlFramebuffer framebuffer = gl.make_framebuffer(RenderUtil::native_size);
+  Databank databank(filesystem, gl);
   RenderUtil util(gl);
 
   ModalStack stack;
-  stack.push(y::move_unique(new Yugen(util, framebuffer)));
+  stack.push(y::move_unique(new Yugen(databank, util)));
   stack.run(window);
   return 0;
 }

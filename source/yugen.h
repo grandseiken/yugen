@@ -7,6 +7,7 @@
 
 #include <SFML/System.hpp>
 
+class Databank;
 class RenderUtil;
 class Window;
 namespace sf {
@@ -16,8 +17,8 @@ namespace sf {
 class Yugen : public Modal {
 public:
 
-  Yugen(RenderUtil& util, GlFramebuffer& framebuffer);
-  virtual ~Yugen() {}
+  Yugen(Databank& bank, RenderUtil& util);
+  virtual ~Yugen();
 
   virtual void event(const sf::Event& e);
   virtual void update();
@@ -29,15 +30,11 @@ private:
   sf::Clock _clock;
   y::vector<y::size> _measurements;
 
+  Databank& _bank;
   RenderUtil& _util;
-  GlFramebuffer& _framebuffer;
+  GlFramebuffer _framebuffer;
 
-  bool _direction;
-  GLfloat _fade_factor;
-
-  GlProgram _hello_program;
   GlProgram _post_program;
-  GlTexture _textures[3];
   GlBuffer<GLfloat, 2> _vertex_buffer;
 
 };

@@ -152,9 +152,3 @@ WorldWindow::ActiveWindowEntry::ActiveWindowEntry()
   , cell(y::null)
 {
 }
-
-World::World()
-  : _test_map()
-  , _window(_test_map, y::ivec2())
-{
-}
