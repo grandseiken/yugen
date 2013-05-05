@@ -297,6 +297,7 @@ void PanelUi::update_mouse_overs(bool in_window, const y::ivec2& v)
 
 Modal::Modal()
   : _stack(y::null)
+  , _has_drawn_next(false)
   , _end(false)
   , _panel_ui(*this)
 {
@@ -305,6 +306,17 @@ Modal::Modal()
 void Modal::push(y::unique<Modal> modal)
 {
   _stack->push(y::move_unique(modal));
+}
+
+bool Modal::has_next() const
+{
+  return _stack->has_next(*this);
+}
+
+void Modal::draw_next() const
+{
+  _has_drawn_next = true;
+  _stack->draw_next(*this);
 }
 
 void Modal::end()
@@ -342,6 +354,16 @@ void Modal::set_stack(ModalStack& stack)
   _stack = &stack;
 }
 
+void Modal::clear_drawn_next() const
+{
+  _has_drawn_next = false;
+}
+
+bool Modal::has_drawn_next() const
+{
+  return _has_drawn_next;
+}
+
 void ModalStack::push(y::unique<Modal> modal)
 {
   modal->set_stack(*this);
@@ -372,8 +394,27 @@ void ModalStack::run(Window& window)
     if (clear_ended()) {
       break;
     }
-    draw();
+    draw(0);
     window.display();
+  }
+}
+
+bool ModalStack::has_next(const Modal& modal) const
+{
+  for (y::size i = 0; i < _stack.size(); ++i) {
+    if (_stack[i].get() == &modal) {
+      return 1 + i < _stack.size();
+    }
+  }
+  return false;
+}
+
+void ModalStack::draw_next(const Modal& modal) const
+{
+  for (y::size i = 0; i < _stack.size(); ++i) {
+    if (_stack[i].get() == &modal && 1 + i < _stack.size()) {
+      draw(1 + i);
+    }
   }
 }
 
@@ -414,10 +455,15 @@ void ModalStack::update()
   top->update();
 }
 
-void ModalStack::draw() const
+void ModalStack::draw(y::size index) const
 {
-  for (const auto& modal : _stack) {
+  for (y::size i = index; i < _stack.size(); ++i) {
+    const auto& modal = _stack[i];
+    modal->clear_drawn_next();
     modal->draw();
+    if (modal->has_drawn_next()) {
+      break;
+    }
   }
 }
 

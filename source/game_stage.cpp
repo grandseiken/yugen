@@ -1,5 +1,7 @@
 #include "game_stage.h"
 
+#include <SFML/Window.hpp>
+
 GameStage::GameStage(RenderUtil& util, GlFramebuffer& framebuffer,
                      const CellMap& map)
   : _util(util)
@@ -15,7 +17,10 @@ GameStage::~GameStage()
 
 void GameStage::event(const sf::Event& e)
 {
-  (void)e;
+  if (e.type == sf::Event::KeyPressed &&
+      e.key.code == sf::Keyboard::Escape) {
+    end();
+  }
 }
 
 void GameStage::update()

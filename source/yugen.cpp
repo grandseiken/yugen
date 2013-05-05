@@ -1,6 +1,7 @@
 #include "yugen.h"
 
 #include "databank.h"
+#include "game_stage.h"
 #include "gl_util.h"
 #include "physical_filesystem.h"
 #include "render_util.h"
@@ -18,6 +19,7 @@ Yugen::Yugen(Databank& bank, RenderUtil& util)
   : _bank(bank)
   , _util(util)
   , _framebuffer(util.get_gl().make_framebuffer(RenderUtil::native_size))
+  , _launched(false)
   , _post_program(util.get_gl().make_program({
       "/shaders/post.v.glsl",
       "/shaders/post.f.glsl"}))
@@ -41,15 +43,22 @@ void Yugen::event(const sf::Event& e)
 
 void Yugen::update()
 {
-  // TODO: window framerate limiting is untrustworthy. Lock to 60 somehow?
-  _measurements.push_back(_clock.restart().asMilliseconds());
-  if (_measurements.size() > samples) {
-    _measurements.erase(_measurements.begin());
+  // Start a new game.
+  if (!has_next() && !_bank.maps.empty() && !_launched) {
+    _launched = true;
+    push(y::move_unique(new GameStage(
+        _util, _framebuffer, _bank.maps.get(0))));
   }
 }
 
 void Yugen::draw() const
 {
+  // TODO: window framerate limiting is untrustworthy. Lock to 60 somehow?
+  // And make this clock tick properly.
+  _measurements.push_back(_clock.restart().asMilliseconds());
+  if (_measurements.size() > samples) {
+    _measurements.erase(_measurements.begin());
+  }
   y::size total = 0;
   if (!_measurements.empty()) {
     for (y::size m : _measurements) {
@@ -60,6 +69,8 @@ void Yugen::draw() const
 
   _framebuffer.bind(true, true);
   _util.set_resolution(_framebuffer.get_size());
+
+  draw_next();
   if (total) {
     y::sstream ss;
     ss << total << " ticks (" << (1000.f / total) << " fps)";

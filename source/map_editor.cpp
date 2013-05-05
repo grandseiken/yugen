@@ -858,7 +858,6 @@ void MapEditor::update()
 
 void MapEditor::draw() const
 {
-  _util.get_gl().bind_window(true, true);
   _util.set_scale(zoom_array[_zoom]);
 
   // Draw cell contents.

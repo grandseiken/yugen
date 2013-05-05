@@ -190,6 +190,5 @@ void TilesetEditor::update()
 
 void TilesetEditor::draw() const
 {
-  _util.get_gl().bind_window(true, true);
   get_panel_ui().draw(_util);
 }

@@ -181,6 +181,11 @@ void Yedit::draw() const
   const Resolution& screen = _util.get_window().get_mode();
   _util.set_resolution(screen.size);
 
+  // Don't bother drawing if an editor is open.
+  if (has_next()) {
+    return;
+  }
+
   struct local {
     static void render_list(
         RenderUtil& util, const UiList& list, bool active,

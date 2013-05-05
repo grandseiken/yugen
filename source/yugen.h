@@ -27,12 +27,13 @@ public:
 private:
 
   static const y::size samples = 16;
-  sf::Clock _clock;
-  y::vector<y::size> _measurements;
+  mutable sf::Clock _clock;
+  mutable y::vector<y::size> _measurements;
 
   Databank& _bank;
   RenderUtil& _util;
   GlFramebuffer _framebuffer;
+  bool _launched;
 
   GlProgram _post_program;
   GlBuffer<GLfloat, 2> _vertex_buffer;

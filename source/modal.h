@@ -136,7 +136,6 @@ private:
 };
 
 // Interface to an entry in the ModalStack.
-// TODO: need a mechanism to avoid rendering completely obscured Modals.
 class Modal : public y::no_copy, public Draggable {
 public:
 
@@ -150,6 +149,13 @@ public:
 
   // Push a new mode onto the top of the enclosing stack.
   void push(y::unique<Modal> modal);
+
+  // Checks if there are any elements on the stack above this one.
+  bool has_next() const;
+  
+  // By default, the stack will be drawn from bottom to top. Call this to
+  // draw all higher elements early, in order to add some final behaviour.
+  void draw_next() const;
 
   // Signal that this mode should exit. Control returns to the mode behind.
   void end();
@@ -165,8 +171,11 @@ private:
 
   friend class ModalStack;
   void set_stack(ModalStack& stack);
+  void clear_drawn_next() const;
+  bool has_drawn_next() const;
 
   ModalStack* _stack;
+  mutable bool _has_drawn_next;
   bool _end;
 
   UndoStack _undo_stack;
@@ -187,9 +196,13 @@ public:
 
 private:
 
+  friend class Modal;
+  bool has_next(const Modal& modal) const;
+  void draw_next(const Modal& modal) const;
+
   void event(const sf::Event& e, y::size index);
   void update();
-  void draw() const;
+  void draw(y::size index) const;
   bool clear_ended();
 
   typedef y::unique<Modal> Element;
