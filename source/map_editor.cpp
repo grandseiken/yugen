@@ -550,10 +550,9 @@ void MinimapPanel::draw(RenderUtil& util) const
   const y::ivec2& min = _map.get_boundary_min();
   const y::ivec2& max = _map.get_boundary_max();
   y::ivec2 c;
+  RenderBatch batch;
   for (y::int32 layer = -Cell::background_layers;
        layer <= Cell::foreground_layers; ++layer) {
-    // TODO: get depth working so we can move this outside.
-    RenderBatch batch;
     for (auto it = _map.get_cartesian(); it; ++it) {
       const y::ivec2& c = *it;
       if (!_map.is_coord_used(c)) {
@@ -569,17 +568,15 @@ void MinimapPanel::draw(RenderUtil& util) const
           continue;
         }
 
+        float d = .8f - layer * .1f;
         y::ivec2 u = Tileset::tile_size * (v + (c - min) * Cell::cell_size);
         batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
-                         u, t.tileset->from_index(t.index),
-                         (layer + Cell::background_layers) /
-                             (1 + Cell::background_layers +
-                              Cell::foreground_layers), Colour::white);
+                         u, t.tileset->from_index(t.index), d, Colour::white);
       }
     }
-    util.render_batch(batch);
-    util.get_gl().bind_window(false, true);
   }
+  util.render_batch(batch);
+
   // Draw viewport.
   const Resolution& r = util.get_window().get_mode();
   y::ivec2 vmin =
@@ -1009,10 +1006,7 @@ void MapEditor::draw_cell_layer(
         Tileset::tile_size * (*it + coord * Cell::cell_size));
 
     batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
-                     camera, t.tileset->from_index(t.index),
-                     (layer + Cell::background_layers) /
-                         (1 + Cell::background_layers +
-                          Cell::foreground_layers), c);
+                     camera, t.tileset->from_index(t.index), 0.f, c);
   }
 }
 

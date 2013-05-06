@@ -10,6 +10,11 @@ void main()
 {
   vec2 coord = mod(frame_coord, frame_count) +
       mod(tex_coord, vec2(frame_size)) / frame_size;
-  gl_FragColor = texture2D(sprite, coord / frame_count) * colour_coord;
+  vec4 color = texture2D(sprite, coord / frame_count) * colour_coord;
+  // Don't write the depth buffer.
+  if (color.a == 0) {
+    discard;
+  }
+  gl_FragColor = color;
   gl_FragDepth = depth_coord;
 }

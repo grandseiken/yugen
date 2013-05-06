@@ -7,6 +7,7 @@
 class Databank;
 class Tileset;
 
+// Action that sets the collision of a tile.
 struct SetCollideAction : public StackAction {
   SetCollideAction(Tileset& tileset, const y::ivec2& coord,
                    y::int32 old_collide, y::int32 new_collide);
@@ -20,6 +21,7 @@ struct SetCollideAction : public StackAction {
   virtual void undo() const;
 };
 
+// Displays the tileset with collision data overlaid.
 class TilesetPanel : public Panel {
 public:
 
@@ -40,10 +42,11 @@ private:
 
 };
 
+// Shows all the possible collision shapes.
 class CollidePanel : public Panel {
 public:
 
-  static const y::int32 entries_per_row = 8;
+  static const y::int32 entries_per_row;
 
   CollidePanel(y::int32& collide_select);
   virtual ~CollidePanel() {}
@@ -59,6 +62,7 @@ private:
 
 };
 
+// Combines everything into an editor.
 class TilesetEditor : public Modal {
 public:
 

@@ -47,7 +47,7 @@ void Yugen::update()
   if (!has_next() && !_bank.maps.empty() && !_launched) {
     _launched = true;
     push(y::move_unique(new GameStage(
-        _util, _framebuffer, _bank.maps.get(0))));
+        _util, _framebuffer, _bank.maps.get(0), y::ivec2())));
   }
 }
 

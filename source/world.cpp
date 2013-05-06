@@ -107,6 +107,13 @@ Cell* WorldWindow::get_active_window_cell() const
   return get_active_window_cell(y::ivec2());
 }
 
+y::ivec2_iterator WorldWindow::get_cartesian() const
+{
+  return y::cartesian(
+      y::ivec2{-active_window_half_size, -active_window_half_size},
+      y::ivec2{1 + active_window_half_size, 1 + active_window_half_size});
+}
+
 y::size WorldWindow::to_internal_index(const y::ivec2& active_window)
 {
   const y::int32 half_size = active_window_half_size;

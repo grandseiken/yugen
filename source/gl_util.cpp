@@ -623,8 +623,7 @@ void GlUtil::enable_depth(bool depth) const
   if (depth) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    // TODO: this is wrong. Depth goes from 0 to 1.
-    glDepthRange(-256.f, 255.f);
+    glDepthRange(0.f, 1.f);
   }
   else {
     glDisable(GL_DEPTH_TEST);

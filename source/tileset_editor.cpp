@@ -84,7 +84,7 @@ void TilesetPanel::draw(RenderUtil& util) const
   util.render_sprite(texture, texture.get_size(), y::ivec2(), y::ivec2(),
                      0.f, Colour::white);
 
-  if (_hover > y::ivec2()) {
+  if (_hover >= y::ivec2()) {
     util.render_outline(_hover * Tileset::tile_size,
                         Tileset::tile_size, Colour::hover);
   }
@@ -97,6 +97,8 @@ void TilesetPanel::draw(RenderUtil& util) const
                      _tileset.get_collision(*it), Colour::highlight);
   }
 }
+
+const y::int32 CollidePanel::entries_per_row = 8;
 
 CollidePanel::CollidePanel(y::int32& collide_select)
   : Panel(y::ivec2(), y::ivec2(), 0)
@@ -121,7 +123,7 @@ bool CollidePanel::event(const sf::Event& e)
     return true;
   }
 
-  if (e.type == sf::Event::MouseButtonPressed && _hover > y::ivec2()) {
+  if (e.type == sf::Event::MouseButtonPressed && _hover >= y::ivec2()) {
     y::ivec2 v = _hover / Tileset::tile_size;
     y::int32 i = v[xx] + v[yy] * entries_per_row;
     if (i < Tileset::COLLIDE_SIZE) {
@@ -163,7 +165,7 @@ void CollidePanel::draw(RenderUtil& util) const
        util.render_outline(Tileset::tile_size * v, Tileset::tile_size,
                            Colour::select);
      }
-     else if (_hover > y::ivec2() && _hover / Tileset::tile_size == v) {
+     else if (_hover >= y::ivec2() && _hover / Tileset::tile_size == v) {
        util.render_outline(Tileset::tile_size * v, Tileset::tile_size,
                            Colour::hover);
      }

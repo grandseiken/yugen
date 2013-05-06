@@ -42,6 +42,9 @@ public:
   // Get (possibly null) cell at (0, 0).
   Cell* get_active_window_cell() const;
 
+  // Iterate through window coordinates.
+  y::ivec2_iterator get_cartesian() const;
+
 private:
 
   // Give (x, y) in [-half_width, half_width] * [-half_width, half_width].
