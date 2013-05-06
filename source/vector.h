@@ -340,6 +340,16 @@ namespace y {
   }
 
   template<typename T, y::size N>
+  vec<T, N> abs(const vec<T, N>& v)
+  {
+    vec<T, N> u;
+    for (y::size i = 0; i < N; ++i) {
+      u[i] = abs(v[i]);
+    }
+    return u;
+  }
+
+  template<typename T, y::size N>
   vec<T, N> min(const vec<T, N>& a, const vec<T, N>& b)
   {
     vec<T, N> v;

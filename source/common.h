@@ -38,11 +38,13 @@ namespace y {
     return std::abs(t);
   }
   template<typename T>
-  T min(const T& a, const T& b) {
+  T min(const T& a, const T& b)
+  {
     return std::min(a, b);
   }
   template<typename T>
-  T max(const T& a, const T& b) {
+  T max(const T& a, const T& b)
+  {
     return std::max(a, b);
   }
   template<typename T>
@@ -89,6 +91,12 @@ namespace y {
 
   typedef vector<string> string_vector;
   const std::nullptr_t null = nullptr;
+
+  template<typename T>
+  auto move(T t) -> decltype(std::move(std::forward<T>(t)))
+  {
+    return std::move(std::forward<T>(t));
+  }
 
   template<typename T>
   auto move_unique(T* t) -> decltype(unique<T>(t))

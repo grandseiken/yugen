@@ -37,21 +37,22 @@ void GameStage::event(const sf::Event& e)
 void GameStage::update()
 {
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-    _camera -= {0, 1};
+    _camera -= {0, 2};
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-    _camera -= {1, 0};
+    _camera -= {2, 0};
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-    _camera += {0, 1};
+    _camera += {0, 2};
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-    _camera += {1, 0};
+    _camera += {2, 0};
   }
 }
 
 void GameStage::draw() const
 {
+  // Render all the tiles in the world at once, batched by texture.
   RenderBatch batch;
   for (auto it = _world.get_cartesian(); it; ++it) {
     Cell* cell = _world.get_active_window_cell(*it);
@@ -65,6 +66,9 @@ void GameStage::draw() const
         if (!t.tileset) {
           continue;
         }
+        // Foreground: .4
+        // Collision layer: .5
+        // Background: .6
         float d = .5f - layer * .1f;
 
         y::ivec2 camera = world_to_camera(
@@ -76,6 +80,19 @@ void GameStage::draw() const
     }
   }
   _util.render_batch(batch);
+
+  // Render geometry.
+  if (!sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
+    return;
+  }
+  y::size i = 0;
+  for (const Geometry& g : _world.get_geometry()) {
+    Colour c = ++i % 2 ? Colour(1.f, 0.f, 0.f, .5f) :
+                         Colour(0.f, 1.f, 0.f, .5f);
+    _util.render_fill(
+        world_to_camera(y::min(g.start, g.end)),
+        y::max(y::abs(g.end - g.start), y::ivec2{1, 1}), c);
+  }
 }
 
 y::ivec2 GameStage::world_to_camera(const y::ivec2& v) const

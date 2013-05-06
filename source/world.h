@@ -4,9 +4,57 @@
 #include "common.h"
 #include "cell.h"
 
+// A collision boundary line. By convention geometry is stored in clockwise
+// order; that is, when facing from start to end the solid geometry lies on the
+// right-hand side.
+struct Geometry {
+  y::ivec2 start;
+  y::ivec2 end;
+
+  struct Order {
+    bool operator()(const Geometry&, const Geometry& b) const;
+  };
+};
+
+typedef y::ordered_set<Geometry, Geometry::Order> OrderedGeometry;
+
+// Stores world geometry.
+class WorldGeometry {
+public:
+
+  WorldGeometry();
+
+  void merge_geometry(const CellBlueprint& cell, const y::ivec2& coord);
+  void clear_geometry(const y::ivec2& coord);
+  void swap_geometry(const y::ivec2& a, const y::ivec2& b);
+  bool has_geometry(const y::ivec2& coord) const;
+
+  const OrderedGeometry& get_geometry() const;
+
+private:
+
+  typedef y::vector<Geometry> GeometryList;
+
+  struct Bucket {
+    GeometryList middle;
+    GeometryList top;
+    GeometryList bottom;
+    GeometryList left;
+    GeometryList right;
+  };
+
+  y::map<y::ivec2, Bucket> _buckets;
+  mutable OrderedGeometry _ordered_geometry;
+  mutable bool _dirty;
+
+  void calculate_geometry(Bucket& bucket, const CellBlueprint& cell);
+  void merge_all_geometry() const;
+
+};
+
 // Sliding window into a Cell source. The source can be changed to simulate
 // non-planar geometry.
-// TODO: use a WorldSource interface instead of CellMap directly.
+// TODO: use a WorldSource interface instead of CellMap directly?
 class WorldWindow {
 public:
 
@@ -45,6 +93,9 @@ public:
   // Iterate through window coordinates.
   y::ivec2_iterator get_cartesian() const;
 
+  // Get geometry.
+  const OrderedGeometry& get_geometry() const;
+
 private:
 
   // Give (x, y) in [-half_width, half_width] * [-half_width, half_width].
@@ -72,6 +123,7 @@ private:
 
   typedef y::unique<ActiveWindowEntry[]> active_window;
   active_window _active_window;
+  WorldGeometry _active_geometry;
 
 };
 

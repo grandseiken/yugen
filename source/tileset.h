@@ -17,7 +17,7 @@ public:
   enum Collision {
     COLLIDE_NONE,
     COLLIDE_FULL,
-    COLLIDE_SIZE
+    COLLIDE_SIZE,
   };
 
   static const y::int32 tile_width = 32;
