@@ -12,6 +12,11 @@ function lint_highlight
   sed -e "s/ *\(\/\|*\)\*\*\+\/\?//g" $file | egrep -n "$1" | sed -e "s/^\([0-9]\+\):/$2:\t/g" | egrep -B 9999 -A 9999 --color "$1"
 }
 
+function lint_indentation
+{
+  line=""
+}
+
 function lint_common
 {
   lint '^.{81}.*$' 'Line \1 too long'
@@ -20,6 +25,7 @@ function lint_common
   lint_highlight $'\t' 'Line \1 tab'
   lint_highlight ',[^ "].|;[^ }"].|:[^ :A-Za-z_*~"].' 'Line \1 separator format'
   lint_highlight '(\]|\)|\])[^, ;)\]}]' 'Line \1 bracket format'
+  lint_indentation
 }
 
 function lint_cstyle

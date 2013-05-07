@@ -152,7 +152,7 @@ public:
 
   // Checks if there are any elements on the stack above this one.
   bool has_next() const;
-  
+
   // By default, the stack will be drawn from bottom to top. Call this to
   // draw all higher elements early, in order to add some final behaviour.
   void draw_next() const;

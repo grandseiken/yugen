@@ -7,6 +7,8 @@
 #include "render_util.h"
 #include "window.h"
 
+#include <iomanip>
+#include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 
 const GLfloat vertex_data[] = {
@@ -31,6 +33,9 @@ Yugen::Yugen(Databank& bank, RenderUtil& util)
 Yugen::~Yugen()
 {
   _util.get_gl().delete_framebuffer(_framebuffer);
+  for (unsigned char* data : _save_file_frames) {
+    delete[] data;
+  }
 }
 
 void Yugen::event(const sf::Event& e)
@@ -67,16 +72,43 @@ void Yugen::draw() const
     total /= samples;
   }
 
+  // Render the game.
   _framebuffer.bind(true, true);
   _util.set_resolution(_framebuffer.get_size());
-
   draw_next();
+
+  // Render FPS indicator.
   if (total) {
     y::sstream ss;
     ss << total << " ticks (" << (1000.f / total) << " fps)";
     _util.render_text(ss.str(), {16, 16}, Colour::white);
   }
 
+  // Render framebuffer to a file.
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tilde)) {
+    y::ivec2 size = _framebuffer.get_size();
+    y::int32 length = 4 * size[xx] * size[yy];
+    unsigned char* data = new unsigned char[length];
+    glReadPixels(0, 0, size[xx], size[yy], GL_RGBA, GL_UNSIGNED_BYTE, data);
+    _save_file_frames.push_back(data);
+  }
+  else {
+    y::size n = 0;
+    for (unsigned char* data : _save_file_frames) {
+      y::ivec2 size = _framebuffer.get_size();
+      sf::Image image;
+      image.create(size[xx], size[yy], data);
+      image.flipVertically();
+
+      y::sstream ss;
+      ss << "tmp/" << std::setw(4) << std::setfill('0') << n++ << ".png";
+      image.saveToFile(ss.str());
+      delete[] data;
+    }
+    _save_file_frames.clear();
+  }
+
+  // Render framebuffer to screen with post-processing.
   const Resolution& screen = _util.get_window().get_mode();
   _util.get_gl().bind_window(true, true);
   _post_program.bind();

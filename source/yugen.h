@@ -29,6 +29,7 @@ private:
   static const y::size samples = 16;
   mutable sf::Clock _clock;
   mutable y::vector<y::size> _measurements;
+  mutable y::vector<unsigned char*> _save_file_frames;
 
   Databank& _bank;
   RenderUtil& _util;

@@ -24,11 +24,14 @@ public:
 
   WorldGeometry();
 
+  // Set the geometry at a coordinate by calculating it from a CellBlueprint.
   void merge_geometry(const CellBlueprint& cell, const y::ivec2& coord);
+  // Clear the ceometry at a coordinate.
   void clear_geometry(const y::ivec2& coord);
+  // Swap the geometry between two coordinates.
   void swap_geometry(const y::ivec2& a, const y::ivec2& b);
-  bool has_geometry(const y::ivec2& coord) const;
 
+  // Get current geometry for the whole world.
   const OrderedGeometry& get_geometry() const;
 
 private:

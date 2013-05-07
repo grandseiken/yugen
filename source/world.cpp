@@ -33,9 +33,7 @@ WorldGeometry::WorldGeometry()
 void WorldGeometry::merge_geometry(const CellBlueprint& cell,
                                    const y::ivec2& coord)
 {
-  if (has_geometry(coord)) {
-    return;
-  }
+  clear_geometry(coord);
   calculate_geometry(_buckets[coord], cell);
   _dirty = true;
 }
@@ -44,20 +42,15 @@ void WorldGeometry::clear_geometry(const y::ivec2& coord)
 {
   auto it = _buckets.find(coord);
   if (it != _buckets.end()) {
+    _dirty = true;
     _buckets.erase(it);
   }
-  _dirty = true;
 }
 
 void WorldGeometry::swap_geometry(const y::ivec2& a, const y::ivec2& b)
 {
   _buckets[a] = y::move(_buckets[b]);
   _dirty = true;
-}
-
-bool WorldGeometry::has_geometry(const y::ivec2& coord) const
-{
-  return _buckets.find(coord) != _buckets.end();
 }
 
 const OrderedGeometry& WorldGeometry::get_geometry() const
@@ -249,16 +242,16 @@ void WorldGeometry::merge_all_geometry() const
     local::insert(_ordered_geometry, bucket.middle, offset);
 
     // Where there's no adjacent cell, add the edge geometry.
-    if (!has_geometry(*it - y::ivec2{0, 1})) {
+    if (_buckets.find(*it - y::ivec2{0, 1}) == _buckets.end()) {
       local::insert(_ordered_geometry, bucket.top, offset);
     }
-    if (!has_geometry(*it - y::ivec2{1, 0})) {
+    if (_buckets.find(*it - y::ivec2{1, 0}) == _buckets.end()) {
       local::insert(_ordered_geometry, bucket.left, offset);
     }
-    if (!has_geometry(*it + y::ivec2{0, 1})) {
+    if (_buckets.find(*it + y::ivec2{0, 1}) == _buckets.end()) {
       local::insert(_ordered_geometry, bucket.bottom, offset);
     }
-    if (!has_geometry(*it + y::ivec2{1, 0})) {
+    if (_buckets.find(*it + y::ivec2{1, 0}) == _buckets.end()) {
       local::insert(_ordered_geometry, bucket.right, offset);
     }
 
