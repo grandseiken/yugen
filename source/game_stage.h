@@ -12,9 +12,13 @@ class RenderUtil;
 class GameStage : public Modal {
 public:
 
-  GameStage(RenderUtil& util, GlFramebuffer& framebuffer,
+  GameStage(const Databank& bank,
+            RenderUtil& util, GlFramebuffer& framebuffer,
             const CellMap& map, const y::ivec2& coord);
   virtual ~GameStage();
+
+  const Databank& get_bank() const;
+  RenderUtil& get_util() const;
 
   virtual void event(const sf::Event& e);
   virtual void update();
@@ -25,6 +29,7 @@ private:
   y::ivec2 world_to_camera(const y::ivec2& v) const;
   y::ivec2 camera_to_world(const y::ivec2& v) const;
 
+  const Databank& _bank;
   RenderUtil& _util;
   GlFramebuffer& _framebuffer;
   const CellMap& _map;

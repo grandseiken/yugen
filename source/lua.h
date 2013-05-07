@@ -4,20 +4,28 @@
 #include "common.h"
 
 class Filesystem;
+class GameStage;
 struct lua_State;
 
 class Script {
 public:
 
-  Script(const y::string& path, const y::string& contents);
+  Script(GameStage& stage, const y::string& path, const y::string& contents);
   ~Script();
 
+  const GameStage& get_stage() const;
+  /***/ GameStage& get_stage();
+
   const y::string& get_path() const;
+
+  template<typename T>
+  void set_registry_value(const y::string& key, const T& value);
 
   void call(const y::string& function_name);
 
 private:
 
+  GameStage& _stage;
   y::string _path;
   lua_State* _state;
 

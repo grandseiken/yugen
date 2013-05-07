@@ -48,6 +48,8 @@ namespace y {
       operator=(arg);
     }
 
+    vec(V&& arg) noexcept = default;
+
     template<typename U>
     explicit vec(const vec<U, N>& arg)
       : elements{}
@@ -64,6 +66,8 @@ namespace y {
       }
       return *this;
     }
+
+    V& operator=(V&& arg) noexcept = default;
 
     T& operator[](y::size i)
     {

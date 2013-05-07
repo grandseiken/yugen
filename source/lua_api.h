@@ -1,49 +1,21 @@
 // Magic include file doesn't need preprocessor guards. Types and functions
 // defined here with the ylib macros are automatically exposed to Lua.
+#ifndef LUA_API_H
+#define LUA_API_H
+#include "game_stage.h"
+#include "render_util.h"
+#endif
 
-ylib_typedef(Filesystem);
-ylib_typedef(Script);
-
-ylib_api(hello) ylib_checked_arg(y::int32, t, t < 100, "pass less than 100")
+ylib_api(render_sprite)
+    ylib_arg(y::string, texture)
+    ylib_arg(y::int32, frame_width) ylib_arg(y::int32, frame_height)
+    ylib_arg(y::int32, origin_x) ylib_arg(y::int32, origin_y)
+    ylib_arg(y::int32, frame_x) ylib_arg(y::int32, frame_y)
+    ylib_arg(float, depth)
 {
-  std::cout << "hello you passed " << t << std::endl;
+  RenderUtil& util = stage.get_util();
+  util.render_sprite(util.get_gl().get_texture(texture),
+                     {frame_width, frame_height}, {origin_x, origin_y},
+                     {frame_x, frame_y}, depth, Colour::white);
   ylib_void();
-}
-
-ylib_api(twice) ylib_arg(y::int32, t)
-{
-  ylib_return(2 * t, 3 * t);
-}
-
-ylib_api(test)
-{
-  y::vector<y::int32> t;
-  t.push_back(17);
-  t.push_back(2);
-  ylib_return(t);
-}
-
-ylib_api(print_vector) ylib_arg(y::vector<y::int32>, t)
-{
-  for (y::size i = 0; i < t.size(); ++i) {
-    std::cout << "an element " << t[i] << std::endl;
-  }
-  ylib_void();
-}
-
-ylib_api(pass_script) ylib_arg(Script*, t)
-{
-  std::cout << "pass_script called" << std::endl;
-  std::cout << t << std::endl;
-  ylib_void();
-}
-
-ylib_api(get_file)
-{
-  ylib_return((Filesystem*)y::null);
-}
-
-ylib_api(get_script)
-{
-  ylib_return((Script*)y::null);
 }

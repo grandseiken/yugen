@@ -1,13 +1,17 @@
 #include "game_stage.h"
 
+#include "databank.h"
+#include "lua.h"
 #include "tileset.h"
 #include "render_util.h"
 
 #include <SFML/Window.hpp>
 
-GameStage::GameStage(RenderUtil& util, GlFramebuffer& framebuffer,
+GameStage::GameStage(const Databank& bank,
+                     RenderUtil& util, GlFramebuffer& framebuffer,
                      const CellMap& map, const y::ivec2& coord)
-  : _util(util)
+  : _bank(bank)
+  , _util(util)
   , _framebuffer(framebuffer)
   , _map(map)
   , _world(map, coord)
@@ -18,6 +22,16 @@ GameStage::GameStage(RenderUtil& util, GlFramebuffer& framebuffer,
 
 GameStage::~GameStage()
 {
+}
+
+const Databank& GameStage::get_bank() const
+{
+  return _bank;
+}
+
+RenderUtil& GameStage::get_util() const
+{
+  return _util;
 }
 
 void GameStage::event(const sf::Event& e)
@@ -80,6 +94,12 @@ void GameStage::draw() const
     }
   }
   _util.render_batch(batch);
+
+  // Render test script.
+  // TODO: testing.
+  const LuaFile& file = _bank.scripts.get("/scripts/hello.lua");
+  Script test_script(*const_cast<GameStage*>(this), file.path, file.contents);
+  test_script.call("draw");
 
   // Render geometry.
   if (!sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
