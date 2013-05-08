@@ -1,5 +1,6 @@
 #include "lua.h"
 #include "filesystem.h"
+#include "game_stage.h"
 
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
@@ -154,7 +155,7 @@ namespace ylib {
 }
 
 struct RegistryIndex {};
-static RegistryIndex script_registry_index;
+static RegistryIndex stage_registry_index;
 
 /******************************************************************************/
 /**** Preprocessor magic for defining types and functions useable by Lua   ****/
@@ -184,13 +185,11 @@ static RegistryIndex script_registry_index;
 /***/     (void)_ylib_stack;                                               /**/\
 /***/     lua_pushlightuserdata(                                           /**/\
 /***/         _ylib_state,                                                 /**/\
-/***/         reinterpret_cast<void*>(&script_registry_index));            /**/\
+/***/         reinterpret_cast<void*>(&stage_registry_index));             /**/\
 /***/     lua_gettable(_ylib_state, LUA_REGISTRYINDEX);                    /**/\
-/***/     Script* self = *reinterpret_cast<Script**>(                      /**/\
+/***/     GameStage& stage = **reinterpret_cast<GameStage**>(              /**/\
 /***/         lua_touserdata(_ylib_state, -1));                            /**/\
 /***/     lua_pop(_ylib_state, 1);                                         /**/\
-/***/     GameStage& stage = self->get_stage();                            /**/\
-/***/     (void)self;                                                      /**/\
 /***/     (void)stage;                                                     /***/
 /***/ #define ylib_arg(T, name)                                            /**/\
 /***/     T name = ylib::check<T>()(_ylib_state, ++_ylib_stack);           /***/
@@ -205,8 +204,9 @@ static RegistryIndex script_registry_index;
 /***/       return 0;                                                      /**/\
 /***/     }                                                                /**/\
 /***/   } void _ylib_no_op()                                               /***/
+/***/ ylib_typedef(GameStage);                                             /***/
+/***/ ylib_typedef(Script);                                                /***/
 /******************************************************************************/
-ylib_typedef(Script);
 #include "lua_api.h"
 /******************************************************************************/
 /**** Preprocessor magic for enumerating the library of functions and      ****/
@@ -232,9 +232,7 @@ ylib_typedef(Script);
 /***/   struct _ylib_no_op_struct_##name {                                 /**/\
 /***/     static void no_op()                                              /**/\
 /***/     {                                                                /**/\
-/***/       Script* self = y::null;                                        /**/\
-/***/       GameStage& stage = self->get_stage();                          /**/\
-/***/       (void)self;                                                    /**/\
+/***/       GameStage& stage = *(GameStage*)y::null;                       /**/\
 /***/       (void)stage;                                                   /***/
 /***/ #define ylib_arg(T, name)                                            /**/\
 /***/       T name = ylib::check<T>()(y::null, 0);                         /**/\
@@ -256,8 +254,7 @@ ylib_typedef(Script);
 
 Script::Script(GameStage& stage,
                const y::string& path, const y::string& contents)
-  : _stage(stage)
-  , _path(path)
+  : _path(path)
   // Use standard allocator and panic function.
   , _state(luaL_newstate())
 {
@@ -290,11 +287,15 @@ Script::Script(GameStage& stage,
   lua_getfield(_state, 1, "traceback");
   lua_remove(_state, 1);
 
-  // Set self-reference in the registry.
+  // Set GameStage reference in the registry.
   lua_pushlightuserdata(
-      _state, reinterpret_cast<void*>(&script_registry_index));
-  ylib::push(_state, this);
+      _state, reinterpret_cast<void*>(&stage_registry_index));
+  ylib::push(_state, &stage);
   lua_settable(_state, LUA_REGISTRYINDEX);
+
+  // Set self-reference global variable.
+  ylib::push(_state, this);
+  lua_setglobal(_state, "self");
 
   local data_struct{contents, false};
   if (lua_load(_state, local::read, &data_struct, _path.c_str(), y::null) ||
@@ -311,16 +312,6 @@ Script::Script(GameStage& stage,
 Script::~Script()
 {
   lua_close(_state);
-}
-
-const GameStage& Script::get_stage() const
-{
-  return _stage;
-}
-
-GameStage& Script::get_stage()
-{
-  return _stage;
 }
 
 const y::string& Script::get_path() const

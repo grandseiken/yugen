@@ -77,7 +77,9 @@ void WorldGeometry::calculate_geometry(Bucket& bucket,
   // be faster to keep this set-up, and handle non-full tiles separately after.
   // It would be possible to use the same strategy as above for e.g. slopes,
   // but full-square is the most common case so it's probably a waste to loop
-  // over every possible sloped edge as well.
+  // over every possible sloped edge as well. The straight edges of irregular
+  // tiles can be easily handled by a small modification to the is_tile_blocked
+  // function.
 
   struct local {
     static bool is_tile_blocked(const CellBlueprint& cell, const y::ivec2& v)

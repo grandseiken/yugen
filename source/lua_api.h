@@ -2,7 +2,6 @@
 // defined here with the ylib macros are automatically exposed to Lua.
 #ifndef LUA_API_H
 #define LUA_API_H
-#include "game_stage.h"
 #include "render_util.h"
 #endif
 

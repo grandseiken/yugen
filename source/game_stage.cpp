@@ -67,6 +67,7 @@ void GameStage::update()
 void GameStage::draw() const
 {
   // Render all the tiles in the world at once, batched by texture.
+  _util.add_translation(world_to_camera(y::ivec2()));
   RenderBatch batch;
   for (auto it = _world.get_cartesian(); it; ++it) {
     Cell* cell = _world.get_active_window_cell(*it);
@@ -85,11 +86,10 @@ void GameStage::draw() const
         // Background: .6
         float d = .5f - layer * .1f;
 
-        y::ivec2 camera = world_to_camera(
-            Tileset::tile_size * (*jt + *it * Cell::cell_size));
+        y::ivec2 world = Tileset::tile_size * (*jt + *it * Cell::cell_size);
         batch.add_sprite(
             t.tileset->get_texture(), Tileset::tile_size,
-            camera, t.tileset->from_index(t.index), d, Colour::white);
+            world, t.tileset->from_index(t.index), d, Colour::white);
       }
     }
   }
@@ -97,22 +97,23 @@ void GameStage::draw() const
 
   // Render test script.
   // TODO: testing.
+  // TODO: load all the textures for sprites, and make them available to Lua.
+  // TODO: figure out unloading policy for scripts.
   const LuaFile& file = _bank.scripts.get("/scripts/hello.lua");
   Script test_script(*const_cast<GameStage*>(this), file.path, file.contents);
   test_script.call("draw");
 
   // Render geometry.
-  if (!sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-    return;
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
+    y::size i = 0;
+    for (const Geometry& g : _world.get_geometry()) {
+      Colour c = ++i % 2 ? Colour(1.f, 0.f, 0.f, .5f) :
+                           Colour(0.f, 1.f, 0.f, .5f);
+      _util.render_fill(y::min(g.start, g.end),
+                        y::max(y::abs(g.end - g.start), y::ivec2{1, 1}), c);
+    }
   }
-  y::size i = 0;
-  for (const Geometry& g : _world.get_geometry()) {
-    Colour c = ++i % 2 ? Colour(1.f, 0.f, 0.f, .5f) :
-                         Colour(0.f, 1.f, 0.f, .5f);
-    _util.render_fill(
-        world_to_camera(y::min(g.start, g.end)),
-        y::max(y::abs(g.end - g.start), y::ivec2{1, 1}), c);
-  }
+  _util.add_translation(-world_to_camera(y::ivec2()));
 }
 
 y::ivec2 GameStage::world_to_camera(const y::ivec2& v) const

@@ -13,9 +13,6 @@ public:
   Script(GameStage& stage, const y::string& path, const y::string& contents);
   ~Script();
 
-  const GameStage& get_stage() const;
-  /***/ GameStage& get_stage();
-
   const y::string& get_path() const;
 
   template<typename T>
@@ -25,7 +22,6 @@ public:
 
 private:
 
-  GameStage& _stage;
   y::string _path;
   lua_State* _state;
 
