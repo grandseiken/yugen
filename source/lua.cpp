@@ -167,7 +167,12 @@ static RegistryIndex stage_registry_index;
 /***/   struct type_name<T> {                                              /**/\
 /***/     static const char* const name;                                   /**/\
 /***/   };                                                                 /**/\
+/***/   template<>                                                         /**/\
+/***/   struct type_name<const T> {                                        /**/\
+/***/     static const char* const name;                                   /**/\
+/***/   };                                                                 /**/\
 /***/   const char* const type_name<T>::name = "ylib." #T;                 /**/\
+/***/   const char* const type_name<const T>::name = "ylib." #T;           /**/\
 /***/   ylib_api(T##_eq) ylib_arg(T*, a) ylib_arg(T*, b)                   /**/\
 /***/   {                                                                  /**/\
 /***/     ylib_return(a == b);                                             /**/\
@@ -187,8 +192,8 @@ static RegistryIndex stage_registry_index;
 /***/         _ylib_state,                                                 /**/\
 /***/         reinterpret_cast<void*>(&stage_registry_index));             /**/\
 /***/     lua_gettable(_ylib_state, LUA_REGISTRYINDEX);                    /**/\
-/***/     GameStage& stage = **reinterpret_cast<GameStage**>(              /**/\
-/***/         lua_touserdata(_ylib_state, -1));                            /**/\
+/***/     GameStage& stage = *ylib::check<GameStage*>()(                   /**/\
+/***/         _ylib_state, -1);                                            /**/\
 /***/     lua_pop(_ylib_state, 1);                                         /**/\
 /***/     (void)stage;                                                     /***/
 /***/ #define ylib_arg(T, name)                                            /**/\
@@ -204,8 +209,6 @@ static RegistryIndex stage_registry_index;
 /***/       return 0;                                                      /**/\
 /***/     }                                                                /**/\
 /***/   } void _ylib_no_op()                                               /***/
-/***/ ylib_typedef(GameStage);                                             /***/
-/***/ ylib_typedef(Script);                                                /***/
 /******************************************************************************/
 #include "lua_api.h"
 /******************************************************************************/
@@ -253,10 +256,13 @@ static RegistryIndex stage_registry_index;
 /******************************************************************************/
 
 Script::Script(GameStage& stage,
-               const y::string& path, const y::string& contents)
+               const y::string& path, const y::string& contents,
+               const y::ivec2& origin, const y::ivec2& region)
   : _path(path)
   // Use standard allocator and panic function.
   , _state(luaL_newstate())
+  , _origin(origin)
+  , _region(region)
 {
   // Load the Lua standard library.
   luaL_openlibs(_state);
@@ -317,6 +323,34 @@ Script::~Script()
 const y::string& Script::get_path() const
 {
   return _path;
+}
+
+const y::ivec2& Script::get_origin() const
+{
+  return _origin;
+}
+
+const y::ivec2& Script::get_region() const
+{
+  return _region;
+}
+
+void Script::set_origin(const y::ivec2& origin)
+{
+  _origin = origin;
+}
+
+void Script::set_region(const y::ivec2& region)
+{
+  _region = region;
+}
+
+bool Script::has_function(const y::string& function_name) const
+{
+  lua_getglobal(_state, function_name.c_str());
+  bool has = lua_isfunction(_state, -1);
+  lua_pop(_state, 1);
+  return has;
 }
 
 void Script::call(const y::string& function_name)

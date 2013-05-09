@@ -13,7 +13,8 @@ namespace proto {
 }
 
 // A script path with associated region. For simplicity with the common
-// case (1x1 script region), the min and max are both inclusive.
+// case (1x1 script region), the min and max are both inclusive. Measured
+// in tiles.
 struct ScriptBlueprint {
   y::ivec2 min;
   y::ivec2 max;

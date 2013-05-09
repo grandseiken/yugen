@@ -1,7 +1,6 @@
 #include "game_stage.h"
 
 #include "databank.h"
-#include "lua.h"
 #include "tileset.h"
 #include "render_util.h"
 
@@ -18,6 +17,20 @@ GameStage::GameStage(const Databank& bank,
   , _camera(Cell::cell_size * Tileset::tile_size * coord +
             Cell::cell_size * Tileset::tile_size / 2)
 {
+  // TODO: this just loads all the scripts in the map. Instead, load when they
+  // overlap the WorldWindow.
+  // TODO: load all the textures for sprites, and make them available to Lua.
+  for (const ScriptBlueprint& s : map.get_scripts()) {
+    const LuaFile& file = _bank.scripts.get(s.path);
+
+    const y::ivec2 origin =
+        (Tileset::tile_size * (y::ivec2{1, 1} + s.min + s.max)) / 2;
+    const y::ivec2 region =
+        Tileset::tile_size * (y::ivec2{1, 1} + s.max - s.min);
+
+    add_script(y::move_unique(
+        new Script(*this, file.path, file.contents, origin, region)));
+  }
 }
 
 GameStage::~GameStage()
@@ -62,6 +75,31 @@ void GameStage::update()
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
     _camera += {2, 0};
   }
+
+  // Update scripts.
+  // TODO: figure out how script referencing, indirection, destruction all
+  // should work together.
+  for (const auto& script : _scripts) {
+    if (script->has_function("update")) {
+      script->call("update");
+    }
+  }
+
+  // Clean up out-of-bounds scripts.
+  for (auto it = _scripts.begin(); it != _scripts.end();) {
+    static const y::int32 half_size = WorldWindow::active_window_half_size;
+    static const y::ivec2& lower_bound =
+        -half_size * Cell::cell_size * Tileset::tile_size;
+    static const y::ivec2& upper_bound =
+        (1 + half_size) * Cell::cell_size * Tileset::tile_size;
+
+    const y::ivec2& origin = (*it)->get_origin();
+    const y::ivec2& region = (*it)->get_region();
+
+    bool out_of_bounds = !(origin + region / 2 >= lower_bound) ||
+                         !(origin - region / 2 < upper_bound);
+    it = out_of_bounds ? _scripts.erase(it) : it + 1;
+  }
 }
 
 void GameStage::draw() const
@@ -95,13 +133,12 @@ void GameStage::draw() const
   }
   _util.render_batch(batch);
 
-  // Render test script.
-  // TODO: testing.
-  // TODO: load all the textures for sprites, and make them available to Lua.
-  // TODO: figure out unloading policy for scripts.
-  const LuaFile& file = _bank.scripts.get("/scripts/hello.lua");
-  Script test_script(*const_cast<GameStage*>(this), file.path, file.contents);
-  test_script.call("draw");
+  // Render all scripts.
+  for (const auto& script : _scripts) {
+    if (script->has_function("draw")) {
+      script->call("draw");
+    }
+  }
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
@@ -124,4 +161,10 @@ y::ivec2 GameStage::world_to_camera(const y::ivec2& v) const
 y::ivec2 GameStage::camera_to_world(const y::ivec2& v) const
 {
   return v - _framebuffer.get_size() / 2 + _camera;
+}
+
+void GameStage::add_script(y::unique<Script> script)
+{
+  _scripts.push_back(y::unique<Script>());
+  (_scripts.end() - 1)->swap(script);
 }

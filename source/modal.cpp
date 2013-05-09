@@ -17,7 +17,7 @@ bool UndoStack::can_redo() const
 void UndoStack::new_action(y::unique<StackAction> action)
 {
   action->redo();
-  _undo_stack.push_back(Element());
+  _undo_stack.push_back(element());
   (_undo_stack.end() - 1)->swap(action);
   _redo_stack.clear();
 }
@@ -29,7 +29,7 @@ void UndoStack::undo()
   }
 
   (*(_undo_stack.end() - 1))->undo();
-  _redo_stack.push_back(Element());
+  _redo_stack.push_back(element());
   (_undo_stack.end() - 1)->swap(*(_redo_stack.end() - 1));
   _undo_stack.erase(_undo_stack.end() - 1);
 }
@@ -41,7 +41,7 @@ void UndoStack::redo()
   }
 
   (*(_redo_stack.end() - 1))->redo();
-  _undo_stack.push_back(Element());
+  _undo_stack.push_back(element());
   (_redo_stack.end() - 1)->swap(*(_undo_stack.end() - 1));
   _redo_stack.erase(_redo_stack.end() - 1);
 }
@@ -110,7 +110,7 @@ bool Panel::is_visible() const
   return _visible;
 }
 
-bool Panel::Order::operator()(Panel* a, Panel* b) const
+bool Panel::order::operator()(Panel* a, Panel* b) const
 {
   if (a->_z_index > b->_z_index) {
     return true;
@@ -367,7 +367,7 @@ bool Modal::has_drawn_next() const
 void ModalStack::push(y::unique<Modal> modal)
 {
   modal->set_stack(*this);
-  _stack.push_back(Element());
+  _stack.push_back(element());
   _stack[_stack.size() - 1].swap(modal);
 }
 
@@ -424,7 +424,7 @@ void ModalStack::event(const sf::Event& e, y::size index)
     return;
   }
 
-  Element& top = _stack[index];
+  element& top = _stack[index];
 
   // Automatically handle undo/redo.
   if (e.type == sf::Event::KeyPressed &&
@@ -450,7 +450,7 @@ void ModalStack::update()
     return;
   }
 
-  Element& top = *(_stack.end() - 1);
+  element& top = *(_stack.end() - 1);
   top->get_panel_ui().update();
   top->update();
 }

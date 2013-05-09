@@ -26,8 +26,19 @@ const Colour Colour::black(0.f, 0.f, 0.f, 1.f);
 const Colour Colour::dark(.5f, .5f, .5f, 1.f);
 const Colour Colour::transparent(1.f, 1.f, 1.f, .5f);
 
-bool BatchedTextureLess::operator()(const BatchedTexture& l,
-                                    const BatchedTexture& r) const
+void RenderBatch::add_sprite(const GlTexture& sprite,
+                             const y::ivec2& frame_size,
+                             const y::ivec2& origin, const y::ivec2& frame,
+                             float depth, const Colour& colour)
+{
+  BatchedTexture bt{sprite, frame_size};
+  BatchedSprite bs{float(origin[xx]), float(origin[yy]),
+                   float(frame[xx]), float(frame[yy]), depth, colour};
+  _map[bt].push_back(bs);
+}
+
+bool RenderBatch::batched_texture_order::operator()(
+    const BatchedTexture& l, const BatchedTexture& r) const
 {
   if (l.sprite.get_handle() < r.sprite.get_handle()) {
     return true;
@@ -44,18 +55,7 @@ bool BatchedTextureLess::operator()(const BatchedTexture& l,
   return l.frame_size[yy] < r.frame_size[yy];
 }
 
-void RenderBatch::add_sprite(const GlTexture& sprite,
-                             const y::ivec2& frame_size,
-                             const y::ivec2& origin, const y::ivec2& frame,
-                             float depth, const Colour& colour)
-{
-  BatchedTexture bt{sprite, frame_size};
-  BatchedSprite bs{float(origin[xx]), float(origin[yy]),
-                   float(frame[xx]), float(frame[yy]), depth, colour};
-  _map[bt].push_back(bs);
-}
-
-const RenderBatch::BatchedTextureMap& RenderBatch::get_map() const
+const RenderBatch::batched_texture_map& RenderBatch::get_map() const
 {
   return _map;
 }
@@ -112,7 +112,7 @@ const Window& RenderUtil::get_window() const
   return get_gl().get_window();
 }
 
-const RenderUtil::GlQuad& RenderUtil::quad() const
+const RenderUtil::gl_quad& RenderUtil::quad() const
 {
   return _quad;
 }

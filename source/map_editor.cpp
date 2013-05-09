@@ -990,7 +990,7 @@ void MapEditor::draw_cell_layer(
   for (auto it = y::cartesian(Cell::cell_size); it; ++it) {
     // In the middle of a TileEditAction we need to render the
     // uncommited drawing.
-    y::map<TileEditAction::Key, TileEditAction::Entry>::const_iterator jt;
+    y::map<TileEditAction::key, TileEditAction::entry>::const_iterator jt;
     if (edit) {
       jt = _tile_edit_action->edits.find(y::make_pair(coord, *it));
     }

@@ -63,13 +63,13 @@ struct TileEditAction : public StackAction {
   CellMap& map;
   y::int32 layer;
 
-  struct Entry {
+  struct entry {
     Tile old_tile;
     Tile new_tile;
   };
 
-  typedef y::pair<y::ivec2, y::ivec2> Key;
-  y::map<Key, Entry> edits;
+  typedef y::pair<y::ivec2, y::ivec2> key;
+  y::map<key, entry> edits;
 
   virtual void redo() const;
   virtual void undo() const;

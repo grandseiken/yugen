@@ -2,6 +2,7 @@
 #define GAME_STAGE_H
 
 #include "common.h"
+#include "lua.h"
 #include "modal.h"
 #include "world.h"
 
@@ -29,6 +30,8 @@ private:
   y::ivec2 world_to_camera(const y::ivec2& v) const;
   y::ivec2 camera_to_world(const y::ivec2& v) const;
 
+  void add_script(y::unique<Script> script);
+
   const Databank& _bank;
   RenderUtil& _util;
   GlFramebuffer& _framebuffer;
@@ -36,6 +39,9 @@ private:
 
   WorldWindow _world;
   y::ivec2 _camera;
+
+  typedef y::vector<y::unique<Script>> script_list;
+  script_list _scripts;
 
 };
 

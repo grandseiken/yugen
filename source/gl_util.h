@@ -240,14 +240,14 @@ private:
                    bool array, y::size index,
                    GLenum type, y::size length) const;
 
-  typedef y::map<y::string, GLint> SingleMap;
-  typedef y::map<y::pair<y::string, y::size>, GLint> ArrayMap;
+  typedef y::map<y::string, GLint> single_map;
+  typedef y::map<y::pair<y::string, y::size>, GLint> array_map;
 
-  mutable SingleMap _uniform_single_map;
-  mutable ArrayMap _uniform_array_map;
+  mutable single_map _uniform_single_map;
+  mutable array_map _uniform_array_map;
 
-  mutable SingleMap _attribute_single_map;
-  mutable ArrayMap _attribute_array_map;
+  mutable single_map _attribute_single_map;
+  mutable array_map _attribute_array_map;
 
   GLint get_uniform_location(const y::string& name) const;
   GLint get_uniform_location(const y::string& name, y::size index) const;

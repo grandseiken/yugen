@@ -11,12 +11,12 @@ struct Geometry {
   y::ivec2 start;
   y::ivec2 end;
 
-  struct Order {
+  struct order {
     bool operator()(const Geometry&, const Geometry& b) const;
   };
 };
 
-typedef y::ordered_set<Geometry, Geometry::Order> OrderedGeometry;
+typedef y::ordered_set<Geometry, Geometry::order> OrderedGeometry;
 
 // Stores world geometry.
 class WorldGeometry {
@@ -36,21 +36,21 @@ public:
 
 private:
 
-  typedef y::vector<Geometry> GeometryList;
+  typedef y::vector<Geometry> geometry_list;
 
-  struct Bucket {
-    GeometryList middle;
-    GeometryList top;
-    GeometryList bottom;
-    GeometryList left;
-    GeometryList right;
+  struct bucket {
+    geometry_list middle;
+    geometry_list top;
+    geometry_list bottom;
+    geometry_list left;
+    geometry_list right;
   };
 
-  y::map<y::ivec2, Bucket> _buckets;
+  y::map<y::ivec2, bucket> _buckets;
   mutable OrderedGeometry _ordered_geometry;
   mutable bool _dirty;
 
-  void calculate_geometry(Bucket& bucket, const CellBlueprint& cell);
+  void calculate_geometry(bucket& bucket, const CellBlueprint& cell);
   void merge_all_geometry() const;
 
 };
@@ -117,14 +117,14 @@ private:
   const CellMap* _active_map;
   y::ivec2 _active_map_offset;
 
-  struct ActiveWindowEntry {
-    ActiveWindowEntry();
+  struct active_window_entry {
+    active_window_entry();
 
     const CellBlueprint* blueprint;
     y::unique<Cell> cell;
   };
 
-  typedef y::unique<ActiveWindowEntry[]> active_window;
+  typedef y::unique<active_window_entry[]> active_window;
   active_window _active_window;
   WorldGeometry _active_geometry;
 

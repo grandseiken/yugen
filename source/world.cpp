@@ -2,7 +2,7 @@
 
 #include "tileset.h"
 
-bool Geometry::Order::operator()(const Geometry& a, const Geometry& b) const
+bool Geometry::order::operator()(const Geometry& a, const Geometry& b) const
 {
   if (a.start[xx] < b.start[xx]) {
     return true;
@@ -62,7 +62,7 @@ const OrderedGeometry& WorldGeometry::get_geometry() const
   return _ordered_geometry;
 }
 
-void WorldGeometry::calculate_geometry(Bucket& bucket,
+void WorldGeometry::calculate_geometry(bucket& bucket,
                                        const CellBlueprint& cell)
 {
   static const y::int32 collision_layer = 0;
@@ -99,7 +99,7 @@ void WorldGeometry::calculate_geometry(Bucket& bucket,
 
   // Horizontal geometry lines.
   for (y::int32 row = 0; row <= Cell::cell_height; ++row) {
-    GeometryList& list =
+    geometry_list& list =
         row == 0 ? bucket.top :
         row == Cell::cell_height ? bucket.bottom : bucket.middle;
 
@@ -133,7 +133,7 @@ void WorldGeometry::calculate_geometry(Bucket& bucket,
 
   // Vertical geometry lines.
   for (y::int32 col = 0; col <= Cell::cell_width; ++col) {
-    GeometryList& list =
+    geometry_list& list =
         col == 0 ? bucket.left :
         col == Cell::cell_width ? bucket.right : bucket.middle;
 
@@ -186,7 +186,7 @@ void WorldGeometry::merge_all_geometry() const
 
   struct local {
     static void insert(OrderedGeometry& target,
-                       const GeometryList& list, const y::ivec2& offset)
+                       const geometry_list& list, const y::ivec2& offset)
     {
       for (const Geometry& g : list) {
         target.insert({g.start + offset, g.end + offset});
@@ -197,7 +197,7 @@ void WorldGeometry::merge_all_geometry() const
         OrderedGeometry& target,
         const y::ivec2& a_offset, const y::ivec2& b_offset,
         y::int32 a_min, y::int32 a_max, y::int32 b_min, y::int32 b_max,
-        y::size& a_index, y::size& b_index, GeometryList& a, GeometryList& b)
+        y::size& a_index, y::size& b_index, geometry_list& a, geometry_list& b)
     {
       if (a_max < b_min) {
         target.insert({a_offset + a[a_index].start, a_offset + a[a_index].end});
@@ -239,7 +239,7 @@ void WorldGeometry::merge_all_geometry() const
     }
 
     // Add all non-edge geometry.
-    const Bucket& bucket = jt->second;
+    const bucket& bucket = jt->second;
     const y::ivec2 offset = *it * Tileset::tile_size * Cell::cell_size;
     local::insert(_ordered_geometry, bucket.middle, offset);
 
@@ -263,8 +263,8 @@ void WorldGeometry::merge_all_geometry() const
     jt = _buckets.find(*it + y::ivec2{0, 1});
     if (jt != _buckets.end()) {
       // Make a copy of each list.
-      GeometryList top = bucket.bottom;
-      GeometryList bottom = jt->second.top;
+      geometry_list top = bucket.bottom;
+      geometry_list bottom = jt->second.top;
 
       y::size top_index = 0;
       y::size bottom_index = 0;
@@ -293,8 +293,8 @@ void WorldGeometry::merge_all_geometry() const
     }
     jt = _buckets.find(*it + y::ivec2{1, 0});
     if (jt != _buckets.end()) {
-      GeometryList left = bucket.right;
-      GeometryList right = jt->second.left;
+      geometry_list left = bucket.right;
+      geometry_list right = jt->second.left;
 
       y::size left_index = 0;
       y::size right_index = 0;
@@ -330,7 +330,7 @@ WorldWindow::WorldWindow(const CellMap& active_map,
                          const y::ivec2& active_coord)
   : _active_map(&active_map)
   , _active_map_offset(-active_coord)
-  , _active_window(new ActiveWindowEntry[
+  , _active_window(new active_window_entry[
       (1 + 2 * active_window_half_size) * (1 + 2 * active_window_half_size)])
 {
   update_active_window();
@@ -363,8 +363,8 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
   _active_map_offset -= offset;
 
   // Temporary copy of the active window.
-  y::unique<ActiveWindowEntry[]> copy(
-      new ActiveWindowEntry[(1 + 2 * half_size) * (1 + 2 * half_size)]);
+  y::unique<active_window_entry[]> copy(
+      new active_window_entry[(1 + 2 * half_size) * (1 + 2 * half_size)]);
   // Stores which cells in the copy have been used.
   y::unique<bool[]> used(new bool[(1 + 2 * half_size) * (1 + 2 * half_size)]);
   // Stores which cells in the new active window have been filled.
@@ -495,7 +495,7 @@ void WorldWindow::update_active_window_cell(const y::ivec2& v)
   }
 }
 
-WorldWindow::ActiveWindowEntry::ActiveWindowEntry()
+WorldWindow::active_window_entry::active_window_entry()
   : blueprint(y::null)
   , cell(y::null)
 {

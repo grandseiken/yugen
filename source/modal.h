@@ -39,10 +39,10 @@ public:
 
 private:
 
-  typedef y::unique<StackAction> Element;
-  typedef y::vector<Element> Stack;
-  Stack _undo_stack;
-  Stack _redo_stack;
+  typedef y::unique<StackAction> element;
+  typedef y::vector<element> stack;
+  stack _undo_stack;
+  stack _redo_stack;
 
 };
 
@@ -84,7 +84,7 @@ public:
   virtual void update() = 0;
   virtual void draw(RenderUtil& util) const = 0;
 
-  struct Order {
+  struct order {
     bool operator()(Panel* a, Panel* b) const;
   };
 
@@ -129,9 +129,9 @@ private:
 
   Modal& _parent;
 
-  typedef y::ordered_set<Panel*, Panel::Order> PanelSet;
-  PanelSet _panels;
-  PanelSet _mouse_over;
+  typedef y::ordered_set<Panel*, Panel::order> panel_set;
+  panel_set _panels;
+  panel_set _mouse_over;
 
 };
 
@@ -205,9 +205,9 @@ private:
   void draw(y::size index) const;
   bool clear_ended();
 
-  typedef y::unique<Modal> Element;
-  typedef y::vector<Element> Stack;
-  Stack _stack;
+  typedef y::unique<Modal> element;
+  typedef y::vector<element> stack;
+  stack _stack;
 
 };
 

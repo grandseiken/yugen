@@ -30,6 +30,7 @@ struct Colour {
   static const Colour transparent;
 };
 
+// TODO: why are these outside?
 struct BatchedTexture {
   GlTexture sprite;
   y::ivec2 frame_size;
@@ -44,10 +45,6 @@ struct BatchedSprite {
   Colour colour;
 };
 
-struct BatchedTextureLess {
-  bool operator()(const BatchedTexture& l, const BatchedTexture& r) const;
-};
-
 // Helper class to automatically batch renders using the same texture.
 class RenderBatch {
 public:
@@ -56,14 +53,18 @@ public:
                   const y::ivec2& origin, const y::ivec2& frame,
                   float depth, const Colour& colour);
 
-  typedef y::vector<BatchedSprite> BatchedSpriteList;
-  typedef y::ordered_map<BatchedTexture, BatchedSpriteList,
-                         BatchedTextureLess> BatchedTextureMap;
-  const BatchedTextureMap& get_map() const;
+  struct batched_texture_order {
+    bool operator()(const BatchedTexture& l, const BatchedTexture& r) const;
+  };
+
+  typedef y::vector<BatchedSprite> batched_sprite_list;
+  typedef y::ordered_map<BatchedTexture, batched_sprite_list,
+                         batched_texture_order> batched_texture_map;
+  const batched_texture_map& get_map() const;
 
 private:
 
-  BatchedTextureMap _map;
+  batched_texture_map _map;
 
 };
 
@@ -82,10 +83,10 @@ public:
   /***/ GlUtil& get_gl() const;
   const Window& get_window() const;
 
-  typedef GlBuffer<GLushort, 1> GlQuad;
+  typedef GlBuffer<GLushort, 1> gl_quad;
 
   // Element array for a quad.
-  const GlQuad& quad() const;
+  const gl_quad& quad() const;
 
   // Native (target framebuffer) resolution must be set for utility methods
   // to behave correctly.
@@ -145,7 +146,7 @@ private:
   static const y::ivec2 font_size;
 
   GlUtil& _gl;
-  GlQuad _quad;
+  gl_quad _quad;
 
   y::ivec2 _native_size;
   y::ivec2 _translation;
