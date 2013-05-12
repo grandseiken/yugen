@@ -6,14 +6,44 @@
 
 class Filesystem;
 class GameStage;
+class Script;
 struct lua_State;
+
+// Weak reference to a Script. Invalidated automatically if the Script is
+// destroyed.
+class ScriptReference {
+public:
+
+  ScriptReference(Script& script);
+  ScriptReference(const ScriptReference& script);
+  ~ScriptReference();
+
+  ScriptReference& operator=(const ScriptReference& arg);
+
+  bool valid() const;
+  void invalidate();
+
+  const Script* get() const;
+  /***/ Script* get();
+
+  const Script& operator*() const;
+  /***/ Script& operator*();
+
+  const Script* operator->() const;
+  /***/ Script* operator->();
+
+private:
+
+  Script* _script;
+
+};
 
 class Script : public y::no_copy {
 public:
 
   Script(GameStage& stage, const y::string& path, const y::string& contents,
          const y::ivec2& origin, const y::ivec2& region);
-  ~Script();
+  virtual ~Script();
 
   const y::string& get_path() const;
 
@@ -31,11 +61,16 @@ public:
 
 private:
 
+  friend class ScriptReference;
+
   y::string _path;
   lua_State* _state;
 
   y::ivec2 _origin;
   y::ivec2 _region;
+
+  typedef y::set<ScriptReference*> reference_set;
+  reference_set _reference_set;
 
 };
 

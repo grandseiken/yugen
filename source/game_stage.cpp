@@ -77,8 +77,6 @@ void GameStage::update()
   }
 
   // Update scripts.
-  // TODO: figure out how script referencing, indirection, destruction all
-  // should work together.
   for (const auto& script : _scripts) {
     if (script->has_function("update")) {
       script->call("update");

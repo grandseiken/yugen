@@ -31,14 +31,14 @@ void RenderBatch::add_sprite(const GlTexture& sprite,
                              const y::ivec2& origin, const y::ivec2& frame,
                              float depth, const Colour& colour)
 {
-  BatchedTexture bt{sprite, frame_size};
-  BatchedSprite bs{float(origin[xx]), float(origin[yy]),
-                   float(frame[xx]), float(frame[yy]), depth, colour};
+  batched_texture bt{sprite, frame_size};
+  batched_sprite bs{float(origin[xx]), float(origin[yy]),
+                    float(frame[xx]), float(frame[yy]), depth, colour};
   _map[bt].push_back(bs);
 }
 
 bool RenderBatch::batched_texture_order::operator()(
-    const BatchedTexture& l, const BatchedTexture& r) const
+    const batched_texture& l, const batched_texture& r) const
 {
   if (l.sprite.get_handle() < r.sprite.get_handle()) {
     return true;
@@ -228,7 +228,7 @@ void RenderUtil::set_sprite(const GlTexture& texture,
 void RenderUtil::batch_sprite(const y::ivec2& origin, const y::ivec2& frame,
                               float depth, const Colour& colour) const
 {
-  _batched_sprites.push_back(BatchedSprite{
+  _batched_sprites.push_back(RenderBatch::batched_sprite{
       float(origin[xx]), float(origin[yy]),
       float(frame[xx]), float(frame[yy]), depth, colour});
 }
@@ -257,7 +257,7 @@ void RenderUtil::render_batch() const
 
   y::size length = _batched_sprites.size();
   for (y::size i = 0; i < length; ++i) {
-    const BatchedSprite& s = _batched_sprites[i];
+    const RenderBatch::batched_sprite& s = _batched_sprites[i];
     float left = s.left;
     float top = s.top;
 

@@ -10,6 +10,8 @@ class CellMap;
 class GlFramebuffer;
 class RenderUtil;
 
+// TODO: make a typedef (and corresponding vec2) for in-game subpixel coordinate
+// systems and use it wherever appropriate. (Double?)
 class GameStage : public Modal {
 public:
 

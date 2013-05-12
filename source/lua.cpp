@@ -1,6 +1,4 @@
 #include "lua.h"
-#include "filesystem.h"
-#include "game_stage.h"
 
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
@@ -11,11 +9,52 @@
 namespace ylib {
 
   typedef y::int32 ylib_int;
+  template<typename T>
+  std::string tos(const T& t)
+  {
+    y::sstream ss;
+    ss << t;
+    return ss.str();
+  }
 
   template<typename T>
   struct check {};
   template<typename T>
   struct type_name {};
+  template<>
+  struct type_name<y::int32> {
+    static const y::string name;
+  };
+  const y::string type_name<y::int32>::name = "int";
+  template<>
+  struct type_name<double> {
+    static const y::string name;
+  };
+  const y::string type_name<double>::name = "double";
+  template<>
+  struct type_name<bool> {
+    static const y::string name;
+  };
+  const y::string type_name<bool>::name = "bool";
+  template<>
+  struct type_name<y::string> {
+    static const y::string name;
+  };
+  const y::string type_name<y::string>::name = "string";
+  template<typename T>
+  struct type_name<y::vector<T>> {
+    static const y::string name;
+  };
+  template<typename T>
+  const y::string type_name<y::vector<T>>::name =
+      "vector<" + type_name<T>::name + ">";
+  template<typename T, y::size N>
+  struct type_name<y::vec<T, N>> {
+    static const y::string name;
+  };
+  template<typename T, y::size N>
+  const y::string type_name<y::vec<T, N>>::name =
+      "vec<" + type_name<T>::name + ", " + tos(N) + ">";
 
   // Integral values.
   template<>
@@ -33,14 +72,14 @@ namespace ylib {
 
   // Floating-point values.
   template<>
-  struct check<float> {
-    inline float operator()(lua_State* state, ylib_int index) const
+  struct check<double> {
+    inline double operator()(lua_State* state, ylib_int index) const
     {
       return luaL_checknumber(state, index);
     }
   };
 
-  inline void push(lua_State* state, float arg)
+  inline void push(lua_State* state, double arg)
   {
     lua_pushnumber(state, arg);
   }
@@ -107,7 +146,7 @@ namespace ylib {
   struct check<T*> {
     inline T* operator()(lua_State* state, ylib_int index) const
     {
-      void* v = luaL_checkudata(state, index, type_name<T>::name);
+      void* v = luaL_checkudata(state, index, type_name<T>::name.c_str());
       T** t = reinterpret_cast<T**>(v);
       return *t;
     }
@@ -117,9 +156,75 @@ namespace ylib {
   inline void push(lua_State* state, T* arg)
   {
     T** t = reinterpret_cast<T**>(lua_newuserdata(state, sizeof(T*)));
-    luaL_getmetatable(state, type_name<T>::name);
+    luaL_getmetatable(state, type_name<T>::name.c_str());
     lua_setmetatable(state, -2);
     *t = arg;
+  }
+
+  // Vector values.
+  template<typename T, y::size N>
+  struct check<const y::vec<T, N>> {
+    inline const y::vec<T, N>& operator()(lua_State* state, ylib_int index)
+        const
+    {
+      void* v = luaL_checkudata(state, index,
+                                type_name<y::vec<T, N>>::name.c_str());
+      y::vec<T, N>* t = reinterpret_cast<y::vec<T, N>*>(v);
+      return *t;
+    }
+  };
+
+  template<typename T, y::size N>
+  struct check<y::vec<T, N>> {
+    inline y::vec<T, N>& operator()(lua_State* state, ylib_int index) const
+    {
+      void* v = luaL_checkudata(state, index,
+                                type_name<y::vec<T, N>>::name.c_str());
+      y::vec<T, N>* t = reinterpret_cast<y::vec<T, N>*>(v);
+      return *t;
+    }
+  };
+
+  template<typename T, y::size N>
+  inline void push(lua_State* state, const y::vec<T, N>& arg)
+  {
+    y::vec<T, N>* t = reinterpret_cast<y::vec<T, N>*>(
+        lua_newuserdata(state, sizeof(y::vec<T, N>)));
+    static const y::string name = type_name<y::vec<T, N>>::name;
+    luaL_getmetatable(state, name.c_str());
+    lua_setmetatable(state, -2);
+    *t = arg;
+  }
+
+  // Script weak references.
+  template<>
+  struct check<const ScriptReference> {
+    inline const ScriptReference& operator()(lua_State* state, ylib_int index)
+        const
+    {
+      void* v = luaL_checkudata(state, index, "ylib.ScriptReference");
+      ScriptReference* t = reinterpret_cast<ScriptReference*>(v);
+      return *t;
+    }
+  };
+
+  template<>
+  struct check<ScriptReference> {
+    inline ScriptReference& operator()(lua_State* state, ylib_int index)
+    {
+      void* v = luaL_checkudata(state, index, "ylib.ScriptReference");
+      ScriptReference* t = reinterpret_cast<ScriptReference*>(v);
+      return *t;
+    }
+  };
+
+  inline void push(lua_State* state, const ScriptReference& arg)
+  {
+    ScriptReference* t = reinterpret_cast<ScriptReference*>(
+        lua_newuserdata(state, sizeof(ScriptReference)));
+    luaL_getmetatable(state, "ylib.ScriptReference");
+    lua_setmetatable(state, -2);
+    new (t) ScriptReference(arg);
   }
 
   // Generic pointer values. These can only be passed from Lua to C++, not
@@ -165,14 +270,14 @@ static RegistryIndex stage_registry_index;
 /***/ namespace ylib {                                                     /**/\
 /***/   template<>                                                         /**/\
 /***/   struct type_name<T> {                                              /**/\
-/***/     static const char* const name;                                   /**/\
+/***/     static const y::string name;                                     /**/\
 /***/   };                                                                 /**/\
 /***/   template<>                                                         /**/\
 /***/   struct type_name<const T> {                                        /**/\
-/***/     static const char* const name;                                   /**/\
+/***/     static const y::string name;                                     /**/\
 /***/   };                                                                 /**/\
-/***/   const char* const type_name<T>::name = "ylib." #T;                 /**/\
-/***/   const char* const type_name<const T>::name = "ylib." #T;           /**/\
+/***/   const y::string type_name<T>::name = "ylib." #T;                   /**/\
+/***/   const y::string type_name<const T>::name = "ylib." #T;             /**/\
 /***/   ylib_api(T##_eq) ylib_arg(T*, a) ylib_arg(T*, b)                   /**/\
 /***/   {                                                                  /**/\
 /***/     ylib_return(a == b);                                             /**/\
@@ -198,6 +303,8 @@ static RegistryIndex stage_registry_index;
 /***/     (void)stage;                                                     /***/
 /***/ #define ylib_arg(T, name)                                            /**/\
 /***/     T name = ylib::check<T>()(_ylib_state, ++_ylib_stack);           /***/
+/***/ #define ylib_refarg(T, name)                                         /**/\
+/***/     T& name = ylib::check<T>()(_ylib_state, ++_ylib_stack);          /***/
 /***/ #define ylib_checked_arg(T, name, assert, message)                   /**/\
 /***/     ylib_arg(T, name)                                                /**/\
 /***/     luaL_argcheck(_ylib_state, (assert), _ylib_stack, (message));    /***/
@@ -218,11 +325,12 @@ static RegistryIndex stage_registry_index;
 /***/ #undef ylib_typedef                                                  /***/
 /***/ #undef ylib_api                                                      /***/
 /***/ #undef ylib_arg                                                      /***/
+/***/ #undef ylib_refarg                                                   /***/
 /***/ #undef ylib_checked_arg                                              /***/
 /***/ #undef ylib_return                                                   /***/
 /***/ #undef ylib_void                                                     /***/
 /***/ #define ylib_typedef(T)                                              /**/\
-/***/   luaL_newmetatable(_ylib_state, ylib::type_name<T>::name);          /**/\
+/***/   luaL_newmetatable(_ylib_state, ylib::type_name<T>::name.c_str());  /**/\
 /***/   lua_pushstring(_ylib_state, "__eq");                               /**/\
 /***/   lua_pushcfunction(_ylib_state,                                     /**/\
 /***/                     ylib::_ylib_api_##T##_eq::_ylib_ref);            /**/\
@@ -240,6 +348,9 @@ static RegistryIndex stage_registry_index;
 /***/ #define ylib_arg(T, name)                                            /**/\
 /***/       T name = ylib::check<T>()(y::null, 0);                         /**/\
 /***/       (void)name;                                                    /***/
+/***/ #define ylib_refarg(T, name)                                         /**/\
+/***/       T& name = ylib::check<T>()(y::null, 0);                        /**/\
+/***/       (void)name;                                                    /***/
 /***/ #define ylib_checked_arg(T, name, assert, message)                   /**/\
 /***/       ylib_arg(T, name)                                              /***/
 /***/ #define ylib_return(...)                                             /**/\
@@ -255,6 +366,126 @@ static RegistryIndex stage_registry_index;
 /**** End of proprocessor magic.                                           ****/
 /******************************************************************************/
 
+#define ylib_add_method(name, function)\
+  lua_pushstring(_ylib_state, name);\
+  lua_pushcfunction(_ylib_state,\
+                    _ylib_api_##function::_ylib_ref);\
+  lua_settable(_ylib_state, -3);
+
+template<typename V>
+void ylib_register_vectors(lua_State* _ylib_state)
+{
+  luaL_newmetatable(_ylib_state, ylib::type_name<V>::name.c_str());
+  lua_pushstring(_ylib_state, "__index");
+  lua_pushvalue(_ylib_state, -2);
+  lua_settable(_ylib_state, -3);
+
+  ylib_add_method("__add", vec_add);
+  ylib_add_method("__sub", vec_sub);
+  ylib_add_method("__mul", vec_mul);
+  ylib_add_method("__div", vec_div);
+  ylib_add_method("__mod", vec_mod);
+  ylib_add_method("__unm", vec_unm);
+  ylib_add_method("__eq", vec_eq);
+  ylib_add_method("x", vec_x);
+  ylib_add_method("y", vec_y);
+  ylib_add_method("normalised", vec_normalised);
+  ylib_add_method("normalise", vec_normalise);
+  ylib_add_method("dot", vec_dot);
+  ylib_add_method("length_squared", vec_length_squared);
+  ylib_add_method("length", vec_length);
+  ylib_add_method("angle", vec_angle);
+  ylib_add_method("in_region", vec_in_region);
+  ylib_add_method("abs", vec_abs);
+  ylib_add_method("max", vec_max);
+  ylib_add_method("min", vec_min);
+  lua_pop(_ylib_state, 1);
+}
+
+void ylib_register_references(lua_State* _ylib_state)
+{
+  luaL_newmetatable(_ylib_state, "ylib.ScriptReference");
+  lua_pushstring(_ylib_state, "__index");
+  lua_pushvalue(_ylib_state, -2);
+  lua_settable(_ylib_state, -3);
+
+  ylib_add_method("__eq", ref_eq);
+  ylib_add_method("__gc", ref_gc);
+  ylib_add_method("valid", ref_valid);
+  ylib_add_method("get", ref_get);
+  lua_pop(_ylib_state, 1);
+}
+
+ScriptReference::ScriptReference(Script& script)
+  : _script(&script)
+{
+  script._reference_set.insert(this);
+}
+
+ScriptReference::ScriptReference(const ScriptReference& script)
+  : _script(script._script)
+{
+  _script->_reference_set.insert(this);
+}
+
+ScriptReference::~ScriptReference()
+{
+  if (valid()) {
+    _script->_reference_set.erase(this);
+  }
+}
+
+ScriptReference& ScriptReference::operator=(const ScriptReference& arg)
+{
+  if (this == &arg) {
+    return *this;
+  }
+  _script->_reference_set.erase(this);
+  _script = arg._script;
+  _script->_reference_set.insert(this);
+  return *this;
+}
+
+bool ScriptReference::valid() const
+{
+  return _script;
+}
+
+void ScriptReference::invalidate()
+{
+  _script = y::null;
+}
+
+const Script* ScriptReference::get() const
+{
+  return _script;
+}
+
+Script* ScriptReference::get()
+{
+  return _script;
+}
+
+const Script& ScriptReference::operator*() const
+{
+  return *_script;
+}
+
+Script& ScriptReference::operator*()
+{
+  return *_script;
+}
+
+const Script* ScriptReference::operator->() const
+{
+  return _script;
+}
+
+Script* ScriptReference::operator->()
+{
+  return _script;
+}
+
 Script::Script(GameStage& stage,
                const y::string& path, const y::string& contents,
                const y::ivec2& origin, const y::ivec2& region)
@@ -268,6 +499,8 @@ Script::Script(GameStage& stage,
   luaL_openlibs(_state);
   // Register Lua API.
   ylib_register(_state);
+  ylib_register_vectors<ylib_vec>(_state);
+  ylib_register_references(_state);
 
   // Chunk reader function.
   struct local {
@@ -318,6 +551,9 @@ Script::Script(GameStage& stage,
 Script::~Script()
 {
   lua_close(_state);
+  for (ScriptReference* ref : _reference_set) {
+    ref->invalidate();
+  }
 }
 
 const y::string& Script::get_path() const

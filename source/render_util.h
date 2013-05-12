@@ -30,35 +30,34 @@ struct Colour {
   static const Colour transparent;
 };
 
-// TODO: why are these outside?
-struct BatchedTexture {
-  GlTexture sprite;
-  y::ivec2 frame_size;
-};
-
-struct BatchedSprite {
-  float left;
-  float top;
-  float frame_x;
-  float frame_y;
-  float depth;
-  Colour colour;
-};
-
 // Helper class to automatically batch renders using the same texture.
 class RenderBatch {
 public:
+
+  struct batched_texture {
+    GlTexture sprite;
+    y::ivec2 frame_size;
+  };
+
+  struct batched_sprite {
+    float left;
+    float top;
+    float frame_x;
+    float frame_y;
+    float depth;
+    Colour colour;
+  };
 
   void add_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
                   const y::ivec2& origin, const y::ivec2& frame,
                   float depth, const Colour& colour);
 
   struct batched_texture_order {
-    bool operator()(const BatchedTexture& l, const BatchedTexture& r) const;
+    bool operator()(const batched_texture& l, const batched_texture& r) const;
   };
 
-  typedef y::vector<BatchedSprite> batched_sprite_list;
-  typedef y::ordered_map<BatchedTexture, batched_sprite_list,
+  typedef y::vector<batched_sprite> batched_sprite_list;
+  typedef y::ordered_map<batched_texture, batched_sprite_list,
                          batched_texture_order> batched_texture_map;
   const batched_texture_map& get_map() const;
 
@@ -172,7 +171,7 @@ private:
 
   GlTexture _sprite;
   y::ivec2 _frame_size;
-  mutable y::vector<BatchedSprite> _batched_sprites;
+  mutable y::vector<RenderBatch::batched_sprite> _batched_sprites;
   GlProgram _sprite_program;
 
 };
