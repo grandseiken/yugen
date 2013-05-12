@@ -2,11 +2,14 @@
 // defined here with the ylib macros are automatically exposed to Lua.
 #ifndef LUA_API_H
 #define LUA_API_H
+#include "databank.h"
 #include "game_stage.h"
 #include "render_util.h"
 #endif
 
 ylib_typedef(GameStage);
+ylib_typedef(GlTexture);
+ylib_typedef(LuaFile);
 ylib_typedef(Script);
 typedef y::int32 ylib_vec_component;
 typedef y::vec<ylib_vec_component, 2> ylib_vec;
@@ -175,14 +178,23 @@ ylib_api(set_region)
   ylib_void();
 }
 
+ylib_api(get_sprite) ylib_arg(y::string, path)
+{
+  ylib_return(&stage.get_bank().sprites.get(path));
+}
+
+ylib_api(get_script) ylib_arg(y::string, path)
+{
+  ylib_return(&stage.get_bank().scripts.get(path));
+}
+
 ylib_api(render_sprite)
-    ylib_arg(const Script*, script) ylib_arg(y::string, texture)
+    ylib_arg(const Script*, script) ylib_arg(const GlTexture*, sprite)
     ylib_refarg(const ylib_vec, frame_size) ylib_refarg(const ylib_vec, frame)
     ylib_arg(double, depth)
 {
-  RenderUtil& util = stage.get_util();
-  GlTexture t = util.get_gl().get_texture(texture);
-  y::ivec2 origin = script->get_origin() - t.get_size() / 2;
-  util.render_sprite(t, frame_size, origin, frame, depth, Colour::white);
+  RenderBatch& batch = stage.get_current_batch();
+  y::ivec2 origin = script->get_origin() - frame_size / 2;
+  batch.add_sprite(*sprite, frame_size, origin, frame, depth, Colour::white);
   ylib_void();
 }

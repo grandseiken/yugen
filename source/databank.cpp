@@ -5,8 +5,10 @@
 
 Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   : _default_script{"/yedit/missing.lua", ""}
-  , _default_tileset(gl.make_texture("/yedit/missing.png"))
+  , _default_sprite(gl.make_texture("/yedit/missing.png"))
+  , _default_tileset(_default_sprite)
   , scripts(_default_script)
+  , sprites(_default_sprite)
   , tilesets(_default_tileset)
   , cells(_default_cell)
   , maps(_default_map)
@@ -34,6 +36,16 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
       tileset->load(filesystem, *this, data_path);
     }
     tilesets.insert(data_path, y::move_unique(tileset));
+  }
+
+  // Don't clear; make tilesets accessible as sprites too.
+  filesystem.list_pattern(paths, "/sprites/**.png");
+  for (const y::string& s : paths) {
+    GlTexture t = gl.get_texture(s);
+    if (!t) {
+      t = gl.make_texture(s);
+    }
+    sprites.insert(s, y::move_unique(new GlTexture(t)));
   }
 
   paths.clear();

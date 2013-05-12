@@ -73,6 +73,7 @@ struct LuaFile {
 class Databank : public y::no_copy {
 
   LuaFile _default_script;
+  GlTexture _default_sprite;
   Tileset _default_tileset;
   CellBlueprint _default_cell;
   CellMap _default_map;
@@ -93,6 +94,7 @@ public:
   void save_all(Filesystem& filesystem) const;
 
   Dataset<LuaFile> scripts;
+  Dataset<GlTexture> sprites;
   Dataset<Tileset> tilesets;
   Dataset<CellBlueprint> cells;
   Dataset<CellMap> maps;
@@ -284,6 +286,18 @@ template<>
 inline Dataset<LuaFile>& Databank::get_set<LuaFile>()
 {
   return scripts;
+}
+
+template<>
+inline const Dataset<GlTexture>& Databank::get_set<GlTexture>() const
+{
+  return sprites;
+}
+
+template<>
+inline Dataset<GlTexture>& Databank::get_set<GlTexture>()
+{
+  return sprites;
 }
 
 template<>

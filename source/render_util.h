@@ -60,6 +60,7 @@ public:
   typedef y::ordered_map<batched_texture, batched_sprite_list,
                          batched_texture_order> batched_texture_map;
   const batched_texture_map& get_map() const;
+  void clear();
 
 private:
 

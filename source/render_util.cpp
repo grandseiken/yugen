@@ -60,6 +60,11 @@ const RenderBatch::batched_texture_map& RenderBatch::get_map() const
   return _map;
 }
 
+void RenderBatch::clear()
+{
+  _map.clear();
+}
+
 static const GLushort quad_data[] = {0, 1, 2, 3};
 
 const y::ivec2 RenderUtil::native_size{RenderUtil::native_width,

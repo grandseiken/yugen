@@ -4,6 +4,7 @@
 #include "common.h"
 #include "lua.h"
 #include "modal.h"
+#include "render_util.h"
 #include "world.h"
 
 class CellMap;
@@ -27,6 +28,9 @@ public:
   virtual void update();
   virtual void draw() const;
 
+  // Lua API functions.
+  RenderBatch& get_current_batch();
+
 private:
 
   y::ivec2 world_to_camera(const y::ivec2& v) const;
@@ -44,6 +48,8 @@ private:
 
   typedef y::vector<y::unique<Script>> script_list;
   script_list _scripts;
+
+  mutable RenderBatch _current_batch;
 
 };
 

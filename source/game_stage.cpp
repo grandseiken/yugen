@@ -2,11 +2,9 @@
 
 #include "databank.h"
 #include "tileset.h"
-#include "render_util.h"
 
 #include <SFML/Window.hpp>
 
-// TODO: load all the textures for sprites, and make them available to Lua.
 GameStage::GameStage(const Databank& bank,
                      RenderUtil& util, GlFramebuffer& framebuffer,
                      const CellMap& map, const y::ivec2& coord)
@@ -149,9 +147,10 @@ void GameStage::update()
 
 void GameStage::draw() const
 {
-  // Render all the tiles in the world at once, batched by texture.
   _util.add_translation(world_to_camera(y::ivec2()));
-  RenderBatch batch;
+  _current_batch.clear();
+
+  // Render all the tiles in the world at once, batched by texture.
   for (auto it = _world.get_cartesian(); it; ++it) {
     Cell* cell = _world.get_active_window_cell(*it);
     if (!cell) {
@@ -170,13 +169,12 @@ void GameStage::draw() const
         float d = .5f - layer * .1f;
 
         y::ivec2 world = Tileset::tile_size * (*jt + *it * Cell::cell_size);
-        batch.add_sprite(
+        _current_batch.add_sprite(
             t.tileset->get_texture(), Tileset::tile_size,
             world, t.tileset->from_index(t.index), d, Colour::white);
       }
     }
   }
-  _util.render_batch(batch);
 
   // Render all scripts.
   for (const auto& script : _scripts) {
@@ -184,6 +182,7 @@ void GameStage::draw() const
       script->call("draw");
     }
   }
+  _util.render_batch(_current_batch);
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
@@ -196,6 +195,11 @@ void GameStage::draw() const
     }
   }
   _util.add_translation(-world_to_camera(y::ivec2()));
+}
+
+RenderBatch& GameStage::get_current_batch()
+{
+  return _current_batch;
 }
 
 y::ivec2 GameStage::world_to_camera(const y::ivec2& v) const
