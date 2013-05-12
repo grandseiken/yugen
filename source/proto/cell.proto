@@ -5,6 +5,7 @@ message Script {
   required ivec2 min = 1;
   required ivec2 max = 2;
   required string path = 3;
+  optional string id = 4;
 };
 
 message Tileset {
