@@ -61,7 +61,11 @@ namespace ylib {
   struct check<ylib_int> {
     inline ylib_int operator()(lua_State* state, ylib_int index) const
     {
+#ifndef DEBUG
+      return lua_tointeger(state, index);
+#else
       return luaL_checkinteger(state, index);
+#endif
     }
   };
 
@@ -75,7 +79,11 @@ namespace ylib {
   struct check<double> {
     inline double operator()(lua_State* state, ylib_int index) const
     {
+#ifndef DEBUG
+      return lua_tonumber(state, index);
+#else
       return luaL_checknumber(state, index);
+#endif
     }
   };
 
@@ -103,7 +111,11 @@ namespace ylib {
   struct check<y::string> {
     inline y::string operator()(lua_State* state, ylib_int index) const
     {
+#ifndef DEBUG
+      return y::string(lua_tostring(state, index));
+#else
       return y::string(luaL_checkstring(state, index));
+#endif
     }
   };
 
@@ -118,7 +130,9 @@ namespace ylib {
     inline y::vector<T> operator()(lua_State* state, ylib_int index) const
     {
       y::vector<T> t;
+#ifdef DEBUG
       luaL_checktype(state, index, LUA_TTABLE);
+#endif
 
       ylib_int size = luaL_len(state, index);
       for (ylib_int i = 1; i <= size; ++i) {
@@ -146,7 +160,11 @@ namespace ylib {
   struct check<T*> {
     inline T* operator()(lua_State* state, ylib_int index) const
     {
+#ifndef DEBUG
+      void* v = lua_touserdata(state, index);
+#else
       void* v = luaL_checkudata(state, index, type_name<T>::name.c_str());
+#endif
       T** t = reinterpret_cast<T**>(v);
       return *t;
     }
@@ -167,8 +185,12 @@ namespace ylib {
     inline const y::vec<T, N>& operator()(lua_State* state, ylib_int index)
         const
     {
+#ifndef DEBUG
+      void* v = lua_touserdata(state, index);
+#else
       void* v = luaL_checkudata(state, index,
                                 type_name<y::vec<T, N>>::name.c_str());
+#endif
       y::vec<T, N>* t = reinterpret_cast<y::vec<T, N>*>(v);
       return *t;
     }
@@ -178,8 +200,12 @@ namespace ylib {
   struct check<y::vec<T, N>> {
     inline y::vec<T, N>& operator()(lua_State* state, ylib_int index) const
     {
+#ifndef DEBUG
+      void* v = lua_touserdata(state, index);
+#else
       void* v = luaL_checkudata(state, index,
                                 type_name<y::vec<T, N>>::name.c_str());
+#endif
       y::vec<T, N>* t = reinterpret_cast<y::vec<T, N>*>(v);
       return *t;
     }
@@ -202,7 +228,11 @@ namespace ylib {
     inline const ScriptReference& operator()(lua_State* state, ylib_int index)
         const
     {
+#ifndef DEBUG
+      void* v = lua_touserdata(state, index);
+#else
       void* v = luaL_checkudata(state, index, "ylib.ScriptReference");
+#endif
       ScriptReference* t = reinterpret_cast<ScriptReference*>(v);
       return *t;
     }
@@ -212,7 +242,11 @@ namespace ylib {
   struct check<ScriptReference> {
     inline ScriptReference& operator()(lua_State* state, ylib_int index)
     {
+#ifndef DEBUG
+      void* v = lua_touserdata(state, index);
+#else
       void* v = luaL_checkudata(state, index, "ylib.ScriptReference");
+#endif
       ScriptReference* t = reinterpret_cast<ScriptReference*>(v);
       return *t;
     }
@@ -234,9 +268,11 @@ namespace ylib {
     inline void* operator()(lua_State* state, ylib_int index) const
     {
       void* v = lua_touserdata(state, index);
+#ifdef DEBUG
       bool b = lua_getmetatable(state, index);
       lua_pop(state, 1);
       luaL_argcheck(state, v && b, index, "ylib.Void expected");
+#endif
       void** t = reinterpret_cast<void**>(v);
       return *t;
     }

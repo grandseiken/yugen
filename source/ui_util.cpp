@@ -4,7 +4,8 @@
 #include <SFML/Window.hpp>
 
 UiList::UiList(const y::ivec2& origin, const y::ivec2& size,
-               const Colour& panel, const Colour& item, const Colour& select)
+               const y::fvec4& panel, const y::fvec4& item,
+               const y::fvec4& select)
   : _origin(origin)
   , _size(size)
   , _panel(panel)
@@ -33,22 +34,22 @@ const y::ivec2& UiList::get_size() const
   return _size;
 }
 
-void UiList::set_panel(const Colour& panel)
+void UiList::set_panel(const y::fvec4& panel)
 {
   _panel = panel;
 }
 
-void UiList::set_item(const Colour& item)
+void UiList::set_item(const y::fvec4& item)
 {
   _item = item;
 }
 
-void UiList::set_select(const Colour& select)
+void UiList::set_select(const y::fvec4& select)
 {
   _select = select;
 }
 
-void UiList::draw(RenderUtil& util, const y::vector<Colour>& items,
+void UiList::draw(RenderUtil& util, const y::vector<y::fvec4>& items,
                   const y::string_vector& source, y::size select) const
 {
   util.render_fill(RenderUtil::from_grid(_origin),
@@ -75,7 +76,7 @@ void UiList::draw(RenderUtil& util, const y::vector<Colour>& items,
 void UiList::draw(RenderUtil& util,
                   const y::string_vector& source, y::size select) const
 {
-  y::vector<Colour> items;
+  y::vector<y::fvec4> items;
   for (y::size n = 0; n < source.size(); ++n) {
     items.push_back(n == select ? _select : _item);
   }
@@ -163,17 +164,17 @@ void TextInputModal::draw() const
       y::int32(y::max(_label.length(), 1 + _output.result.length())), 2});
   y::ivec2 origin = r.size / 2 - size / 2;
   _util.render_fill(origin, {size[xx], RenderUtil::from_grid()[yy]},
-                    Colour::panel);
+                    colour::panel);
   _util.render_outline(origin - y::ivec2{1, 1},
-                       y::ivec2{2, 2} + size, Colour::outline);
+                       y::ivec2{2, 2} + size, colour::outline);
   _util.render_fill(origin + RenderUtil::from_grid({y::int32(_cursor), 1}),
-                    RenderUtil::from_grid(), Colour::item);
-  _util.render_text(_label, origin, Colour::item);
+                    RenderUtil::from_grid(), colour::item);
+  _util.render_text(_label, origin, colour::item);
   _util.render_text(_output.result, origin + RenderUtil::from_grid({0, 1}),
-                    Colour::select);
+                    colour::select);
   if (_cursor < _output.result.length()) {
     _util.render_text(_output.result.substr(_cursor, 1),
                       origin + RenderUtil::from_grid({y::int32(_cursor), 1}),
-                      Colour::black);
+                      colour::black);
   }
 }

@@ -16,13 +16,13 @@ Yedit::Yedit(Filesystem& output, Databank& bank, RenderUtil& util)
   , _bank(bank)
   , _util(util)
   , _tileset_list(y::ivec2(), y::ivec2(),
-                  Colour::black, Colour::item, Colour::select)
+                  colour::black, colour::item, colour::select)
   , _map_list(y::ivec2(), y::ivec2(),
-              Colour::black, Colour::item, Colour::select)
+              colour::black, colour::item, colour::select)
   , _cell_list(y::ivec2(), y::ivec2(),
-               Colour::black, Colour::item, Colour::select)
+               colour::black, colour::item, colour::select)
   , _script_list(y::ivec2(), y::ivec2(),
-                 Colour::black, Colour::item, Colour::select)
+                 colour::black, colour::item, colour::select)
   , _list_select(0)
   , _tileset_select(0)
   , _map_select(0)
@@ -118,13 +118,13 @@ void Yedit::update()
   _script_list.set_size(size);
 
   _tileset_list.set_panel(
-      _list_select == 0 ? Colour::faint_panel : Colour::black);
+      _list_select == 0 ? colour::faint_panel : colour::black);
   _map_list.set_panel(
-      _list_select == 1 ? Colour::faint_panel : Colour::black);
+      _list_select == 1 ? colour::faint_panel : colour::black);
   _cell_list.set_panel(
-      _list_select == 2 ? Colour::faint_panel : Colour::black);
+      _list_select == 2 ? colour::faint_panel : colour::black);
   _script_list.set_panel(
-      _list_select == 3 ? Colour::faint_panel : Colour::black);
+      _list_select == 3 ? colour::faint_panel : colour::black);
 
   if (_input_result.success) {
     const y::string& result = _input_result.result;
@@ -194,17 +194,17 @@ void Yedit::draw() const
     {
       util.render_text(
           title, RenderUtil::from_grid(list.get_origin() - y::ivec2{0, 2}),
-          active ? Colour::select : Colour::item);
-      y::vector<Colour> items;
+          active ? colour::select : colour::item);
+      y::vector<y::fvec4> items;
       for (bool b : actives) {
         items.push_back(
-            b ? Colour::select : active ? Colour::item : Colour::dark_outline);
+            b ? colour::select : active ? colour::item : colour::dark_outline);
       }
       list.draw(util, items, source, select);
       util.render_outline(
           RenderUtil::from_grid(list.get_origin()) - y::ivec2{1, 1},
           RenderUtil::from_grid(list.get_size()) + y::ivec2{2, 2},
-          active ? Colour::outline : Colour::dark_outline);
+          active ? colour::outline : colour::dark_outline);
     }
   };
 

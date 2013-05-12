@@ -81,7 +81,7 @@ void Yugen::draw() const
   if (total) {
     y::sstream ss;
     ss << total << " ticks (" << (1000.f / total) << " fps)";
-    _util.render_text(ss.str(), {16, 16}, Colour::white);
+    _util.render_text(ss.str(), {16, 16}, colour::white);
   }
 
   // Render framebuffer to a file.

@@ -201,14 +201,18 @@ void GameStage::draw() const
         y::ivec2 world = Tileset::tile_size * (*jt + *it * Cell::cell_size);
         _current_batch.add_sprite(
             t.tileset->get_texture(), Tileset::tile_size,
-            world, t.tileset->from_index(t.index), d, Colour::white);
+            world, t.tileset->from_index(t.index), d, colour::white);
       }
     }
   }
 
-  // Render all scripts.
+  // Render all scripts which overlap the screen.
+  const y::ivec2 min = camera_to_world(y::ivec2());
+  const y::ivec2 max = camera_to_world(_framebuffer.get_size());
   for (const auto& script : _scripts) {
-    if (script->has_function("draw")) {
+    const y::ivec2 smin = script->get_origin() - script->get_region() / 2;
+    const y::ivec2 smax = script->get_origin() + script->get_region() / 2;
+    if (smax > min && smin < max && script->has_function("draw")) {
       script->call("draw");
     }
   }
@@ -218,8 +222,8 @@ void GameStage::draw() const
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
     y::size i = 0;
     for (const Geometry& g : _world.get_geometry()) {
-      Colour c = ++i % 2 ? Colour(1.f, 0.f, 0.f, .5f) :
-                           Colour(0.f, 1.f, 0.f, .5f);
+      y::fvec4 c = ++i % 2 ? y::fvec4(1.f, 0.f, 0.f, .5f) :
+                             y::fvec4(0.f, 1.f, 0.f, .5f);
       _util.render_fill(y::min(g.start, g.end),
                         y::max(y::abs(g.end - g.start), y::ivec2{1, 1}), c);
     }

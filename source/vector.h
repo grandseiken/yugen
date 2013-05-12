@@ -470,6 +470,7 @@ namespace y {
 
   typedef vec<y::int32, 2> ivec2;
   typedef vec<float, 2> fvec2;
+  typedef vec<float, 4> fvec4;
   typedef vec_iterator<y::int32, 2, true> ivec2_iterator;
   typedef vec_iterator<float, 2, true> fvec2_iterator;
 
@@ -491,6 +492,10 @@ namespace {
   static const y::element_accessor<1>& yy = element_accessor_instance<true>::y;
   static const y::element_accessor<2>& zz = element_accessor_instance<true>::z;
   static const y::element_accessor<3>& ww = element_accessor_instance<true>::w;
+  static const y::element_accessor<0>& rr = element_accessor_instance<true>::x;
+  static const y::element_accessor<1>& gg = element_accessor_instance<true>::y;
+  static const y::element_accessor<2>& bb = element_accessor_instance<true>::z;
+  static const y::element_accessor<3>& aa = element_accessor_instance<true>::w;
 }
 
 namespace std {

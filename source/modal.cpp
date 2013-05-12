@@ -232,8 +232,8 @@ void PanelUi::draw(RenderUtil& util) const
     // Transform rendering into panel coordinates.
     const y::ivec2& origin = panel->get_origin();
     const y::ivec2& size = panel->get_size();
-    Colour c = _mouse_over.find(panel) != _mouse_over.end() ?
-        Colour::outline : Colour::dark_outline;
+    const y::fvec4& c = _mouse_over.find(panel) != _mouse_over.end() ?
+        colour::outline : colour::dark_outline;
 
     util.add_translation(origin);
     panel->draw(util);

@@ -8,7 +8,7 @@
 #include <SFML/Window.hpp>
 
 void render_collision(RenderUtil& util, const y::ivec2& pixels,
-                      y::int32 collision, const Colour& colour)
+                      y::int32 collision, const y::fvec4& colour)
 {
   if (collision == Tileset::COLLIDE_NONE) {
     return;
@@ -82,11 +82,11 @@ void TilesetPanel::draw(RenderUtil& util) const
 {
   const GlTexture& texture = _tileset.get_texture();
   util.render_sprite(texture, texture.get_size(), y::ivec2(), y::ivec2(),
-                     0.f, Colour::white);
+                     0.f, colour::white);
 
   if (_hover >= y::ivec2()) {
     util.render_outline(_hover * Tileset::tile_size,
-                        Tileset::tile_size, Colour::hover);
+                        Tileset::tile_size, colour::hover);
   }
 
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
@@ -94,7 +94,7 @@ void TilesetPanel::draw(RenderUtil& util) const
   }
   for (auto it = y::cartesian(_tileset.get_size()); it; ++it) {
     render_collision(util, *it * Tileset::tile_size,
-                     _tileset.get_collision(*it), Colour::highlight);
+                     _tileset.get_collision(*it), colour::highlight);
   }
 }
 
@@ -160,14 +160,14 @@ void CollidePanel::draw(RenderUtil& util) const
 {
   for (y::int32 i = 0; i < Tileset::COLLIDE_SIZE; ++i) {
      y::ivec2 v{i % Tileset::COLLIDE_SIZE, i / Tileset::COLLIDE_SIZE};
-     render_collision(util, Tileset::tile_size * v, i, Colour::hover);
+     render_collision(util, Tileset::tile_size * v, i, colour::hover);
      if (i == _collide_select) {
        util.render_outline(Tileset::tile_size * v, Tileset::tile_size,
-                           Colour::select);
+                           colour::select);
      }
      else if (_hover >= y::ivec2() && _hover / Tileset::tile_size == v) {
        util.render_outline(Tileset::tile_size * v, Tileset::tile_size,
-                           Colour::hover);
+                           colour::hover);
      }
   }
 }

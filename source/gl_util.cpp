@@ -252,7 +252,7 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
                             bool array, y::size index,
                             GLenum type, y::size length) const
 {
-#ifndef GL_UTIL_DEBUG
+#ifndef DEBUG
   (void)attribute;
   (void)name;
   (void)array;

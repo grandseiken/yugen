@@ -2,34 +2,10 @@
 
 #include <boost/functional/hash.hpp>
 
-Colour::Colour(float r, float g, float b)
-  : r(r), g(g), b(b), a(1.f)
-{
-}
-
-Colour::Colour(float r, float g, float b, float a)
-  : r(r), g(g), b(b), a(a)
-{
-}
-
-const Colour Colour::outline(.7f, .7f, .7f, 1.f);
-const Colour Colour::dark_outline(.3f, .3f, .3f, 1.f);
-const Colour Colour::panel(.2f, .2f, .2f, .7f);
-const Colour Colour::faint_panel(.1f, .1f, .1f, .5f);
-const Colour Colour::dark_panel(0.f, 0.f, 0.f, .7f);
-const Colour Colour::item(.6f, .6f, .6f, 1.f);
-const Colour Colour::hover(.9f, .9f, .9f, .5f);
-const Colour Colour::highlight(.9f, .9f, .9f, .2f);
-const Colour Colour::select(.9f, .9f, .9f, 1.f);
-const Colour Colour::white(1.f, 1.f, 1.f, 1.f);
-const Colour Colour::black(0.f, 0.f, 0.f, 1.f);
-const Colour Colour::dark(.5f, .5f, .5f, 1.f);
-const Colour Colour::transparent(1.f, 1.f, 1.f, .5f);
-
 void RenderBatch::add_sprite(const GlTexture& sprite,
                              const y::ivec2& frame_size,
                              const y::ivec2& origin, const y::ivec2& frame,
-                             float depth, const Colour& colour)
+                             float depth, const y::fvec4& colour)
 {
   batched_texture bt{sprite, frame_size};
   batched_sprite bs{float(origin[xx]), float(origin[yy]),
@@ -138,7 +114,7 @@ void RenderUtil::set_scale(float scale)
 }
 
 void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
-                             float r, float g, float b, float a) const
+                             const y::fvec4& colour) const
 {
   if (!(_native_size >= y::ivec2())) {
     return;
@@ -169,57 +145,39 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   _text_program.bind_uniform("font_size", font_size);
   _text_program.bind_uniform("translation", y::fvec2(_translation));
   _text_program.bind_uniform("scale", y::fvec2{_scale, _scale});
-  _text_program.bind_uniform("colour", r, g, b, a);
+  _text_program.bind_uniform("colour", colour);
   _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
 
   _gl.delete_buffer(text_buffer);
 }
 
-void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
-                             const Colour& colour) const
-{
-  render_text(text, origin, colour.r, colour.g, colour.b, colour.a);
-}
-
 void RenderUtil::render_fill(const y::ivec2& origin, const y::ivec2& size,
-                             float r, float g, float b, float a) const
+                             const y::fvec4& colour) const
 {
-  render_fill_internal(y::fvec2(origin), y::fvec2(size), r, g, b, a);
-}
-
-void RenderUtil::render_fill(const y::ivec2& origin, const y::ivec2& size,
-                             const Colour& colour) const
-{
-  render_fill(origin, size, colour.r, colour.g, colour.b, colour.a);
+  render_fill_internal(y::fvec2(origin), y::fvec2(size), colour);
 }
 
 void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
-                                float r, float g, float b, float a) const
+                                const y::fvec4& colour) const
 {
   // In order to keep lines 1 pixel wide we need to divide by the scale.
   float pixel = 1.f / _scale;
   render_fill_internal(
       y::fvec2(origin),
       {size[xx] - pixel, pixel},
-      r, g, b, a);
+      colour);
   render_fill_internal(
       y::fvec2(origin) + y::fvec2{0.f, pixel},
       {pixel, size[yy] - pixel},
-      r, g, b, a);
+      colour);
   render_fill_internal(
       y::fvec2(origin) + y::fvec2{pixel, size[yy] - pixel},
       {size[xx] - pixel, pixel},
-      r, g, b, a);
+      colour);
   render_fill_internal(
       y::fvec2(origin) + y::fvec2{size[xx] - pixel, 0.f},
       {pixel, size[yy] - pixel},
-      r, g, b, a);
-}
-
-void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
-                                const Colour& colour) const
-{
-  render_outline(origin, size, colour.r, colour.g, colour.b, colour.a);
+      colour);
 }
 
 void RenderUtil::set_sprite(const GlTexture& texture,
@@ -231,7 +189,7 @@ void RenderUtil::set_sprite(const GlTexture& texture,
 }
 
 void RenderUtil::batch_sprite(const y::ivec2& origin, const y::ivec2& frame,
-                              float depth, const Colour& colour) const
+                              float depth, const y::fvec4& colour) const
 {
   _batched_sprites.push_back(RenderBatch::batched_sprite{
       float(origin[xx]), float(origin[yy]),
@@ -280,10 +238,10 @@ void RenderUtil::render_batch() const
     write_vector(_depth_data, 4 * i, {
         s.depth, s.depth, s.depth, s.depth});
     write_vector(_colour_data, 16 * i, {
-        s.colour.r, s.colour.g, s.colour.b, s.colour.a,
-        s.colour.r, s.colour.g, s.colour.b, s.colour.a,
-        s.colour.r, s.colour.g, s.colour.b, s.colour.a,
-        s.colour.r, s.colour.g, s.colour.b, s.colour.a});
+        s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
+        s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
+        s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
+        s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa]});
   }
 
   _pixels_buffer.reupload_data(&_pixels_data[0], sizeof(float) * 8 * length);
@@ -335,7 +293,7 @@ void RenderUtil::render_batch(const RenderBatch& batch)
 void RenderUtil::render_sprite(
     const GlTexture& sprite, const y::ivec2& frame_size,
     const y::ivec2& origin, const y::ivec2& frame,
-    float depth, const Colour& colour)
+    float depth, const y::fvec4& colour)
 {
   set_sprite(sprite, frame_size);
   batch_sprite(origin, frame, depth, colour);
@@ -344,7 +302,7 @@ void RenderUtil::render_sprite(
 
 void RenderUtil::render_fill_internal(
     const y::fvec2& origin, const y::fvec2& size,
-    float r, float g, float b, float a) const
+    const y::fvec4& colour) const
 {
   if (!(_native_size >= y::ivec2())) {
     return;
@@ -365,7 +323,7 @@ void RenderUtil::render_fill_internal(
   _draw_program.bind_uniform("resolution", _native_size);
   _draw_program.bind_uniform("translation", y::fvec2(_translation));
   _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
-  _draw_program.bind_uniform("colour", r, g, b, a);
+  _draw_program.bind_uniform("colour", colour);
   _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
 
   _gl.delete_buffer(rect_buffer);

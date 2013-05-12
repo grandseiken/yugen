@@ -5,30 +5,21 @@
 #include "gl_util.h"
 #include "vector.h"
 
-// TODO: replace with fvec4?
-struct Colour {
-  Colour(float r, float g, float b);
-  Colour(float r, float g, float b, float a);
-
-  float r;
-  float g;
-  float b;
-  float a;
-
-  static const Colour outline;
-  static const Colour dark_outline;
-  static const Colour panel;
-  static const Colour faint_panel;
-  static const Colour dark_panel;
-  static const Colour item;
-  static const Colour hover;
-  static const Colour highlight;
-  static const Colour select;
-  static const Colour white;
-  static const Colour black;
-  static const Colour dark;
-  static const Colour transparent;
-};
+namespace colour {
+  const y::fvec4 outline{.7f, .7f, .7f, 1.f};
+  const y::fvec4 dark_outline{.3f, .3f, .3f, 1.f};
+  const y::fvec4 panel{.2f, .2f, .2f, .7f};
+  const y::fvec4 faint_panel{.1f, .1f, .1f, .5f};
+  const y::fvec4 dark_panel{0.f, 0.f, 0.f, .7f};
+  const y::fvec4 item{.6f, .6f, .6f, 1.f};
+  const y::fvec4 hover{.9f, .9f, .9f, .5f};
+  const y::fvec4 highlight{.9f, .9f, .9f, .2f};
+  const y::fvec4 select{.9f, .9f, .9f, 1.f};
+  const y::fvec4 white{1.f, 1.f, 1.f, 1.f};
+  const y::fvec4 black{0.f, 0.f, 0.f, 1.f};
+  const y::fvec4 dark{.5f, .5f, .5f, 1.f};
+  const y::fvec4 transparent{1.f, 1.f, 1.f, .5f};
+}
 
 // Helper class to automatically batch renders using the same texture.
 class RenderBatch {
@@ -45,12 +36,12 @@ public:
     float frame_x;
     float frame_y;
     float depth;
-    Colour colour;
+    y::fvec4 colour;
   };
 
   void add_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
                   const y::ivec2& origin, const y::ivec2& frame,
-                  float depth, const Colour& colour);
+                  float depth, const y::fvec4& colour);
 
   struct batched_texture_order {
     bool operator()(const batched_texture& l, const batched_texture& r) const;
@@ -100,26 +91,20 @@ public:
 
   // Render text (at pixel coordinates).
   void render_text(const y::string& text, const y::ivec2& origin,
-                   float r, float g, float b, float a) const;
-  void render_text(const y::string& text, const y::ivec2& origin,
-                   const Colour& colour) const;
+                   const y::fvec4& colour) const;
 
   // Render colour (at pixel coordinates).
   void render_fill(const y::ivec2& origin, const y::ivec2& size,
-                   float r, float g, float b, float a) const;
-  void render_fill(const y::ivec2& origin, const y::ivec2& size,
-                   const Colour& colour) const;
+                   const y::fvec4& colour) const;
 
   // Render outline (at pixel coordinates).
   void render_outline(const y::ivec2& origin, const y::ivec2& size,
-                      float r, float g, float b, float a) const;
-  void render_outline(const y::ivec2& origin, const y::ivec2& size,
-                      const Colour& colour) const;
+                      const y::fvec4& colour) const;
 
   // Batch and render sprites (at pixel coordinates).
   void set_sprite(const GlTexture& sprite, const y::ivec2& frame_size);
   void batch_sprite(const y::ivec2& origin, const y::ivec2& frame,
-                    float depth, const Colour& colour) const;
+                    float depth, const y::fvec4& colour) const;
   void render_batch() const;
 
   // Render an entire set of batches at once. Sprite set with set_sprite
@@ -129,7 +114,7 @@ public:
   // Render a sprite immediately.
   void render_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
                      const y::ivec2& origin, const y::ivec2& frame,
-                     float depth, const Colour& colour);
+                     float depth, const y::fvec4& colour);
 
   // Helpers for font-size grid coordinates.
   static y::ivec2 from_grid(const y::ivec2& grid = {1, 1});
@@ -138,7 +123,7 @@ public:
 private:
 
   void render_fill_internal(const y::fvec2& origin, const y::fvec2& size,
-                            float r, float g, float b, float a) const;
+                            const y::fvec4& colour) const;
 
   // Font width and height.
   static const y::int32 font_width = 8;
