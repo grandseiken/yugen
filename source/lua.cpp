@@ -366,6 +366,11 @@ static RegistryIndex stage_registry_index;
 /**** End of proprocessor magic.                                           ****/
 /******************************************************************************/
 
+#define ylib_new_metatable(name)\
+  luaL_newmetatable(_ylib_state, name);\
+  lua_pushstring(_ylib_state, "__index");\
+  lua_pushvalue(_ylib_state, -2);\
+  lua_settable(_ylib_state, -3);
 #define ylib_add_method(name, function)\
   lua_pushstring(_ylib_state, name);\
   lua_pushcfunction(_ylib_state,\
@@ -375,11 +380,7 @@ static RegistryIndex stage_registry_index;
 template<typename V>
 void ylib_register_vectors(lua_State* _ylib_state)
 {
-  luaL_newmetatable(_ylib_state, ylib::type_name<V>::name.c_str());
-  lua_pushstring(_ylib_state, "__index");
-  lua_pushvalue(_ylib_state, -2);
-  lua_settable(_ylib_state, -3);
-
+  ylib_new_metatable(ylib::type_name<V>::name.c_str());
   ylib_add_method("__add", vec_add);
   ylib_add_method("__sub", vec_sub);
   ylib_add_method("__mul", vec_mul);
@@ -404,11 +405,7 @@ void ylib_register_vectors(lua_State* _ylib_state)
 
 void ylib_register_references(lua_State* _ylib_state)
 {
-  luaL_newmetatable(_ylib_state, "ylib.ScriptReference");
-  lua_pushstring(_ylib_state, "__index");
-  lua_pushvalue(_ylib_state, -2);
-  lua_settable(_ylib_state, -3);
-
+  ylib_new_metatable("ylib.ScriptReference");
   ylib_add_method("__eq", ref_eq);
   ylib_add_method("__gc", ref_gc);
   ylib_add_method("valid", ref_valid);

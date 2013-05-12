@@ -55,6 +55,12 @@ private:
 
 };
 
+struct WorldScript {
+  y::string path;
+  y::ivec2 origin;
+  y::ivec2 region;
+};
+
 // Sliding window into a Cell source. The source can be changed to simulate
 // non-planar geometry.
 // TODO: use a WorldSource interface instead of CellMap directly?
@@ -99,6 +105,17 @@ public:
   // Get geometry.
   const OrderedGeometry& get_geometry() const;
 
+  // After window operations, there may be new Scripts that should be
+  // instantiated. These functions report which cells should have their scripts
+  // refreshed.
+  typedef y::vector<y::ivec2> cell_list;
+  const cell_list& get_refreshed_cells() const;
+  void clear_refreshed_cells();
+
+  // Translate script to relative coordinates.
+  WorldScript script_blueprint_to_world_script(
+      const ScriptBlueprint& blueprint) const;
+
 private:
 
   // Give (x, y) in [-half_width, half_width] * [-half_width, half_width].
@@ -127,6 +144,8 @@ private:
   typedef y::unique<active_window_entry[]> active_window;
   active_window _active_window;
   WorldGeometry _active_geometry;
+
+  cell_list _refreshed_cells;
 
 };
 

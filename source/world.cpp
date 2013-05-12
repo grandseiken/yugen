@@ -373,7 +373,7 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
   y::ivec2 geometry_swap{1 + 2 * active_window_half_size, 0};
 
   // Copy the active window into the temporary copy.
-  for (auto it = y::cartesian(-half_v, y::ivec2{1, 1} + half_v); it; ++it) {
+  for (auto it = get_cartesian(); it; ++it) {
     _active_geometry.swap_geometry(*it, *it + geometry_swap);
     y::size internal_index = to_internal_index(*it);
     copy[internal_index].blueprint = _active_window[internal_index].blueprint;
@@ -382,7 +382,7 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
   }
 
   // Move the cells that are still in view from the copy to the new window.
-  for (auto it = y::cartesian(-half_v, y::ivec2{1, 1} + half_v); it; ++it) {
+  for (auto it = get_cartesian(); it; ++it) {
     y::ivec2 source = *it + offset;
     y::size internal_index = to_internal_index(*it);
     if (source >= -half_v && source <= half_v) {
@@ -395,11 +395,13 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
   }
 
   // Create or swap the remaining unfilled cells in the active window.
-  for (auto it = y::cartesian(-half_v, y::ivec2{1, 1} + half_v); it; ++it) {
+  for (auto it = get_cartesian(); it; ++it) {
     y::size internal_index = to_internal_index(*it);
     if (done[internal_index]) {
       continue;
     }
+    // These all need to be refreshed.
+    _refreshed_cells.push_back(*it);
     const CellBlueprint* new_blueprint = active_window_target(*it);
     _active_window[internal_index].blueprint = new_blueprint;
 
@@ -454,6 +456,27 @@ const OrderedGeometry& WorldWindow::get_geometry() const
   return _active_geometry.get_geometry();
 }
 
+const WorldWindow::cell_list& WorldWindow::get_refreshed_cells() const
+{
+  return _refreshed_cells;
+}
+
+void WorldWindow::clear_refreshed_cells()
+{
+  _refreshed_cells.clear();
+}
+
+WorldScript WorldWindow::script_blueprint_to_world_script(
+    const ScriptBlueprint& blueprint) const
+{
+  return {blueprint.path,
+          Cell::cell_size * Tileset::tile_size * _active_map_offset +
+          (Tileset::tile_size * (y::ivec2{1, 1} + blueprint.min + 
+                                                  blueprint.max)) / 2,
+          (Tileset::tile_size * (y::ivec2{1, 1} + blueprint.max -
+                                                  blueprint.min))};
+}
+
 y::size WorldWindow::to_internal_index(const y::ivec2& active_window)
 {
   const y::int32 half_size = active_window_half_size;
@@ -470,8 +493,7 @@ const CellBlueprint* WorldWindow::active_window_target(
 
 void WorldWindow::update_active_window()
 {
-  const y::ivec2 half_v = {active_window_half_size, active_window_half_size};
-  for (auto it = y::cartesian(-half_v, y::ivec2{1, 1} + half_v); it; ++it) {
+  for (auto it = get_cartesian(); it; ++it) {
     update_active_window_cell(*it);
   }
 }
@@ -482,6 +504,11 @@ void WorldWindow::update_active_window_cell(const y::ivec2& v)
 
   const CellBlueprint* old_blueprint = _active_window[internal_index].blueprint;
   const CellBlueprint* new_blueprint = active_window_target(v);
+
+  // Changed cells or missing cells need to have their scripts refreshed.
+  if (old_blueprint != new_blueprint || !new_blueprint) {
+    _refreshed_cells.push_back(v);
+  }
 
   if (old_blueprint != new_blueprint) {
     Cell* new_cell = new_blueprint ? new Cell(*new_blueprint) : y::null;
