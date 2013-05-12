@@ -227,8 +227,6 @@ protected:
 private:
 
   // Check if uniform or attribute name exists in program.
-  // TODO: allow converting name to GLint so that we don't need to
-  // lookup a name every time (if performance deems it necessary)?
   bool check_name_exists(bool attribute, const y::string& name,
                          bool array, y::size index,
                          GLenum& type_output) const;

@@ -252,15 +252,15 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
                             bool array, y::size index,
                             GLenum type, y::size length) const
 {
-#ifdef GL_UTIL_DEBUG
-  (void)attributes;
+#ifndef GL_UTIL_DEBUG
+  (void)attribute;
   (void)name;
   (void)array;
   (void)index;
   (void)type;
   (void)length;
   return true;
-#endif
+#else
   GLenum name_type;
   if (!check_name_exists(attribute, name, array, index, name_type)) {
     std::cerr << "Undefined " <<
@@ -287,6 +287,7 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
     return false;
   }
   return true;
+#endif
 }
 
 GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
