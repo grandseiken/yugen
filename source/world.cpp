@@ -470,11 +470,11 @@ WorldScript WorldWindow::script_blueprint_to_world_script(
     const ScriptBlueprint& blueprint) const
 {
   return {blueprint.path,
-          Cell::cell_size * Tileset::tile_size * _active_map_offset +
-          (Tileset::tile_size * (y::ivec2{1, 1} + blueprint.min + 
-                                                  blueprint.max)) / 2,
-          (Tileset::tile_size * (y::ivec2{1, 1} + blueprint.max -
-                                                  blueprint.min))};
+          y::wvec2(Cell::cell_size * Tileset::tile_size * _active_map_offset +
+                   (Tileset::tile_size * (y::ivec2{1, 1} + blueprint.min + 
+                                                           blueprint.max)) / 2),
+          y::wvec2((Tileset::tile_size * (y::ivec2{1, 1} + blueprint.max -
+                                                           blueprint.min)))};
 }
 
 y::size WorldWindow::to_internal_index(const y::ivec2& active_window)

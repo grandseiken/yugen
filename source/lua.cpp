@@ -27,10 +27,10 @@ namespace ylib {
   };
   const y::string type_name<y::int32>::name = "int";
   template<>
-  struct type_name<double> {
+  struct type_name<y::world> {
     static const y::string name;
   };
-  const y::string type_name<double>::name = "double";
+  const y::string type_name<y::world>::name = "world";
   template<>
   struct type_name<bool> {
     static const y::string name;
@@ -521,7 +521,7 @@ Script* ScriptReference::operator->()
 
 Script::Script(GameStage& stage,
                const y::string& path, const y::string& contents,
-               const y::ivec2& origin, const y::ivec2& region)
+               const y::wvec2& origin, const y::wvec2& region)
   : _path(path)
   // Use standard allocator and panic function.
   , _state(luaL_newstate())
@@ -533,7 +533,7 @@ Script::Script(GameStage& stage,
   luaL_openlibs(_state);
   // Register Lua API.
   ylib_register(_state);
-  ylib_register_vectors<ylib_vec>(_state);
+  ylib_register_vectors<y::wvec2>(_state);
   ylib_register_references(_state);
 
   // Chunk reader function.
@@ -595,22 +595,22 @@ const y::string& Script::get_path() const
   return _path;
 }
 
-const y::ivec2& Script::get_origin() const
+const y::wvec2& Script::get_origin() const
 {
   return _origin;
 }
 
-const y::ivec2& Script::get_region() const
+const y::wvec2& Script::get_region() const
 {
   return _region;
 }
 
-void Script::set_origin(const y::ivec2& origin)
+void Script::set_origin(const y::wvec2& origin)
 {
   _origin = origin;
 }
 
-void Script::set_region(const y::ivec2& region)
+void Script::set_region(const y::wvec2& region)
 {
   _region = region;
 }

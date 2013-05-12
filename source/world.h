@@ -57,8 +57,8 @@ private:
 
 struct WorldScript {
   y::string path;
-  y::ivec2 origin;
-  y::ivec2 region;
+  y::wvec2 origin;
+  y::wvec2 region;
 };
 
 // Sliding window into a Cell source. The source can be changed to simulate

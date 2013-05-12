@@ -117,6 +117,7 @@ namespace y {
   }
 
   typedef boost::noncopyable no_copy;
+  typedef double world;
 
 }
 

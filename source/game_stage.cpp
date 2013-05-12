@@ -49,23 +49,23 @@ void GameStage::event(const sf::Event& e)
 void GameStage::update()
 {
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-    _camera -= {0, 2};
+    _camera -= {0., 2.};
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-    _camera -= {2, 0};
+    _camera -= {2., 0.};
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-    _camera += {0, 2};
+    _camera += {0., 2.};
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-    _camera += {2, 0};
+    _camera += {2., 0.};
   }
 
   static const y::int32 half_size = WorldWindow::active_window_half_size;
-  static const y::ivec2& lower_bound =
-      -half_size * Cell::cell_size * Tileset::tile_size;
-  static const y::ivec2& upper_bound =
-      (1 + half_size) * Cell::cell_size * Tileset::tile_size;
+  static const y::wvec2& lower_bound = y::wvec2(
+      -half_size * Cell::cell_size * Tileset::tile_size);
+  static const y::wvec2& upper_bound = y::wvec2(
+      (1 + half_size) * Cell::cell_size * Tileset::tile_size);
 
   // Local functions.
   struct local {
@@ -80,15 +80,16 @@ void GameStage::update()
 
     bool operator()(const y::unique<Script>& s)
     {
-      const y::ivec2& origin = s->get_origin();
-      const y::ivec2& region = s->get_region();
+      const y::wvec2& origin = s->get_origin();
+      const y::wvec2& region = s->get_region();
 
       bool overlaps_unrefreshed = false;
       for (const y::ivec2& cell : unrefreshed) {
-        if (origin + region / 2 >=
-                cell * Tileset::tile_size * Cell::cell_size &&
-            origin - region / 2 <
-                (y::ivec2{1, 1} + cell) * Tileset::tile_size * Cell::cell_size) {
+        if (origin + region / 2 >= y::wvec2(
+                cell * Tileset::tile_size * Cell::cell_size) &&
+            origin - region / 2 < y::wvec2(
+                (y::ivec2{1, 1} + cell) *
+                    Tileset::tile_size * Cell::cell_size)) {
           overlaps_unrefreshed = true;
           break;
         }
@@ -141,10 +142,10 @@ void GameStage::update()
 
     bool overlaps_unrefreshed = false;
     for (const y::ivec2& cell : unrefreshed) {
-      if (ws.origin + ws.region / 2 >=
-              cell * Tileset::tile_size * Cell::cell_size &&
-          ws.origin - ws.region / 2 <
-              (y::ivec2{1, 1} + cell) * Tileset::tile_size * Cell::cell_size) {
+      if (ws.origin + ws.region / 2 >= y::wvec2(
+              cell * Tileset::tile_size * Cell::cell_size) &&
+          ws.origin - ws.region / 2 < y::wvec2(
+              (y::ivec2{1, 1} + cell) * Tileset::tile_size * Cell::cell_size)) {
         overlaps_unrefreshed = true;
         break;
       }
@@ -177,7 +178,9 @@ void GameStage::update()
 
 void GameStage::draw() const
 {
-  _util.add_translation(world_to_camera(y::ivec2()));
+  y::ivec2 translation = y::ivec2(
+      y::wvec2{.5, .5} + world_to_camera(y::wvec2()));
+  _util.add_translation(translation);
   _current_batch.clear();
 
   // Render all the tiles in the world at once, batched by texture.
@@ -207,11 +210,11 @@ void GameStage::draw() const
   }
 
   // Render all scripts which overlap the screen.
-  const y::ivec2 min = camera_to_world(y::ivec2());
-  const y::ivec2 max = camera_to_world(_framebuffer.get_size());
+  const y::wvec2 min = camera_to_world(y::wvec2());
+  const y::wvec2 max = camera_to_world(y::wvec2(_framebuffer.get_size()));
   for (const auto& script : _scripts) {
-    const y::ivec2 smin = script->get_origin() - script->get_region() / 2;
-    const y::ivec2 smax = script->get_origin() + script->get_region() / 2;
+    const y::wvec2 smin = script->get_origin() - script->get_region() / 2;
+    const y::wvec2 smax = script->get_origin() + script->get_region() / 2;
     if (smax > min && smin < max && script->has_function("draw")) {
       script->call("draw");
     }
@@ -228,16 +231,16 @@ void GameStage::draw() const
                         y::max(y::abs(g.end - g.start), y::ivec2{1, 1}), c);
     }
   }
-  _util.add_translation(-world_to_camera(y::ivec2()));
+  _util.add_translation(-translation);
 }
 
-Script& GameStage::create_script(const LuaFile& file, const y::ivec2& origin)
+Script& GameStage::create_script(const LuaFile& file, const y::wvec2& origin)
 {
-  return create_script(file, origin, Tileset::tile_size);
+  return create_script(file, origin, y::wvec2(Tileset::tile_size));
 }
 
 Script& GameStage::create_script(const LuaFile& file,
-                                 const y::ivec2& origin, const y::ivec2& region)
+                                 const y::wvec2& origin, const y::wvec2& region)
 {
   Script* s = new Script(*this, file.path, file.contents, origin, region);
   add_script(y::move_unique(s));
@@ -249,14 +252,14 @@ RenderBatch& GameStage::get_current_batch()
   return _current_batch;
 }
 
-y::ivec2 GameStage::world_to_camera(const y::ivec2& v) const
+y::wvec2 GameStage::world_to_camera(const y::wvec2& v) const
 {
-  return v - _camera + _framebuffer.get_size() / 2;
+  return v - _camera + y::wvec2(_framebuffer.get_size()) / 2;
 }
 
-y::ivec2 GameStage::camera_to_world(const y::ivec2& v) const
+y::wvec2 GameStage::camera_to_world(const y::wvec2& v) const
 {
-  return v - _framebuffer.get_size() / 2 + _camera;
+  return v - y::wvec2(_framebuffer.get_size()) / 2 + _camera;
 }
 
 void GameStage::add_script(y::unique<Script> script)

@@ -12,8 +12,6 @@ class GlFramebuffer;
 class RenderUtil;
 struct LuaFile;
 
-// TODO: make a typedef (and corresponding vec2) for in-game subpixel coordinate
-// systems and use it wherever appropriate. (Double?)
 class GameStage : public Modal {
 public:
 
@@ -32,16 +30,16 @@ public:
   // Lua API functions.
   void destroy_script(const Script& script);
   Script& create_script(
-      const LuaFile& file, const y::ivec2& origin);
+      const LuaFile& file, const y::wvec2& origin);
   Script& create_script(
       const LuaFile& file,
-      const y::ivec2& origin, const y::ivec2& region);
+      const y::wvec2& origin, const y::wvec2& region);
   RenderBatch& get_current_batch();
 
 private:
 
-  y::ivec2 world_to_camera(const y::ivec2& v) const;
-  y::ivec2 camera_to_world(const y::ivec2& v) const;
+  y::wvec2 world_to_camera(const y::wvec2& v) const;
+  y::wvec2 camera_to_world(const y::wvec2& v) const;
 
   void add_script(y::unique<Script> script);
 
@@ -51,7 +49,7 @@ private:
   const CellMap& _map;
 
   WorldWindow _world;
-  y::ivec2 _camera;
+  y::wvec2 _camera;
 
   typedef y::vector<y::unique<Script>> script_list;
   script_list _scripts;

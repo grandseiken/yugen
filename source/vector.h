@@ -468,11 +468,15 @@ namespace y {
     return cartesian(vec<T, N, non_strict>(), max);
   }
 
-  typedef vec<y::int32, 2> ivec2;
+  typedef vec<int32, 2> ivec2;
   typedef vec<float, 2> fvec2;
   typedef vec<float, 4> fvec4;
-  typedef vec_iterator<y::int32, 2, true> ivec2_iterator;
+  typedef vec<world, 2> wvec2;
+
+  typedef vec_iterator<int32, 2, true> ivec2_iterator;
   typedef vec_iterator<float, 2, true> fvec2_iterator;
+  typedef vec_iterator<float, 4, true> fvec4_iterator;
+  typedef vec_iterator<world, 4, true> wvec2_iterator;
 
   void save_to_proto(const y::ivec2& v, proto::ivec2& proto);
   void load_from_proto(y::ivec2& v, const proto::ivec2& proto);
