@@ -61,10 +61,55 @@ void GameStage::update()
     _camera += {2, 0};
   }
 
+  static const y::int32 half_size = WorldWindow::active_window_half_size;
+  static const y::ivec2& lower_bound =
+      -half_size * Cell::cell_size * Tileset::tile_size;
+  static const y::ivec2& upper_bound =
+      (1 + half_size) * Cell::cell_size * Tileset::tile_size;
+
+  // Local functions.
+  struct local {
+    bool all_unrefreshed;
+    const WorldWindow::cell_list& unrefreshed;
+
+    local(bool all_unrefreshed, const WorldWindow::cell_list& unrefreshed)
+      : all_unrefreshed(all_unrefreshed)
+      , unrefreshed(unrefreshed)
+    {
+    }
+
+    bool operator()(const y::unique<Script>& s)
+    {
+      const y::ivec2& origin = s->get_origin();
+      const y::ivec2& region = s->get_region();
+
+      bool overlaps_unrefreshed = false;
+      for (const y::ivec2& cell : unrefreshed) {
+        if (origin + region / 2 >=
+                cell * Tileset::tile_size * Cell::cell_size &&
+            origin - region / 2 <
+                (y::ivec2{1, 1} + cell) * Tileset::tile_size * Cell::cell_size) {
+          overlaps_unrefreshed = true;
+          break;
+        }
+      }
+      if (all_unrefreshed) {
+        overlaps_unrefreshed = origin + region / 2 >= lower_bound &&
+                               origin - region / 2 < upper_bound;
+      }
+      return !overlaps_unrefreshed;
+    }
+
+    static bool is_destroyed(const y::unique<Script>& s)
+    {
+      return s->is_destroyed();
+    }
+  };
+
   // Find unrefreshed cells. In the common case where all cells are unrefreshed
-  // don't bother.
-  WorldWindow::cell_list unrefreshed;
+  // we can optimise most of the things away.
   bool all_unrefreshed = _world.get_refreshed_cells().empty();
+  WorldWindow::cell_list unrefreshed;
   for (auto it = _world.get_cartesian(); !all_unrefreshed && it; ++it) {
     bool refreshed = false;
     for (const y::ivec2& cell : _world.get_refreshed_cells()) {
@@ -79,33 +124,11 @@ void GameStage::update()
   }
   _world.clear_refreshed_cells();
 
-  static const y::int32 half_size = WorldWindow::active_window_half_size;
-  static const y::ivec2& lower_bound =
-      -half_size * Cell::cell_size * Tileset::tile_size;
-  static const y::ivec2& upper_bound =
-      (1 + half_size) * Cell::cell_size * Tileset::tile_size;
-
   // Clean up out-of-bounds scripts.
-  for (auto it = _scripts.begin(); it != _scripts.end();) {
-    const y::ivec2& origin = (*it)->get_origin();
-    const y::ivec2& region = (*it)->get_region();
-
-    bool overlaps_unrefreshed = false;
-    for (const y::ivec2& cell : unrefreshed) {
-      if (origin + region / 2 >=
-              cell * Tileset::tile_size * Cell::cell_size &&
-          origin - region / 2 <
-              (y::ivec2{1, 1} + cell) * Tileset::tile_size * Cell::cell_size) {
-        overlaps_unrefreshed = true;
-        break;
-      }
-    }
-    if (all_unrefreshed) {
-      overlaps_unrefreshed = origin + region / 2 >= lower_bound &&
-                             origin - region / 2 < upper_bound;
-    }
-    it = !overlaps_unrefreshed ? _scripts.erase(it) : it + 1;
-  }
+  local is_out_of_bounds(all_unrefreshed, unrefreshed);
+  _scripts.erase(
+      std::remove_if(_scripts.begin(), _scripts.end(), is_out_of_bounds),
+      _scripts.end());
 
   // Add new in-bounds scripts.
   for (const ScriptBlueprint& s : _map.get_scripts()) {
@@ -130,19 +153,26 @@ void GameStage::update()
     bool overlaps_world = ws.origin + ws.region / 2 >= lower_bound &&
                           ws.origin - ws.region / 2 < upper_bound;
     
-    if (overlaps_world && !overlaps_unrefreshed) { 
+    if (overlaps_world && !overlaps_unrefreshed) {
       const LuaFile& file = _bank.scripts.get(ws.path);
       add_script(y::move_unique(
           new Script(*this, file.path, file.contents, ws.origin, ws.region)));
     }
   }
 
-  // Update scripts.
-  for (const auto& script : _scripts) {
-    if (script->has_function("update")) {
+  // Update scripts. Can't use iterators, or they will be invalidated by new
+  // creations. Destructions won't happen here, though.
+  for (y::size i = 0; i < _scripts.size(); ++i) {
+    const auto& script = _scripts[i];
+    if (script->has_function("update") && !script->is_destroyed()) {
       script->call("update");
     }
   }
+
+  // Clean up manually-destroyed scripts.
+  _scripts.erase(
+      std::remove_if(_scripts.begin(), _scripts.end(), local::is_destroyed),
+      _scripts.end());
 }
 
 void GameStage::draw() const
@@ -195,6 +225,19 @@ void GameStage::draw() const
     }
   }
   _util.add_translation(-world_to_camera(y::ivec2()));
+}
+
+Script& GameStage::create_script(const LuaFile& file, const y::ivec2& origin)
+{
+  return create_script(file, origin, Tileset::tile_size);
+}
+
+Script& GameStage::create_script(const LuaFile& file,
+                                 const y::ivec2& origin, const y::ivec2& region)
+{
+  Script* s = new Script(*this, file.path, file.contents, origin, region);
+  add_script(y::move_unique(s));
+  return *s;
 }
 
 RenderBatch& GameStage::get_current_batch()

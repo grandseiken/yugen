@@ -143,7 +143,7 @@ ylib_api(ref_gc) ylib_refarg(const ScriptReference, a)
 
 ylib_api(ref_valid) ylib_refarg(const ScriptReference, a)
 {
-  ylib_return(a.valid());
+  ylib_return(a.is_valid());
 }
 
 ylib_api(ref_get) ylib_refarg(ScriptReference, a)
@@ -186,6 +186,25 @@ ylib_api(get_sprite) ylib_arg(y::string, path)
 ylib_api(get_script) ylib_arg(y::string, path)
 {
   ylib_return(&stage.get_bank().scripts.get(path));
+}
+
+ylib_api(destroy) ylib_arg(Script*, script)
+{
+  script->destroy();
+  ylib_void();
+}
+
+ylib_api(create)
+    ylib_arg(const LuaFile*, file) ylib_refarg(const ylib_vec, origin)
+{
+  ylib_return(&stage.create_script(*file, origin));
+}
+
+ylib_api(create_region)
+    ylib_arg(const LuaFile*, file)
+    ylib_refarg(const ylib_vec, origin) ylib_refarg(const ylib_vec, region)
+{
+  ylib_return(&stage.create_script(*file, origin, region));
 }
 
 ylib_api(render_sprite)

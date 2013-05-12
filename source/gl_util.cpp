@@ -252,6 +252,15 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
                             bool array, y::size index,
                             GLenum type, y::size length) const
 {
+#ifdef GL_UTIL_DEBUG
+  (void)attributes;
+  (void)name;
+  (void)array;
+  (void)index;
+  (void)type;
+  (void)length;
+  return true;
+#endif
   GLenum name_type;
   if (!check_name_exists(attribute, name, array, index, name_type)) {
     std::cerr << "Undefined " <<

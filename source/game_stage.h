@@ -10,6 +10,7 @@
 class CellMap;
 class GlFramebuffer;
 class RenderUtil;
+struct LuaFile;
 
 // TODO: make a typedef (and corresponding vec2) for in-game subpixel coordinate
 // systems and use it wherever appropriate. (Double?)
@@ -29,6 +30,12 @@ public:
   virtual void draw() const;
 
   // Lua API functions.
+  void destroy_script(const Script& script);
+  Script& create_script(
+      const LuaFile& file, const y::ivec2& origin);
+  Script& create_script(
+      const LuaFile& file,
+      const y::ivec2& origin, const y::ivec2& region);
   RenderBatch& get_current_batch();
 
 private:

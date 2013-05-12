@@ -427,7 +427,7 @@ ScriptReference::ScriptReference(const ScriptReference& script)
 
 ScriptReference::~ScriptReference()
 {
-  if (valid()) {
+  if (is_valid()) {
     _script->_reference_set.erase(this);
   }
 }
@@ -443,9 +443,9 @@ ScriptReference& ScriptReference::operator=(const ScriptReference& arg)
   return *this;
 }
 
-bool ScriptReference::valid() const
+bool ScriptReference::is_valid() const
 {
-  return _script;
+  return _script && !_script->is_destroyed();
 }
 
 void ScriptReference::invalidate()
@@ -491,6 +491,7 @@ Script::Script(GameStage& stage,
   , _state(luaL_newstate())
   , _origin(origin)
   , _region(region)
+  , _destroyed(false)
 {
   // Load the Lua standard library.
   luaL_openlibs(_state);
@@ -598,4 +599,14 @@ void Script::call(const y::string& function_name)
     }
     std::cerr << std::endl;
   }
+}
+
+void Script::destroy()
+{
+  _destroyed = true;
+}
+
+bool Script::is_destroyed() const
+{
+  return _destroyed;
 }

@@ -227,7 +227,6 @@ protected:
 private:
 
   // Check if uniform or attribute name exists in program.
-  // TODO: cache this, or allow disabling for non-debug mode.
   // TODO: allow converting name to GLint so that we don't need to
   // lookup a name every time (if performance deems it necessary)?
   bool check_name_exists(bool attribute, const y::string& name,

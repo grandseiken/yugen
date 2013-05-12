@@ -20,7 +20,7 @@ public:
 
   ScriptReference& operator=(const ScriptReference& arg);
 
-  bool valid() const;
+  bool is_valid() const;
   void invalidate();
 
   const Script* get() const;
@@ -59,6 +59,9 @@ public:
   bool has_function(const y::string& function_name) const;
   void call(const y::string& function_name);
 
+  void destroy();
+  bool is_destroyed() const;
+
 private:
 
   friend class ScriptReference;
@@ -68,6 +71,8 @@ private:
 
   y::ivec2 _origin;
   y::ivec2 _region;
+
+  bool _destroyed;
 
   typedef y::set<ScriptReference*> reference_set;
   reference_set _reference_set;

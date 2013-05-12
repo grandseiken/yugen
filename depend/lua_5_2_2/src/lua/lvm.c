@@ -110,7 +110,7 @@ static void callTM (lua_State *L, const TValue *f, const TValue *p1,
 void luaV_gettable (lua_State *L, const TValue *t, TValue *key, StkId val) {
   int loop;
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
-    const TValue *tm;
+    const TValue *tm = 0;
     if (ttistable(t)) {  /* `t' is a table? */
       Table *h = hvalue(t);
       const TValue *res = luaH_get(h, key); /* do a primitive get */
@@ -136,7 +136,7 @@ void luaV_gettable (lua_State *L, const TValue *t, TValue *key, StkId val) {
 void luaV_settable (lua_State *L, const TValue *t, TValue *key, StkId val) {
   int loop;
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
-    const TValue *tm;
+    const TValue *tm = 0;
     if (ttistable(t)) {  /* `t' is a table? */
       Table *h = hvalue(t);
       TValue *oldval = cast(TValue *, luaH_get(h, key));
