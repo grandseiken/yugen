@@ -182,6 +182,9 @@ void GameStage::draw() const
       y::wvec2{.5, .5} + world_to_camera(y::wvec2()));
   _util.add_translation(translation);
   _current_batch.clear();
+  const y::wvec2 camera_min = camera_to_world(y::wvec2());
+  const y::wvec2 camera_max = 
+      camera_to_world(y::wvec2(_framebuffer.get_size()));
 
   // Render all the tiles in the world at once, batched by texture.
   for (auto it = _world.get_cartesian(); it; ++it) {
@@ -190,6 +193,12 @@ void GameStage::draw() const
       continue;
     }
     for (auto jt = y::cartesian(Cell::cell_size); jt; ++jt) {
+      y::ivec2 world = Tileset::tile_size * (*jt + *it * Cell::cell_size);
+      if (y::wvec2(world + Tileset::tile_size) <= camera_min ||
+          y::wvec2(world) >= camera_max) {
+        continue;
+      }
+
       for (y::int32 layer = -Cell::background_layers;
            layer <= Cell::foreground_layers; ++layer) {
         const Tile& t = cell->get_tile(layer, *jt);
@@ -201,7 +210,6 @@ void GameStage::draw() const
         // Background: .6
         float d = .5f - layer * .1f;
 
-        y::ivec2 world = Tileset::tile_size * (*jt + *it * Cell::cell_size);
         _current_batch.add_sprite(
             t.tileset->get_texture(), Tileset::tile_size,
             world, t.tileset->from_index(t.index), d, colour::white);
@@ -210,12 +218,10 @@ void GameStage::draw() const
   }
 
   // Render all scripts which overlap the screen.
-  const y::wvec2 min = camera_to_world(y::wvec2());
-  const y::wvec2 max = camera_to_world(y::wvec2(_framebuffer.get_size()));
   for (const auto& script : _scripts) {
-    const y::wvec2 smin = script->get_origin() - script->get_region() / 2;
-    const y::wvec2 smax = script->get_origin() + script->get_region() / 2;
-    if (smax > min && smin < max && script->has_function("draw")) {
+    const y::wvec2 min = script->get_origin() - script->get_region() / 2;
+    const y::wvec2 max = script->get_origin() + script->get_region() / 2;
+    if (max > camera_min && min < camera_max && script->has_function("draw")) {
       script->call("draw");
     }
   }
@@ -227,8 +233,12 @@ void GameStage::draw() const
     for (const Geometry& g : _world.get_geometry()) {
       y::fvec4 c = ++i % 2 ? y::fvec4(1.f, 0.f, 0.f, .5f) :
                              y::fvec4(0.f, 1.f, 0.f, .5f);
-      _util.render_fill(y::min(g.start, g.end),
-                        y::max(y::abs(g.end - g.start), y::ivec2{1, 1}), c);
+      const y::ivec2 origin = y::min(g.start, g.end);
+      const y::ivec2 size = y::max(y::abs(g.end - g.start), y::ivec2{1, 1});
+      if (y::wvec2(origin + size) > camera_min &&
+          y::wvec2(origin) < camera_max) {
+        _util.render_fill(origin, size, c);
+      }
     }
   }
   _util.add_translation(-translation);
