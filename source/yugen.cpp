@@ -13,7 +13,7 @@
 
 // A default bayer matrix for ordered dithering. Area should be at least the
 // ratio of source colours to target colours (per channel); for example 24bpp
-// to 9bpp gives 2^8/2^3 = 32 so at least 6x6. This on is 8x8.
+// to 9bpp gives 2^8/2^3 = 32 so at least 6x6. This one is 8x8.
 const GLfloat bayer_d = 1.f / 65;
 const GLfloat bayer_matrix[] = {
     bayer_d * 1, bayer_d * 49, bayer_d * 13, bayer_d * 61,
@@ -156,6 +156,7 @@ void Yugen::draw() const
     _util.render_text(ss.str(), {16, 16}, colour::white);
   }
 
+  // Upscale the native-resolution buffer to the window.
   const Resolution& screen = _util.get_window().get_mode();
   _util.get_gl().bind_window(true, true);
   _upscale_program.bind();

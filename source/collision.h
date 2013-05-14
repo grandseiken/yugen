@@ -5,8 +5,9 @@
 #include "lua.h"
 #include "vector.h"
 
-class WorldWindow;
+class RenderUtil;
 class Script;
+class WorldWindow;
 
 // A Body is, thus far, a rectangular area of some size, whose center
 // is offset some amount from the origin of the source Script.
@@ -27,6 +28,9 @@ public:
   void destroy_body(const Script& source, Body* body);
   void destroy_bodies(const Script& source);
   void clean_up();
+
+  void render(RenderUtil& util,
+              const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
 private:
 
