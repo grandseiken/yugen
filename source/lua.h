@@ -19,6 +19,8 @@ public:
   ~ScriptReference();
 
   ScriptReference& operator=(const ScriptReference& arg);
+  bool operator==(const ScriptReference& arg);
+  bool operator!=(const ScriptReference& arg);
 
   bool is_valid() const;
   void invalidate();
@@ -35,6 +37,32 @@ public:
 private:
 
   Script* _script;
+
+};
+
+// And the const version.
+class ConstScriptReference {
+public:
+
+  ConstScriptReference(const Script& script);
+  ConstScriptReference(const ScriptReference& script);
+  ConstScriptReference(const ConstScriptReference& script);
+  ~ConstScriptReference();
+
+  ConstScriptReference& operator=(const ConstScriptReference& arg);
+  bool operator==(const ConstScriptReference& arg);
+  bool operator!=(const ConstScriptReference& arg);
+
+  bool is_valid() const;
+  void invalidate();
+
+  const Script* get() const;
+  const Script& operator*() const;
+  const Script* operator->() const;
+
+private:
+
+  const Script* _script;
 
 };
 
@@ -64,8 +92,6 @@ public:
 
 private:
 
-  friend class ScriptReference;
-
   y::string _path;
   lua_State* _state;
 
@@ -74,8 +100,12 @@ private:
 
   bool _destroyed;
 
+  friend class ScriptReference;
+  friend class ConstScriptReference;
   typedef y::set<ScriptReference*> reference_set;
+  typedef y::set<ConstScriptReference*> const_reference_set;
   reference_set _reference_set;
+  mutable const_reference_set _const_reference_set;
 
 };
 

@@ -1,6 +1,7 @@
 #ifndef GAME_STAGE_H
 #define GAME_STAGE_H
 
+#include "collision.h"
 #include "common.h"
 #include "lua.h"
 #include "modal.h"
@@ -22,6 +23,8 @@ public:
 
   const Databank& get_bank() const;
   RenderUtil& get_util() const;
+  const Collision& get_collision() const;
+  /***/ Collision& get_collision();
 
   virtual void event(const sf::Event& e);
   virtual void update();
@@ -49,6 +52,7 @@ private:
   const CellMap& _map;
 
   WorldWindow _world;
+  Collision _collision;
   y::wvec2 _camera;
 
   typedef y::vector<y::unique<Script>> script_list;

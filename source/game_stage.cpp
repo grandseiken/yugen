@@ -13,6 +13,7 @@ GameStage::GameStage(const Databank& bank,
   , _framebuffer(framebuffer)
   , _map(map)
   , _world(map, coord)
+  , _collision(_world)
   , _camera(Cell::cell_size * Tileset::tile_size * coord +
             Cell::cell_size * Tileset::tile_size / 2)
 {
@@ -30,6 +31,16 @@ const Databank& GameStage::get_bank() const
 RenderUtil& GameStage::get_util() const
 {
   return _util;
+}
+
+const Collision& GameStage::get_collision() const
+{
+  return _collision;
+}
+
+Collision& GameStage::get_collision()
+{
+  return _collision;
 }
 
 void GameStage::event(const sf::Event& e)
@@ -174,6 +185,7 @@ void GameStage::update()
   _scripts.erase(
       std::remove_if(_scripts.begin(), _scripts.end(), local::is_destroyed),
       _scripts.end());
+  _collision.clean_up();
 }
 
 void GameStage::draw() const

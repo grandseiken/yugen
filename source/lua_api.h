@@ -2,11 +2,13 @@
 // defined here with the ylib macros are automatically exposed to Lua.
 #ifndef LUA_API_H
 #define LUA_API_H
+#include "collision.h"
 #include "databank.h"
 #include "game_stage.h"
 #include "render_util.h"
 #endif
 
+ylib_typedef(Body);
 ylib_typedef(GameStage);
 ylib_typedef(GlTexture);
 ylib_typedef(LuaFile);
@@ -214,5 +216,54 @@ ylib_api(render_sprite)
   y::wvec2 origin = script->get_origin() - frame_size / 2 + y::wvec2{.5, .5};
   batch.add_sprite(*sprite, y::ivec2(frame_size), y::ivec2(origin),
                    y::ivec2(frame), depth, colour::white);
+  ylib_void();
+}
+
+/******************************************************************************/
+/* Collision API                                                              */
+/******************************************************************************/
+ylib_api(create_body)
+    ylib_arg(const Script*, script)
+    ylib_refarg(const y::wvec2, offset) ylib_refarg(const y::wvec2, size)
+{
+  Body* body = stage.get_collision().create_body(*script);
+  body->offset = offset;
+  body->size = size;
+  ylib_return(body);
+}
+
+ylib_api(destroy_body) ylib_arg(const Script*, script) ylib_arg(Body*, body)
+{
+  stage.get_collision().destroy_body(*script, body);
+  ylib_void();
+}
+
+ylib_api(destroy_bodies) ylib_arg(const Script*, script)
+{
+  stage.get_collision().destroy_bodies(*script);
+  ylib_void();
+}
+
+ylib_api(get_body_offset) ylib_arg(Body*, body)
+{
+  ylib_return(body->offset);
+}
+
+ylib_api(get_body_size) ylib_arg(Body*, body)
+{
+  ylib_return(body->size);
+}
+
+ylib_api(set_body_offset)
+    ylib_arg(Body*, body) ylib_refarg(const y::wvec2, offset)
+{
+  body->offset = offset;
+  ylib_void();
+}
+
+ylib_api(set_body_size)
+    ylib_arg(Body*, body) ylib_refarg(const y::wvec2, size)
+{
+  body->size = size;
   ylib_void();
 }

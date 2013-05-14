@@ -458,7 +458,9 @@ ScriptReference::ScriptReference(Script& script)
 ScriptReference::ScriptReference(const ScriptReference& script)
   : _script(script._script)
 {
-  _script->_reference_set.insert(this);
+  if (_script) {
+    _script->_reference_set.insert(this);
+  }
 }
 
 ScriptReference::~ScriptReference()
@@ -473,10 +475,24 @@ ScriptReference& ScriptReference::operator=(const ScriptReference& arg)
   if (this == &arg) {
     return *this;
   }
-  _script->_reference_set.erase(this);
+  if (_script) {
+    _script->_reference_set.erase(this);
+  }
   _script = arg._script;
-  _script->_reference_set.insert(this);
+  if (_script) {
+    _script->_reference_set.insert(this);
+  }
   return *this;
+}
+
+bool ScriptReference::operator==(const ScriptReference& arg)
+{
+  return _script == arg._script;
+}
+
+bool ScriptReference::operator!=(const ScriptReference& arg)
+{
+  return !operator==(arg);
 }
 
 bool ScriptReference::is_valid() const
@@ -515,6 +531,86 @@ const Script* ScriptReference::operator->() const
 }
 
 Script* ScriptReference::operator->()
+{
+  return _script;
+}
+
+ConstScriptReference::ConstScriptReference(const Script& script)
+: _script(&script)
+{
+  script._const_reference_set.insert(this);
+}
+
+ConstScriptReference::ConstScriptReference(const ScriptReference& script)
+  : _script(script.get())
+{
+  if (_script) {
+    _script->_const_reference_set.insert(this);
+  }
+}
+
+ConstScriptReference::ConstScriptReference(const ConstScriptReference& script)
+  : _script(script._script)
+{
+  if (_script) {
+    _script->_const_reference_set.insert(this);
+  }
+}
+
+ConstScriptReference::~ConstScriptReference()
+{
+  if (is_valid()) {
+    _script->_const_reference_set.erase(this);
+  }
+}
+
+ConstScriptReference& ConstScriptReference::operator=(
+    const ConstScriptReference& arg)
+{
+  if (this == &arg) {
+    return *this;
+  }
+  if (_script) {
+    _script->_const_reference_set.erase(this);
+  }
+  _script = arg._script;
+  if (_script) {
+    _script->_const_reference_set.insert(this);
+  }
+  return *this;
+}
+
+bool ConstScriptReference::operator==(const ConstScriptReference& arg)
+{
+  return _script == arg._script;
+}
+
+bool ConstScriptReference::operator!=(const ConstScriptReference& arg)
+{
+  return !operator==(arg);
+}
+
+bool ConstScriptReference::is_valid() const
+{
+  return _script && !_script->is_destroyed();
+}
+
+void ConstScriptReference::invalidate()
+{
+  _script = y::null;
+}
+
+const Script* ConstScriptReference::get() const
+{
+  return _script;
+}
+
+const Script& ConstScriptReference::operator*() const
+{
+  return *_script;
+}
+
+const Script* ConstScriptReference::operator->() const
 {
   return _script;
 }
@@ -586,6 +682,9 @@ Script::~Script()
 {
   lua_close(_state);
   for (ScriptReference* ref : _reference_set) {
+    ref->invalidate();
+  }
+  for (ConstScriptReference* ref : _const_reference_set) {
     ref->invalidate();
   }
 }
