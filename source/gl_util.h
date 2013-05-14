@@ -118,6 +118,7 @@ public:
 
   virtual ~GlFramebuffer() {}
 
+  // Don't delete this texture manually!
   const GlTexture& get_texture() const;
   const y::ivec2& get_size() const;
 
@@ -290,12 +291,17 @@ public:
   // Delete an existing framebuffer.
   void delete_framebuffer(const GlFramebuffer& framebuffer);
 
+  // Make an OpenGL texture.
+  GlTexture make_texture(const y::ivec2& size, GLenum value_type,
+                         GLenum bit_depth, GLenum format,
+                         const void* data, bool loop=false);
   // Load texture from file.
-  GlTexture make_texture(const y::string& filename);
+  GlTexture make_texture(const y::string& filename, bool loop = false);
   // Get preloaded texture.
   GlTexture get_texture(const y::string& filename) const;
   // Delete preloaded texture.
   void delete_texture(const y::string& filename);
+  void delete_texture(const GlTexture& texture);
 
   // Load shader from file. If type is 0, guesses based on extension.
   GlShader make_shader(const y::string& filename, GLenum type = 0);
@@ -303,6 +309,7 @@ public:
   GlShader get_shader(const y::string& filename) const;
   // Delete preloaded shader.
   void delete_shader(const y::string& filename);
+  void delete_shader(const GlShader& shader);
 
   // Link multiple shaders into one GLSL program.
   GlProgram make_program(const y::string_vector& shaders);
@@ -310,6 +317,7 @@ public:
   GlProgram get_program(const y::string_vector& shaders) const;
   // Delete preloaded program.
   void delete_program(const y::string_vector& shaders);
+  void delete_program(const GlProgram& program);
 
   // Render to window, rather than any framebuffer.
   void bind_window(bool clear, bool clear_depth) const;
@@ -330,8 +338,8 @@ private:
   typedef y::map<y::string, GlProgram> gl_program_map;
 
   gl_handle_set _buffer_set;
+  gl_handle_set _texture_set;
   gl_handle_set _framebuffer_set;
-  gl_handle_set _framebuffer_texture_set;
   gl_handle_set _framebuffer_depth_set;
 
   gl_texture_map _texture_map;

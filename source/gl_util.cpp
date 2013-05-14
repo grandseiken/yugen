@@ -334,18 +334,14 @@ GlUtil::~GlUtil()
   for (GLuint buffer : _buffer_set) {
     glDeleteBuffers(1, &buffer);
   }
+  for (GLuint texture : _texture_set) {
+    glDeleteTextures(1, &texture);
+  }
   for (GLuint framebuffer : _framebuffer_set) {
     glDeleteFramebuffers(1, &framebuffer);
   }
-  for (GLuint texture : _framebuffer_texture_set) {
-    glDeleteTextures(1, &texture);
-  }
   for (GLuint depth : _framebuffer_depth_set) {
     glDeleteRenderbuffers(1, &depth);
-  }
-  for (const auto& pair : _texture_map) {
-    GLuint handle = pair.second.get_handle();
-    glDeleteTextures(1, &handle);
   }
   for (const auto& pair : _shader_map) {
     glDeleteShader(pair.second.get_handle());
@@ -371,18 +367,9 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size)
   glGenFramebuffers(1, &framebuffer);
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-  GLuint texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size[xx], size[yy],
-               0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-
+  GlTexture texture(make_texture(size, GL_UNSIGNED_BYTE, GL_RGB, GL_RGB, 0));
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                         GL_TEXTURE_2D, texture, 0);
+                         GL_TEXTURE_2D, texture.get_handle(), 0);
   GLenum draw_buffers = GL_COLOR_ATTACHMENT0;
   glDrawBuffers(1, &draw_buffers);
 
@@ -396,16 +383,15 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size)
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     std::cerr << "Framebuffer isn't complete" << std::endl;
+    delete_texture(texture);
     glDeleteFramebuffers(1, &framebuffer);
-    glDeleteTextures(1, &texture);
     glDeleteRenderbuffers(1, &depth);
     return GlFramebuffer(0, GlTexture(0, {0, 0}), 0);
   }
 
   _framebuffer_set.insert(framebuffer);
-  _framebuffer_texture_set.insert(texture);
   _framebuffer_depth_set.insert(depth);
-  return GlFramebuffer(framebuffer, GlTexture(texture, size), depth);
+  return GlFramebuffer(framebuffer, texture, depth);
 }
 
 void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
@@ -416,12 +402,7 @@ void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
     _framebuffer_set.erase(it);
   }
 
-  it = _framebuffer_texture_set.find(
-      framebuffer.get_texture().get_handle());
-  if (it != _framebuffer_texture_set.end()) {
-    glDeleteTextures(1, &*it);
-    _framebuffer_texture_set.erase(it);
-  }
+  delete_texture(framebuffer.get_texture());
 
   it = _framebuffer_depth_set.find(framebuffer.get_depth_handle());
   if (it != _framebuffer_depth_set.end()) {
@@ -430,7 +411,25 @@ void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
   }
 }
 
-GlTexture GlUtil::make_texture(const y::string& filename)
+GlTexture GlUtil::make_texture(const y::ivec2& size, GLenum value_type,
+                               GLenum bit_depth, GLenum format,
+                               const void* data, bool loop)
+{
+  GLenum wrap_type = loop ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+  GLuint texture;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_type);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_type);
+  glTexImage2D(GL_TEXTURE_2D, 0, bit_depth, size[xx], size[yy],
+               0, format, value_type, data);
+  _texture_set.insert(texture);
+  return GlTexture(texture, size);
+}
+
+GlTexture GlUtil::make_texture(const y::string& filename, bool loop)
 {
   y::string data;
   _filesystem.read_file(data, filename);
@@ -444,15 +443,9 @@ GlTexture GlUtil::make_texture(const y::string& filename)
     std::cerr << "Couldn't load image " << filename << std::endl;
     return GlTexture(0, y::ivec2());
   }
-  GLuint texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image.getSize().x, image.getSize().y,
-               0, GL_RGBA, GL_UNSIGNED_BYTE, image.getPixelsPtr());
+  y::ivec2 size{y::int32(image.getSize().x), y::int32(image.getSize().y)};
+  GlTexture texture(make_texture(size, GL_UNSIGNED_BYTE, GL_RGBA8, GL_RGBA,
+                                 image.getPixelsPtr(), loop));
 
   auto it = _texture_map.find(filename);
   if (it != _texture_map.end()) {
@@ -460,10 +453,8 @@ GlTexture GlUtil::make_texture(const y::string& filename)
     glDeleteTextures(1, &handle);
     _texture_map.erase(it);
   }
-  GlTexture r(texture, {y::int32(image.getSize().x),
-                        y::int32(image.getSize().y)});
-  _texture_map.insert(y::make_pair(filename, r));
-  return r;
+  _texture_map.insert(y::make_pair(filename, texture));
+  return texture;
 }
 
 GlTexture GlUtil::get_texture(const y::string& filename) const
@@ -478,7 +469,28 @@ void GlUtil::delete_texture(const y::string& filename)
   if (it != _texture_map.end()) {
     GLuint handle = it->second.get_handle();
     glDeleteTextures(1, &handle);
+    auto jt = _texture_set.find(it->second.get_handle());
+    if (jt != _texture_set.end()) {
+      _texture_set.erase(jt);
+    }
     _texture_map.erase(it);
+  }
+}
+
+void GlUtil::delete_texture(const GlTexture& texture)
+{
+  auto it = _texture_set.find(texture.get_handle());
+  if (it != _texture_set.end()) {
+    glDeleteTextures(1, &*it);
+    _texture_set.erase(it);
+  }
+  // Make sure to clean up the map entry if we deleted a filename-loaded
+  // texture directly.
+  for (auto jt = _texture_map.begin(); jt != _texture_map.end(); ++jt) {
+    if (jt->second.get_handle() == texture.get_handle()) {
+      _texture_map.erase(jt);
+      break;
+    }
   }
 }
 
@@ -544,6 +556,17 @@ void GlUtil::delete_shader(const y::string& filename)
   if (it != _shader_map.end()) {
     glDeleteShader(it->second.get_handle());
     _shader_map.erase(it);
+  }
+}
+
+void GlUtil::delete_shader(const GlShader& shader)
+{
+  for (auto it = _shader_map.begin(); it != _shader_map.end(); ++it) {
+    if (it->second.get_handle() == shader.get_handle()) {
+      glDeleteShader(it->second.get_handle());
+      _shader_map.erase(it);
+      break;
+    }
   }
 }
 
@@ -617,6 +640,17 @@ void GlUtil::delete_program(const y::string_vector& shaders)
   if (it != _program_map.end()) {
     glDeleteProgram(it->second.get_handle());
     _program_map.erase(it);
+  }
+}
+
+void GlUtil::delete_program(const GlProgram& program)
+{
+  for (auto it = _program_map.begin(); it != _program_map.end(); ++it) {
+    if (it->second.get_handle() == program.get_handle()) {
+      glDeleteProgram(it->second.get_handle());
+      _program_map.erase(it);
+      break;
+    }
   }
 }
 

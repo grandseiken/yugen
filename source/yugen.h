@@ -34,9 +34,13 @@ private:
   Databank& _bank;
   RenderUtil& _util;
   GlFramebuffer _framebuffer;
+  GlFramebuffer _post_buffer;
   bool _launched;
 
   GlProgram _post_program;
+  GlProgram _upscale_program;
+  GlTexture _bayer_texture;
+  mutable y::size _bayer_frame;
   GlBuffer<GLfloat, 2> _vertex_buffer;
 
 };
