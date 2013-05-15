@@ -4,25 +4,46 @@
 
 bool Geometry::order::operator()(const Geometry& a, const Geometry& b) const
 {
-  if (a.start[xx] < b.start[xx]) {
-    return true;
+  y::ivec2 a_min = y::min(a.start, a.end);
+  y::ivec2 a_max = y::max(a.start, a.end);
+  y::ivec2 b_min = y::min(b.start, b.end);
+  y::ivec2 b_max = y::max(b.start, b.end);
+
+  return a_min[xx] < b_min[xx] ? true :
+         a_min[xx] > b_min[xx] ? false :
+         a_max[xx] < b_max[xx] ? true :
+         a_max[xx] > b_max[xx] ? false :
+         a_min[yy] < b_min[yy] ? true :
+         a_min[yy] > b_min[yy] ? false :
+         a_max[yy] < b_max[yy];
+}
+
+OrderedGeometry::OrderedGeometry()
+  : buckets(1 + 2 * WorldWindow::active_window_half_size)
+{
+}
+
+void OrderedGeometry::insert(const Geometry& g)
+{
+  y::int32 max = y::max(g.start[xx], g.end[xx]);
+  y::int32 bucket =
+      WorldWindow::active_window_half_size +
+      y::euclidean_div(max, Cell::cell_size[xx] * Tileset::tile_size[xx]);
+  y::clamp<y::int32>(bucket, 0, buckets.size());
+  buckets[bucket].insert(g);
+}
+
+void OrderedGeometry::clear()
+{
+  for (auto& bucket : buckets) {
+    bucket.clear();
   }
-  if (a.start[xx] > b.start[xx]) {
-    return false;
-  }
-  if (a.end[xx] < b.end[xx]) {
-    return true;
-  }
-  if (a.end[xx] > b.end[xx]) {
-    return false;
-  }
-  if (a.start[yy] < b.start[yy]) {
-    return true;
-  }
-  if (a.start[yy] > b.start[yy]) {
-    return false;
-  }
-  return a.end[yy] < b.end[yy];
+}
+
+y::int32 OrderedGeometry::get_max_for_bucket(y::size index) const
+{
+  return (1 + index - WorldWindow::active_window_half_size) *
+      Cell::cell_size[xx] * Tileset::tile_size[xx];
 }
 
 WorldGeometry::WorldGeometry()

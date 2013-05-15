@@ -223,7 +223,7 @@ ylib_api(render_sprite)
 /* Collision API                                                              */
 /******************************************************************************/
 ylib_api(create_body)
-    ylib_arg(const Script*, script)
+    ylib_arg(Script*, script)
     ylib_refarg(const y::wvec2, offset) ylib_refarg(const y::wvec2, size)
 {
   Body* body = stage.get_collision().create_body(*script);
@@ -265,5 +265,12 @@ ylib_api(set_body_size)
     ylib_arg(Body*, body) ylib_refarg(const y::wvec2, size)
 {
   body->size = size;
+  ylib_void();
+}
+
+ylib_api(collider_move)
+    ylib_arg(Script*, script) ylib_refarg(const y::wvec2, move)
+{
+  stage.get_collision().collider_move(*script, move);
   ylib_void();
 }

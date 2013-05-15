@@ -14,23 +14,31 @@ class WorldWindow;
 struct Body {
   Body(const Script& source);
 
+  // Get bounds (on x-axis). Potentially this could be made virtual and
+  // overridden for other shapes.
+  y::world get_min() const;
+  y::world get_max() const;
+
   const Script& source;
   y::wvec2 offset;
   y::wvec2 size;
 };
 
+// Keeps a record of Bodies and handles sweeping and collision.
 class Collision : public y::no_copy {
 public:
 
   Collision(const WorldWindow& world);
 
-  Body* create_body(const Script& source);
+  Body* create_body(Script& source);
   void destroy_body(const Script& source, Body* body);
   void destroy_bodies(const Script& source);
   void clean_up();
 
   void render(RenderUtil& util,
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
+
+  void collider_move(Script& source, const y::wvec2& move) const;
 
 private:
 
@@ -40,10 +48,13 @@ private:
   // We hold a weak reference to each Script so that we can destroy the bodies
   // whose source Scripts no longer exist.
   struct entry {
+    y::world get_min() const;
+    y::world get_max() const;
+
     ConstScriptReference ref;
     y::vector<body_entry> list;
   };
-  typedef y::map<const Script*, entry> body_map;
+  typedef y::map<Script*, entry> body_map;
   body_map _map;
 
 };

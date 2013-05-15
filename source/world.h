@@ -16,7 +16,19 @@ struct Geometry {
   };
 };
 
-typedef y::ordered_set<Geometry, Geometry::order> OrderedGeometry;
+// An ordered bucket of geometry orders its members by their minimum
+// x-coordinate. The OrderedGeometry groups several buckets together, one per
+// x-cell, each bucket's elements having maximum x-coordinate in that cell.
+typedef y::ordered_set<Geometry, Geometry::order> OrderedBucket;
+struct OrderedGeometry {
+  OrderedGeometry();
+
+  void insert(const Geometry& g);
+  void clear();
+  y::int32 get_max_for_bucket(y::size index) const;
+
+  y::vector<OrderedBucket> buckets;
+};
 
 // Stores world geometry.
 class WorldGeometry {
