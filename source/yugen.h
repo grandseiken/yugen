@@ -8,6 +8,7 @@
 #include <SFML/System.hpp>
 
 class Databank;
+class GameStage;
 class RenderUtil;
 class Window;
 namespace sf {
@@ -35,6 +36,7 @@ private:
   RenderUtil& _util;
   GlFramebuffer _framebuffer;
   GlFramebuffer _post_buffer;
+  GameStage* _stage;
   bool _launched;
 
   GlProgram _post_program;

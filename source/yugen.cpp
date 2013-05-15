@@ -86,8 +86,9 @@ void Yugen::update()
   // Start a new game.
   if (!has_next() && !_bank.maps.empty() && !_launched) {
     _launched = true;
-    push(y::move_unique(new GameStage(
-        _bank, _util, _framebuffer, _bank.maps.get(0), y::ivec2())));
+    _stage = new GameStage(
+        _bank, _util, _framebuffer, _bank.maps.get(0), y::ivec2());
+    push(y::move_unique(_stage));
   }
 }
 
@@ -122,6 +123,8 @@ void Yugen::draw() const
   _bayer_texture.bind(GL_TEXTURE1);
   _post_program.bind_uniform("bayer", 1);
   _post_program.bind_uniform("bayer_res", _bayer_texture.get_size());
+  _post_program.bind_uniform(
+      "bayer_off", _stage ? -y::ivec2(_stage->get_camera()) : y::ivec2());
   _post_program.bind_uniform("bayer_frame", y::int32(++_bayer_frame));
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
 

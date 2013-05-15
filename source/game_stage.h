@@ -25,6 +25,7 @@ public:
   RenderUtil& get_util() const;
   const Collision& get_collision() const;
   /***/ Collision& get_collision();
+  const y::wvec2& get_camera() const;
 
   virtual void event(const sf::Event& e);
   virtual void update();

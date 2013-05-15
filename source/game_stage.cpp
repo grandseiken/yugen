@@ -43,6 +43,11 @@ Collision& GameStage::get_collision()
   return _collision;
 }
 
+const y::wvec2& GameStage::get_camera() const
+{
+  return _camera;
+}
+
 void GameStage::event(const sf::Event& e)
 {
   if (e.type != sf::Event::KeyPressed) {
