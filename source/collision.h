@@ -8,6 +8,7 @@
 class RenderUtil;
 class Script;
 class WorldWindow;
+struct Geometry;
 
 // A Body is, thus far, a rectangular area of some size, whose center
 // is offset some amount from the origin of the source Script.
@@ -41,6 +42,9 @@ public:
   void collider_move(Script& source, const y::wvec2& move) const;
 
 private:
+
+  y::world get_move_ratio(const Geometry& geometry,
+                          const y::wvec2& vertex, const y::wvec2& move) const;
 
   const WorldWindow& _world;
 

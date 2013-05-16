@@ -2,8 +2,9 @@
 local sprite = get_sprite("/tiles/temple.png")
 local script = get_script("/scripts/hello2.lua")
 local counter = 0
+local body = create_body(self, vec(0, 0), vec(32, 16))
 function update()
-  set_origin(self, vec(1, 1) + get_origin(self))
+  collider_move(self, vec(1, 1))
   counter = counter + 1
   if counter >= 64 then
     counter = counter - 64

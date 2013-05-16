@@ -70,7 +70,7 @@ void Collision::clean_up()
       ++it;
     }
     else {
-      _map.erase(it);
+      it = _map.erase(it);
     }
   }
 }
@@ -97,7 +97,7 @@ void Collision::render(
 void Collision::collider_move(Script& source, const y::wvec2& move) const
 {
   auto it = _map.find(&source);
-  if (it == _map.end() || it->second.list.empty()) {
+  if (it == _map.end() || it->second.list.empty() || move == y::wvec2()) {
     source.set_origin(source.get_origin() + move);
     return;
   }
@@ -105,9 +105,17 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
   // So far, we only collide Bodies with world geometry.
   const entry& bodies = it->second;
   const OrderedGeometry& geometry = _world.get_geometry();
-  y::world min_bound = y::min(bodies.get_min(), move[xx] + bodies.get_min());
-  y::world max_bound = y::max(bodies.get_max(), move[xx] + bodies.get_max());
 
+  // X-coordinate bounds of the source Bodies.
+  y::world min_bound = source.get_origin()[xx] + bodies.get_min();
+  min_bound = y::min(min_bound, move[xx] + min_bound);
+  y::world max_bound = source.get_origin()[xx] + bodies.get_max();
+  max_bound = y::max(max_bound, move[xx] + max_bound);
+
+  // TODO: pull source back a bit first so that when we're already right up
+  // against an obstacle we don't go through it due to floatingpoint error?
+  // Or some other fix.
+  y::world min_ratio = 1;
   // Eliminating geometry by bucket and order depends heavily on structure of
   // OrderedGeometry.
   for (y::size i = 0; i < geometry.buckets.size(); ++i) {
@@ -124,8 +132,94 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
       if (g_min >= max_bound) {
         break;
       }
+      // TODO: skip geometry which is defined opposite the direction of
+      // movement. Need atan2 for this.
+      // TODO: skip geometry for which a general bounding-box check fails.
+
+      // Now: project each relevant (depending on direction of movement) vertex
+      // of each body along the movement vector to form a line. Find the
+      // minimum blocking ratio among each intersection of the geometry with
+      // these, and also any endpoint of geometry contained within the
+      // projection.
+      bool project_downright =
+          move[xx] > 0 || move[yy] > 0;
+      bool project_upright =
+          move[xx] > 0 || move[yy] < 0;
+      bool project_downleft =
+          move[xx] < 0 || move[yy] > 0;
+      bool project_upleft =
+          move[xx] < 0 || move[yy] < 0;
+
+      for (const auto& pointer : bodies.list) {
+        const Body& b = *pointer;
+        y::wvec2 origin = source.get_origin() + b.offset;
+        if (project_downright) {
+          min_ratio = y::min(min_ratio, get_move_ratio(
+                          g, origin + b.size / 2, move));
+        }
+        if (project_upright) {
+          min_ratio = y::min(min_ratio, get_move_ratio(
+                          g, origin + y::wvec2{1.0, -1.0} * b.size / 2, move));
+        }
+        if (project_downleft) {
+          min_ratio = y::min(min_ratio, get_move_ratio(
+                          g, origin + y::wvec2{-1.0, 1.0} * b.size / 2, move));
+        }
+        if (project_upleft) {
+          min_ratio = y::min(min_ratio, get_move_ratio(
+                          g, origin + y::wvec2{-1.0, -1.0} * b.size / 2, move));
+        }
+        // TODO: need to do leading edges of polygon as well, not just
+        // the projected vertices!
+        // TODO: maybe we should do all edges and projected vertices,
+        // for extra stability.
+      }
     }
   }
+  // Limit the movement to the minimum blocking ratio (i.e., least 0 <= t <= 1
+  // such that moving by t * move is blocked, and recurse in any free unblocked
+  // direction.
+  source.set_origin(min_ratio * move + source.get_origin());
+  // TODO: recurse.
+}
+
+y::world Collision::get_move_ratio(
+    const Geometry& geometry,
+    const y::wvec2& vertex, const y::wvec2& move) const
+{
+  struct world_geometry {
+    y::wvec2 start;
+    y::wvec2 end;
+  };
+  world_geometry v{vertex, move + vertex};
+  world_geometry g{y::wvec2(geometry.start), y::wvec2(geometry.end)};
+
+  // Equations of lines (for t, u in [0, 1]):
+  // v(t) = v.start + (v.end - v.start) * t
+  // g(u) = g.start + (g.end - g.start) * u
+  // Find t, u such that v(t) = g(u).
+  y::world denominator =
+      (g.end[xx] - g.start[xx]) * (v.end[yy] - v.start[yy]) -
+      (g.end[yy] - g.start[yy]) * (v.end[xx] - v.start[xx]);
+
+  // Lines are parallel or coincident.
+  if (!denominator) {
+    return 1;
+  }
+
+  y::world t = (
+      (g.end[xx] - g.start[xx]) * (v.start[yy] - g.start[yy]) -
+      (g.end[yy] - g.start[yy]) * (v.start[xx] - g.start[xx])) / denominator;
+  y::world u = (
+      (v.end[xx] - v.start[xx]) * (g.start[yy] - v.start[yy]) -
+      (v.end[yy] - v.start[yy]) * (g.start[xx] - v.start[xx])) / denominator;
+
+  // Lines intersect outside of the segments.
+  if (t < 0 || t > 1 || u < 0 || u > 1) {
+    return 1;
+  }
+  // TODO: need to also check endpoints of geometry.
+  return t;
 }
 
 y::world Collision::entry::get_min() const
