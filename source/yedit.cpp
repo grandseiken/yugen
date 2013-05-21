@@ -197,7 +197,7 @@ void Yedit::draw() const
           active ? colour::select : colour::item);
       y::vector<y::fvec4> items;
       for (bool b : actives) {
-        items.push_back(
+        items.emplace_back(
             b ? colour::select : active ? colour::item : colour::dark_outline);
       }
       list.draw(util, items, source, select);

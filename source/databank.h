@@ -136,7 +136,7 @@ void Dataset<T>::insert(const y::string& name, y::unique<T> resource)
     return;
   }
 
-  _list.push_back(name);
+  _list.emplace_back(name);
   std::sort(_list.begin(), _list.end());
   auto jt = _map.insert(y::make_pair(name, y::unique<T>()));
   jt.first->second.swap(resource);
@@ -270,7 +270,7 @@ void Dataset<T>::rename(const T& resource, const y::string& new_name)
   temp.swap(it->second);
   _map.erase(it);
 
-  _list.push_back(new_name);
+  _list.emplace_back(new_name);
   std::sort(_list.begin(), _list.end());
   auto jt = _map.insert(y::make_pair(new_name, y::unique<T>()));
   jt.first->second.swap(temp);

@@ -9,13 +9,6 @@
 namespace ylib {
 
   typedef y::int32 ylib_int;
-  template<typename T>
-  std::string tos(const T& t)
-  {
-    y::sstream ss;
-    ss << t;
-    return ss.str();
-  }
 
   template<typename T>
   struct check {};
@@ -54,7 +47,7 @@ namespace ylib {
   };
   template<typename T, y::size N>
   const y::string type_name<y::vec<T, N>>::name =
-      "vec<" + type_name<T>::name + ", " + tos(N) + ">";
+      "vec<" + type_name<T>::name + ", " + std::to_string(N) + ">";
 
   // Integral values.
   template<>
@@ -137,7 +130,7 @@ namespace ylib {
       ylib_int size = luaL_len(state, index);
       for (ylib_int i = 1; i <= size; ++i) {
         lua_rawgeti(state, index, i);
-        t.push_back(check<T>()(state, lua_gettop(state)));
+        t.emplace_back(check<T>()(state, lua_gettop(state)));
       }
       lua_pop(state, size);
       return t;

@@ -95,8 +95,8 @@ void Yugen::update()
 void Yugen::draw() const
 {
   // TODO: window framerate limiting is untrustworthy. Lock to 60 somehow?
-  // And make this clock tick properly.
-  _measurements.push_back(_clock.restart().asMilliseconds());
+  // And make this clock tick properly. Use std::chrono.
+  _measurements.emplace_back(_clock.restart().asMilliseconds());
   if (_measurements.size() > samples) {
     _measurements.erase(_measurements.begin());
   }
@@ -134,7 +134,7 @@ void Yugen::draw() const
     y::int32 length = 4 * size[xx] * size[yy];
     unsigned char* data = new unsigned char[length];
     glReadPixels(0, 0, size[xx], size[yy], GL_RGBA, GL_UNSIGNED_BYTE, data);
-    _save_file_frames.push_back(data);
+    _save_file_frames.emplace_back(data);
   }
   else {
     y::size n = 0;

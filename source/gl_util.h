@@ -40,10 +40,6 @@ GL_UNIFORM(GLfloat, glUniform1f, glUniform2f, glUniform3f, glUniform4f);
 #undef GL_UNIFORM
 
 class GlHandle {
-
-  typedef void (GlHandle::*bool_type)() const;
-  void no_bool_comparison() const {}
-
 public:
 
   virtual ~GlHandle() {}
@@ -51,7 +47,7 @@ public:
   bool operator==(const GlHandle& handle) const;
   bool operator!=(const GlHandle& handle) const;
 
-  operator bool_type() const;
+  explicit operator bool() const;
 
   GLuint get_handle() const;
 
@@ -258,17 +254,13 @@ private:
 // TODO: unbind things after use? Might make errors more obvious.
 // TODO: vertex attrib divisor buffers would be nice, but can't in OpenGL 2.1.
 class GlUtil : public y::no_copy {
-
-  typedef void (GlUtil::*bool_type)() const;
-  void no_bool_comparison() const {}
-
 public:
 
   GlUtil(const Filesystem& filesystem, const Window& window);
   ~GlUtil();
 
   // Returns true iff everything was initialised without problems.
-  operator bool_type() const;
+  explicit operator bool() const;
 
   const Window& get_window() const;
 
@@ -373,7 +365,7 @@ GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint,
                                    const y::vector<T>& data)
 {
   return make_buffer<T, N>(target, usage_hint,
-                           &data[0], sizeof(T) * data.size());
+                           data.data(), sizeof(T) * data.size());
 }
 
 template<typename T, y::size N>
@@ -417,7 +409,7 @@ void GlBuffer<T, N>::reupload_data(const T* data, GLsizei size) const
 template<typename T, y::size N>
 void GlBuffer<T, N>::reupload_data(const y::vector<T>& data) const
 {
-  reupload_data(&data[0], sizeof(T) * data.size());
+  reupload_data(data.data(), sizeof(T) * data.size());
 }
 
 template<typename T, y::size N>

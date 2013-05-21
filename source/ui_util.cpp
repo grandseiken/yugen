@@ -78,7 +78,7 @@ void UiList::draw(RenderUtil& util,
 {
   y::vector<y::fvec4> items;
   for (y::size n = 0; n < source.size(); ++n) {
-    items.push_back(n == select ? _select : _item);
+    items.emplace_back(n == select ? _select : _item);
   }
 
   draw(util, items, source, select);

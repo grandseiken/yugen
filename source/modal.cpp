@@ -17,7 +17,7 @@ bool UndoStack::can_redo() const
 void UndoStack::new_action(y::unique<StackAction> action)
 {
   action->redo();
-  _undo_stack.push_back(element());
+  _undo_stack.emplace_back();
   (_undo_stack.end() - 1)->swap(action);
   _redo_stack.clear();
 }
@@ -29,7 +29,7 @@ void UndoStack::undo()
   }
 
   (*(_undo_stack.end() - 1))->undo();
-  _redo_stack.push_back(element());
+  _redo_stack.emplace_back();
   (_undo_stack.end() - 1)->swap(*(_redo_stack.end() - 1));
   _undo_stack.erase(_undo_stack.end() - 1);
 }
@@ -41,7 +41,7 @@ void UndoStack::redo()
   }
 
   (*(_redo_stack.end() - 1))->redo();
-  _undo_stack.push_back(element());
+  _undo_stack.emplace_back();
   (_redo_stack.end() - 1)->swap(*(_undo_stack.end() - 1));
   _redo_stack.erase(_redo_stack.end() - 1);
 }
@@ -367,7 +367,7 @@ bool Modal::has_drawn_next() const
 void ModalStack::push(y::unique<Modal> modal)
 {
   modal->set_stack(*this);
-  _stack.push_back(element());
+  _stack.emplace_back();
   _stack[_stack.size() - 1].swap(modal);
 }
 

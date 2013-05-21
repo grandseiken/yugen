@@ -136,7 +136,7 @@ void GameStage::update()
       }
     }
     if (!refreshed) {
-      unrefreshed.push_back(*it);
+      unrefreshed.emplace_back(*it);
     }
   }
   _world.clear_refreshed_cells();
@@ -281,6 +281,6 @@ y::wvec2 GameStage::camera_to_world(const y::wvec2& v) const
 
 void GameStage::add_script(y::unique<Script> script)
 {
-  _scripts.push_back(y::unique<Script>());
+  _scripts.emplace_back();
   (_scripts.end() - 1)->swap(script);
 }

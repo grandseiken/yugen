@@ -17,8 +17,8 @@ void PhysicalFilesystem::list_directory_internal(y::string_vector& output,
     boost::filesystem::path root(_root);
     for (auto i = boost::filesystem::directory_iterator(root / path);
          i != boost::filesystem::directory_iterator(); ++i) {
-      output.push_back(boost::filesystem::absolute(i->path())
-                       .generic_string().substr(_root.length()));
+      output.emplace_back(boost::filesystem::absolute(i->path())
+                          .generic_string().substr(_root.length()));
     }
   }
   catch (const boost::filesystem::filesystem_error& e) {}

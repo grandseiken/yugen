@@ -76,7 +76,7 @@ void Filesystem::list_pattern(y::string_vector& output,
   // Constant pattern is just a check for existence.
   if (star_pos == y::string::npos) {
     if (exists(cpattern)) {
-      output.push_back(cpattern);
+      output.emplace_back(cpattern);
     }
     return;
   }
@@ -110,7 +110,7 @@ void Filesystem::list_pattern(y::string_vector& output,
     }
 
     if (right == y::string::npos) {
-      output.push_back(path);
+      output.emplace_back(path);
     }
     else if (is_directory(path)) {
       list_pattern(
@@ -145,7 +145,7 @@ void Filesystem::list_directory_recursive(y::string_vector& output,
   list_directory(directory, path);
 
   for (const y::string& sub_path : directory) {
-    output.push_back(sub_path);
+    output.emplace_back(sub_path);
     if (is_directory(sub_path)) {
       list_directory_recursive(output, sub_path);
     }
@@ -296,7 +296,7 @@ bool Filesystem::canonicalise_path(y::string& output,
         split.erase(split.end() - 1);
       }
       else if (segment != "." && segment != "") {
-        split.push_back(segment);
+        split.emplace_back(segment);
       }
       return true;
     }

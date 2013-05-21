@@ -167,7 +167,7 @@ void Window::get_supported_modes(y::vector<Resolution>& output, y::size bpp)
     Resolution r;
     r.size = {y::int32(mode.width), y::int32(mode.height)};
     r.bpp = mode.bitsPerPixel;
-    output.push_back(r);
+    output.emplace_back(r);
   }
 }
 

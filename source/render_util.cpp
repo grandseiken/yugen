@@ -10,7 +10,7 @@ void RenderBatch::add_sprite(const GlTexture& sprite,
   batched_texture bt{sprite, frame_size};
   batched_sprite bs{float(origin[xx]), float(origin[yy]),
                     float(frame[xx]), float(frame[yy]), depth, colour};
-  _map[bt].push_back(bs);
+  _map[bt].emplace_back(bs);
 }
 
 bool RenderBatch::batched_texture_order::operator()(
@@ -191,7 +191,7 @@ void RenderUtil::set_sprite(const GlTexture& texture,
 void RenderUtil::batch_sprite(const y::ivec2& origin, const y::ivec2& frame,
                               float depth, const y::fvec4& colour) const
 {
-  _batched_sprites.push_back(RenderBatch::batched_sprite{
+  _batched_sprites.emplace_back(RenderBatch::batched_sprite{
       float(origin[xx]), float(origin[yy]),
       float(frame[xx]), float(frame[yy]), depth, colour});
 }
@@ -205,7 +205,7 @@ void write_vector(std::vector<T>& dest, y::size dest_index,
       dest[dest_index + i] = source[i];
     }
     else {
-      dest.push_back(source[i]);
+      dest.emplace_back(source[i]);
     }
   }
 }
@@ -244,12 +244,13 @@ void RenderUtil::render_batch() const
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa]});
   }
 
-  _pixels_buffer.reupload_data(&_pixels_data[0], sizeof(float) * 8 * length);
-  _frame_index_buffer.reupload_data(&_frame_index_data[0],
+  _pixels_buffer.reupload_data(_pixels_data.data(), sizeof(float) * 8 * length);
+  _frame_index_buffer.reupload_data(_frame_index_data.data(),
                                     sizeof(float) * 8 * length);
-  _origin_buffer.reupload_data(&_origin_data[0], sizeof(float) * 8 * length);
-  _depth_buffer.reupload_data(&_depth_data[0], sizeof(float) * 4 * length);
-  _colour_buffer.reupload_data(&_colour_data[0], sizeof(float) * 16 * length);
+  _origin_buffer.reupload_data(_origin_data.data(), sizeof(float) * 8 * length);
+  _depth_buffer.reupload_data(_depth_data.data(), sizeof(float) * 4 * length);
+  _colour_buffer.reupload_data(_colour_data.data(),
+                               sizeof(float) * 16 * length);
 
   if (_element_data.size() / 6 < length) {
     for (y::size i = _element_data.size() / 6; i < length; ++i) {

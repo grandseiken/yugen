@@ -35,7 +35,7 @@ Body* Collision::create_body(Script& source)
     it = _map.insert(y::make_pair(&source, entry{
              ConstScriptReference(source), y::vector<body_entry>()})).first;
   }
-  it->second.list.push_back(y::move_unique(body));
+  it->second.list.emplace_back(body);
   return body;
 }
 

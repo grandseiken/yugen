@@ -55,7 +55,7 @@ void CellMap::add_script(const y::ivec2& v, const y::string& path)
 void CellMap::add_script(const y::ivec2& min, const y::ivec2& max,
                                const y::string& path)
 {
-  _scripts.push_back({min, max, path});
+  _scripts.emplace_back(ScriptBlueprint{min, max, path});
 }
 
 const CellMap::script_list& CellMap::get_scripts() const
@@ -134,7 +134,7 @@ void CellMap::load_from_proto(Databank& bank, const proto::CellMap& proto)
     y::load_from_proto(s.min, proto.scripts(i).min());
     y::load_from_proto(s.max, proto.scripts(i).max());
     s.path = proto.scripts(i).path();
-    _scripts.push_back(s);
+    _scripts.emplace_back(s);
   }
 }
 
@@ -326,7 +326,7 @@ void CellBlueprint::load_from_proto(Databank& bank,
 {
   y::vector<const Tileset*> vector;
   for (y::int32 i = 0; i < proto.tilesets_size(); ++i) {
-    vector.push_back(&bank.tilesets.get(proto.tilesets(i)));
+    vector.emplace_back(&bank.tilesets.get(proto.tilesets(i)));
   }
   for (y::int32 i = 0; i < proto.tiles_size(); ++i) {
     // Handle empty cells.

@@ -15,9 +15,9 @@ bool GlHandle::operator!=(const GlHandle& handle) const
   return !operator==(handle);
 }
 
-GlHandle::operator bool_type() const
+GlHandle::operator bool() const
 {
-  return _handle ? &GlHandle::no_bool_comparison : 0;
+  return _handle;
 }
 
 GlHandle::GlHandle(GLuint handle)
@@ -351,9 +351,9 @@ GlUtil::~GlUtil()
   }
 }
 
-GlUtil::operator bool_type() const
+GlUtil::operator bool() const
 {
-  return _setup_ok ? &GlUtil::no_bool_comparison : 0;
+  return _setup_ok;
 }
 
 const Window& GlUtil::get_window() const
@@ -439,7 +439,7 @@ GlTexture GlUtil::make_texture(const y::string& filename, bool loop)
   }
 
   sf::Image image;
-  if (!image.loadFromMemory(&data[0], data.length())) {
+  if (!image.loadFromMemory(data.data(), data.length())) {
     std::cerr << "Couldn't load image " << filename << std::endl;
     return GlTexture(0, y::ivec2());
   }

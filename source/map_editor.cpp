@@ -807,9 +807,9 @@ void MapEditor::update()
   y::sstream ss;
   ss << get_hover_cell() << " : " << get_hover_tile() <<
       " [" << zoom_array[_zoom] << "X]";
-  _layer_status.push_back(ss.str());
+  _layer_status.emplace_back(ss.str());
   if (_map.is_coord_used(get_hover_cell())) {
-    _layer_status.push_back(
+    _layer_status.emplace_back(
         _bank.cells.get_name(*_map.get_coord(get_hover_cell())));
   }
 

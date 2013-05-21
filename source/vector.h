@@ -389,10 +389,6 @@ namespace y {
   class vec_iterator : public boost::iterator_facade<
       vec_iterator<T, N, non_strict>,
       const vec<T, N, non_strict>, boost::forward_traversal_tag> {
-
-    typedef void (vec_iterator<T, N, non_strict>::*bool_type)() const;
-    void no_bool_comparison() const {}
-
   public:
 
     typedef vec<T, N, non_strict> V;
@@ -411,10 +407,9 @@ namespace y {
       return vec_iterator();
     }
 
-    operator bool_type() const
+    explicit operator bool() const
     {
-      return _finished ?
-          0 : &vec_iterator<T, N, non_strict>::no_bool_comparison;
+      return !_finished;
     }
     
   private:

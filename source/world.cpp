@@ -142,8 +142,8 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
         y::ivec2 end = Tileset::tile_size * y::ivec2{t, row};
 
         // Make sure the geometry is always on the right of its boundary.
-        list.push_back(boundary == RIGHT ?
-                       Geometry{start, end} : Geometry{end, start});
+        list.emplace_back(boundary == RIGHT ?
+                          Geometry{start, end} : Geometry{end, start});
       }
       if (new_boundary != NONE) {
         boundary_start = t;
@@ -177,8 +177,8 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
         y::ivec2 start = Tileset::tile_size * y::ivec2{col, boundary_start};
         y::ivec2 end = Tileset::tile_size * y::ivec2{col, t};
 
-        list.push_back(boundary == RIGHT ?
-                       Geometry{start, end} : Geometry{end, start});
+        list.emplace_back(boundary == RIGHT ?
+                          Geometry{start, end} : Geometry{end, start});
       }
       if (new_boundary != NONE) {
         boundary_start = t;
@@ -422,7 +422,7 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
       continue;
     }
     // These all need to be refreshed.
-    _refreshed_cells.push_back(*it);
+    _refreshed_cells.emplace_back(*it);
     const CellBlueprint* new_blueprint = active_window_target(*it);
     _active_window[internal_index].blueprint = new_blueprint;
 
@@ -528,7 +528,7 @@ void WorldWindow::update_active_window_cell(const y::ivec2& v)
 
   // Changed cells or missing cells need to have their scripts refreshed.
   if (old_blueprint != new_blueprint || !new_blueprint) {
-    _refreshed_cells.push_back(v);
+    _refreshed_cells.emplace_back(v);
   }
 
   if (old_blueprint != new_blueprint) {
