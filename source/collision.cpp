@@ -119,6 +119,8 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
   }
 
   // So far, we only collide Bodies with world geometry.
+  // TODO: collide bodies with bodies; have some sort of collision masks;
+  // allow bodies which only detect overlaps; etc.
   const entry& bodies = it->second;
   const OrderedGeometry& geometry = _world.get_geometry();
 
@@ -185,10 +187,9 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
           min_ratio = y::min(min_ratio, get_move_ratio(
                           g, origin + y::wvec2{-1.0, -1.0} * b.size / 2, move));
         }
-        // TODO: need to do leading edges of polygon as well, not just
-        // the projected vertices!
-        // TODO: maybe we should do all edges and projected vertices,
-        // for extra stability.
+        // TODO: need to do leading edges of polygon as well, not just the
+        // projected vertices! (For slopes to work, anyway.) Maybe we should
+        // do all edges and projected vertices, for extra stability.
       }
     }
   }
