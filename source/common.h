@@ -116,8 +116,26 @@ namespace y {
     return pair<T, U>(std::forward<T>(t), std::forward<U>(u));
   }
 
+  // TODO: should we use some sort of y::angle class? Define it in vector.h?
   typedef boost::noncopyable no_copy;
   typedef double world;
+  const world pi = 3.1415926535897932384626433832795028841971693993751058209749;
+  inline world angle(world a)
+  {
+    while (a > pi) {
+      a -= 2 * pi;
+    }
+    while (a < -pi) {
+      a += 2 * pi;
+    }
+    return a;
+  }
+  inline world angle_distance(world a, world b)
+  {
+    a = angle(a);
+    b = angle(b);
+    return b > a ? min(b - a, 2 * pi + a - b) : min(a - b, 2 * pi + b - a);
+  }
 
 }
 

@@ -275,14 +275,26 @@ namespace y {
     }
 
     template<
-      typename U = T,
-      typename std::enable_if<N == 3 &&
-                              std::is_same<T, U>::value, bool>::type = 0>
+        typename U = T,
+        typename std::enable_if<N == 3 &&
+                                std::is_same<T, U>::value, bool>::type = 0>
     V cross(const V& arg) const
     {
       return V(elements[1] * arg[2] - elements[2] * arg[1],
                elements[2] * arg[0] - elements[0] * arg[2],
                elements[0] * arg[1] - elements[1] * arg[0]);
+    }
+
+    template<
+        typename U = T,
+        typename std::enable_if<N == 2 &&
+                                std::is_same<T, U>::value, bool>::type = 0>
+    auto angle() const -> decltype(atan(T()))
+    {
+      if (!elements[0] && !elements[1]) {
+        return 0;
+      }
+      return atan2(elements[1], elements[0]);
     }
 
     auto angle(const V& arg) const -> decltype(acos(T()))

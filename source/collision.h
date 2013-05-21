@@ -33,6 +33,7 @@ public:
 
   Body* create_body(Script& source);
   void destroy_body(const Script& source, Body* body);
+
   void destroy_bodies(const Script& source);
   void clean_up();
 

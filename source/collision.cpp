@@ -82,14 +82,30 @@ void Collision::render(
   y::size i = 0;
   for (const OrderedBucket& bucket : _world.get_geometry().buckets) {
     for (const Geometry& g : bucket) {
-      y::fvec4 c = ++i % 2 ? y::fvec4(1.f, 0.f, 0.f, .5f) :
-                             y::fvec4(0.f, 1.f, 0.f, .5f);
-      const y::ivec2 origin = y::min(g.start, g.end);
+      const y::fvec4 c = ++i % 2 ? y::fvec4(1.f, 0.f, 0.f, .5f) :
+                                   y::fvec4(0.f, 1.f, 0.f, .5f);
       const y::ivec2 size = y::max(y::abs(g.end - g.start), y::ivec2{1, 1});
+      y::ivec2 origin = y::min(g.start, g.end);
+      if (g.start[xx] > g.end[xx]) {
+        origin[yy] -= 1;
+      }
+      if (g.start[yy] < g.end[yy]) {
+        origin[xx] -= 1;
+      }
       if (y::wvec2(origin + size) > camera_min &&
           y::wvec2(origin) < camera_max) {
         util.render_fill(origin, size, c);
       }
+    }
+  }
+  const y::fvec4 c{0.f, 0.f, 1.f, .5f};
+  const y::wvec2 round{.5f, .5f};
+  for (const auto& pair : _map) {
+    for (const body_entry& b : pair.second.list) {
+      util.render_outline(
+          y::ivec2(
+              pair.second.ref->get_origin() + b->offset - b->size / 2 + round),
+          y::ivec2(b->size + round), c);
     }
   }
 }
@@ -132,8 +148,12 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
       if (g_min >= max_bound) {
         break;
       }
-      // TODO: skip geometry which is defined opposite the direction of
-      // movement. Need atan2 for this.
+      // Skip geometry which is defined opposite the direction of
+      // movement.
+      y::world normal = (g.end - g.start).angle() - y::pi / 2;
+      if (y::angle_distance(normal, move.angle()) < y::pi / 2) {
+        continue;
+      }
       // TODO: skip geometry for which a general bounding-box check fails.
 
       // Now: project each relevant (depending on direction of movement) vertex
