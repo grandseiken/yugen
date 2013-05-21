@@ -53,11 +53,11 @@ public:
 
   TextInputModal(RenderUtil& util, const y::string& default_text,
                  TextInputResult& output, const y::string& label);
-  virtual ~TextInputModal() {}
+  ~TextInputModal() override {}
 
-  virtual void event(const sf::Event& e);
-  virtual void update();
-  virtual void draw() const;
+  void event(const sf::Event& e) override;
+  void update() override;
+  void draw() const override;
 
 private:
 

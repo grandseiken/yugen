@@ -10,22 +10,22 @@ class PhysicalFilesystem : public Filesystem {
 public:
 
   PhysicalFilesystem(const y::string& root);
-  virtual ~PhysicalFilesystem() {}
+  ~PhysicalFilesystem() override {}
 
 protected:
 
-  virtual void list_directory_internal(y::string_vector& output,
-                                       const y::string& path) const;
+  void list_directory_internal(y::string_vector& output,
+                               const y::string& path) const override;
 
-  virtual bool is_file_internal(const y::string& path) const;
+  bool is_file_internal(const y::string& path) const override;
 
-  virtual bool is_directory_internal(const y::string& path) const;
+  bool is_directory_internal(const y::string& path) const override;
 
-  virtual void read_file_internal(y::string& output,
-                                  const y::string& path) const;
+  void read_file_internal(y::string& output,
+                          const y::string& path) const override;
 
-  virtual void write_file_internal(const y::string& data,
-                                   const y::string& path);
+  void write_file_internal(const y::string& data,
+                           const y::string& path) override;
 
 private:
 

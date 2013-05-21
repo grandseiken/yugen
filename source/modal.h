@@ -66,11 +66,11 @@ private:
 };
 
 // A panel in the UI.
-class Panel : public y::no_copy, public Draggable {
+class Panel : public Draggable, public y::no_copy {
 public:
 
   Panel(const y::ivec2& origin, const y::ivec2& size, y::int32 z_index = 0);
-  virtual ~Panel() {}
+  ~Panel() override {}
 
   void set_origin(const y::ivec2& origin);
   void set_size(const y::ivec2& size);
@@ -140,7 +140,7 @@ class Modal : public y::no_copy, public Draggable {
 public:
 
   Modal();
-  virtual ~Modal() {}
+  ~Modal() override {}
 
   // Virtual interface.
   virtual void event(const sf::Event& e) = 0;

@@ -71,7 +71,7 @@ template<typename T, y::size N>
 class GlBuffer : public GlHandle {
 public:
 
-  virtual ~GlBuffer() {}
+  ~GlBuffer() override {}
 
   void bind() const;
   void draw_elements(GLenum mode, GLsizei count) const;
@@ -95,7 +95,7 @@ private:
 class GlTexture : public GlHandle {
 public:
 
-  virtual ~GlTexture() {}
+  ~GlTexture() override {}
 
   void bind(GLenum target) const;
 
@@ -116,7 +116,7 @@ private:
 class GlFramebuffer : public GlHandle {
 public:
 
-  virtual ~GlFramebuffer() {}
+  ~GlFramebuffer() override {}
 
   // Don't delete this texture manually!
   const GlTexture& get_texture() const;
@@ -142,7 +142,7 @@ private:
 class GlShader : public GlHandle {
 public:
 
-  virtual ~GlShader() {}
+  ~GlShader() override {}
 
 protected:
 
@@ -164,7 +164,7 @@ namespace std {
 class GlProgram : public GlHandle {
 public:
 
-  virtual ~GlProgram() {}
+  ~GlProgram() override {}
 
   // Render using this shader.
   void bind() const;

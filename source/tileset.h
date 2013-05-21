@@ -41,8 +41,9 @@ public:
 
 protected:
 
-  virtual void save_to_proto(const Databank& bank, proto::Tileset& proto) const;
-  virtual void load_from_proto(Databank& bank, const proto::Tileset& proto);
+  void save_to_proto(const Databank& bank,
+                     proto::Tileset& proto) const override;
+  void load_from_proto(Databank& bank, const proto::Tileset& proto) override;
 
 private:
 

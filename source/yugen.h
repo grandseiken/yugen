@@ -19,11 +19,11 @@ class Yugen : public Modal {
 public:
 
   Yugen(Databank& bank, RenderUtil& util);
-  virtual ~Yugen();
+  ~Yugen() override;
 
-  virtual void event(const sf::Event& e);
-  virtual void update();
-  virtual void draw() const;
+  void event(const sf::Event& e) override;
+  void update() override;
+  void draw() const override;
 
 private:
 

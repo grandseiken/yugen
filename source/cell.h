@@ -58,8 +58,9 @@ public:
 
 protected:
 
-  virtual void save_to_proto(const Databank& bank, proto::CellMap& proto) const;
-  virtual void load_from_proto(Databank& bank, const proto::CellMap& proto);
+  void save_to_proto(
+      const Databank& bank, proto::CellMap& proto) const override;
+  void load_from_proto(Databank& bank, const proto::CellMap& proto) override;
 
 private:
 
@@ -150,10 +151,10 @@ public:
 
 protected:
 
-  virtual void save_to_proto(const Databank& bank,
-                             proto::CellBlueprint& proto) const;
-  virtual void load_from_proto(Databank& bank,
-                               const proto::CellBlueprint& proto);
+  void save_to_proto(const Databank& bank,
+                     proto::CellBlueprint& proto) const override;
+  void load_from_proto(Databank& bank,
+                       const proto::CellBlueprint& proto) override;
 
 private:
 

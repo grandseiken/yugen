@@ -17,8 +17,8 @@ struct SetCollideAction : public StackAction {
   y::int32 old_collide;
   y::int32 new_collide;
 
-  virtual void redo() const;
-  virtual void undo() const;
+  void redo() const override;
+  void undo() const override;
 };
 
 // Displays the tileset with collision data overlaid.
@@ -27,11 +27,11 @@ public:
 
   TilesetPanel(Tileset& tileset, y::int32& collide_select,
                UndoStack& undo_stack);
-  virtual ~TilesetPanel() {}
+  ~TilesetPanel() override {}
 
-  virtual bool event(const sf::Event& e);
-  virtual void update();
-  virtual void draw(RenderUtil& util) const;
+  bool event(const sf::Event& e) override;
+  void update() override;
+  void draw(RenderUtil& util) const override;
 
 private:
 
@@ -49,11 +49,11 @@ public:
   static const y::int32 entries_per_row;
 
   CollidePanel(y::int32& collide_select);
-  virtual ~CollidePanel() {}
+  ~CollidePanel() override {}
 
-  virtual bool event(const sf::Event& e);
-  virtual void update();
-  virtual void draw(RenderUtil& util) const;
+  bool event(const sf::Event& e) override;
+  void update() override;
+  void draw(RenderUtil& util) const override;
 
 private:
 
@@ -67,11 +67,11 @@ class TilesetEditor : public Modal {
 public:
 
   TilesetEditor(Databank& bank, RenderUtil& util, Tileset& tileset);
-  virtual ~TilesetEditor() {}
+  ~TilesetEditor() override {}
 
-  virtual void event(const sf::Event& e);
-  virtual void update();
-  virtual void draw() const;
+  void event(const sf::Event& e) override;
+  void update() override;
+  void draw() const override;
 
 private:
 

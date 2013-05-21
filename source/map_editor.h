@@ -22,8 +22,8 @@ struct CellAddAction : public StackAction {
   y::ivec2 cell;
   y::string path;
 
-  virtual void redo() const;
-  virtual void undo() const;
+  void redo() const override;
+  void undo() const override;
 };
 
 // Action that renames a cell.
@@ -37,8 +37,8 @@ struct CellRenameAction : public StackAction {
   y::string new_path;
   mutable y::string old_path;
 
-  virtual void redo() const;
-  virtual void undo() const;
+  void redo() const override;
+  void undo() const override;
 };
 
 // Action that removes a cell.
@@ -50,8 +50,8 @@ struct CellRemoveAction : public StackAction {
   y::ivec2 cell;
   mutable y::string path;
 
-  virtual void redo() const;
-  virtual void undo() const;
+  void redo() const override;
+  void undo() const override;
 };
 
 // Action that changes a set of tiles.
@@ -71,8 +71,8 @@ struct TileEditAction : public StackAction {
   typedef y::pair<y::ivec2, y::ivec2> key;
   y::map<key, entry> edits;
 
-  virtual void redo() const;
-  virtual void undo() const;
+  void redo() const override;
+  void undo() const override;
 };
 
 // Action that adds a script.
@@ -85,8 +85,8 @@ struct ScriptAddAction : public StackAction {
   y::ivec2 max;
   y::string path;
 
-  virtual void redo() const;
-  virtual void undo() const;
+  void redo() const override;
+  void undo() const override;
 };
 
 // Action that removes a script.
@@ -99,8 +99,8 @@ struct ScriptRemoveAction : public StackAction {
   mutable y::ivec2 max;
   mutable y::string path;
 
-  virtual void redo() const;
-  virtual void undo() const;
+  void redo() const override;
+  void undo() const override;
 };
 
 // Action that moves a script.
@@ -111,8 +111,8 @@ struct ScriptMoveAction : public StackAction {
   y::ivec2 start;
   y::ivec2 end;
 
-  virtual void redo() const;
-  virtual void undo() const;
+  void redo() const override;
+  void undo() const override;
 };
 
 // The current set of tiles stored in the brush.
@@ -132,11 +132,11 @@ class BrushPanel : public Panel {
 public:
 
   BrushPanel(const Databank& bank, const TileBrush& brush);
-  virtual ~BrushPanel() {}
+  ~BrushPanel() override {}
 
-  virtual bool event(const sf::Event& e);
-  virtual void update();
-  virtual void draw(RenderUtil& util) const;
+  bool event(const sf::Event& e) override;
+  void update() override;
+  void draw(RenderUtil& util) const override;
 
 private:
 
@@ -150,11 +150,11 @@ class TilePanel : public Panel {
 public:
 
   TilePanel(const Databank& bank, TileBrush& brush);
-  virtual ~TilePanel() {}
+  ~TilePanel() override {}
 
-  virtual bool event(const sf::Event& e);
-  virtual void update();
-  virtual void draw(RenderUtil& util) const;
+  bool event(const sf::Event& e) override;
+  void update() override;
+  void draw(RenderUtil& util) const override;
 
 private:
 
@@ -176,14 +176,14 @@ class ScriptPanel : public Panel {
 public:
 
   ScriptPanel(const Databank& bank);
-  virtual ~ScriptPanel() {}
+  ~ScriptPanel() override {}
 
   const y::string& get_script() const;
   void set_script(const y::string& path);
 
-  virtual bool event(const sf::Event& e);
-  virtual void update();
-  virtual void draw(RenderUtil& util) const;
+  bool event(const sf::Event& e) override;
+  void update() override;
+  void draw(RenderUtil& util) const override;
 
 private:
 
@@ -198,13 +198,13 @@ class LayerPanel : public Panel {
 public:
 
   LayerPanel(const y::string_vector& status);
-  virtual ~LayerPanel() {}
+  ~LayerPanel() override {}
 
   y::int32 get_layer() const;
 
-  virtual bool event(const sf::Event& e);
-  virtual void update();
-  virtual void draw(RenderUtil& util) const;
+  bool event(const sf::Event& e) override;
+  void update() override;
+  void draw(RenderUtil& util) const override;
 
 private:
 
@@ -219,11 +219,11 @@ class MinimapPanel : public Panel {
 public:
 
   MinimapPanel(const CellMap& map, y::ivec2& camera, const y::int32& zoom);
-  virtual ~MinimapPanel() {}
+  ~MinimapPanel() override {}
 
-  virtual bool event(const sf::Event& e);
-  virtual void update();
-  virtual void draw(RenderUtil& util) const;
+  bool event(const sf::Event& e) override;
+  void update() override;
+  void draw(RenderUtil& util) const override;
 
 private:
 
@@ -240,11 +240,11 @@ class MapEditor: public Modal {
 public:
 
   MapEditor(Databank& bank, RenderUtil& util, CellMap& map);
-  virtual ~MapEditor() {}
+  ~MapEditor() override {}
 
-  virtual void event(const sf::Event& e);
-  virtual void update();
-  virtual void draw() const;
+  void event(const sf::Event& e) override;
+  void update() override;
+  void draw() const override;
 
 private:
 

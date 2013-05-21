@@ -18,11 +18,11 @@ class Yedit : public Modal {
 public:
 
   Yedit(Filesystem& output, Databank& bank, RenderUtil& util);
-  virtual ~Yedit() {}
+  ~Yedit() override {}
 
-  virtual void event(const sf::Event& e);
-  virtual void update();
-  virtual void draw() const;
+  void event(const sf::Event& e) override;
+  void update() override;
+  void draw() const override;
 
 private:
 

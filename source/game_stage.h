@@ -19,7 +19,7 @@ public:
   GameStage(const Databank& bank,
             RenderUtil& util, GlFramebuffer& framebuffer,
             const CellMap& map, const y::ivec2& coord);
-  virtual ~GameStage();
+  ~GameStage() override;
 
   const Databank& get_bank() const;
   RenderUtil& get_util() const;
@@ -27,9 +27,9 @@ public:
   /***/ Collision& get_collision();
   const y::wvec2& get_camera() const;
 
-  virtual void event(const sf::Event& e);
-  virtual void update();
-  virtual void draw() const;
+  void event(const sf::Event& e) override;
+  void update() override;
+  void draw() const override;
 
   // Lua API functions.
   void destroy_script(const Script& script);

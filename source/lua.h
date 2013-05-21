@@ -71,7 +71,7 @@ public:
 
   Script(GameStage& stage, const y::string& path, const y::string& contents,
          const y::wvec2& origin, const y::wvec2& region);
-  virtual ~Script();
+  ~Script();
 
   const y::string& get_path() const;
 
