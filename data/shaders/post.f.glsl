@@ -15,7 +15,7 @@ const vec2 g_dir = vec2(sin(0.2 + 2 * pi / 3), cos(0.2 + 2 * pi / 3));
 const vec2 b_dir = vec2(sin(0.2 + 4 * pi / 3), cos(0.2 + 4 * pi / 3));
 
 void main()
-{ 
+{
   vec2 bayer_div = vec2(1.0 / bayer_res.x, 1.0 / bayer_res.y);
   vec2 r_off = 0.07 * bayer_frame * bayer_div * r_dir;
   vec2 g_off = 0.11 * bayer_frame * bayer_div * g_dir;

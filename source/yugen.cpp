@@ -32,7 +32,6 @@ const GLfloat bayer_matrix[] = {
     bayer_d * 10, bayer_d * 58, bayer_d * 6, bayer_d * 54,
     bayer_d * 43, bayer_d * 27, bayer_d * 39, bayer_d * 23,
     bayer_d * 42, bayer_d * 26, bayer_d * 38, bayer_d * 22};
-  
 
 const GLfloat vertex_data[] = {
     -1.f, -1.f,

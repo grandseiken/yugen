@@ -169,7 +169,7 @@ void GameStage::update()
 
     bool overlaps_world = ws.origin + ws.region / 2 >= lower_bound &&
                           ws.origin - ws.region / 2 < upper_bound;
-    
+
     if (overlaps_world && !overlaps_unrefreshed) {
       const LuaFile& file = _bank.scripts.get(ws.path);
       add_script(y::move_unique(
@@ -200,7 +200,7 @@ void GameStage::draw() const
   _util.add_translation(translation);
   _current_batch.clear();
   const y::wvec2 camera_min = camera_to_world(y::wvec2());
-  const y::wvec2 camera_max = 
+  const y::wvec2 camera_max =
       camera_to_world(y::wvec2(_framebuffer.get_size()));
 
   // Render all the tiles in the world at once, batched by texture.

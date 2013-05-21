@@ -9,7 +9,7 @@ function update()
   set_origin(self, o)
   counter = counter + 1
   if counter == r then
---    create(script, o)
+  -- create(script, o)
   end
   if counter == 80 then
     destroy(self)

@@ -492,7 +492,7 @@ WorldScript WorldWindow::script_blueprint_to_world_script(
 {
   return {blueprint.path,
           y::wvec2(Cell::cell_size * Tileset::tile_size * _active_map_offset +
-                   (Tileset::tile_size * (y::ivec2{1, 1} + blueprint.min + 
+                   (Tileset::tile_size * (y::ivec2{1, 1} + blueprint.min +
                                                            blueprint.max)) / 2),
           y::wvec2((Tileset::tile_size * (y::ivec2{1, 1} + blueprint.max -
                                                            blueprint.min)))};

@@ -128,9 +128,6 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
   y::world max_bound = source.get_origin()[xx] + bodies.get_max();
   max_bound = y::max(max_bound, move[xx] + max_bound);
 
-  // TODO: pull source back a bit first so that when we're already right up
-  // against an obstacle we don't go through it due to floatingpoint error?
-  // Or some other fix.
   y::world min_ratio = 1;
   // Eliminating geometry by bucket and order depends heavily on structure of
   // OrderedGeometry.
@@ -148,8 +145,7 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
       if (g_min >= max_bound) {
         break;
       }
-      // Skip geometry which is defined opposite the direction of
-      // movement.
+      // Skip geometry which is defined opposite the direction of movement.
       y::world normal = (g.end - g.start).angle() - y::pi / 2;
       if (y::angle_distance(normal, move.angle()) < y::pi / 2) {
         continue;
@@ -217,7 +213,7 @@ y::world Collision::get_move_ratio(
   // Equations of lines (for t, u in [0, 1]):
   // v(t) = v.start + (v.end - v.start) * t
   // g(u) = g.start + (g.end - g.start) * u
-  // Find t, u such that v(t) = g(u).
+  // Finds t, u such that v(t) = g(u).
   y::world denominator =
       (g.end[xx] - g.start[xx]) * (v.end[yy] - v.start[yy]) -
       (g.end[yy] - g.start[yy]) * (v.end[xx] - v.start[xx]);
@@ -229,7 +225,7 @@ y::world Collision::get_move_ratio(
 
   y::world t = (
       (g.end[xx] - g.start[xx]) * (v.start[yy] - g.start[yy]) -
-      (g.end[yy] - g.start[yy]) * (v.start[xx] - g.start[xx])) / denominator;
+      (g.end[yy] - g.start[yy]) * (v.start[xx] - g.start[xx])) / -denominator;
   y::world u = (
       (v.end[xx] - v.start[xx]) * (g.start[yy] - v.start[yy]) -
       (v.end[yy] - v.start[yy]) * (g.start[xx] - v.start[xx])) / denominator;
