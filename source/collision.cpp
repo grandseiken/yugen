@@ -8,14 +8,14 @@ Body::Body(const Script& source)
 {
 }
 
-y::world Body::get_min() const
+y::wvec2 Body::get_min() const
 {
-  return offset[xx] - size[xx] / 2;
+  return offset - size / 2;
 }
 
-y::world Body::get_max() const
+y::wvec2 Body::get_max() const
 {
-  return offset[xx] + size[xx] / 2;
+  return offset + size / 2;
 }
 
 Collision::Collision(const WorldWindow& world)
@@ -120,15 +120,19 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
 
   // So far, we only collide Bodies with world geometry.
   // TODO: collide bodies with bodies; have some sort of collision masks;
-  // allow bodies which only detect overlaps; etc.
+  // allow bodies which only detect overlaps; etc. When bodies collide with
+  // bodies: to avoid order-dependent edge-cases (e.g. player standing on
+  // platform moving downwards), will need to store per-frame list of things
+  // which tried to move but were blocked by bodies. If the blocker moves away,
+  // try again to move all the things where we blocked by it.
   const entry& bodies = it->second;
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // X-coordinate bounds of the source Bodies.
-  y::world min_bound = source.get_origin()[xx] + bodies.get_min();
-  min_bound = y::min(min_bound, move[xx] + min_bound);
-  y::world max_bound = source.get_origin()[xx] + bodies.get_max();
-  max_bound = y::max(max_bound, move[xx] + max_bound);
+  y::wvec2 min_bound = source.get_origin() + bodies.get_min();
+  min_bound = y::min(min_bound, move + min_bound);
+  y::wvec2 max_bound = source.get_origin() + bodies.get_max();
+  max_bound = y::max(max_bound, move + max_bound);
 
   y::world min_ratio = 1;
   // Eliminating geometry by bucket and order depends heavily on structure of
@@ -137,22 +141,24 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
     // Skip buckets we're completely outside. If this gets too slow, we can
     // bucket by both x and y.
     y::int32 g_max = geometry.get_max_for_bucket(i);
-    if (min_bound >= g_max) {
+    if (min_bound[xx] >= g_max) {
       continue;
     }
 
     for (const Geometry& g : geometry.buckets[i]) {
+      y::wvec2 g_min = y::wvec2(y::min(g.start, g.end));
+      y::wvec2 g_max = y::wvec2(y::max(g.start, g.end));
       // By ordering, once we see a high enough minimum we can break.
-      y::int32 g_min = y::min(g.start[xx], g.end[xx]);
-      if (g_min >= max_bound) {
+      if (g_min[xx] >= max_bound[xx]) {
         break;
       }
-      // Skip geometry which is defined opposite the direction of movement.
+      // Skip geometry which is defined opposite the direction of movement, and
+      // geometry for which a general bounding-box check fails.
       y::world normal = (g.end - g.start).angle() - y::pi / 2;
-      if (y::angle_distance(normal, move.angle()) < y::pi / 2) {
+      if (y::angle_distance(normal, move.angle()) < y::pi / 2 ||
+          !(g_min < max_bound && g_max > min_bound)) {
         continue;
       }
-      // TODO: skip geometry for which a general bounding-box check fails.
 
       // Now: project each relevant (depending on direction of movement) vertex
       // of each body along the movement vector to form a line. Find the
@@ -188,8 +194,12 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
                           g, origin + y::wvec2{-1.0, -1.0} * b.size / 2, move));
         }
         // TODO: need to do leading edges of polygon as well, not just the
-        // projected vertices! (For slopes to work, anyway.) Maybe we should
-        // do all edges and projected vertices, for extra stability.
+        // projected vertices, and check endpoints of geometry inside them.
+        // (For slopes to work, anyway.) Maybe we should do all edges and
+        // projected vertices, for extra stability. This is easy! Just do
+        // everything in reverse, i.e., project the geometry backwards and
+        // see if it crosses the original sides of the box. The symmetry is
+        // pleasing.
       }
     }
   }
@@ -235,13 +245,12 @@ y::world Collision::get_move_ratio(
   if (t < 0 || t > 1 || u < 0 || u > 1) {
     return 1;
   }
-  // TODO: need to also check endpoints of geometry.
   return t;
 }
 
-y::world Collision::entry::get_min() const
+y::wvec2 Collision::entry::get_min() const
 {
-  y::world min = 0;
+  y::wvec2 min;
   bool first = true;
   for (const body_entry& e : list) {
     min = first ? e->get_min() : y::min(min, e->get_min());
@@ -250,9 +259,9 @@ y::world Collision::entry::get_min() const
   return min;
 }
 
-y::world Collision::entry::get_max() const
+y::wvec2 Collision::entry::get_max() const
 {
-  y::world max = 0;
+  y::wvec2 max;
   bool first = true;
   for (const body_entry& e : list) {
     max = first ? e->get_max() : y::max(max, e->get_max());

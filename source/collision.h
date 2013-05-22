@@ -17,8 +17,8 @@ struct Body {
 
   // Get bounds (on x-axis). Potentially this could be made virtual and
   // overridden for other shapes.
-  y::world get_min() const;
-  y::world get_max() const;
+  y::wvec2 get_min() const;
+  y::wvec2 get_max() const;
 
   const Script& source;
   y::wvec2 offset;
@@ -52,8 +52,8 @@ private:
   // We hold a weak reference to each Script so that we can destroy the bodies
   // whose source Scripts no longer exist.
   struct entry {
-    y::world get_min() const;
-    y::world get_max() const;
+    y::wvec2 get_min() const;
+    y::wvec2 get_max() const;
 
     ConstScriptReference ref;
     y::vector<body_entry> list;
