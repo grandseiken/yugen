@@ -161,10 +161,10 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
       }
 
       // Now: project each relevant (depending on direction of movement) vertex
-      // of each body along the movement vector to form a line. Find the
-      // minimum blocking ratio among each intersection of the geometry with
-      // these, and also any endpoint of geometry contained within the
-      // projection.
+      // of each body by the movement vector to form a line. Find the minimum
+      // blocking ratio among each intersection of the geometry with these, and
+      // and also any endpoint of geometry contained within the projection of
+      // the entire shape.
       bool project_downright =
           move[xx] > 0 || move[yy] > 0;
       bool project_upright =
@@ -193,13 +193,13 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
           min_ratio = y::min(min_ratio, get_move_ratio(
                           g, origin + y::wvec2{-1.0, -1.0} * b.size / 2, move));
         }
-        // TODO: need to do leading edges of polygon as well, not just the
-        // projected vertices, and check endpoints of geometry inside them.
-        // (For slopes to work, anyway.) Maybe we should do all edges and
-        // projected vertices, for extra stability. This is easy! Just do
-        // everything in reverse, i.e., project the geometry backwards and
-        // see if it crosses the original sides of the box. The symmetry is
-        // pleasing.
+        // TODO: the pleasing symmetry is that checking the geometry endpoints
+        // is exactly the reverse of the above process, i.e., project the
+        // geometry backwards by the movement vector and take one minus the
+        // maximum blocking ratio among intersections with the original shape.
+        // TODO: rewrite to be more generic, i.e., we always project the
+        // (relevant) vertices of one shape against the edges of the second,
+        // and vice versa.
       }
     }
   }
