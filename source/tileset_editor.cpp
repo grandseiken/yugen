@@ -124,7 +124,7 @@ bool CollidePanel::event(const sf::Event& e)
   }
 
   if (e.type == sf::Event::MouseButtonPressed && _hover >= y::ivec2()) {
-    y::ivec2 v = _hover / Tileset::tile_size;
+    y::ivec2 v = _hover.euclidean_div(Tileset::tile_size);
     y::int32 i = v[xx] + v[yy] * entries_per_row;
     if (i < Tileset::COLLIDE_SIZE) {
       _collide_select = i;
@@ -165,7 +165,8 @@ void CollidePanel::draw(RenderUtil& util) const
        util.render_outline(Tileset::tile_size * v, Tileset::tile_size,
                            colour::select);
      }
-     else if (_hover >= y::ivec2() && _hover / Tileset::tile_size == v) {
+     else if (_hover >= y::ivec2() &&
+              _hover.euclidean_div(Tileset::tile_size) == v) {
        util.render_outline(Tileset::tile_size * v, Tileset::tile_size,
                            colour::hover);
      }

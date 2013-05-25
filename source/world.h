@@ -94,6 +94,9 @@ public:
   // whenever possible.
   void set_active_coord(const y::ivec2& active_coord);
 
+  // Get active window center coord.
+  y::ivec2 get_active_coord() const;
+
   // Moves the active window. Avoids reloading cells whenever possible.
   void move_active_window(const y::ivec2& offset);
 

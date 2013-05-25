@@ -15,7 +15,7 @@ ylib_typedef(LuaFile);
 ylib_typedef(Script);
 
 /******************************************************************************/
-/* Vector API                                                                 */
+// Vector API
 /******************************************************************************/
 ylib_api(vec) ylib_arg(y::world, x) ylib_arg(y::world, y)
 {
@@ -122,7 +122,7 @@ ylib_api(vec_min) ylib_refarg(const y::wvec2, a) ylib_refarg(const y::wvec2, b)
 }
 
 /******************************************************************************/
-/* Script reference API                                                       */
+// Script reference API
 /******************************************************************************/
 ylib_api(ref) ylib_arg(Script*, script)
 {
@@ -152,7 +152,7 @@ ylib_api(ref_get) ylib_refarg(ScriptReference, a)
 }
 
 /******************************************************************************/
-/* Script API                                                                 */
+// Script API
 /******************************************************************************/
 ylib_api(get_origin) ylib_arg(const Script*, script)
 {
@@ -220,7 +220,33 @@ ylib_api(render_sprite)
 }
 
 /******************************************************************************/
-/* Collision API                                                              */
+// Player API
+/******************************************************************************/
+ylib_api(set_player)
+    ylib_arg(Script*, script)
+{
+  stage.set_player(script);
+  ylib_void();
+}
+
+ylib_api(clear_player)
+{
+  stage.set_player(y::null);
+  ylib_void();
+}
+
+ylib_api(has_player)
+{
+  ylib_return(stage.get_player() != y::null);
+}
+
+ylib_api(get_player)
+{
+  ylib_return(stage.get_player());
+}
+
+/******************************************************************************/
+// Collision API
 /******************************************************************************/
 ylib_api(create_body)
     ylib_arg(Script*, script)

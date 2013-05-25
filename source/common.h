@@ -33,6 +33,12 @@ namespace y {
   typedef std::istream istream;
 
   template<typename T>
+  string to_string(const T& t)
+  {
+    return std::to_string(t);
+  }
+
+  template<typename T>
   T abs(const T& t)
   {
     return std::abs(t);

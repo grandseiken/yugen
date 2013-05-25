@@ -39,12 +39,11 @@ const GLfloat vertex_data[] = {
     -1.f, +1.f,
      1.f, +1.f};
 
-Yugen::Yugen(Databank& bank, RenderUtil& util)
-  : _bank(bank)
-  , _util(util)
+Yugen::Yugen(RenderUtil& util)
+  : _util(util)
   , _framebuffer(util.get_gl().make_framebuffer(RenderUtil::native_size))
   , _post_buffer(util.get_gl().make_framebuffer(RenderUtil::native_size))
-  , _launched(false)
+  , _stage(y::null)
   , _post_program(util.get_gl().make_program({
       "/shaders/post.v.glsl",
       "/shaders/post.f.glsl"}))
@@ -57,6 +56,16 @@ Yugen::Yugen(Databank& bank, RenderUtil& util)
   , _vertex_buffer(util.get_gl().make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data)))
 {
+}
+
+const GlFramebuffer& Yugen::get_framebuffer() const
+{
+  return _framebuffer;
+}
+
+void Yugen::set_stage(GameStage* stage)
+{
+  _stage = stage;
 }
 
 Yugen::~Yugen()
@@ -82,13 +91,6 @@ void Yugen::event(const sf::Event& e)
 
 void Yugen::update()
 {
-  // Start a new game.
-  if (!has_next() && !_bank.maps.empty() && !_launched) {
-    _launched = true;
-    _stage = new GameStage(
-        _bank, _util, _framebuffer, _bank.maps.get(0), y::ivec2());
-    push(y::move_unique(_stage));
-  }
 }
 
 void Yugen::draw() const
@@ -173,10 +175,18 @@ void Yugen::draw() const
 
 y::int32 main(y::int32 argc, char** argv)
 {
-  (void)argc;
-  (void)argv;
+  y::string_vector args;
+  for (y::int32 i = 1; i < argc; ++i) {
+    args.emplace_back(argv[i]);
+  }
+  // Usage: yugen map x y
+  if (!args.empty() && args.size() != 3) {
+    std::cerr << "Usage: yugen map x y" << std::endl;
+    return 1;
+  }
 
-  Window window("Crunk Yugen", 24, RenderUtil::native_size, true, false);
+  Window window("Crunk Yugen", 24, RenderUtil::native_size,
+                args.empty(), !args.empty());
   PhysicalFilesystem filesystem("data");
   GlUtil gl(filesystem, window);
   if (!gl) {
@@ -185,8 +195,26 @@ y::int32 main(y::int32 argc, char** argv)
   Databank databank(filesystem, gl);
   RenderUtil util(gl);
 
+  y::size map = 0;
+  y::wvec2 world;
+  if (!args.empty()) {
+    if (databank.maps.is_name_used(args[0])) {
+      map = databank.maps.get_index(args[0]);
+    }
+    y::ivec2 tile{std::stoi(args[1]), std::stoi(args[2])};
+    world = (y::wvec2{.5, .5} + y::wvec2(tile)) *
+             y::wvec2(Tileset::tile_size);
+  }
+
+  Yugen* yugen = new Yugen(util);
+  GameStage* stage = new GameStage(
+      databank, util, yugen->get_framebuffer(),
+      databank.maps.get(map), world);
+  yugen->set_stage(stage);
+
   ModalStack stack;
-  stack.push(y::move_unique(new Yugen(databank, util)));
+  stack.push(y::move_unique(yugen));
+  stack.push(y::move_unique(stage));
   stack.run(window);
   return 0;
 }

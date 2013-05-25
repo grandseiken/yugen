@@ -17,8 +17,8 @@ class GameStage : public Modal {
 public:
 
   GameStage(const Databank& bank,
-            RenderUtil& util, GlFramebuffer& framebuffer,
-            const CellMap& map, const y::ivec2& coord);
+            RenderUtil& util, const GlFramebuffer& framebuffer,
+            const CellMap& map, const y::wvec2& coord);
   ~GameStage() override;
 
   const Databank& get_bank() const;
@@ -40,6 +40,9 @@ public:
       const y::wvec2& origin, const y::wvec2& region);
   RenderBatch& get_current_batch();
 
+  void set_player(Script* script);
+  Script* get_player() const;
+
 private:
 
   y::wvec2 world_to_camera(const y::wvec2& v) const;
@@ -49,12 +52,13 @@ private:
 
   const Databank& _bank;
   RenderUtil& _util;
-  GlFramebuffer& _framebuffer;
+  const GlFramebuffer& _framebuffer;
   const CellMap& _map;
 
   WorldWindow _world;
   Collision _collision;
   y::wvec2 _camera;
+  Script* _player;
 
   typedef y::vector<y::unique<Script>> script_list;
   script_list _scripts;

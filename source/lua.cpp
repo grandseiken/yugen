@@ -47,7 +47,7 @@ namespace ylib {
   };
   template<typename T, y::size N>
   const y::string type_name<y::vec<T, N>>::name =
-      "vec<" + type_name<T>::name + ", " + std::to_string(N) + ">";
+      "vec<" + type_name<T>::name + ", " + y::to_string(N) + ">";
 
   // Integral values.
   template<>

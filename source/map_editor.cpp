@@ -251,7 +251,7 @@ bool TilePanel::event(const sf::Event& e)
     else {
       _tile_hover = {e.mouseMove.x, e.mouseMove.y -
                      RenderUtil::from_grid(_list.get_size())[yy]};
-      _tile_hover /= Tileset::tile_size;
+      _tile_hover = _tile_hover.euclidean_div(Tileset::tile_size);
     }
     return true;
   }
@@ -698,6 +698,17 @@ void MapEditor::event(const sf::Event& e)
     // Quit!
     case sf::Keyboard::Escape:
       end();
+      break;
+
+    // Kick off game.
+    case sf::Keyboard::Return:
+      if (shift) {
+        y::string call = "bin/yugen " + _bank.maps.get_name(_map) + 
+                         " " + y::to_string(get_hover_world()[xx]) +
+                         " " + y::to_string(get_hover_world()[yy]);
+        std::cout << call << " exited with code " << system(call.c_str()) <<
+            std::endl;
+      }
       break;
 
     // Rename cell.

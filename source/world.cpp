@@ -374,6 +374,11 @@ void WorldWindow::set_active_coord(const y::ivec2& active_coord)
   move_active_window(_active_map_offset + active_coord);
 }
 
+y::ivec2 WorldWindow::get_active_coord() const
+{
+  return -_active_map_offset;
+}
+
 void WorldWindow::move_active_window(const y::ivec2& offset)
 {
   if (offset == y::ivec2()) {

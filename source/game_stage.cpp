@@ -6,17 +6,23 @@
 #include <SFML/Window.hpp>
 
 GameStage::GameStage(const Databank& bank,
-                     RenderUtil& util, GlFramebuffer& framebuffer,
-                     const CellMap& map, const y::ivec2& coord)
+                     RenderUtil& util, const GlFramebuffer& framebuffer,
+                     const CellMap& map, const y::wvec2& coord)
   : _bank(bank)
   , _util(util)
   , _framebuffer(framebuffer)
   , _map(map)
-  , _world(map, coord)
+  , _world(map, y::ivec2(coord).euclidean_div(Tileset::tile_size *
+                                              Cell::cell_size))
   , _collision(_world)
-  , _camera(Cell::cell_size * Tileset::tile_size * coord +
-            Cell::cell_size * Tileset::tile_size / 2)
+  , _player(y::null)
 {
+  const LuaFile& file = _bank.scripts.get("/scripts/player.lua");
+  y::wvec2 offset = y::wvec2(_world.get_active_coord() *
+                             Cell::cell_size * Tileset::tile_size);
+  Script& player = create_script(file, coord - offset);
+  set_player(&player);
+  _camera = coord - offset;
 }
 
 GameStage::~GameStage()
@@ -87,15 +93,21 @@ void GameStage::update()
   struct local {
     bool all_unrefreshed;
     const WorldWindow::cell_list& unrefreshed;
+    const Script* player;
 
-    local(bool all_unrefreshed, const WorldWindow::cell_list& unrefreshed)
+    local(bool all_unrefreshed, const WorldWindow::cell_list& unrefreshed,
+          const Script* player)
       : all_unrefreshed(all_unrefreshed)
       , unrefreshed(unrefreshed)
+      , player(player)
     {
     }
 
     bool operator()(const y::unique<Script>& s)
     {
+      if (s.get() == player) {
+        return false;
+      }
       const y::wvec2& origin = s->get_origin();
       const y::wvec2& region = s->get_region();
 
@@ -142,7 +154,7 @@ void GameStage::update()
   _world.clear_refreshed_cells();
 
   // Clean up out-of-bounds scripts.
-  local is_out_of_bounds(all_unrefreshed, unrefreshed);
+  local is_out_of_bounds(all_unrefreshed, unrefreshed, _player);
   _scripts.erase(
       std::remove_if(_scripts.begin(), _scripts.end(), is_out_of_bounds),
       _scripts.end());
@@ -267,6 +279,16 @@ Script& GameStage::create_script(const LuaFile& file,
 RenderBatch& GameStage::get_current_batch()
 {
   return _current_batch;
+}
+
+void GameStage::set_player(Script* player)
+{
+  _player = player;
+}
+
+Script* GameStage::get_player() const
+{
+  return _player;
 }
 
 y::wvec2 GameStage::world_to_camera(const y::wvec2& v) const

@@ -18,8 +18,11 @@ namespace sf {
 class Yugen : public Modal {
 public:
 
-  Yugen(Databank& bank, RenderUtil& util);
+  Yugen(RenderUtil& util);
   ~Yugen() override;
+
+  const GlFramebuffer& get_framebuffer() const;
+  void set_stage(GameStage* stage);
 
   void event(const sf::Event& e) override;
   void update() override;
@@ -32,12 +35,10 @@ private:
   mutable y::vector<y::size> _measurements;
   mutable y::vector<unsigned char*> _save_file_frames;
 
-  Databank& _bank;
   RenderUtil& _util;
   GlFramebuffer _framebuffer;
   GlFramebuffer _post_buffer;
   GameStage* _stage;
-  bool _launched;
 
   GlProgram _post_program;
   GlProgram _upscale_program;
