@@ -20,7 +20,9 @@ function update()
   if is_key_down(KEY_RIGHT) then
     v = v + 2
   end
+  collider_move(self, vec(0, -2))
   collider_move(self, vec(v, 0))
+  collider_move(self, vec(0, 2))
 
   if not is_key_down(KEY_UP) and
       jump_counter > 2 * jump_cap_period and

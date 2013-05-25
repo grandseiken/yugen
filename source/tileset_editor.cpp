@@ -11,14 +11,14 @@ void render_collision(RenderUtil& util, const y::ivec2& pixels,
                       y::int32 collision, const y::fvec4& colour)
 {
   static const y::ivec2& t = Tileset::tile_size;
-  const y::ivec2 ul = pixels;
-  const y::ivec2 ur = pixels + y::ivec2{t[xx], 0};
-  const y::ivec2 dl = pixels + y::ivec2{0, t[yy]};
-  const y::ivec2 dr = pixels + t;
-  const y::ivec2 u = pixels + y::ivec2{t[xx] / 2, 0};
-  const y::ivec2 d = pixels + y::ivec2{t[xx] / 2, t[yy]};
-  const y::ivec2 l = pixels + y::ivec2{0, t[yy] / 2};
-  const y::ivec2 r = pixels + y::ivec2{t[xx], t[yy] / 2};
+  const y::ivec2 ul = pixels + Tileset::ul;
+  const y::ivec2 ur = pixels + Tileset::ur;
+  const y::ivec2 dl = pixels + Tileset::dl;
+  const y::ivec2 dr = pixels + Tileset::dr;
+  const y::ivec2 u = pixels + Tileset::u;
+  const y::ivec2 d = pixels + Tileset::d;
+  const y::ivec2 l = pixels + Tileset::l;
+  const y::ivec2 r = pixels + Tileset::r;
 
   switch (collision) {
     case Tileset::COLLIDE_FULL:

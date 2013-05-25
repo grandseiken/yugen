@@ -194,6 +194,14 @@ bool Tile::operator!=(const Tile& tile) const
   return !operator==(tile);
 }
 
+y::int32 Tile::get_collision() const
+{
+  if (!tileset) {
+    return Tileset::COLLIDE_NONE;
+  }
+  return tileset->get_collision(index);
+}
+
 y::size to_internal_index(y::int32 layer, const y::ivec2& v)
 {
   return v[yy] * Cell::cell_width + v[xx] +

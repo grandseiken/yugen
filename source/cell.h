@@ -84,6 +84,8 @@ struct Tile {
   bool operator==(const Tile& tile) const;
   bool operator!=(const Tile& tile) const;
 
+  y::int32 get_collision() const;
+
   const Tileset* tileset;
   y::size index;
 

@@ -4,6 +4,15 @@
 #include "proto/cell.pb.h"
 
 const y::ivec2 Tileset::tile_size{Tileset::tile_width, Tileset::tile_height};
+const y::ivec2 Tileset::ul{0, 0};
+const y::ivec2 Tileset::ur{tile_size[xx], 0};
+const y::ivec2 Tileset::dl{0, tile_size[yy]};
+const y::ivec2 Tileset::dr{tile_size[xx], tile_size[yy]};
+const y::ivec2 Tileset::u{tile_size[xx] / 2, 0};
+const y::ivec2 Tileset::d{tile_size[xx] / 2, tile_size[yy]};
+const y::ivec2 Tileset::l{0, tile_size[yy] / 2};
+const y::ivec2 Tileset::r{tile_size[xx], tile_size[yy] / 2};
+
 
 Tileset::Tileset(const GlTexture& texture)
   : _size{texture.get_size() / tile_size}
