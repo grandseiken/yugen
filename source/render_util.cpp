@@ -157,6 +157,34 @@ void RenderUtil::render_fill(const y::ivec2& origin, const y::ivec2& size,
   render_fill_internal(y::fvec2(origin), y::fvec2(size), colour);
 }
 
+void RenderUtil::render_fill(
+    const y::ivec2& a, const y::ivec2& b, const y::ivec2& c,
+    const y::fvec4& colour) const
+{
+  if (!(_native_size >= y::ivec2())) {
+    return;
+  }
+  _gl.enable_depth(false);
+
+  const GLfloat tri_data[] = {
+      GLfloat(a[xx]), GLfloat(a[yy]),
+      GLfloat(b[xx]), GLfloat(b[yy]),
+      GLfloat(c[xx]), GLfloat(c[yy])};
+
+  auto tri_buffer = _gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, tri_data, sizeof(tri_data));
+
+  _draw_program.bind();
+  _draw_program.bind_attribute("pixels", tri_buffer);
+  _draw_program.bind_uniform("resolution", _native_size);
+  _draw_program.bind_uniform("translation", y::fvec2(_translation));
+  _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
+  _draw_program.bind_uniform("colour", colour);
+  _quad.draw_elements(GL_TRIANGLES, 3);
+
+  _gl.delete_buffer(tri_buffer);
+}
+
 void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
                                 const y::fvec4& colour) const
 {

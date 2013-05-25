@@ -96,6 +96,8 @@ public:
   // Render colour (at pixel coordinates).
   void render_fill(const y::ivec2& origin, const y::ivec2& size,
                    const y::fvec4& colour) const;
+  void render_fill(const y::ivec2& a, const y::ivec2& b, const y::ivec2& c,
+                   const y::fvec4& colour) const;
 
   // Render outline (at pixel coordinates).
   void render_outline(const y::ivec2& origin, const y::ivec2& size,

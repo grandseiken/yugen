@@ -34,7 +34,7 @@ GameStage::GameStage(const Databank& bank,
   // Setup key bindings.
   util.get_window().set_key_repeat(false);
   _key_map[KEY_UP] = {sf::Keyboard::W, sf::Keyboard::Up,
-                      sf::Keyboard::LControl, sf::Keybaord::RControl};
+                      sf::Keyboard::LControl, sf::Keyboard::RControl};
   _key_map[KEY_DOWN] = {sf::Keyboard::S, sf::Keyboard::Down};
   _key_map[KEY_LEFT] = {sf::Keyboard::A, sf::Keyboard::Left};
   _key_map[KEY_RIGHT] = {sf::Keyboard::D, sf::Keyboard::Right};
