@@ -152,6 +152,11 @@ void Window::set_active() const
   _window->setActive();
 }
 
+void Window::set_key_repeat(bool repeat) const
+{
+  _window->setKeyRepeatEnabled(repeat);
+}
+
 void Window::display() const
 {
   _window->display();

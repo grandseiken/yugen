@@ -213,9 +213,11 @@ ylib_api(render_sprite)
     ylib_arg(double, depth)
 {
   RenderBatch& batch = stage.get_current_batch();
-  y::wvec2 origin = script->get_origin() - frame_size / 2 + y::wvec2{.5, .5};
-  batch.add_sprite(*sprite, y::ivec2(frame_size), y::ivec2(origin),
-                   y::ivec2(frame), depth, colour::white);
+  y::wvec2 origin = script->get_origin() - frame_size / 2;
+  y::wvec2 round{.5, .5};
+  batch.add_sprite(*sprite, y::ivec2(frame_size + round),
+                   y::ivec2(origin + round), y::ivec2(frame + round),
+                   depth, colour::white);
   ylib_void();
 }
 

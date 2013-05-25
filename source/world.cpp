@@ -70,7 +70,7 @@ void WorldGeometry::clear_geometry(const y::ivec2& coord)
 
 void WorldGeometry::swap_geometry(const y::ivec2& a, const y::ivec2& b)
 {
-  _buckets[a] = y::move(_buckets[b]);
+  std::swap(_buckets[a], _buckets[b]);
   _dirty = true;
 }
 

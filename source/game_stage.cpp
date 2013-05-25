@@ -2,6 +2,7 @@
 
 #include "databank.h"
 #include "tileset.h"
+#include "window.h"
 
 GameStage::GameStage(const Databank& bank,
                      RenderUtil& util, const GlFramebuffer& framebuffer,
@@ -10,8 +11,8 @@ GameStage::GameStage(const Databank& bank,
   , _util(util)
   , _framebuffer(framebuffer)
   , _map(map)
-  , _world(map, y::ivec2(coord).euclidean_div(Tileset::tile_size *
-                                              Cell::cell_size))
+  , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
+        Tileset::tile_size * Cell::cell_size))
   , _collision(_world)
   , _player(y::null)
 {
@@ -31,10 +32,12 @@ GameStage::GameStage(const Databank& bank,
   };
 
   // Setup key bindings.
-  _key_map[KEY_UP] = {sf::Keyboard::W};
-  _key_map[KEY_DOWN] = {sf::Keyboard::S};
-  _key_map[KEY_LEFT] = {sf::Keyboard::A};
-  _key_map[KEY_RIGHT] = {sf::Keyboard::D};
+  util.get_window().set_key_repeat(false);
+  _key_map[KEY_UP] = {sf::Keyboard::W, sf::Keyboard::Up,
+                      sf::Keyboard::LControl, sf::Keybaord::RControl};
+  _key_map[KEY_DOWN] = {sf::Keyboard::S, sf::Keyboard::Down};
+  _key_map[KEY_LEFT] = {sf::Keyboard::A, sf::Keyboard::Left};
+  _key_map[KEY_RIGHT] = {sf::Keyboard::D, sf::Keyboard::Right};
 }
 
 GameStage::~GameStage()
@@ -100,6 +103,35 @@ void GameStage::update()
       -half_size * Cell::cell_size * Tileset::tile_size);
   static const y::wvec2& upper_bound = y::wvec2(
       (1 + half_size) * Cell::cell_size * Tileset::tile_size);
+
+  // Update scripts. Can't use iterators, or they will be invalidated by new
+  // creations. Destructions won't happen here, though.
+  for (y::size i = 0; i < _scripts.size(); ++i) {
+    const auto& script = _scripts[i];
+    if (script->has_function("update") && !script->is_destroyed()) {
+      script->call("update");
+    }
+  }
+
+  // Update window.
+  const y::int32 cell_switch_buffer = 2;
+  y::wvec2 origin = -y::wvec2(cell_switch_buffer * Tileset::tile_size);
+  y::wvec2 size = y::wvec2(Tileset::tile_size *
+                           (y::ivec2{cell_switch_buffer,
+                                     cell_switch_buffer} + Cell::cell_size));
+  if (get_player()) {
+    y::wvec2 p_origin = get_player()->get_origin();
+    if (!p_origin.in_region(origin, size)) {
+      y::ivec2 move = y::ivec2(p_origin + y::wvec2{.5, .5}).euclidean_div(
+                          Tileset::tile_size * Cell::cell_size);
+      _world.move_active_window(move);
+      for (const auto& script : _scripts) {
+        script->set_origin(
+            script->get_origin() -
+            y::wvec2(move * Cell::cell_size * Tileset::tile_size));
+      }
+    }
+  }
 
   // Local functions.
   struct local {
@@ -201,15 +233,6 @@ void GameStage::update()
     }
   }
 
-  // Update scripts. Can't use iterators, or they will be invalidated by new
-  // creations. Destructions won't happen here, though.
-  for (y::size i = 0; i < _scripts.size(); ++i) {
-    const auto& script = _scripts[i];
-    if (script->has_function("update") && !script->is_destroyed()) {
-      script->call("update");
-    }
-  }
-
   // Clean up manually-destroyed scripts.
   _scripts.erase(
       std::remove_if(_scripts.begin(), _scripts.end(), local::is_destroyed),
@@ -225,6 +248,7 @@ void GameStage::update()
 
 void GameStage::draw() const
 {
+  // TODO: something odd with camera. Sometimes player goes off by a pixel.
   y::ivec2 translation = y::ivec2(
       y::wvec2{.5, .5} + world_to_camera(y::wvec2()));
   _util.add_translation(translation);
