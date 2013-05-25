@@ -87,13 +87,6 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
                                        const CellBlueprint& cell)
 {
   static const y::int32 collision_layer = 0;
-
-  // Strategy: right now we only handle collision of full square tiles. Treat
-  // horizontal and vertical edges completely separately. Loop over the line
-  // segments forming the edges of tiles, adding geometry when the collision
-  // of the tiles on either side of the edge differs. When this pattern
-  // continues for several tiles, don't add the geometry until we reach the end.
-  // Straight edges of non-full-square tiles are handled by the above strategy.
   enum Edge {
     EDGE_UP,
     EDGE_DOWN,
@@ -101,6 +94,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     EDGE_RIGHT,
   };
 
+  // Lots of impenetrable case statements.
   struct local {
     static bool is_tile_blocked(const CellBlueprint& cell,
                                 const y::ivec2& v, Edge edge)
@@ -421,6 +415,11 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     }
   };
 
+  // Strategy: treat horizontal and vertical edges completely separately. Loop
+  // over the line segments forming the edges of tiles, adding geometry when the
+  // collision of the tiles on either side of the edge differs. When this
+  // pattern continues for several tiles, don't add the geometry until we reach
+  // the end.
   enum Boundary {
     NONE,
     LEFT,
@@ -494,6 +493,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     }
   }
 
+  // Straight edges of non-full-square tiles are handled by the above strategy.
   // Now we make a list of non-full tiles so we can go back and fill in the
   // irregular edges.
   y::set<y::ivec2> set;
@@ -504,16 +504,20 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     }
     set.insert(*it);
 
-    // At the same time, add the straight half-length edges.
+    // At the same time, add the straight half-length edges. which are currently
+    // not handled by the main straight-edge loop.
     local::add_straight_half_edges(bucket.middle, cell, *it, c);
   }
 
+  // Now pick one irregular tile at a time and find the longest line formed
+  // by its sloped edge. Erase the tiles we've used so that we don't make
+  // parts of the same line multiple times.
   while (!set.empty()) {
     y::ivec2 v = *set.begin();
     set.erase(v);
     y::int32 collision = cell.get_tile(collision_layer, v).get_collision();
 
-    // Scan all the both in both directions to the end of the irregular edge.
+    // Scan all the way in both directions to the end of the sloped edge.
     y::int32 c = collision;
     y::ivec2 u = v;
     y::ivec2 dir = local::consistent_traversal(c, true);
