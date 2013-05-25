@@ -86,6 +86,7 @@ public:
 
   bool has_function(const y::string& function_name) const;
   void call(const y::string& function_name);
+  void call(const y::string& function_name, y::int32 arg);
 
   void destroy();
   bool is_destroyed() const;

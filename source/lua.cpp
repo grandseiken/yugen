@@ -729,6 +729,21 @@ void Script::call(const y::string& function_name)
   }
 }
 
+void Script::call(const y::string& function_name, y::int32 arg)
+{
+  lua_getglobal(_state, function_name.c_str());
+  ylib::push(_state, arg);
+  if (lua_pcall(_state, 1, 0, 1)) {
+    const char* error = lua_tostring(_state, -1);
+    std::cerr << "Calling function " << _path << ":" <<
+        function_name << " failed";
+    if (error) {
+      std::cerr << ": " << error;
+    }
+    std::cerr << std::endl;
+  }
+}
+
 void Script::destroy()
 {
   _destroyed = true;

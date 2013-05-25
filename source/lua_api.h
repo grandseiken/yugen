@@ -245,6 +245,12 @@ ylib_api(get_player)
   ylib_return(stage.get_player());
 }
 
+ylib_api(is_key_down)
+    ylib_arg(y::int32, key)
+{
+  ylib_return(stage.is_key_down(key));
+}
+
 /******************************************************************************/
 // Collision API
 /******************************************************************************/

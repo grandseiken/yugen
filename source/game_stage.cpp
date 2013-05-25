@@ -3,8 +3,6 @@
 #include "databank.h"
 #include "tileset.h"
 
-#include <SFML/Window.hpp>
-
 GameStage::GameStage(const Databank& bank,
                      RenderUtil& util, const GlFramebuffer& framebuffer,
                      const CellMap& map, const y::wvec2& coord)
@@ -23,6 +21,20 @@ GameStage::GameStage(const Databank& bank,
   Script& player = create_script(file, coord - offset);
   set_player(&player);
   _camera = coord - offset;
+
+  // Must be kept consistent with keys.lua.
+  enum key_codes {
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+  };
+
+  // Setup key bindings.
+  _key_map[KEY_UP] = {sf::Keyboard::W};
+  _key_map[KEY_DOWN] = {sf::Keyboard::S};
+  _key_map[KEY_LEFT] = {sf::Keyboard::A};
+  _key_map[KEY_RIGHT] = {sf::Keyboard::D};
 }
 
 GameStage::~GameStage()
@@ -60,6 +72,19 @@ void GameStage::event(const sf::Event& e)
     return;
   }
 
+  for (const auto& pair : _key_map) {
+    bool b = false;
+    for (const auto& k : pair.second) {
+      if (k == e.key.code) {
+        b = true;
+        break;
+      }
+    }
+    if (b && get_player()->has_function("key")) {
+      get_player()->call("key", pair.first);
+    }
+  }
+
   switch (e.key.code) {
     case sf::Keyboard::Escape:
       end();
@@ -70,19 +95,6 @@ void GameStage::event(const sf::Event& e)
 
 void GameStage::update()
 {
-  if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-    _camera -= {0., 2.};
-  }
-  if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-    _camera -= {2., 0.};
-  }
-  if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-    _camera += {0., 2.};
-  }
-  if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-    _camera += {2., 0.};
-  }
-
   static const y::int32 half_size = WorldWindow::active_window_half_size;
   static const y::wvec2& lower_bound = y::wvec2(
       -half_size * Cell::cell_size * Tileset::tile_size);
@@ -203,6 +215,12 @@ void GameStage::update()
       std::remove_if(_scripts.begin(), _scripts.end(), local::is_destroyed),
       _scripts.end());
   _collision.clean_up();
+
+  // Update camera.
+  if (get_player()) {
+    const y::wvec2& p = get_player()->get_origin();
+    _camera = p;
+  }
 }
 
 void GameStage::draw() const
@@ -289,6 +307,20 @@ void GameStage::set_player(Script* player)
 Script* GameStage::get_player() const
 {
   return _player;
+}
+
+bool GameStage::is_key_down(y::int32 key) const
+{
+  auto it = _key_map.find(key);
+  if (it == _key_map.end()) {
+    return false;
+  }
+  for (const auto& sfml_key : it->second) {
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key(sfml_key))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 y::wvec2 GameStage::world_to_camera(const y::wvec2& v) const

@@ -8,6 +8,8 @@
 #include "render_util.h"
 #include "world.h"
 
+#include <SFML/Window.hpp>
+
 class CellMap;
 class GlFramebuffer;
 class RenderUtil;
@@ -42,6 +44,7 @@ public:
 
   void set_player(Script* script);
   Script* get_player() const;
+  bool is_key_down(y::int32 key) const;
 
 private:
 
@@ -59,6 +62,9 @@ private:
   Collision _collision;
   y::wvec2 _camera;
   Script* _player;
+
+  typedef y::map<y::int32, y::set<y::int32>> key_map;
+  key_map _key_map;
 
   typedef y::vector<y::unique<Script>> script_list;
   script_list _scripts;
