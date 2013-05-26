@@ -1,4 +1,5 @@
--- hello.lua --
+-- A test thing that makes other things.
+
 local sprite = get_sprite("/tiles/temple.png")
 local script = get_script("/scripts/hello2.lua")
 local counter = 0

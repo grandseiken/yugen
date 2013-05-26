@@ -13,7 +13,6 @@ const y::ivec2 Tileset::d{tile_size[xx] / 2, tile_size[yy]};
 const y::ivec2 Tileset::l{0, tile_size[yy] / 2};
 const y::ivec2 Tileset::r{tile_size[xx], tile_size[yy] / 2};
 
-
 Tileset::Tileset(const GlTexture& texture)
   : _size{texture.get_size() / tile_size}
   , _texture(texture)

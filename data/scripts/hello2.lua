@@ -1,4 +1,5 @@
--- hello2.lua --
+-- A thing that is made by the test thing.
+
 local sprite = get_sprite("/tiles/temple.png")
 local script = get_script("/scripts/hello.lua")
 local counter = 0

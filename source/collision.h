@@ -23,7 +23,7 @@ struct Body {
   const Script& source;
   y::wvec2 offset;
   y::wvec2 size;
-  bool collides;
+  y::int32 collide_mask;
 };
 
 // Keeps a record of Bodies and handles sweeping and collision.
@@ -41,7 +41,8 @@ public:
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
   void collider_move(Script& source, const y::wvec2& move) const;
-  bool body_check(const Script& source, const Body& body) const;
+  bool body_check(const Script& source, const Body& body,
+                  y::int32 collide_mask) const;
 
 private:
 
@@ -71,8 +72,8 @@ private:
   // We hold a weak reference to each Script so that we can destroy the bodies
   // whose source Scripts no longer exist.
   struct entry {
-    y::wvec2 get_min() const;
-    y::wvec2 get_max() const;
+    y::wvec2 get_min(y::int32 collide_mask) const;
+    y::wvec2 get_max(y::int32 collide_mask) const;
 
     ConstScriptReference ref;
     y::vector<body_entry> list;

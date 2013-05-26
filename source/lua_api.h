@@ -288,9 +288,9 @@ ylib_api(get_body_size) ylib_arg(const Body*, body)
   ylib_return(body->size);
 }
 
-ylib_api(get_body_collides) ylib_arg(const Body*, body)
+ylib_api(get_collide_mask) ylib_arg(const Body*, body)
 {
-  ylib_return(body->collides);
+  ylib_return(body->collide_mask);
 }
 
 ylib_api(set_body_offset)
@@ -307,10 +307,10 @@ ylib_api(set_body_size)
   ylib_void();
 }
 
-ylib_api(set_body_collides)
-    ylib_arg(Body*, body) ylib_arg(bool, collides)
+ylib_api(set_collide_mask)
+    ylib_arg(Body*, body) ylib_arg(y::int32, collide_mask)
 {
-  body->collides = collides;
+  body->collide_mask = collide_mask;
   ylib_void();
 }
 
@@ -321,7 +321,9 @@ ylib_api(collider_move)
   ylib_void();
 }
 
-ylib_api(body_check) ylib_arg(const Script*, script) ylib_arg(const Body*, body)
+ylib_api(body_check)
+    ylib_arg(const Script*, script) ylib_arg(const Body*, body)
+    ylib_arg(y::int32, collide_mask)
 {
-  ylib_return(stage.get_collision().body_check(*script, *body));
+  ylib_return(stage.get_collision().body_check(*script, *body, collide_mask));
 }

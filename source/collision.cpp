@@ -3,9 +3,17 @@
 #include "render_util.h"
 #include "world.h"
 
+enum CollideMaskReserved {
+  COLLIDE_RESV_NONE = 0,
+  COLLIDE_RESV_WORLD = 1,
+  COLLIDE_RESV_0 = 2,
+  COLLIDE_RESV_1 = 4,
+  COLLIDE_RESV_2 = 8,
+};
+
 Body::Body(const Script& source)
   : source(source)
-  , collides(false)
+  , collide_mask(COLLIDE_RESV_NONE)
 {
 }
 
@@ -111,8 +119,12 @@ void Collision::render(
   }
 }
 
-bool Collision::body_check(const Script& source, const Body& body) const
+bool Collision::body_check(const Script& source, const Body& body,
+                           y::int32 collide_mask) const
 {
+  if (!(collide_mask & COLLIDE_RESV_WORLD)) {
+    return false;
+  }
   const OrderedGeometry& geometry = _world.get_geometry();
   y::wvec2 origin = source.get_origin();
   y::wvec2 min_bound = origin + body.get_min();
@@ -163,19 +175,18 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
   }
 
   // So far, we only collide Bodies with world geometry.
-  // TODO: collide bodies with bodies; have some sort of collision masks; etc.
-  // When bodies collide with bodies: to avoid order-dependent edge-cases
-  // (e.g. player standing on platform moving downwards), will need to store
-  // per-frame list of things which tried to move but were blocked by bodies.
-  // If the blocker moves away, try again to move all the things which were
-  // blocked by it.
+  // TODO: collide bodies with bodies. When we do that: to avoid order-dependent
+  // edge-cases (e.g. player standing on platform moving downwards), will need
+  // to store per-frame list of things which tried to move but were blocked by
+  // bodies. If the blocker moves away, try again to move all the things which
+  // were blocked by it.
   const entry& bodies = it->second;
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // X-coordinate bounds of the source Bodies.
-  y::wvec2 min_bound = source.get_origin() + bodies.get_min();
+  y::wvec2 min_bound = source.get_origin() + bodies.get_min(COLLIDE_RESV_WORLD);
   min_bound = y::min(min_bound, move + min_bound);
-  y::wvec2 max_bound = source.get_origin() + bodies.get_max();
+  y::wvec2 max_bound = source.get_origin() + bodies.get_max(COLLIDE_RESV_WORLD);
   max_bound = y::max(max_bound, move + max_bound);
 
   bool project_downright = move[xx] > 0 || move[yy] > 0;
@@ -224,11 +235,10 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
 
       for (const auto& pointer : bodies.list) {
         const Body& b = *pointer;
-        if (!b.collides) {
+        if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
           continue;
         }
         y::wvec2 origin = source.get_origin() + b.offset;
-
         vertices.clear();
         geometries.clear();
         y::wvec2 dr = origin + b.size / 2;
@@ -279,7 +289,7 @@ y::world Collision::get_projection_ratio(
     const y::vector<world_geometry>& geometry,
     const y::vector<y::wvec2>& vertices, const y::wvec2& move) const
 {
-  y::world min_ratio = 1;
+  y::world min_ratio = 2;
   for (const world_geometry& g : geometry) {
     for (const y::wvec2& v : vertices) {
       min_ratio = y::min(min_ratio, get_projection_ratio(g, v, move));
@@ -292,7 +302,7 @@ y::world Collision::get_projection_ratio(
     const world_geometry& geometry,
     const y::vector<y::wvec2>& vertices, const y::wvec2& move) const
 {
-  y::world min_ratio = 1;
+  y::world min_ratio = 2;
   for (const y::wvec2& v : vertices) {
     min_ratio = y::min(min_ratio, get_projection_ratio(geometry, v, move));
   }
@@ -316,7 +326,7 @@ y::world Collision::get_projection_ratio(
 
   // Lines are parallel or coincident.
   if (!denominator) {
-    return 1;
+    return 2;
   }
 
   y::world t = (
@@ -328,7 +338,7 @@ y::world Collision::get_projection_ratio(
 
   // Lines intersect outside of the segments.
   if (t < 0 || t > 1 || u < 0 || u > 1) {
-    return 1;
+    return 2;
   }
   return t;
 }
@@ -347,25 +357,33 @@ bool Collision::has_intersection(const y::vector<world_geometry>& a,
 bool Collision::has_intersection(const world_geometry& a,
                                  const world_geometry& b) const
 {
-  return get_projection_ratio(a, b.start, b.end - b.start) < 1;
+  return get_projection_ratio(a, b.start, b.end - b.start) <= 1;
 }
 
-y::wvec2 Collision::entry::get_min() const
+// TODO: not having collide_mask here makes collision different.
+// Since this should just be an optimisation that's odd; investigate.
+y::wvec2 Collision::entry::get_min(y::int32 collide_mask) const
 {
   y::wvec2 min;
   bool first = true;
   for (const body_entry& e : list) {
+    if (!(e->collide_mask & collide_mask)) {
+      continue;
+    }
     min = first ? e->get_min() : y::min(min, e->get_min());
     first = false;
   }
   return min;
 }
 
-y::wvec2 Collision::entry::get_max() const
+y::wvec2 Collision::entry::get_max(y::int32 collide_mask) const
 {
   y::wvec2 max;
   bool first = true;
   for (const body_entry& e : list) {
+    if (!(e->collide_mask & collide_mask)) {
+      continue;
+    }
     max = first ? e->get_max() : y::max(max, e->get_max());
     first = false;
   }
