@@ -52,8 +52,8 @@ void UiList::set_select(const y::fvec4& select)
 void UiList::draw(RenderUtil& util, const y::vector<y::fvec4>& items,
                   const y::string_vector& source, y::size select) const
 {
-  util.render_fill(RenderUtil::from_grid(_origin),
-                   RenderUtil::from_grid(_size), _panel);
+  util.irender_fill(RenderUtil::from_grid(_origin),
+                    RenderUtil::from_grid(_size), _panel);
 
   y::int32 w = _size[xx];
   y::int32 h = _size[yy];
@@ -68,8 +68,8 @@ void UiList::draw(RenderUtil& util, const y::vector<y::fvec4>& items,
 
     y::string s = source[i + offset];
     s = y::int32(s.length()) > w ? s.substr(0, w - 3) + "..." : s;
-    util.render_text(s, RenderUtil::from_grid(_origin + y::ivec2{0, i}),
-                     items[i + offset]);
+    util.irender_text(s, RenderUtil::from_grid(_origin + y::ivec2{0, i}),
+                      items[i + offset]);
   }
 }
 
@@ -163,18 +163,18 @@ void TextInputModal::draw() const
   y::ivec2 size = RenderUtil::from_grid({
       y::int32(y::max(_label.length(), 1 + _output.result.length())), 2});
   y::ivec2 origin = r.size / 2 - size / 2;
-  _util.render_fill(origin, {size[xx], RenderUtil::from_grid()[yy]},
-                    colour::panel);
-  _util.render_outline(origin - y::ivec2{1, 1},
-                       y::ivec2{2, 2} + size, colour::outline);
-  _util.render_fill(origin + RenderUtil::from_grid({y::int32(_cursor), 1}),
-                    RenderUtil::from_grid(), colour::item);
-  _util.render_text(_label, origin, colour::item);
-  _util.render_text(_output.result, origin + RenderUtil::from_grid({0, 1}),
-                    colour::select);
+  _util.irender_fill(origin, {size[xx], RenderUtil::from_grid()[yy]},
+                     colour::panel);
+  _util.irender_outline(origin - y::ivec2{1, 1},
+                        y::ivec2{2, 2} + size, colour::outline);
+  _util.irender_fill(origin + RenderUtil::from_grid({y::int32(_cursor), 1}),
+                     RenderUtil::from_grid(), colour::item);
+  _util.irender_text(_label, origin, colour::item);
+  _util.irender_text(_output.result, origin + RenderUtil::from_grid({0, 1}),
+                     colour::select);
   if (_cursor < _output.result.length()) {
-    _util.render_text(_output.result.substr(_cursor, 1),
-                      origin + RenderUtil::from_grid({y::int32(_cursor), 1}),
-                      colour::black);
+    _util.irender_text(_output.result.substr(_cursor, 1),
+                       origin + RenderUtil::from_grid({y::int32(_cursor), 1}),
+                       colour::black);
   }
 }

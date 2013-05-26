@@ -3,6 +3,7 @@
 #include "render_util.h"
 #include "world.h"
 
+// Must be kept in sync with collide.lua.
 enum CollideMaskReserved {
   COLLIDE_RESV_NONE = 0,
   COLLIDE_RESV_WORLD = 1,
@@ -93,28 +94,23 @@ void Collision::render(
     for (const Geometry& g : bucket) {
       const y::fvec4 c = ++i % 2 ? y::fvec4(1.f, 0.f, 0.f, .5f) :
                                    y::fvec4(0.f, 1.f, 0.f, .5f);
-      const y::ivec2 size = y::max(y::abs(g.end - g.start), y::ivec2{1, 1});
-      y::ivec2 origin = y::min(g.start, g.end);
-      if (g.start[xx] > g.end[xx]) {
-        origin[yy] -= 1;
-      }
-      if (g.start[yy] < g.end[yy]) {
-        origin[xx] -= 1;
-      }
-      if (y::wvec2(origin + size) > camera_min &&
-          y::wvec2(origin) < camera_max) {
-        util.render_fill(origin, size, c);
+
+      const y::ivec2 max = y::max(g.start, g.end);
+      const y::ivec2 min = y::min(g.start, g.end);
+      if (y::wvec2(min) > camera_min && y::wvec2(max) < camera_max) {
+        util.render_line(y::fvec2(g.start), y::fvec2(g.end), c);
       }
     }
   }
   const y::fvec4 c{0.f, 0.f, 1.f, .5f};
-  const y::wvec2 round{.5f, .5f};
   for (const auto& pair : _map) {
     for (const body_entry& b : pair.second.list) {
+      if (!b->collide_mask) {
+        continue;
+      }
       util.render_outline(
-          y::ivec2(
-              pair.second.ref->get_origin() + b->offset - b->size / 2 + round),
-          y::ivec2(b->size + round), c);
+          y::fvec2(pair.second.ref->get_origin() + b->offset - b->size / 2),
+          y::fvec2(b->size), c);
     }
   }
 }

@@ -64,9 +64,14 @@ Collision& GameStage::get_collision()
   return _collision;
 }
 
-const y::wvec2& GameStage::get_camera() const
+y::wvec2 GameStage::world_to_camera(const y::wvec2& v) const
 {
-  return _camera;
+  return v - _camera + y::wvec2(_framebuffer.get_size()) / 2;
+}
+
+y::wvec2 GameStage::camera_to_world(const y::wvec2& v) const
+{
+  return v - y::wvec2(_framebuffer.get_size()) / 2 + _camera;
 }
 
 void GameStage::event(const sf::Event& e)
@@ -248,9 +253,7 @@ void GameStage::update()
 
 void GameStage::draw() const
 {
-  // TODO: something odd with camera. Sometimes player goes off by a pixel.
-  y::ivec2 translation = y::ivec2(
-      y::wvec2{.5, .5} + world_to_camera(y::wvec2()));
+  y::fvec2 translation = y::fvec2(world_to_camera(y::wvec2()));
   _util.add_translation(translation);
   _current_batch.clear();
   const y::wvec2 camera_min = camera_to_world(y::wvec2());
@@ -283,7 +286,7 @@ void GameStage::draw() const
 
         _current_batch.add_sprite(
             t.tileset->get_texture(), Tileset::tile_size,
-            world, t.tileset->from_index(t.index), d, colour::white);
+            y::fvec2(world), t.tileset->from_index(t.index), d, colour::white);
       }
     }
   }
@@ -345,16 +348,6 @@ bool GameStage::is_key_down(y::int32 key) const
     }
   }
   return false;
-}
-
-y::wvec2 GameStage::world_to_camera(const y::wvec2& v) const
-{
-  return v - _camera + y::wvec2(_framebuffer.get_size()) / 2;
-}
-
-y::wvec2 GameStage::camera_to_world(const y::wvec2& v) const
-{
-  return v - y::wvec2(_framebuffer.get_size()) / 2 + _camera;
 }
 
 void GameStage::add_script(y::unique<Script> script)

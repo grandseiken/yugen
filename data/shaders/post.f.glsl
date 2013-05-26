@@ -2,7 +2,7 @@ uniform sampler2D framebuffer;
 uniform sampler2D bayer;
 uniform ivec2 native_res;
 uniform ivec2 bayer_res;
-uniform ivec2 bayer_off;
+uniform vec2 bayer_off;
 uniform int bayer_frame;
 varying vec2 tex_coord;
 
@@ -21,8 +21,10 @@ void main()
   vec2 g_off = 0.11 * bayer_frame * bayer_div * g_dir;
   vec2 b_off = 0.17 * bayer_frame * bayer_div * b_dir;
 
+  vec2 off = bayer_off + 0.5;
+  off = off - mod(off, 1.0);
   vec2 bayer_coord =
-      (tex_coord * vec2(native_res) + bayer_off) / bayer_res;
+      (tex_coord * vec2(native_res) - off) / bayer_res;
   vec3 bayer_val =
       vec3(texture2D(bayer, bayer_coord + r_off).x,
            texture2D(bayer, bayer_coord + g_off).x,

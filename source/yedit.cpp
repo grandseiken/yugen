@@ -192,19 +192,19 @@ void Yedit::draw() const
         const y::string& title, const y::string_vector& source,
         y::vector<bool>& actives, y::size select)
     {
-      util.render_text(
-          title, RenderUtil::from_grid(list.get_origin() - y::ivec2{0, 2}),
-          active ? colour::select : colour::item);
+      util.irender_text(
+           title, RenderUtil::from_grid(list.get_origin() - y::ivec2{0, 2}),
+           active ? colour::select : colour::item);
       y::vector<y::fvec4> items;
       for (bool b : actives) {
         items.emplace_back(
             b ? colour::select : active ? colour::item : colour::dark_outline);
       }
       list.draw(util, items, source, select);
-      util.render_outline(
-          RenderUtil::from_grid(list.get_origin()) - y::ivec2{1, 1},
-          RenderUtil::from_grid(list.get_size()) + y::ivec2{2, 2},
-          active ? colour::outline : colour::dark_outline);
+      util.irender_outline(
+           RenderUtil::from_grid(list.get_origin()) - y::ivec2{1, 1},
+           RenderUtil::from_grid(list.get_size()) + y::ivec2{2, 2},
+           active ? colour::outline : colour::dark_outline);
     }
   };
 

@@ -40,8 +40,11 @@ public:
   };
 
   void add_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
-                  const y::ivec2& origin, const y::ivec2& frame,
+                  const y::fvec2& origin, const y::ivec2& frame,
                   float depth, const y::fvec4& colour);
+  void iadd_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
+                   const y::ivec2& origin, const y::ivec2& frame,
+                   float depth, const y::fvec4& colour);
 
   struct batched_texture_order {
     bool operator()(const batched_texture& l, const batched_texture& r) const;
@@ -84,28 +87,39 @@ public:
   void set_resolution(const y::ivec2& native_size);
 
   // Offset all render operations.
-  void add_translation(const y::ivec2& translation);
+  void add_translation(const y::fvec2& translation);
+  void iadd_translation(const y::ivec2& translation);
 
   // Scale all render operations.
   void set_scale(float scale);
 
   // Render text (at pixel coordinates).
-  void render_text(const y::string& text, const y::ivec2& origin,
+  void render_text(const y::string& text, const y::fvec2& origin,
                    const y::fvec4& colour) const;
+  void irender_text(const y::string& text, const y::ivec2& origin,
+                    const y::fvec4& colour) const;
 
   // Render colour (at pixel coordinates).
-  void render_fill(const y::ivec2& origin, const y::ivec2& size,
+  void render_fill(const y::fvec2& origin, const y::fvec2& size,
                    const y::fvec4& colour) const;
-  void render_fill(const y::ivec2& a, const y::ivec2& b, const y::ivec2& c,
+  void render_fill(const y::fvec2& a, const y::fvec2& b, const y::fvec2& c,
                    const y::fvec4& colour) const;
+  void render_line(const y::fvec2& a, const y::fvec2& b,
+                   const y::fvec4& colour) const;
+  void irender_fill(const y::ivec2& origin, const y::ivec2& size,
+                    const y::fvec4& colour) const;
+  void irender_fill(const y::ivec2& a, const y::ivec2& b, const y::ivec2& c,
+                    const y::fvec4& colour) const;
 
   // Render outline (at pixel coordinates).
-  void render_outline(const y::ivec2& origin, const y::ivec2& size,
+  void render_outline(const y::fvec2& origin, const y::fvec2& size,
                       const y::fvec4& colour) const;
+  void irender_outline(const y::ivec2& origin, const y::ivec2& size,
+                       const y::fvec4& colour) const;
 
   // Batch and render sprites (at pixel coordinates).
   void set_sprite(const GlTexture& sprite, const y::ivec2& frame_size);
-  void batch_sprite(const y::ivec2& origin, const y::ivec2& frame,
+  void batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
                     float depth, const y::fvec4& colour) const;
   void render_batch() const;
 
@@ -115,17 +129,17 @@ public:
 
   // Render a sprite immediately.
   void render_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
-                     const y::ivec2& origin, const y::ivec2& frame,
+                     const y::fvec2& origin, const y::ivec2& frame,
                      float depth, const y::fvec4& colour);
+  void irender_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
+                      const y::ivec2& origin, const y::ivec2& frame,
+                      float depth, const y::fvec4& colour);
 
   // Helpers for font-size grid coordinates.
   static y::ivec2 from_grid(const y::ivec2& grid = {1, 1});
   static y::ivec2 to_grid(const y::ivec2& pixels);
 
 private:
-
-  void render_fill_internal(const y::fvec2& origin, const y::fvec2& size,
-                            const y::fvec4& colour) const;
 
   // Font width and height.
   static const y::int32 font_width = 8;
@@ -136,7 +150,7 @@ private:
   gl_quad _quad;
 
   y::ivec2 _native_size;
-  y::ivec2 _translation;
+  y::fvec2 _translation;
   float _scale;
 
   GlTexture _font;

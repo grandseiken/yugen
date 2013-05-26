@@ -1,5 +1,5 @@
 uniform sampler2D font;
-uniform ivec2 font_size;
+uniform vec2 font_size;
 uniform int string[1024];
 uniform vec4 colour;
 varying vec2 tex_coord;
@@ -7,7 +7,7 @@ varying vec2 tex_coord;
 void main()
 {
   int ascii = 128;
-  int char = string[int(tex_coord.x) / font_size.x];
+  int char = string[int(tex_coord.x) / int(font_size.x)];
   if (char < 32) {
     discard;
   }

@@ -4,13 +4,21 @@
 
 void RenderBatch::add_sprite(const GlTexture& sprite,
                              const y::ivec2& frame_size,
-                             const y::ivec2& origin, const y::ivec2& frame,
+                             const y::fvec2& origin, const y::ivec2& frame,
                              float depth, const y::fvec4& colour)
 {
   batched_texture bt{sprite, frame_size};
-  batched_sprite bs{float(origin[xx]), float(origin[yy]),
+  batched_sprite bs{origin[xx], origin[yy],
                     float(frame[xx]), float(frame[yy]), depth, colour};
   _map[bt].emplace_back(bs);
+}
+
+void RenderBatch::iadd_sprite(const GlTexture& sprite,
+                              const y::ivec2& frame_size,
+                              const y::ivec2& origin, const y::ivec2& frame,
+                              float depth, const y::fvec4& colour)
+{
+  add_sprite(sprite, frame_size, y::fvec2(origin), frame, depth, colour);
 }
 
 bool RenderBatch::batched_texture_order::operator()(
@@ -51,7 +59,7 @@ RenderUtil::RenderUtil(GlUtil& gl)
   , _quad(gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
                                       quad_data, sizeof(quad_data)))
   , _native_size{0, 0}
-  , _translation{0, 0}
+  , _translation{0.f, 0.f}
   , _scale(1.f)
   , _font(gl.make_texture("/font.png"))
   , _text_program(gl.make_program({"/shaders/text.v.glsl",
@@ -103,9 +111,14 @@ void RenderUtil::set_resolution(const y::ivec2& native_size)
   _native_size = native_size;
 }
 
-void RenderUtil::add_translation(const y::ivec2& translation)
+void RenderUtil::add_translation(const y::fvec2& translation)
 {
   _translation += translation;
+}
+
+void RenderUtil::iadd_translation(const y::ivec2& translation)
+{
+  add_translation(y::fvec2(translation));
 }
 
 void RenderUtil::set_scale(float scale)
@@ -113,7 +126,7 @@ void RenderUtil::set_scale(float scale)
   _scale = scale;
 }
 
-void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
+void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
                              const y::fvec4& colour) const
 {
   if (!(_native_size >= y::ivec2())) {
@@ -121,12 +134,12 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   }
   _gl.enable_depth(false);
 
-  y::ivec2 font_size = from_grid();
+  y::fvec2 font_size = y::fvec2(from_grid());
   const GLfloat text_data[] = {
-      float(origin[xx]), float(origin[yy]),
-      float((origin + _native_size)[xx]), float(origin[yy]),
-      float(origin[xx]), float((origin + font_size)[yy]),
-      float((origin + _native_size)[xx]), float((origin + font_size)[yy])};
+      origin[xx], origin[yy],
+      (origin + y::fvec2(_native_size))[xx], origin[yy],
+      (origin[xx]), (origin + font_size)[yy],
+      (origin + y::fvec2(_native_size))[xx], (origin + font_size)[yy]};
 
   auto text_buffer = _gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, text_data, sizeof(text_data));
@@ -134,8 +147,7 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   _text_program.bind();
   _text_program.bind_attribute("pixels", text_buffer);
   _text_program.bind_uniform("resolution", _native_size);
-  _text_program.bind_uniform("origin",
-      GLint(text_data[0]), GLint(text_data[1]));
+  _text_program.bind_uniform("origin", text_data[0], text_data[1]);
   for (y::size i = 0; i < 1024; ++i) {
     _text_program.bind_uniform(i, "string",
         GLint(i < text.length() ? text[i] : 0));
@@ -143,7 +155,7 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   _font.bind(GL_TEXTURE0);
   _text_program.bind_uniform("font", 0);
   _text_program.bind_uniform("font_size", font_size);
-  _text_program.bind_uniform("translation", y::fvec2(_translation));
+  _text_program.bind_uniform("translation", _translation);
   _text_program.bind_uniform("scale", y::fvec2{_scale, _scale});
   _text_program.bind_uniform("colour", colour);
   _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
@@ -151,15 +163,42 @@ void RenderUtil::render_text(const y::string& text, const y::ivec2& origin,
   _gl.delete_buffer(text_buffer);
 }
 
-void RenderUtil::render_fill(const y::ivec2& origin, const y::ivec2& size,
-                             const y::fvec4& colour) const
+void RenderUtil::irender_text(const y::string& text, const y::ivec2& origin,
+                              const y::fvec4& colour) const
 {
-  render_fill_internal(y::fvec2(origin), y::fvec2(size), colour);
+  render_text(text, y::fvec2(origin), colour);
 }
 
-void RenderUtil::render_fill(
-    const y::ivec2& a, const y::ivec2& b, const y::ivec2& c,
-    const y::fvec4& colour) const
+void RenderUtil::render_fill(const y::fvec2& origin, const y::fvec2& size,
+                             const y::fvec4& colour) const
+{
+  if (!(_native_size >= y::ivec2())) {
+    return;
+  }
+  _gl.enable_depth(false);
+
+  const GLfloat rect_data[] = {
+      origin[xx], origin[yy],
+      (origin + size)[xx], origin[yy],
+      origin[xx], (origin + size)[yy],
+      (origin + size)[xx], (origin + size)[yy]};
+
+  auto rect_buffer = _gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, rect_data, sizeof(rect_data));
+
+  _draw_program.bind();
+  _draw_program.bind_attribute("pixels", rect_buffer);
+  _draw_program.bind_uniform("resolution", _native_size);
+  _draw_program.bind_uniform("translation", _translation);
+  _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
+  _draw_program.bind_uniform("colour", colour);
+  _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
+
+  _gl.delete_buffer(rect_buffer);
+}
+
+void RenderUtil::render_fill(const y::fvec2& a, const y::fvec2& b,
+                             const y::fvec2& c, const y::fvec4& colour) const
 {
   if (!(_native_size >= y::ivec2())) {
     return;
@@ -167,9 +206,7 @@ void RenderUtil::render_fill(
   _gl.enable_depth(false);
 
   const GLfloat tri_data[] = {
-      GLfloat(a[xx]), GLfloat(a[yy]),
-      GLfloat(b[xx]), GLfloat(b[yy]),
-      GLfloat(c[xx]), GLfloat(c[yy])};
+      a[xx], a[yy], b[xx], b[yy], c[xx], c[yy]};
 
   auto tri_buffer = _gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, tri_data, sizeof(tri_data));
@@ -177,7 +214,7 @@ void RenderUtil::render_fill(
   _draw_program.bind();
   _draw_program.bind_attribute("pixels", tri_buffer);
   _draw_program.bind_uniform("resolution", _native_size);
-  _draw_program.bind_uniform("translation", y::fvec2(_translation));
+  _draw_program.bind_uniform("translation", _translation);
   _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
   _draw_program.bind_uniform("colour", colour);
   _quad.draw_elements(GL_TRIANGLES, 3);
@@ -185,27 +222,44 @@ void RenderUtil::render_fill(
   _gl.delete_buffer(tri_buffer);
 }
 
-void RenderUtil::render_outline(const y::ivec2& origin, const y::ivec2& size,
+void RenderUtil::render_line(const y::fvec2& a, const y::fvec2& b,
+                             const y::fvec4& colour) const
+{
+  y::fvec2 normal = y::fvec2::from_angle((b - a).angle() + float(y::pi / 2));
+  render_fill(a, a + normal, b, colour);
+  render_fill(a + normal, b, b + normal, colour);
+}
+
+void RenderUtil::irender_fill(const y::ivec2& origin, const y::ivec2& size,
+                              const y::fvec4& colour) const
+{
+  render_fill(y::fvec2(origin), y::fvec2(size), colour);
+}
+
+void RenderUtil::irender_fill(const y::ivec2& a, const y::ivec2& b,
+                              const y::ivec2& c, const y::fvec4& colour) const
+{
+  render_fill(y::fvec2(a), y::fvec2(b), y::fvec2(c), colour);
+}
+
+void RenderUtil::render_outline(const y::fvec2& origin, const y::fvec2& size,
                                 const y::fvec4& colour) const
 {
   // In order to keep lines 1 pixel wide we need to divide by the scale.
   float pixel = 1.f / _scale;
-  render_fill_internal(
-      y::fvec2(origin),
-      {size[xx] - pixel, pixel},
-      colour);
-  render_fill_internal(
-      y::fvec2(origin) + y::fvec2{0.f, pixel},
-      {pixel, size[yy] - pixel},
-      colour);
-  render_fill_internal(
-      y::fvec2(origin) + y::fvec2{pixel, size[yy] - pixel},
-      {size[xx] - pixel, pixel},
-      colour);
-  render_fill_internal(
-      y::fvec2(origin) + y::fvec2{size[xx] - pixel, 0.f},
-      {pixel, size[yy] - pixel},
-      colour);
+  render_fill(origin, {size[xx] - pixel, pixel}, colour);
+  render_fill(origin + y::fvec2{0.f, pixel},
+              {pixel, size[yy] - pixel}, colour);
+  render_fill(origin + y::fvec2{pixel, size[yy] - pixel},
+              {size[xx] - pixel, pixel}, colour);
+  render_fill(origin + y::fvec2{size[xx] - pixel, 0.f},
+              {pixel, size[yy] - pixel}, colour);
+}
+
+void RenderUtil::irender_outline(const y::ivec2& origin, const y::ivec2& size,
+                                 const y::fvec4& colour) const
+{
+  render_outline(y::fvec2(origin), y::fvec2(size), colour);
 }
 
 void RenderUtil::set_sprite(const GlTexture& texture,
@@ -216,11 +270,11 @@ void RenderUtil::set_sprite(const GlTexture& texture,
   _batched_sprites.clear();
 }
 
-void RenderUtil::batch_sprite(const y::ivec2& origin, const y::ivec2& frame,
+void RenderUtil::batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
                               float depth, const y::fvec4& colour) const
 {
   _batched_sprites.emplace_back(RenderBatch::batched_sprite{
-      float(origin[xx]), float(origin[yy]),
+      origin[xx], origin[yy],
       float(frame[xx]), float(frame[yy]), depth, colour});
 }
 
@@ -296,7 +350,7 @@ void RenderUtil::render_batch() const
   _sprite_program.bind_attribute("depth", _depth_buffer);
   _sprite_program.bind_attribute("colour", _colour_buffer);
   _sprite_program.bind_uniform("resolution", _native_size);
-  _sprite_program.bind_uniform("translation", y::fvec2(_translation));
+  _sprite_program.bind_uniform("translation", _translation);
   _sprite_program.bind_uniform("scale", y::fvec2{_scale, _scale});
 
   y::ivec2 v = _sprite.get_size() / _frame_size;
@@ -321,7 +375,7 @@ void RenderUtil::render_batch(const RenderBatch& batch)
 
 void RenderUtil::render_sprite(
     const GlTexture& sprite, const y::ivec2& frame_size,
-    const y::ivec2& origin, const y::ivec2& frame,
+    const y::fvec2& origin, const y::ivec2& frame,
     float depth, const y::fvec4& colour)
 {
   set_sprite(sprite, frame_size);
@@ -329,33 +383,12 @@ void RenderUtil::render_sprite(
   render_batch();
 }
 
-void RenderUtil::render_fill_internal(
-    const y::fvec2& origin, const y::fvec2& size,
-    const y::fvec4& colour) const
+void RenderUtil::irender_sprite(
+    const GlTexture& sprite, const y::ivec2& frame_size,
+    const y::ivec2& origin, const y::ivec2& frame,
+    float depth, const y::fvec4& colour)
 {
-  if (!(_native_size >= y::ivec2())) {
-    return;
-  }
-  _gl.enable_depth(false);
-
-  const GLfloat rect_data[] = {
-      origin[xx], origin[yy],
-      (origin + size)[xx], origin[yy],
-      origin[xx], (origin + size)[yy],
-      (origin + size)[xx], (origin + size)[yy]};
-
-  auto rect_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, rect_data, sizeof(rect_data));
-
-  _draw_program.bind();
-  _draw_program.bind_attribute("pixels", rect_buffer);
-  _draw_program.bind_uniform("resolution", _native_size);
-  _draw_program.bind_uniform("translation", y::fvec2(_translation));
-  _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
-  _draw_program.bind_uniform("colour", colour);
-  _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
-
-  _gl.delete_buffer(rect_buffer);
+  render_sprite(sprite, frame_size, y::fvec2(origin), frame, depth, colour);
 }
 
 y::ivec2 RenderUtil::from_grid(const y::ivec2& grid)

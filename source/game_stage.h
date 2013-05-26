@@ -27,7 +27,9 @@ public:
   RenderUtil& get_util() const;
   const Collision& get_collision() const;
   /***/ Collision& get_collision();
-  const y::wvec2& get_camera() const;
+
+  y::wvec2 world_to_camera(const y::wvec2& v) const;
+  y::wvec2 camera_to_world(const y::wvec2& v) const;
 
   void event(const sf::Event& e) override;
   void update() override;
@@ -47,9 +49,6 @@ public:
   bool is_key_down(y::int32 key) const;
 
 private:
-
-  y::wvec2 world_to_camera(const y::wvec2& v) const;
-  y::wvec2 camera_to_world(const y::wvec2& v) const;
 
   void add_script(y::unique<Script> script);
 

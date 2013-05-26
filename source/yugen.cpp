@@ -40,7 +40,8 @@ const GLfloat vertex_data[] = {
      1.f, +1.f};
 
 Yugen::Yugen(RenderUtil& util)
-  : _util(util)
+  : _recording(false)
+  , _util(util)
   , _framebuffer(util.get_gl().make_framebuffer(RenderUtil::native_size))
   , _post_buffer(util.get_gl().make_framebuffer(RenderUtil::native_size))
   , _stage(y::null)
@@ -83,9 +84,30 @@ Yugen::~Yugen()
 
 void Yugen::event(const sf::Event& e)
 {
-  if (e.type == sf::Event::KeyPressed &&
-      e.key.code == sf::Keyboard::Escape) {
+  if (e.type != sf::Event::KeyPressed) {
+    return;
+  }
+
+  if (e.key.code == sf::Keyboard::Escape) {
     end();
+  }
+  if (e.key.code == sf::Keyboard::Tilde) {
+    _recording = !_recording;
+    if (!_recording) {
+      y::size n = 0;
+      for (unsigned char* data : _save_file_frames) {
+        y::ivec2 size = _post_buffer.get_size();
+        sf::Image image;
+        image.create(size[xx], size[yy], data);
+        image.flipVertically();
+
+        y::sstream ss;
+        ss << "tmp/" << std::setw(4) << std::setfill('0') << n++ << ".png";
+        image.saveToFile(ss.str());
+        delete[] data;
+      }
+    }
+    _save_file_frames.clear();
   }
 }
 
@@ -125,39 +147,25 @@ void Yugen::draw() const
   _post_program.bind_uniform("bayer", 1);
   _post_program.bind_uniform("bayer_res", _bayer_texture.get_size());
   _post_program.bind_uniform(
-      "bayer_off", _stage ? -y::ivec2(_stage->get_camera()) : y::ivec2());
+      "bayer_off", _stage ? y::fvec2(_stage->world_to_camera(y::wvec2())) :
+                            y::fvec2());
   _post_program.bind_uniform("bayer_frame", y::int32(++_bayer_frame));
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
 
   // Render postbuffer to a file.
-  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tilde)) {
+  if (_recording) {
     y::ivec2 size = _framebuffer.get_size();
     y::int32 length = 4 * size[xx] * size[yy];
     unsigned char* data = new unsigned char[length];
     glReadPixels(0, 0, size[xx], size[yy], GL_RGBA, GL_UNSIGNED_BYTE, data);
     _save_file_frames.emplace_back(data);
   }
-  else {
-    y::size n = 0;
-    for (unsigned char* data : _save_file_frames) {
-      y::ivec2 size = _post_buffer.get_size();
-      sf::Image image;
-      image.create(size[xx], size[yy], data);
-      image.flipVertically();
-
-      y::sstream ss;
-      ss << "tmp/" << std::setw(4) << std::setfill('0') << n++ << ".png";
-      image.saveToFile(ss.str());
-      delete[] data;
-    }
-    _save_file_frames.clear();
-  }
 
   // Render FPS indicator.
   if (total) {
     y::sstream ss;
     ss << total << " ticks (" << (1000.f / total) << " fps)";
-    _util.render_text(ss.str(), {16, 16}, colour::white);
+    _util.irender_text(ss.str(), {16, 16}, colour::white);
   }
 
   // Upscale the native-resolution buffer to the window.

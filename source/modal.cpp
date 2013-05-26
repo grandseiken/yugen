@@ -235,10 +235,10 @@ void PanelUi::draw(RenderUtil& util) const
     const y::fvec4& c = _mouse_over.find(panel) != _mouse_over.end() ?
         colour::outline : colour::dark_outline;
 
-    util.add_translation(origin);
+    util.iadd_translation(origin);
     panel->draw(util);
-    util.render_outline({-1, -1}, size + y::ivec2{2, 2}, c);
-    util.add_translation(-origin);
+    util.irender_outline({-1, -1}, size + y::ivec2{2, 2}, c);
+    util.iadd_translation(-origin);
   }
 }
 

@@ -22,93 +22,93 @@ void render_collision(RenderUtil& util, const y::ivec2& pixels,
 
   switch (collision) {
     case Tileset::COLLIDE_FULL:
-      util.render_fill(pixels, t, colour);
+      util.irender_fill(pixels, t, colour);
       break;
     case Tileset::COLLIDE_HALF_U:
-      util.render_fill(pixels, t / y::ivec2{1, 2}, colour);
+      util.irender_fill(pixels, t / y::ivec2{1, 2}, colour);
       break;
     case Tileset::COLLIDE_HALF_D:
-      util.render_fill(pixels + y::ivec2{0, t[yy] / 2},
-                       t / y::ivec2{1, 2}, colour);
+      util.irender_fill(pixels + y::ivec2{0, t[yy] / 2},
+                        t / y::ivec2{1, 2}, colour);
       break;
     case Tileset::COLLIDE_HALF_L:
-      util.render_fill(pixels, t / y::ivec2{2, 1}, colour);
+      util.irender_fill(pixels, t / y::ivec2{2, 1}, colour);
       break;
     case Tileset::COLLIDE_HALF_R:
-      util.render_fill(pixels + y::ivec2{t[xx] / 2, 0},
-                       t / y::ivec2{2, 1}, colour);
+      util.irender_fill(pixels + y::ivec2{t[xx] / 2, 0},
+                        t / y::ivec2{2, 1}, colour);
       break;
     case Tileset::COLLIDE_SLOPE1_UL:
-      util.render_fill(dl, ul, dr, colour);
+      util.irender_fill(dl, ul, dr, colour);
       break;
     case Tileset::COLLIDE_SLOPE1_UR:
-      util.render_fill(dl, ur, dr, colour);
+      util.irender_fill(dl, ur, dr, colour);
       break;
     case Tileset::COLLIDE_SLOPE1_DL:
-      util.render_fill(ul, dl, ur, colour);
+      util.irender_fill(ul, dl, ur, colour);
       break;
     case Tileset::COLLIDE_SLOPE1_DR:
-      util.render_fill(ul, dr, ur, colour);
+      util.irender_fill(ul, dr, ur, colour);
       break;
     case Tileset::COLLIDE_SLOPE2_UL_A:
-      util.render_fill(d, ul, dl, colour);
+      util.irender_fill(d, ul, dl, colour);
       break;
     case Tileset::COLLIDE_SLOPE2_UR_A:
-      util.render_fill(d, ur, dr, colour);
+      util.irender_fill(d, ur, dr, colour);
       break;
     case Tileset::COLLIDE_SLOPE2_DL_A:
-      util.render_fill(u, ul, dl, colour);
+      util.irender_fill(u, ul, dl, colour);
       break;
     case Tileset::COLLIDE_SLOPE2_DR_A:
-      util.render_fill(u, ur, dr, colour);
+      util.irender_fill(u, ur, dr, colour);
       break;
     case Tileset::COLLIDE_SLOPEH_UL_A:
-      util.render_fill(l, dl, dr, colour);
+      util.irender_fill(l, dl, dr, colour);
       break;
     case Tileset::COLLIDE_SLOPEH_UR_A:
-      util.render_fill(r, dl, dr, colour);
+      util.irender_fill(r, dl, dr, colour);
       break;
     case Tileset::COLLIDE_SLOPEH_DL_A:
-      util.render_fill(l, ul, ur, colour);
+      util.irender_fill(l, ul, ur, colour);
       break;
     case Tileset::COLLIDE_SLOPEH_DR_A:
-      util.render_fill(r, ul, ur, colour);
+      util.irender_fill(r, ul, ur, colour);
       break;
     case Tileset::COLLIDE_SLOPE2_UL_B:
-      util.render_fill(pixels, t / y::ivec2{2, 1}, colour);
-      util.render_fill(dr, u, d, colour);
+      util.irender_fill(pixels, t / y::ivec2{2, 1}, colour);
+      util.irender_fill(dr, u, d, colour);
       break;
     case Tileset::COLLIDE_SLOPE2_UR_B:
-      util.render_fill(pixels + y::ivec2{t[xx] / 2, 0},
-                       t / y::ivec2{2, 1}, colour);
-      util.render_fill(dl, u, d, colour);
+      util.irender_fill(pixels + y::ivec2{t[xx] / 2, 0},
+                        t / y::ivec2{2, 1}, colour);
+      util.irender_fill(dl, u, d, colour);
       break;
     case Tileset::COLLIDE_SLOPE2_DL_B:
-      util.render_fill(pixels, t / y::ivec2{2, 1}, colour);
-      util.render_fill(ur, u, d, colour);
+      util.irender_fill(pixels, t / y::ivec2{2, 1}, colour);
+      util.irender_fill(ur, u, d, colour);
       break;
     case Tileset::COLLIDE_SLOPE2_DR_B:
-      util.render_fill(pixels + y::ivec2{t[xx] / 2, 0},
-                       t / y::ivec2{2, 1}, colour);
-      util.render_fill(ul, u, d, colour);
+      util.irender_fill(pixels + y::ivec2{t[xx] / 2, 0},
+                        t / y::ivec2{2, 1}, colour);
+      util.irender_fill(ul, u, d, colour);
       break;
     case Tileset::COLLIDE_SLOPEH_UL_B:
-      util.render_fill(pixels + y::ivec2{0, t[yy] / 2},
-                       t / y::ivec2{1, 2}, colour);
-      util.render_fill(ul, l, r, colour);
+      util.irender_fill(pixels + y::ivec2{0, t[yy] / 2},
+                        t / y::ivec2{1, 2}, colour);
+      util.irender_fill(ul, l, r, colour);
       break;
     case Tileset::COLLIDE_SLOPEH_UR_B:
-      util.render_fill(pixels + y::ivec2{0, t[yy] / 2},
-                       t / y::ivec2{1, 2}, colour);
-      util.render_fill(ur, l, r, colour);
+      util.irender_fill(pixels + y::ivec2{0, t[yy] / 2},
+                        t / y::ivec2{1, 2}, colour);
+      util.irender_fill(ur, l, r, colour);
       break;
     case Tileset::COLLIDE_SLOPEH_DL_B:
-      util.render_fill(pixels, t / y::ivec2{1, 2}, colour);
-      util.render_fill(dl, l, r, colour);
+      util.irender_fill(pixels, t / y::ivec2{1, 2}, colour);
+      util.irender_fill(dl, l, r, colour);
       break;
     case Tileset::COLLIDE_SLOPEH_DR_B:
-      util.render_fill(pixels, t / y::ivec2{1, 2}, colour);
-      util.render_fill(dr, l, r, colour);
+      util.irender_fill(pixels, t / y::ivec2{1, 2}, colour);
+      util.irender_fill(dr, l, r, colour);
       break;
     default: {}
   }
@@ -177,12 +177,12 @@ void TilesetPanel::update()
 void TilesetPanel::draw(RenderUtil& util) const
 {
   const GlTexture& texture = _tileset.get_texture();
-  util.render_sprite(texture, texture.get_size(), y::ivec2(), y::ivec2(),
-                     0.f, colour::white);
+  util.irender_sprite(texture, texture.get_size(), y::ivec2(), y::ivec2(),
+                      0.f, colour::white);
 
   if (_hover >= y::ivec2()) {
-    util.render_outline(_hover * Tileset::tile_size,
-                        Tileset::tile_size, colour::hover);
+    util.irender_outline(_hover * Tileset::tile_size,
+                         Tileset::tile_size, colour::hover);
   }
 
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
@@ -258,13 +258,13 @@ void CollidePanel::draw(RenderUtil& util) const
      y::ivec2 v{i % entries_per_row, i / entries_per_row};
      render_collision(util, Tileset::tile_size * v, i, colour::hover);
      if (i == _collide_select) {
-       util.render_outline(Tileset::tile_size * v, Tileset::tile_size,
-                           colour::select);
+       util.irender_outline(Tileset::tile_size * v, Tileset::tile_size,
+                            colour::select);
      }
      else if (_hover >= y::ivec2() &&
               _hover.euclidean_div(Tileset::tile_size) == v) {
-       util.render_outline(Tileset::tile_size * v, Tileset::tile_size,
-                           colour::hover);
+       util.irender_outline(Tileset::tile_size * v, Tileset::tile_size,
+                            colour::hover);
      }
   }
 }

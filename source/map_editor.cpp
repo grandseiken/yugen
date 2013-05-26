@@ -224,9 +224,9 @@ void BrushPanel::draw(RenderUtil& util) const
       continue;
     }
 
-    batch.add_sprite(e.tileset->get_texture(), Tileset::tile_size,
-                     *it * Tileset::tile_size, e.tileset->from_index(e.index),
-                     0.f, colour::white);
+    batch.iadd_sprite(e.tileset->get_texture(), Tileset::tile_size,
+                      *it * Tileset::tile_size, e.tileset->from_index(e.index),
+                      0.f, colour::white);
   }
   util.render_batch(batch);
 }
@@ -316,11 +316,11 @@ void TilePanel::draw(RenderUtil& util) const
   _list.draw(util, _bank.tilesets.get_names(), _tileset_select);
 
   // Render tileset.
-  util.render_fill({0, RenderUtil::from_grid(_list.get_size())[yy]},
-                   tex.get_size(), colour::dark_panel);
-  util.render_sprite(tex, tex.get_size(),
-                     {0, RenderUtil::from_grid(_list.get_size())[yy]},
-                     y::ivec2(), 0.f, colour::white);
+  util.irender_fill({0, RenderUtil::from_grid(_list.get_size())[yy]},
+                    tex.get_size(), colour::dark_panel);
+  util.irender_sprite(tex, tex.get_size(),
+                      {0, RenderUtil::from_grid(_list.get_size())[yy]},
+                      y::ivec2(), 0.f, colour::white);
 
   // Render hover.
   y::ivec2 start = is_dragging() ? get_drag_start() : _tile_hover;
@@ -330,10 +330,10 @@ void TilePanel::draw(RenderUtil& util) const
   if (_tile_hover.in_region(y::ivec2(), t.get_size()) || is_dragging()) {
     min = y::max(min, {0, 0});
     max = y::min(max, t.get_size() - y::ivec2{1, 1});
-    util.render_outline(
-        min * Tileset::tile_size +
-            y::ivec2{0, RenderUtil::from_grid(_list.get_size())[yy]},
-        (y::ivec2{1, 1} + (max - min)) * Tileset::tile_size, colour::hover);
+    util.irender_outline(
+         min * Tileset::tile_size +
+             y::ivec2{0, RenderUtil::from_grid(_list.get_size())[yy]},
+         (y::ivec2{1, 1} + (max - min)) * Tileset::tile_size, colour::hover);
   }
 }
 
@@ -493,7 +493,7 @@ void LayerPanel::draw(RenderUtil& util) const
 
   y::int32 i = 0;
   for (const y::string& s : _status) {
-    util.render_text(s, RenderUtil::from_grid({0, 4 + i++}), colour::item);
+    util.irender_text(s, RenderUtil::from_grid({0, 4 + i++}), colour::item);
   }
 }
 
@@ -545,7 +545,7 @@ void MinimapPanel::update()
 
 void MinimapPanel::draw(RenderUtil& util) const
 {
-  util.render_fill(y::ivec2(), get_size(), colour::dark_panel);
+  util.irender_fill(y::ivec2(), get_size(), colour::dark_panel);
   util.set_scale(1.f / scale);
   const y::ivec2& min = _map.get_boundary_min();
   const y::ivec2& max = _map.get_boundary_max();
@@ -570,8 +570,8 @@ void MinimapPanel::draw(RenderUtil& util) const
 
         float d = .8f - layer * .1f;
         y::ivec2 u = Tileset::tile_size * (v + (c - min) * Cell::cell_size);
-        batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
-                         u, t.tileset->from_index(t.index), d, colour::white);
+        batch.iadd_sprite(t.tileset->get_texture(), Tileset::tile_size,
+                          u, t.tileset->from_index(t.index), d, colour::white);
       }
     }
   }
@@ -587,7 +587,7 @@ void MinimapPanel::draw(RenderUtil& util) const
   vmin = y::max(vmin, y::ivec2());
   vmax = y::min(vmax, (max - min) * Cell::cell_size * Tileset::tile_size);
   if (vmin < vmax) {
-    util.render_outline(vmin, vmax - vmin, colour::outline);
+    util.irender_outline(vmin, vmax - vmin, colour::outline);
   }
   util.set_scale(1.f);
 }
@@ -886,7 +886,7 @@ void MapEditor::draw() const
   for (auto it = y::cartesian(min, max); it; ++it) {
     if (_map.is_coord_used(*it) ||
         (is_mouse_on_screen() && *it == get_hover_cell())) {
-      _util.render_outline(
+      _util.irender_outline(
           world_to_camera(*it * Tileset::tile_size * Cell::cell_size),
           Tileset::tile_size * Cell::cell_size, colour::panel);
     }
@@ -900,8 +900,8 @@ void MapEditor::draw() const
   // Draw native resolution indicator.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
     const Resolution& r = _util.get_window().get_mode();
-    _util.render_outline(r.size / 2 - RenderUtil::native_size / 2,
-                         RenderUtil::native_size, colour::outline);
+    _util.irender_outline(r.size / 2 - RenderUtil::native_size / 2,
+                          RenderUtil::native_size, colour::outline);
   }
 
   // Draw cursor.
@@ -1016,8 +1016,8 @@ void MapEditor::draw_cell_layer(
     y::ivec2 camera = world_to_camera(
         Tileset::tile_size * (*it + coord * Cell::cell_size));
 
-    batch.add_sprite(t.tileset->get_texture(), Tileset::tile_size,
-                     camera, t.tileset->from_index(t.index), 0.f, c);
+    batch.iadd_sprite(t.tileset->get_texture(), Tileset::tile_size,
+                      camera, t.tileset->from_index(t.index), 0.f, c);
   }
 }
 
@@ -1038,11 +1038,11 @@ void MapEditor::draw_scripts() const
         get_hover_world() - get_drag_start() : y::ivec2();
     y::ivec2 min = world_to_camera((s.min + off) * Tileset::tile_size);
     y::ivec2 max = world_to_camera((s.max + off) * Tileset::tile_size);
-    _util.render_fill(min, Tileset::tile_size + max - min,
-                      colour::highlight);
-    _util.render_outline(min, Tileset::tile_size + max - min,
-                         colour::outline);
-    _util.render_text(
+    _util.irender_fill(min, Tileset::tile_size + max - min,
+                       colour::highlight);
+    _util.irender_outline(min, Tileset::tile_size + max - min,
+                          colour::outline);
+    _util.irender_text(
         s.path, min, &s == hover_script || &s == drag_script ?
             colour::select : colour::item);
   }
@@ -1060,7 +1060,7 @@ void MapEditor::draw_cursor() const
       (!_tile_edit_action || _tile_edit_style)) {
     y::ivec2 min = y::min(get_drag_start(), get_hover_world());
     y::ivec2 max = y::max(get_drag_start(), get_hover_world());
-    _util.render_outline(
+    _util.irender_outline(
         world_to_camera(min * Tileset::tile_size),
         Tileset::tile_size * (y::ivec2{1, 1} + max - min), colour::hover);
   }
@@ -1068,7 +1068,7 @@ void MapEditor::draw_cursor() const
   else if (is_mouse_on_screen() &&
            (_map.is_coord_used(get_hover_cell()) ||
             _map.is_coord_used(cursor_end.euclidean_div(Cell::cell_size)))) {
-    _util.render_outline(
+    _util.irender_outline(
         world_to_camera(get_hover_world() * Tileset::tile_size),
         Tileset::tile_size * (is_script_layer() ?
                               y::ivec2{1, 1} : _tile_brush.size),

@@ -305,6 +305,15 @@ namespace y {
       return acos(dot(arg) / (length() * arg.length()));
     }
 
+    template<
+        typename U = T,
+        typename std::enable_if<N == 2 &&
+                                std::is_same<T, U>::value, bool>::type = 0>
+    static V from_angle(T angle)
+    {
+      return V{T(cos(angle)), T(sin(angle))};
+    }
+
     bool in_region(const V& origin, const V& size) const
     {
       for (y::size i = 0; i < N; ++i) {

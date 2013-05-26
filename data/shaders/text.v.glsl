@@ -1,6 +1,6 @@
 #include "pixels.glsl"
 
-uniform ivec2 origin;
+uniform vec2 origin;
 varying vec2 tex_coord;
 
 void main()
