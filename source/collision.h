@@ -23,6 +23,7 @@ struct Body {
   const Script& source;
   y::wvec2 offset;
   y::wvec2 size;
+  bool collides;
 };
 
 // Keeps a record of Bodies and handles sweeping and collision.
@@ -40,11 +41,29 @@ public:
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
   void collider_move(Script& source, const y::wvec2& move) const;
+  bool body_check(const Script& source, const Body& body) const;
 
 private:
 
-  y::world get_move_ratio(const Geometry& geometry,
-                          const y::wvec2& vertex, const y::wvec2& move) const;
+  // Internal collision functions.
+  struct world_geometry {
+    y::wvec2 start;
+    y::wvec2 end;
+  };
+  y::world get_projection_ratio(const y::vector<world_geometry>& geometry,
+                                const y::vector<y::wvec2>& vertices,
+                                const y::wvec2& move) const;
+  y::world get_projection_ratio(const world_geometry& geometry,
+                                const y::vector<y::wvec2>& vertices,
+                                const y::wvec2& move) const;
+  y::world get_projection_ratio(const world_geometry& geometry,
+                                const y::wvec2& vertex,
+                                const y::wvec2& move) const;
+
+  bool has_intersection(const y::vector<world_geometry>& a,
+                        const world_geometry& b) const;
+  bool has_intersection(const world_geometry& a,
+                        const world_geometry& b) const;
 
   const WorldWindow& _world;
 

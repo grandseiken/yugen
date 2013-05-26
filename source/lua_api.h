@@ -278,14 +278,19 @@ ylib_api(destroy_bodies) ylib_arg(const Script*, script)
   ylib_void();
 }
 
-ylib_api(get_body_offset) ylib_arg(Body*, body)
+ylib_api(get_body_offset) ylib_arg(const Body*, body)
 {
   ylib_return(body->offset);
 }
 
-ylib_api(get_body_size) ylib_arg(Body*, body)
+ylib_api(get_body_size) ylib_arg(const Body*, body)
 {
   ylib_return(body->size);
+}
+
+ylib_api(get_body_collides) ylib_arg(const Body*, body)
+{
+  ylib_return(body->collides);
 }
 
 ylib_api(set_body_offset)
@@ -302,9 +307,21 @@ ylib_api(set_body_size)
   ylib_void();
 }
 
+ylib_api(set_body_collides)
+    ylib_arg(Body*, body) ylib_arg(bool, collides)
+{
+  body->collides = collides;
+  ylib_void();
+}
+
 ylib_api(collider_move)
     ylib_arg(Script*, script) ylib_refarg(const y::wvec2, move)
 {
   stage.get_collision().collider_move(*script, move);
   ylib_void();
+}
+
+ylib_api(body_check) ylib_arg(const Script*, script) ylib_arg(const Body*, body)
+{
+  ylib_return(stage.get_collision().body_check(*script, *body));
 }

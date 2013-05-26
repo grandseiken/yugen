@@ -703,7 +703,7 @@ void MapEditor::event(const sf::Event& e)
     // Kick off game.
     case sf::Keyboard::Return:
       if (shift) {
-        y::string call = "bin/yugen " + _bank.maps.get_name(_map) + 
+        y::string call = "bin/yugen " + _bank.maps.get_name(_map) +
                          " " + y::to_string(get_hover_world()[xx]) +
                          " " + y::to_string(get_hover_world()[yy]);
         std::cout << call << " exited with code " << system(call.c_str()) <<

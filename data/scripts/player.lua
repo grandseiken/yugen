@@ -5,6 +5,8 @@ local sprite = get_sprite("/tiles/easy.png")
 local frame_size = vec(32, 32)
 local frame = vec(3, 16)
 local body = create_body(self, vec(0, 8), vec(6, 16))
+set_body_collides(body, true)
+local down_check = create_body(self, vec(0, 16), vec(6, 6))
 
 local gravity = 4
 
@@ -20,6 +22,7 @@ function update()
   if is_key_down(KEY_RIGHT) then
     v = v + 2
   end
+  -- step up slopes
   collider_move(self, vec(0, -2))
   collider_move(self, vec(v, 0))
   collider_move(self, vec(0, 2))
@@ -47,7 +50,7 @@ function update()
 end
 
 function key(k)
-  if k == KEY_UP and jump_counter == 0 then
+  if k == KEY_UP and jump_counter == 0 and body_check(self, down_check) then
     jump_counter = jump_period + 2 * jump_cap_period
   end
 end

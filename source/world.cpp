@@ -420,6 +420,9 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
   // collision of the tiles on either side of the edge differs. When this
   // pattern continues for several tiles, don't add the geometry until we reach
   // the end.
+  // The same technique could be used for each possible sloped gradient, but
+  // since these are probably less common and have the nice property of at most
+  // one sloped edge per tile, they are handled separately afterwards.
   enum Boundary {
     NONE,
     LEFT,
@@ -493,9 +496,9 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     }
   }
 
-  // Straight edges of non-full-square tiles are handled by the above strategy.
+  // Full straight edges of irregular tiles are handled by the above strategy.
   // Now we make a list of non-full tiles so we can go back and fill in the
-  // irregular edges.
+  // sloped edges.
   y::set<y::ivec2> set;
   for (auto it = y::cartesian(Cell::cell_size); it; ++it) {
     y::int32 c = cell.get_tile(collision_layer, *it).get_collision();
@@ -504,8 +507,9 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     }
     set.insert(*it);
 
-    // At the same time, add the straight half-length edges. which are currently
-    // not handled by the main straight-edge loop.
+    // At the same time, add the straight half-length edges. These are not
+    // currently handled by the main horizontal/vertical loop.
+    // TODO: would be cleaner if we could join them.
     local::add_straight_half_edges(bucket.middle, cell, *it, c);
   }
 

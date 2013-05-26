@@ -1,6 +1,7 @@
 -- crate.lua --
 local sprite = get_sprite("/tiles/ruin.png")
 local body = create_body(self, vec(0, 0), vec(32, 32))
+set_body_collides(body, true)
 
 function update()
   collider_move(self, vec(0, 3))

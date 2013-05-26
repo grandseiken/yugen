@@ -5,6 +5,7 @@
 
 Body::Body(const Script& source)
   : source(source)
+  , collides(false)
 {
 }
 
@@ -110,6 +111,51 @@ void Collision::render(
   }
 }
 
+bool Collision::body_check(const Script& source, const Body& body) const
+{
+  const OrderedGeometry& geometry = _world.get_geometry();
+  y::wvec2 origin = source.get_origin();
+  y::wvec2 min_bound = origin + body.get_min();
+  y::wvec2 max_bound = origin + body.get_max();
+
+  y::wvec2 dr = origin + body.offset + body.size / 2;
+  y::wvec2 ur = origin + body.offset + y::wvec2{1., -1.} * body.size / 2;
+  y::wvec2 dl = origin + body.offset + y::wvec2{-1., 1.} * body.size / 2;
+  y::wvec2 ul = origin + body.offset + y::wvec2{-1., -1.} * body.size / 2;
+
+  y::vector<world_geometry> geometries;
+  geometries.push_back({ul, ur});
+  geometries.push_back({ur, dr});
+  geometries.push_back({dr, dl});
+  geometries.push_back({dl, ul});
+
+  // See collider_move for details.
+  for (y::size i = 0; i < geometry.buckets.size(); ++i) {
+    y::int32 g_max = geometry.get_max_for_bucket(i);
+    if (min_bound[xx] >= g_max) {
+      continue;
+    }
+
+    for (const Geometry& g : geometry.buckets[i]) {
+      y::wvec2 g_min = y::wvec2(y::min(g.start, g.end));
+      y::wvec2 g_max = y::wvec2(y::max(g.start, g.end));
+      if (g_min[xx] >= max_bound[xx]) {
+        break;
+      }
+      if (!(g_min < max_bound && g_max > min_bound)) {
+        continue;
+      }
+
+      if (has_intersection(geometries, world_geometry{y::wvec2(g.start),
+                                                      y::wvec2(g.end)})) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 void Collision::collider_move(Script& source, const y::wvec2& move) const
 {
   auto it = _map.find(&source);
@@ -133,6 +179,11 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
   min_bound = y::min(min_bound, move + min_bound);
   y::wvec2 max_bound = source.get_origin() + bodies.get_max();
   max_bound = y::max(max_bound, move + max_bound);
+
+  bool project_downright = move[xx] > 0 || move[yy] > 0;
+  bool project_upright = move[xx] > 0 || move[yy] < 0;
+  bool project_downleft = move[xx] < 0 || move[yy] > 0;
+  bool project_upleft = move[xx] < 0 || move[yy] < 0;
 
   y::world min_ratio = 1;
   // Eliminating geometry by bucket and order depends heavily on structure of
@@ -165,41 +216,57 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
       // blocking ratio among each intersection of the geometry with these, and
       // and also any endpoint of geometry contained within the projection of
       // the entire shape.
-      bool project_downright =
-          move[xx] > 0 || move[yy] > 0;
-      bool project_upright =
-          move[xx] > 0 || move[yy] < 0;
-      bool project_downleft =
-          move[xx] < 0 || move[yy] > 0;
-      bool project_upleft =
-          move[xx] < 0 || move[yy] < 0;
+      // The pleasing symmetry is that checking the geometry endpoints is
+      // exactly the reverse of the same process, i.e., project the geometry
+      // backwards by the movement vector and take the minimum blocking ratio
+      // among intersections with the original shape.
+      world_geometry wg{y::wvec2(g.start), y::wvec2(g.end)};
+      y::vector<y::wvec2> vertices;
+      y::vector<world_geometry> geometries;
 
       for (const auto& pointer : bodies.list) {
         const Body& b = *pointer;
+        if (!b.collides) {
+          continue;
+        }
         y::wvec2 origin = source.get_origin() + b.offset;
+
+        vertices.clear();
+        geometries.clear();
+        y::wvec2 dr = origin + b.size / 2;
+        y::wvec2 ur = origin + y::wvec2{1., -1.} * b.size / 2;
+        y::wvec2 dl = origin + y::wvec2{-1., 1.} * b.size / 2;
+        y::wvec2 ul = origin + y::wvec2{-1., -1.} * b.size / 2;
+
         if (project_downright) {
-          min_ratio = y::min(min_ratio, get_move_ratio(
-                          g, origin + b.size / 2, move));
+          vertices.emplace_back(dr);
         }
         if (project_upright) {
-          min_ratio = y::min(min_ratio, get_move_ratio(
-                          g, origin + y::wvec2{1.0, -1.0} * b.size / 2, move));
+          vertices.emplace_back(ur);
         }
         if (project_downleft) {
-          min_ratio = y::min(min_ratio, get_move_ratio(
-                          g, origin + y::wvec2{-1.0, 1.0} * b.size / 2, move));
+          vertices.emplace_back(dl);
         }
         if (project_upleft) {
-          min_ratio = y::min(min_ratio, get_move_ratio(
-                          g, origin + y::wvec2{-1.0, -1.0} * b.size / 2, move));
+          vertices.emplace_back(ul);
         }
-        // TODO: the pleasing symmetry is that checking the geometry endpoints
-        // is exactly the reverse of the above process, i.e., project the
-        // geometry backwards by the movement vector and take one minus the
-        // maximum blocking ratio among intersections with the original shape.
-        // TODO: rewrite to be more generic, i.e., we always project the
-        // (relevant) vertices of one shape against the edges of the second,
-        // and vice versa.
+
+        if (move[yy] > 0) {
+          geometries.push_back({dl, dr});
+        }
+        if (move[yy] < 0) {
+          geometries.push_back({ul, ur});
+        }
+        if (move[xx] > 0) {
+          geometries.push_back({ur, dr});
+        }
+        if (move[xx] < 0) {
+          geometries.push_back({ul, dl});
+        }
+
+        min_ratio = y::min(min_ratio, get_projection_ratio(wg, vertices, move));
+        min_ratio = y::min(min_ratio, get_projection_ratio(
+                        geometries, {wg.start, wg.end}, -move));
       }
     }
   }
@@ -207,19 +274,39 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
   // such that moving by t * move is blocked, and recurse in any free unblocked
   // direction.
   source.set_origin(min_ratio * move + source.get_origin());
-  // TODO: recurse.
+  // TODO: (optionally) recurse.
 }
 
-y::world Collision::get_move_ratio(
-    const Geometry& geometry,
+y::world Collision::get_projection_ratio(
+    const y::vector<world_geometry>& geometry,
+    const y::vector<y::wvec2>& vertices, const y::wvec2& move) const
+{
+  y::world min_ratio = 1;
+  for (const world_geometry& g : geometry) {
+    for (const y::wvec2& v : vertices) {
+      min_ratio = y::min(min_ratio, get_projection_ratio(g, v, move));
+    }
+  }
+  return min_ratio;
+}
+
+y::world Collision::get_projection_ratio(
+    const world_geometry& geometry,
+    const y::vector<y::wvec2>& vertices, const y::wvec2& move) const
+{
+  y::world min_ratio = 1;
+  for (const y::wvec2& v : vertices) {
+    min_ratio = y::min(min_ratio, get_projection_ratio(geometry, v, move));
+  }
+  return min_ratio;
+}
+
+y::world Collision::get_projection_ratio(
+    const world_geometry& geometry,
     const y::wvec2& vertex, const y::wvec2& move) const
 {
-  struct world_geometry {
-    y::wvec2 start;
-    y::wvec2 end;
-  };
   world_geometry v{vertex, move + vertex};
-  world_geometry g{y::wvec2(geometry.start), y::wvec2(geometry.end)};
+  const world_geometry& g = geometry;
 
   // Equations of lines (for t, u in [0, 1]):
   // v(t) = v.start + (v.end - v.start) * t
@@ -246,6 +333,23 @@ y::world Collision::get_move_ratio(
     return 1;
   }
   return t;
+}
+
+bool Collision::has_intersection(const y::vector<world_geometry>& a,
+                                 const world_geometry& b) const
+{
+  for (const world_geometry& g : a) {
+    if (has_intersection(g, b)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Collision::has_intersection(const world_geometry& a,
+                                 const world_geometry& b) const
+{
+  return get_projection_ratio(a, b.start, b.end - b.start) < 1;
 }
 
 y::wvec2 Collision::entry::get_min() const
