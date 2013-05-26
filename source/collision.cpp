@@ -165,12 +165,12 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
   }
 
   // So far, we only collide Bodies with world geometry.
-  // TODO: collide bodies with bodies; have some sort of collision masks;
-  // allow bodies which only detect overlaps; etc. When bodies collide with
-  // bodies: to avoid order-dependent edge-cases (e.g. player standing on
-  // platform moving downwards), will need to store per-frame list of things
-  // which tried to move but were blocked by bodies. If the blocker moves away,
-  // try again to move all the things which were blocked by it.
+  // TODO: collide bodies with bodies; have some sort of collision masks; etc.
+  // When bodies collide with bodies: to avoid order-dependent edge-cases
+  // (e.g. player standing on platform moving downwards), will need to store
+  // per-frame list of things which tried to move but were blocked by bodies.
+  // If the blocker moves away, try again to move all the things which were
+  // blocked by it.
   const entry& bodies = it->second;
   const OrderedGeometry& geometry = _world.get_geometry();
 
