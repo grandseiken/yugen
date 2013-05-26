@@ -1,4 +1,5 @@
 attribute vec2 position;
+uniform ivec2 native_overflow_res;
 uniform ivec2 native_res;
 uniform ivec2 screen_res;
 uniform bool integral_scale_lock;
@@ -8,7 +9,8 @@ void main()
 {
   // Correction is needed for floor/division to behave properly.
   const float correction = 1.0 / 0xffff;
-  tex_coord = position * vec2(0.5) + vec2(0.5);
+  tex_coord = vec2(0.5) +
+      vec2(0.5) * position * vec2(native_res) / vec2(native_overflow_res);
 
   vec2 scale_v = vec2(screen_res) / vec2(native_res) + correction;
   float scale = floor(scale_v.x < scale_v.y ? scale_v.x : scale_v.y);

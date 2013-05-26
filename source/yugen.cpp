@@ -42,8 +42,10 @@ const GLfloat vertex_data[] = {
 Yugen::Yugen(RenderUtil& util)
   : _recording(false)
   , _util(util)
-  , _framebuffer(util.get_gl().make_framebuffer(RenderUtil::native_size))
-  , _post_buffer(util.get_gl().make_framebuffer(RenderUtil::native_size))
+  , _framebuffer(util.get_gl().make_framebuffer(
+        RenderUtil::native_overflow_size))
+  , _post_buffer(util.get_gl().make_framebuffer(
+        RenderUtil::native_overflow_size))
   , _stage(y::null)
   , _post_program(util.get_gl().make_program({
       "/shaders/post.v.glsl",
@@ -178,13 +180,14 @@ void Yugen::draw() const
     _util.irender_text(ss.str(), {16, 16}, colour::white);
   }
 
-  // Upscale the native-resolution buffer to the window.
+  // Upscale the native-resolution part of the buffer to the window.
   const Resolution& screen = _util.get_window().get_mode();
   _util.get_gl().bind_window(true, true);
   _upscale_program.bind();
   _upscale_program.bind_attribute("position", _vertex_buffer);
   _upscale_program.bind_uniform("screen_res", screen.size);
-  _upscale_program.bind_uniform("native_res", _post_buffer.get_size());
+  _upscale_program.bind_uniform("native_overflow_res", _post_buffer.get_size());
+  _upscale_program.bind_uniform("native_res", RenderUtil::native_size);
   _upscale_program.bind_uniform("integral_scale_lock", true);
   _post_buffer.get_texture().bind(GL_TEXTURE0);
   _upscale_program.bind_uniform("framebuffer", 0);

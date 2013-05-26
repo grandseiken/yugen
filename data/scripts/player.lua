@@ -153,14 +153,19 @@ function update()
   local down_check_start = body_check(self, down_check, COLLIDE_WORLD)
   local down_check_now = false
 
-  -- Handle x-axis movement with stepping up and down slopes.
+  -- Handle x-axis movement with stepping up slopes (when not in the air).
   local original_y = get_origin(self):y()
-  collider_move(self, vec(0, -MOVE_SPEED))
+  if not is_jumping() then
+    collider_move(self, vec(0, -MOVE_SPEED))
+  end
   collider_move(self, vec(v, 0))
-  collider_move(self, vec(0, original_y - get_origin(self):y()))
+  if not is_jumping() then
+    collider_move(self, vec(0, original_y - get_origin(self):y()))
+  end
 
-  -- Step down if we're not jumping; if this doesn't result in touching the
-  -- ground then reverse it.
+  -- Step down if we're not jumping to stick to down ramps; if this doesn't
+  -- end up with us touching the ground then reverse it (since it's not a
+  -- slope or is too steep).
   if not is_jumping() then
     original_y = get_origin(self):y()
     collider_move(self, vec(0, MOVE_SPEED))

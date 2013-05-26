@@ -70,6 +70,7 @@ public:
   static const y::int32 native_width = 640;
   static const y::int32 native_height = 360;
   static const y::ivec2 native_size;
+  static const y::ivec2 native_overflow_size;
 
   RenderUtil(GlUtil& gl);
   ~RenderUtil();
