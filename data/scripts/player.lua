@@ -144,8 +144,8 @@ function update()
   if jump_timer == 0 and jump_stage ~= JUMP_STAGE_FALL then
     jump_stage = (jump_stage + 1) % JUMP_STAGE_TOTAL
     jump_timer =
-        jump_stage == JUMP_STAGE_CHANGE_UP and JUMP_PERIOD_CHANGE or 
-        jump_stage == JUMP_STAGE_CAP and JUMP_PERIOD_CAP or 
+        jump_stage == JUMP_STAGE_CHANGE_UP and JUMP_PERIOD_CHANGE or
+        jump_stage == JUMP_STAGE_CAP and JUMP_PERIOD_CAP or
         jump_stage == JUMP_STAGE_CHANGE_DOWN and JUMP_PERIOD_CHANGE or 0
   end
 

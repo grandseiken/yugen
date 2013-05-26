@@ -91,24 +91,6 @@ void Yugen::event(const sf::Event& e)
   if (e.key.code == sf::Keyboard::Escape) {
     end();
   }
-  if (e.key.code == sf::Keyboard::Tilde) {
-    _recording = !_recording;
-    if (!_recording) {
-      y::size n = 0;
-      for (unsigned char* data : _save_file_frames) {
-        y::ivec2 size = _post_buffer.get_size();
-        sf::Image image;
-        image.create(size[xx], size[yy], data);
-        image.flipVertically();
-
-        y::sstream ss;
-        ss << "tmp/" << std::setw(4) << std::setfill('0') << n++ << ".png";
-        image.saveToFile(ss.str());
-        delete[] data;
-      }
-    }
-    _save_file_frames.clear();
-  }
 }
 
 void Yugen::update()
@@ -153,6 +135,9 @@ void Yugen::draw() const
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
 
   // Render postbuffer to a file.
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tilde)) {
+    _recording = true;
+  }
   if (_recording) {
     y::ivec2 size = _framebuffer.get_size();
     y::int32 length = 4 * size[xx] * size[yy];
@@ -160,11 +145,36 @@ void Yugen::draw() const
     glReadPixels(0, 0, size[xx], size[yy], GL_RGBA, GL_UNSIGNED_BYTE, data);
     _save_file_frames.emplace_back(data);
   }
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace)) {
+    _recording = false;
+    _save_file_frames.clear();
+  }
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Return)) {
+    _recording = false;
+    y::size n = 0;
+    for (unsigned char* data : _save_file_frames) {
+      y::ivec2 size = _post_buffer.get_size();
+      sf::Image image;
+      image.create(size[xx], size[yy], data);
+      image.flipVertically();
+
+      y::sstream ss;
+      ss << "tmp/" << std::setw(4) << std::setfill('0') << n++ << ".png";
+      image.saveToFile(ss.str());
+      delete[] data;
+      std::cout << "Saved frame " << n << " of " << _save_file_frames.size() <<
+          std::endl;
+    }
+    _save_file_frames.clear();
+  }
 
   // Render FPS indicator.
   if (total) {
     y::sstream ss;
     ss << total << " ticks (" << (1000.f / total) << " fps)";
+    if (_recording) {
+      ss << " [recording]";
+    }
     _util.irender_text(ss.str(), {16, 16}, colour::white);
   }
 

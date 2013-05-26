@@ -33,7 +33,7 @@ private:
   static const y::size samples = 16;
   mutable sf::Clock _clock;
   mutable y::vector<y::size> _measurements;
-  bool _recording;
+  mutable bool _recording;
   mutable y::vector<unsigned char*> _save_file_frames;
 
   RenderUtil& _util;

@@ -14,6 +14,8 @@ GameStage::GameStage(const Databank& bank,
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
   , _collision(_world)
+  , _is_camera_moving_x(false)
+  , _is_camera_moving_y(false)
   , _player(y::null)
 {
   const LuaFile& file = _bank.scripts.get("/scripts/player.lua");
@@ -130,11 +132,12 @@ void GameStage::update()
       y::ivec2 move = y::ivec2(p_origin + y::wvec2{.5, .5}).euclidean_div(
                           Tileset::tile_size * Cell::cell_size);
       _world.move_active_window(move);
+      y::wvec2 script_move = y::wvec2(
+          move * Cell::cell_size * Tileset::tile_size);
       for (const auto& script : _scripts) {
-        script->set_origin(
-            script->get_origin() -
-            y::wvec2(move * Cell::cell_size * Tileset::tile_size));
+        script->set_origin(script->get_origin() - script_move);
       }
+      _camera -= script_move;
     }
   }
 
@@ -246,8 +249,7 @@ void GameStage::update()
 
   // Update camera.
   if (get_player()) {
-    const y::wvec2& p = get_player()->get_origin();
-    _camera = p;
+    update_camera(get_player());
   }
 }
 
@@ -354,4 +356,37 @@ void GameStage::add_script(y::unique<Script> script)
 {
   _scripts.emplace_back();
   (_scripts.end() - 1)->swap(script);
+}
+
+void GameStage::update_camera(Script* focus)
+{
+  static const y::wvec2 camera_deadzone =
+      y::wvec2(RenderUtil::native_size) / 5;
+  static const y::wvec2 camera_deadzone_buffer =
+      camera_deadzone + y::wvec2{128., 128.};
+  static const y::wvec2 camera_speed{2.5, 4.};
+
+  y::wvec2 target = focus->get_origin();
+
+  if (y::abs(target[xx] - _camera[xx]) < camera_deadzone[xx] / 2) {
+    _is_camera_moving_x = false;
+  }
+  if (y::abs(target[yy] - _camera[yy]) < camera_deadzone[yy] / 2) {
+    _is_camera_moving_y = false;
+  }
+
+  if (y::abs(target[xx] - _camera[xx]) > camera_deadzone_buffer[xx] / 2) {
+    _is_camera_moving_x = true;
+  }
+  if (y::abs(target[yy] - _camera[yy]) > camera_deadzone_buffer[yy] / 2) {
+    _is_camera_moving_y = true;
+  }
+
+  y::wvec2 dir = target - _camera;
+  if (_is_camera_moving_x && dir[xx]) {
+    _camera[xx] += camera_speed[xx] * (dir[xx] / y::abs(dir[xx]));
+  }
+  if (_is_camera_moving_y && dir[yy]) {
+    _camera[yy] += camera_speed[yy] * (dir[yy] / y::abs(dir[yy]));
+  }
 }

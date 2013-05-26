@@ -52,6 +52,8 @@ private:
 
   void add_script(y::unique<Script> script);
 
+  void update_camera(Script* focus);
+
   const Databank& _bank;
   RenderUtil& _util;
   const GlFramebuffer& _framebuffer;
@@ -60,6 +62,8 @@ private:
   WorldWindow _world;
   Collision _collision;
   y::wvec2 _camera;
+  bool _is_camera_moving_x;
+  bool _is_camera_moving_y;
   Script* _player;
 
   typedef y::map<y::int32, y::set<y::int32>> key_map;
