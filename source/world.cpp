@@ -420,9 +420,10 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
   // collision of the tiles on either side of the edge differs. When this
   // pattern continues for several tiles, don't add the geometry until we reach
   // the end.
-  // The same technique could be used for each possible sloped gradient, but
+  // The same technique could be used for every possible sloped gradient, but
   // since these are probably less common and have the nice property of at most
-  // one sloped edge per tile, they are handled separately afterwards.
+  // one sloped edge per tile, independent of adjacent tiles, they are handled
+  // separately afterwards.
   enum Boundary {
     NONE,
     LEFT,

@@ -118,16 +118,14 @@ bool Collision::body_check(const Script& source, const Body& body) const
   y::wvec2 min_bound = origin + body.get_min();
   y::wvec2 max_bound = origin + body.get_max();
 
-  y::wvec2 dr = origin + body.offset + body.size / 2;
-  y::wvec2 ur = origin + body.offset + y::wvec2{1., -1.} * body.size / 2;
-  y::wvec2 dl = origin + body.offset + y::wvec2{-1., 1.} * body.size / 2;
-  y::wvec2 ul = origin + body.offset + y::wvec2{-1., -1.} * body.size / 2;
+  origin += body.offset;
+  y::wvec2 dr = origin + body.size / 2;
+  y::wvec2 ur = origin + y::wvec2{1., -1.} * body.size / 2;
+  y::wvec2 dl = origin + y::wvec2{-1., 1.} * body.size / 2;
+  y::wvec2 ul = origin + y::wvec2{-1., -1.} * body.size / 2;
 
-  y::vector<world_geometry> geometries;
-  geometries.push_back({ul, ur});
-  geometries.push_back({ur, dr});
-  geometries.push_back({dr, dl});
-  geometries.push_back({dl, ul});
+  y::vector<world_geometry> geometries{
+     {ul, ur}, {ur, dr}, {dr, dl}, {dl, ul}};
 
   // See collider_move for details.
   for (y::size i = 0; i < geometry.buckets.size(); ++i) {

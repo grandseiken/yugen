@@ -6,7 +6,7 @@ local frame_size = vec(32, 32)
 local frame = vec(3, 16)
 local body = create_body(self, vec(0, 8), vec(6, 16))
 set_body_collides(body, true)
-local down_check = create_body(self, vec(0, 16), vec(6, 6))
+local down_check = create_body(self, vec(0, 16), vec(6, .1))
 
 local gravity = 4
 
