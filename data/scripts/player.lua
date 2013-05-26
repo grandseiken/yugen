@@ -2,31 +2,14 @@
 #include "collide.lua"
 #include "keys.lua"
 
-local sprite = get_sprite("/tiles/easy.png")
-local frame_size = vec(32, 32)
-local frame = vec(3, 16)
-
--- Collider body.
+-- Collider body and check bodies.
 local body = create_body(self, vec(0, 8), vec(6, 16))
 set_collide_mask(body, COLLIDE_WORLD)
+local up_check, down_check, left_check, right_check =
+    create_all_checks(self, vec(0, 8), vec(6, 16))
 
--- Check bodies.
-local CHECK_OVERLAP = 0.01
-local down_check = create_body(self, vec(0, 16),
-                                     vec(6, CHECK_OVERLAP))
-local up_check = create_body(self, vec(0, 0),
-                                   vec(6, CHECK_OVERLAP))
-local left_check = create_body(self, vec(-3, 8),
-                                     vec(CHECK_OVERLAP, 16))
-local right_check = create_body(self, vec(3, 8),
-                                      vec(CHECK_OVERLAP, 16))
-local down_check_prev = false
-
-local GRAVITY = 4
-local MOVE_SPEED = 2.5
-
--- Right now you can up 3 blocks at once.
-local JUMP_STAGE_FALL = 0
+-- Jump constants.
+local JUMP_STAGE_NONE = 0
 local JUMP_STAGE_UP = 1
 local JUMP_STAGE_CHANGE_UP = 2
 local JUMP_STAGE_CAP = 3
@@ -39,39 +22,40 @@ local JUMP_PERIOD_CHANGE = 10
 local JUMP_PERIOD_CAP = 5
 
 local JUMP_ALLOWANCE = 4
-local JUMP_ALLOWANCE_WALL = 5
+local JUMP_ALLOWANCE_WALL = 6
 
+-- Jump variables.
 local jump_input_buffer = 0
 local jump_timer = 0
-local jump_stage = JUMP_STAGE_FALL
-
+local jump_stage = JUMP_STAGE_NONE
 local wall_jump_timer = 0
 local wall_jump_left = false
 
-function update()
-  local down_check_this = body_check(self, down_check, COLLIDE_WORLD)
-  local up_check_this = body_check(self, up_check, COLLIDE_WORLD)
-  local left_check_this = body_check(self, left_check, COLLIDE_WORLD)
-  local right_check_this = body_check(self, right_check, COLLIDE_WORLD)
-  local left_down = is_key_down(KEY_LEFT)
-  local right_down = is_key_down(KEY_RIGHT)
+local function jump_input()
+  jump_input_buffer = JUMP_ALLOWANCE
+end
 
+-- Jump behaviour.
+local function jump_logic(left_down, right_down, up_down,
+                          left_check_now, right_check_now, up_check_now,
+                          down_check_start, down_check_now)
   -- Control wall-jumping.
-  if left_check_this and not down_check_this then
+  if left_check_now and not down_check_now then
     wall_jump_timer = JUMP_ALLOWANCE_WALL
     wall_jump_left = true
   end
-  if right_check_this and not down_check_this then
+  if right_check_now and not down_check_now then
     wall_jump_timer = JUMP_ALLOWANCE_WALL
     wall_jump_left = false
   end
-  if down_check_this then
+  if down_check_now then
     wall_jump_timer = 0
   end
   if wall_jump_timer > 0 then
-    if jump_input_buffer == JUMP_ALLOWANCE and not down_check_this and (
-        wall_jump_left and right_down and not left_down or
-        not wall_jump_left and left_down and not right_down) then
+    if jump_input_buffer == JUMP_ALLOWANCE and
+        not (down_check_now or down_check_start) and (
+          wall_jump_left and right_down and not left_down or
+          not wall_jump_left and left_down and not right_down) then
       jump_stage = JUMP_STAGE_UP
       jump_timer = JUMP_PERIOD_UP
       jump_input_buffer = 0
@@ -82,27 +66,78 @@ function update()
   -- Gives a small allowance for pressing jump key before landing.
   if jump_input_buffer > 0 then
     jump_input_buffer = jump_input_buffer - 1
-    if jump_stage == JUMP_STAGE_FALL and down_check_this then
+    if jump_stage == JUMP_STAGE_NONE and (down_check_now or down_check_start) then
       jump_stage = JUMP_STAGE_UP
       jump_timer = JUMP_PERIOD_UP
       jump_input_buffer = 0
     end
   end
-  -- Accelerate off cliffs. TODO: fix the wee jerk?
-  if jump_stage == JUMP_STAGE_FALL and
-      not down_check_this and down_check_prev then
+
+  -- Accelerate off cliffs.
+  if jump_stage == JUMP_STAGE_NONE and
+      not down_check_now and down_check_start then
     jump_stage = JUMP_STAGE_CHANGE_DOWN
     jump_timer = JUMP_PERIOD_CHANGE
   end
+
   -- Stop going upwards when we bash a ceiling.
-  if up_check_this and (
+  if up_check_now and (
       jump_stage == JUMP_STAGE_UP or jump_stage == JUMP_STAGE_CHANGE_UP) then
     if jump_stage == JUMP_STAGE_UP then
       jump_timer = jump_timer + JUMP_PERIOD_CHANGE
     end
-    jump_stage = JUMP_STAGE_CAP
     jump_timer = jump_timer + JUMP_PERIOD_CAP
+    jump_stage = JUMP_STAGE_CAP
   end
+
+  -- Controls minimum jump height.
+  if not up_down and jump_stage == JUMP_STAGE_UP and
+      jump_timer < JUMP_PERIOD_UP - JUMP_PERIOD_UP_MINIMUM then
+    jump_stage = JUMP_STAGE_CHANGE_UP
+    jump_timer = JUMP_PERIOD_CHANGE
+  end
+end
+
+-- Controls jump sequence.
+local function jump_timer_logic()
+  if jump_timer > 0 then
+    jump_timer = jump_timer - 1
+  end
+  if jump_timer == 0 and jump_stage ~= JUMP_STAGE_NONE then
+    jump_stage = (jump_stage + 1) % JUMP_STAGE_TOTAL
+    jump_timer =
+        jump_stage == JUMP_STAGE_CHANGE_UP and JUMP_PERIOD_CHANGE or
+        jump_stage == JUMP_STAGE_CAP and JUMP_PERIOD_CAP or
+        jump_stage == JUMP_STAGE_CHANGE_DOWN and JUMP_PERIOD_CHANGE or 0
+  end
+end
+
+-- Controls jump arc.
+local function y_multiplier()
+  if jump_stage == JUMP_STAGE_UP then
+    return -1
+  elseif jump_stage == JUMP_STAGE_CHANGE_UP then
+    return -jump_timer / JUMP_PERIOD_CHANGE
+  elseif jump_stage == JUMP_STAGE_CAP then
+    return 0
+  elseif jump_stage == JUMP_STAGE_CHANGE_DOWN then
+    return (JUMP_PERIOD_CHANGE - jump_timer) / JUMP_PERIOD_CHANGE
+  end
+  return 1
+end
+
+local function is_jumping()
+  return jump_stage ~= JUMP_STAGE_NONE
+end
+
+-- Movement constants.
+local GRAVITY = 4
+local MOVE_SPEED = 2.5
+
+function update()
+  local left_down = is_key_down(KEY_LEFT)
+  local right_down = is_key_down(KEY_RIGHT)
+  local up_down = is_key_down(KEY_UP)
 
   local v = 0
   if left_down then
@@ -112,52 +147,54 @@ function update()
     v = v + MOVE_SPEED
   end
 
-  -- Step up slopes.
+  -- Need to know the down check before the x-axis move for applying
+  -- acceleration when we go off a cliff, and being able to jump when
+  -- running down a slope.
+  local down_check_start = body_check(self, down_check, COLLIDE_WORLD)
+  local down_check_now = false
+
+  -- Handle x-axis movement with stepping up and down slopes.
+  local original_y = get_origin(self):y()
   collider_move(self, vec(0, -MOVE_SPEED))
   collider_move(self, vec(v, 0))
-  collider_move(self, vec(0, MOVE_SPEED))
+  collider_move(self, vec(0, original_y - get_origin(self):y()))
 
-  -- Controls minimum jump height.
-  if not is_key_down(KEY_UP) and jump_stage == 1 and
-      jump_timer < JUMP_PERIOD_UP - JUMP_PERIOD_UP_MINIMUM then
-    jump_stage = JUMP_STAGE_CHANGE_UP
-    jump_timer = JUMP_PERIOD_CHANGE
-  end
-
-  -- Controls jump arc.
-  if jump_stage == JUMP_STAGE_UP then
-    v = -1
-  elseif jump_stage == JUMP_STAGE_CHANGE_UP then
-    v = -jump_timer / JUMP_PERIOD_CHANGE
-  elseif jump_stage == JUMP_STAGE_CAP then
-    v = 0
-  elseif jump_stage == JUMP_STAGE_CHANGE_DOWN then
-    v = (JUMP_PERIOD_CHANGE - jump_timer) / JUMP_PERIOD_CHANGE
+  -- Step down if we're not jumping; if this doesn't result in touching the
+  -- ground then reverse it.
+  if not is_jumping() then
+    original_y = get_origin(self):y()
+    collider_move(self, vec(0, MOVE_SPEED))
+    down_check_now = body_check(self, down_check, COLLIDE_WORLD)
+    if not down_check_now then
+      collider_move(self, vec(0, original_y - get_origin(self):y()))
+      down_check_now = body_check(self, down_check, COLLIDE_WORLD)
+    end
   else
-    v = 1
+    down_check_now = body_check(self, down_check, COLLIDE_WORLD)
   end
 
-  -- Controls jump sequence.
-  if jump_timer > 0 then
-    jump_timer = jump_timer - 1
-  end
-  if jump_timer == 0 and jump_stage ~= JUMP_STAGE_FALL then
-    jump_stage = (jump_stage + 1) % JUMP_STAGE_TOTAL
-    jump_timer =
-        jump_stage == JUMP_STAGE_CHANGE_UP and JUMP_PERIOD_CHANGE or
-        jump_stage == JUMP_STAGE_CAP and JUMP_PERIOD_CAP or
-        jump_stage == JUMP_STAGE_CHANGE_DOWN and JUMP_PERIOD_CHANGE or 0
-  end
+  local up_check_now = body_check(self, up_check, COLLIDE_WORLD)
+  local left_check_now = body_check(self, left_check, COLLIDE_WORLD)
+  local right_check_now = body_check(self, right_check, COLLIDE_WORLD)
 
-  collider_move(self, vec(0, v * GRAVITY))
-  down_check_prev = down_check_this
+  -- Handle y-axis movement.
+  jump_logic(left_down, right_down, up_down,
+             left_check_now, right_check_now, up_check_now,
+             down_check_start, down_check_now)
+  collider_move(self, vec(0, GRAVITY * y_multiplier()))
+  jump_timer_logic()
 end
 
 function key(k)
   if k == KEY_UP then
-    jump_input_buffer = JUMP_ALLOWANCE
+    jump_input()
   end
 end
+
+-- Sprite constants.
+local sprite = get_sprite("/tiles/easy.png")
+local frame_size = vec(32, 32)
+local frame = vec(3, 16)
 
 function draw()
   render_sprite(self, sprite, frame_size, frame, 0.0)
