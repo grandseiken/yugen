@@ -55,6 +55,7 @@ public:
 private:
 
   void add_script(y::unique<Script> script);
+  void script_maps_clean_up();
 
   void update_camera(Script* focus);
 

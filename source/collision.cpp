@@ -1,5 +1,4 @@
 #include "collision.h"
-#include "lua.h"
 #include "render_util.h"
 #include "world.h"
 
@@ -33,58 +32,6 @@ Collision::Collision(const WorldWindow& world)
 {
 }
 
-Body* Collision::create_body(Script& source)
-{
-  Body* body = new Body(source);
-  auto it = _map.find(&source);
-  if (it != _map.end() && !it->second.ref.is_valid()) {
-    _map.erase(it);
-    it = _map.end();
-  }
-  if (it == _map.end()) {
-    it = _map.insert(y::make_pair(&source, entry{
-             ConstScriptReference(source), y::vector<body_entry>()})).first;
-  }
-  it->second.list.emplace_back(body);
-  return body;
-}
-
-void Collision::destroy_body(const Script& source, Body* body)
-{
-  auto it = _map.find(const_cast<Script*>(&source));
-  if (it != _map.end()) {
-    for (auto jt = it->second.list.begin(); jt != it->second.list.end(); ++jt) {
-      if (jt->get() == body) {
-        it->second.list.erase(jt);
-        break;
-      }
-    }
-    if (it->second.list.empty() || !it->second.ref.is_valid()) {
-      _map.erase(it);
-    }
-  }
-}
-
-void Collision::destroy_bodies(const Script& source)
-{
-  auto it = _map.find(const_cast<Script*>(&source));
-  if (it != _map.end()) {
-    _map.erase(it);
-  }
-}
-
-void Collision::clean_up()
-{
-  for (auto it = _map.begin(); it != _map.end();) {
-    if (it->second.ref.is_valid()) {
-      ++it;
-    }
-    else {
-      it = _map.erase(it);
-    }
-  }
-}
-
 void Collision::render(
     RenderUtil& util,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
@@ -97,19 +44,22 @@ void Collision::render(
 
       const y::ivec2 max = y::max(g.start, g.end);
       const y::ivec2 min = y::min(g.start, g.end);
-      if (y::wvec2(min) > camera_min && y::wvec2(max) < camera_max) {
+      if (y::wvec2(max) >= camera_min && y::wvec2(min) < camera_max) {
         util.render_line(y::fvec2(g.start), y::fvec2(g.end), c);
       }
     }
   }
+
   const y::fvec4 c{0.f, 0.f, 1.f, .5f};
-  for (const auto& pair : _map) {
-    for (const body_entry& b : pair.second.list) {
+  source_list sources;
+  get_sources(sources);
+  for (const Script* s : sources) {
+    for (const entry& b : get_list(*s)) {
       if (!b->collide_mask) {
         continue;
       }
       util.render_outline(
-          y::fvec2(pair.second.ref->get_origin() + b->offset - b->size / 2),
+          y::fvec2(s->get_origin() + b->offset - b->size / 2),
           y::fvec2(b->size), c);
     }
   }
@@ -164,8 +114,8 @@ bool Collision::body_check(const Script& source, const Body& body,
 
 void Collision::collider_move(Script& source, const y::wvec2& move) const
 {
-  auto it = _map.find(&source);
-  if (it == _map.end() || it->second.list.empty() || move == y::wvec2()) {
+  const entry_list& bodies = get_list(source);
+  if (bodies.empty() || move == y::wvec2()) {
     source.set_origin(source.get_origin() + move);
     return;
   }
@@ -176,13 +126,14 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
   // to store per-frame list of things which tried to move but were blocked by
   // bodies. If the blocker moves away, try again to move all the things which
   // were blocked by it.
-  const entry& bodies = it->second;
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // X-coordinate bounds of the source Bodies.
-  y::wvec2 min_bound = source.get_origin() + bodies.get_min(COLLIDE_RESV_WORLD);
+  y::wvec2 min_bound =
+      source.get_origin() + get_min(bodies, COLLIDE_RESV_WORLD);
   min_bound = y::min(min_bound, move + min_bound);
-  y::wvec2 max_bound = source.get_origin() + bodies.get_max(COLLIDE_RESV_WORLD);
+  y::wvec2 max_bound =
+      source.get_origin() + get_max(bodies, COLLIDE_RESV_WORLD);
   max_bound = y::max(max_bound, move + max_bound);
 
   bool project_downright = move[xx] > 0 || move[yy] > 0;
@@ -229,7 +180,7 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
       y::vector<y::wvec2> vertices;
       y::vector<world_geometry> geometries;
 
-      for (const auto& pointer : bodies.list) {
+      for (const auto& pointer : bodies) {
         const Body& b = *pointer;
         if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
           continue;
@@ -358,11 +309,12 @@ bool Collision::has_intersection(const world_geometry& a,
 
 // TODO: not having collide_mask here makes collision different.
 // Since this should just be an optimisation that's odd; investigate.
-y::wvec2 Collision::entry::get_min(y::int32 collide_mask) const
+y::wvec2 Collision::get_min(const entry_list& bodies,
+                            y::int32 collide_mask) const
 {
   y::wvec2 min;
   bool first = true;
-  for (const body_entry& e : list) {
+  for (const entry& e : bodies) {
     if (!(e->collide_mask & collide_mask)) {
       continue;
     }
@@ -372,11 +324,12 @@ y::wvec2 Collision::entry::get_min(y::int32 collide_mask) const
   return min;
 }
 
-y::wvec2 Collision::entry::get_max(y::int32 collide_mask) const
+y::wvec2 Collision::get_max(const entry_list& bodies,
+                            y::int32 collide_mask) const
 {
   y::wvec2 max;
   bool first = true;
-  for (const body_entry& e : list) {
+  for (const entry& e : bodies) {
     if (!(e->collide_mask & collide_mask)) {
       continue;
     }

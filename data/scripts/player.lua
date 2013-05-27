@@ -21,7 +21,7 @@ local JUMP_PERIOD_UP = 28
 local JUMP_PERIOD_CHANGE = 10
 local JUMP_PERIOD_CAP = 5
 
-local JUMP_ALLOWANCE = 4
+local JUMP_ALLOWANCE = 3
 local JUMP_ALLOWANCE_WALL = 6
 
 -- Jump variables.
@@ -40,15 +40,15 @@ local function jump_logic(left_down, right_down, up_down,
                           left_check_now, right_check_now, up_check_now,
                           down_check_start, down_check_now)
   -- Control wall-jumping.
-  if left_check_now and not down_check_now then
+  if left_check_now then
     wall_jump_timer = JUMP_ALLOWANCE_WALL
     wall_jump_left = true
   end
-  if right_check_now and not down_check_now then
+  if right_check_now then
     wall_jump_timer = JUMP_ALLOWANCE_WALL
     wall_jump_left = false
   end
-  if down_check_now then
+  if down_check_now or up_check_now then
     wall_jump_timer = 0
   end
   if wall_jump_timer > 0 then
@@ -150,6 +150,8 @@ end
 local GRAVITY = 4
 local MOVE_SPEED = 2.5
 
+local move_dir = false
+
 function update()
   local left_down = is_key_down(KEY_LEFT)
   local right_down = is_key_down(KEY_RIGHT)
@@ -161,6 +163,13 @@ function update()
   end
   if right_down then
     v = v + MOVE_SPEED
+  end
+
+  if v > 0 then
+    move_dir = true
+  end
+  if v < 0 then
+    move_dir = false
   end
 
   -- Need to know the down check before the x-axis move for applying
@@ -222,7 +231,7 @@ local frame = vec(3, 16)
 local rot = 0
 
 function draw()
-  rot = rot + math.pi / 480
+  rot = rot + (move_dir and math.pi / 45 or -math.pi / 45)
   render_sprite(self, sprite, frame_size, frame, rot, 0.0)
   --set_camera_rotation(-rot)
 end

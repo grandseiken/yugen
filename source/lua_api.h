@@ -310,7 +310,7 @@ ylib_api(create_body)
     ylib_arg(Script*, script)
     ylib_refarg(const y::wvec2, offset) ylib_refarg(const y::wvec2, size)
 {
-  Body* body = stage.get_collision().create_body(*script);
+  Body* body = stage.get_collision().create_obj(*script);
   body->offset = offset;
   body->size = size;
   ylib_return(body);
@@ -319,14 +319,14 @@ ylib_api(create_body)
 ylib_api(destroy_body)
     ylib_arg(const Script*, script) ylib_arg(Body*, body)
 {
-  stage.get_collision().destroy_body(*script, body);
+  stage.get_collision().destroy_obj(*script, body);
   ylib_void();
 }
 
 ylib_api(destroy_bodies)
     ylib_arg(const Script*, script)
 {
-  stage.get_collision().destroy_bodies(*script);
+  stage.get_collision().destroy_all(*script);
   ylib_void();
 }
 

@@ -246,7 +246,7 @@ void GameStage::update()
   _scripts.erase(
       std::remove_if(_scripts.begin(), _scripts.end(), local::is_destroyed),
       _scripts.end());
-  _collision.clean_up();
+  script_maps_clean_up();
 
   // Update camera.
   if (get_player()) {
@@ -380,11 +380,20 @@ void GameStage::add_script(y::unique<Script> script)
   (_scripts.end() - 1)->swap(script);
 }
 
+void GameStage::script_maps_clean_up()
+{
+  _collision.clean_up();
+}
+
 void GameStage::update_camera(Script* focus)
 {
-  // TODO: make deadzone square or respect rotation somehow.
-  static const y::wvec2 camera_deadzone =
-      y::wvec2(RenderUtil::native_size) / 5;
+  // TODO: respect rotation (i.e., use coordinate system defined by the
+  // current camera rotation)?
+  static const y::world camera_deadzone_size =
+      y::world(y::min(RenderUtil::native_size[xx],
+                      RenderUtil::native_size[yy])) / 5;
+  static const y::wvec2 camera_deadzone{
+      camera_deadzone_size, camera_deadzone_size};
   static const y::wvec2 camera_deadzone_buffer =
       camera_deadzone + y::wvec2{128., 128.};
   static const y::wvec2 camera_speed{2.5, 4.};

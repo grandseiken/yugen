@@ -110,4 +110,119 @@ private:
 
 };
 
+// Stores objects associated with Scripts which are destroyed when the Script
+// is destroyed.
+template<typename T>
+class ScriptMap : public y::no_copy {
+public:
+
+  typedef y::unique<T> entry;
+  typedef y::vector<entry> entry_list;
+  typedef y::vector<const Script*> source_list;
+
+  virtual ~ScriptMap() {}
+
+  T* create_obj(Script& source);
+  void destroy_obj(const Script& source, T* obj);
+  void destroy_all(const Script& source);
+  void clean_up();
+
+  const entry_list& get_list(const Script& source) const;
+  void get_sources(source_list& output) const;
+
+private:
+
+  // We hold a weak reference to each Script so that we can destroy the objects
+  // whose source Scripts no longer exist.
+  struct map_entry {
+    ConstScriptReference ref;
+    y::vector<entry> list;
+  };
+  typedef y::map<Script*, map_entry> map;
+  map _map;
+
+  const static y::vector<entry> no_list;
+
+};
+
+template<typename T>
+T* ScriptMap<T>::create_obj(Script& source)
+{
+  T* obj = new T(source);
+  auto it = _map.find(&source);
+  if (it != _map.end() && !it->second.ref.is_valid()) {
+    _map.erase(it);
+    it = _map.end();
+  }
+  if (it == _map.end()) {
+    it = _map.insert(y::make_pair(&source, map_entry{
+             ConstScriptReference(source), y::vector<entry>()})).first;
+  }
+  it->second.list.emplace_back(obj);
+  return obj;
+}
+
+template<typename T>
+void ScriptMap<T>::destroy_obj(const Script& source, T* obj)
+{
+  auto it = _map.find(const_cast<Script*>(&source));
+  if (it != _map.end()) {
+    for (auto jt = it->second.list.begin(); jt != it->second.list.end(); ++jt) {
+      if (jt->get() == obj) {
+        it->second.list.erase(jt);
+        break;
+      }
+    }
+    if (it->second.list.empty() || !it->second.ref.is_valid()) {
+      _map.erase(it);
+    }
+  }
+}
+
+template<typename T>
+void ScriptMap<T>::destroy_all(const Script& source)
+{
+  auto it = _map.find(const_cast<Script*>(&source));
+  if (it != _map.end()) {
+    _map.erase(it);
+  }
+}
+
+template<typename T>
+void ScriptMap<T>::clean_up()
+{
+  for (auto it = _map.begin(); it != _map.end();) {
+    if (it->second.ref.is_valid()) {
+      ++it;
+    }
+    else {
+      it = _map.erase(it);
+    }
+  }
+}
+
+template<typename T>
+const typename ScriptMap<T>::entry_list& ScriptMap<T>::get_list(
+    const Script& source) const
+{
+  auto it = _map.find(const_cast<Script*>(&source));
+  if (it == _map.end() || !it->second.ref.is_valid()) {
+    return no_list;
+  }
+  return it->second.list;
+}
+
+template<typename T>
+void ScriptMap<T>::get_sources(source_list& output) const
+{
+  for (const auto& pair : _map) {
+    if (pair.second.ref.is_valid()) {
+      output.emplace_back(pair.first);
+    }
+  }
+}
+
+template<typename T>
+const y::vector<typename ScriptMap<T>::entry> ScriptMap<T>::no_list;
+
 #endif

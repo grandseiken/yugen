@@ -27,15 +27,10 @@ struct Body {
 };
 
 // Keeps a record of Bodies and handles sweeping and collision.
-class Collision : public y::no_copy {
+class Collision : public ScriptMap<Body> {
 public:
 
   Collision(const WorldWindow& world);
-
-  Body* create_body(Script& source);
-  void destroy_body(const Script& source, Body* body);
-  void destroy_bodies(const Script& source);
-  void clean_up();
 
   void render(RenderUtil& util,
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
@@ -66,20 +61,10 @@ private:
   bool has_intersection(const world_geometry& a,
                         const world_geometry& b) const;
 
+  y::wvec2 get_min(const entry_list& bodies, y::int32 collide_mask) const;
+  y::wvec2 get_max(const entry_list& bodies, y::int32 collide_mask) const;
+
   const WorldWindow& _world;
-
-  typedef y::unique<Body> body_entry;
-  // We hold a weak reference to each Script so that we can destroy the bodies
-  // whose source Scripts no longer exist.
-  struct entry {
-    y::wvec2 get_min(y::int32 collide_mask) const;
-    y::wvec2 get_max(y::int32 collide_mask) const;
-
-    ConstScriptReference ref;
-    y::vector<body_entry> list;
-  };
-  typedef y::map<Script*, entry> body_map;
-  body_map _map;
 
 };
 
