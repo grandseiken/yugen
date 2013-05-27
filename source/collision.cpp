@@ -403,14 +403,14 @@ y::world Collision::get_arc_projection(
     const y::vector<y::wvec2>& vertices,
     const y::wvec2& origin, y::world rotation) const
 {
-  y::world min_ratio = 2;
+  y::world limiting_rotation = y::abs(rotation);
   for (const world_geometry& g : geometry) {
     for (const y::wvec2& v : vertices) {
-      min_ratio = y::min(min_ratio,
-                         get_arc_projection(g, v, origin, rotation));
+      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
+                              g, v, origin, rotation));
     }
   }
-  return min_ratio;
+  return limiting_rotation;
 }
 
 y::world Collision::get_arc_projection(
@@ -418,12 +418,12 @@ y::world Collision::get_arc_projection(
     const y::vector<y::wvec2>& vertices,
     const y::wvec2& origin, y::world rotation) const
 {
-  y::world min_ratio = 2;
+  y::world limiting_rotation = y::abs(rotation);
   for (const y::wvec2& v : vertices) {
-    min_ratio = y::min(min_ratio,
-                       get_arc_projection(geometry, v, origin, rotation));
+    limiting_rotation = y::min(limiting_rotation, get_arc_projection(
+                            geometry, v, origin, rotation));
   }
-  return min_ratio;
+  return limiting_rotation;
 }
 
 y::world Collision::get_arc_projection(
