@@ -81,8 +81,10 @@ public:
   // destroyed when their current region is completely outside it.
   const y::wvec2& get_origin() const;
   const y::wvec2& get_region() const;
+  y::world get_rotation() const;
   void set_origin(const y::wvec2& origin);
   void set_region(const y::wvec2& region);
+  void set_rotation(y::world rotation);
 
   bool has_function(const y::string& function_name) const;
   void call(const y::string& function_name);
@@ -98,6 +100,7 @@ private:
 
   y::wvec2 _origin;
   y::wvec2 _region;
+  y::world _rotation;
 
   bool _destroyed;
 

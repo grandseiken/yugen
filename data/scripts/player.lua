@@ -21,7 +21,7 @@ local JUMP_PERIOD_UP = 28
 local JUMP_PERIOD_CHANGE = 10
 local JUMP_PERIOD_CAP = 5
 
-local JUMP_ALLOWANCE = 3
+local JUMP_ALLOWANCE = 4
 local JUMP_ALLOWANCE_WALL = 6
 
 -- Jump variables.
@@ -215,6 +215,9 @@ function update()
              down_check_start, down_check_now)
   collider_move(self, vec(0, GRAVITY * y_multiplier()))
   jump_timer_logic(down_check_now)
+
+  -- X FILES MUSIC --
+  collider_rotate(self, move_dir and math.pi / 45 or -math.pi / 45)
 end
 
 function key(k)

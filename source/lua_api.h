@@ -188,6 +188,12 @@ ylib_api(get_region)
   ylib_return(script->get_region());
 }
 
+ylib_api(get_rotation)
+    ylib_arg(const Script*, script)
+{
+  ylib_return(script->get_region());
+}
+
 ylib_api(set_origin)
     ylib_arg(Script*, script) ylib_refarg(const y::wvec2, origin)
 {
@@ -199,6 +205,13 @@ ylib_api(set_region)
     ylib_arg(Script*, script) ylib_refarg(const y::wvec2, region)
 {
   script->set_region(region);
+  ylib_void();
+}
+
+ylib_api(set_rotation)
+    ylib_arg(Script*, script) ylib_arg(y::world, rotation)
+{
+  script->set_rotation(rotation);
   ylib_void();
 }
 
@@ -373,6 +386,13 @@ ylib_api(collider_move)
     ylib_arg(Script*, script) ylib_refarg(const y::wvec2, move)
 {
   stage.get_collision().collider_move(*script, move);
+  ylib_void();
+}
+
+ylib_api(collider_rotate)
+   ylib_arg(Script*, script) ylib_arg(y::world, rotate)
+{
+  stage.get_collision().collider_rotate(*script, rotate);
   ylib_void();
 }
 

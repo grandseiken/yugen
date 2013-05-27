@@ -36,6 +36,8 @@ public:
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
   void collider_move(Script& source, const y::wvec2& move) const;
+  // TODO: allow rotation about arbitrary points rather than just the origin.
+  void collider_rotate(Script& source, y::world rotate) const;
   bool body_check(const Script& source, const Body& body,
                   y::int32 collide_mask) const;
 
@@ -46,6 +48,7 @@ private:
     y::wvec2 start;
     y::wvec2 end;
   };
+
   y::world get_projection_ratio(const y::vector<world_geometry>& geometry,
                                 const y::vector<y::wvec2>& vertices,
                                 const y::wvec2& move) const;
@@ -55,6 +58,16 @@ private:
   y::world get_projection_ratio(const world_geometry& geometry,
                                 const y::wvec2& vertex,
                                 const y::wvec2& move) const;
+
+  y::world get_arc_projection(const y::vector<world_geometry>& geometry,
+                              const y::vector<y::wvec2>& vertices,
+                              const y::wvec2& origin, y::world rotation) const;
+  y::world get_arc_projection(const world_geometry& geometry,
+                              const y::vector<y::wvec2>& vertices,
+                              const y::wvec2& origin, y::world rotation) const;
+  y::world get_arc_projection(const world_geometry& geometry,
+                              const y::wvec2& vertex,
+                              const y::wvec2& origin, y::world rotation) const;
 
   bool has_intersection(const y::vector<world_geometry>& a,
                         const world_geometry& b) const;

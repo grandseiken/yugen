@@ -616,6 +616,7 @@ Script::Script(GameStage& stage,
   , _state(luaL_newstate())
   , _origin(origin)
   , _region(region)
+  , _rotation(0.)
   , _destroyed(false)
 {
   // Load the Lua standard library.
@@ -697,6 +698,11 @@ const y::wvec2& Script::get_region() const
   return _region;
 }
 
+y::world Script::get_rotation() const
+{
+  return _rotation;
+}
+
 void Script::set_origin(const y::wvec2& origin)
 {
   _origin = origin;
@@ -705,6 +711,11 @@ void Script::set_origin(const y::wvec2& origin)
 void Script::set_region(const y::wvec2& region)
 {
   _region = region;
+}
+
+void Script::set_rotation(y::world rotation)
+{
+  _rotation = rotation;
 }
 
 bool Script::has_function(const y::string& function_name) const
