@@ -2,7 +2,6 @@ attribute vec2 position;
 uniform ivec2 native_res;
 uniform ivec2 screen_res;
 uniform bool integral_scale_lock;
-uniform float rotation;
 varying vec2 tex_coord;
 
 void main()

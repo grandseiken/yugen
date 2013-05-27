@@ -14,6 +14,7 @@ GameStage::GameStage(const Databank& bank,
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
   , _collision(_world)
+  , _camera_rotation(0)
   , _is_camera_moving_x(false)
   , _is_camera_moving_y(false)
   , _player(y::null)
@@ -288,7 +289,8 @@ void GameStage::draw() const
 
         _current_batch.add_sprite(
             t.tileset->get_texture(), Tileset::tile_size,
-            y::fvec2(world), t.tileset->from_index(t.index), d, colour::white);
+            y::fvec2(world), t.tileset->from_index(t.index),
+            d, 0.f, colour::white);
       }
     }
   }
@@ -352,6 +354,26 @@ bool GameStage::is_key_down(y::int32 key) const
   return false;
 }
 
+void GameStage::set_camera(const y::wvec2& camera)
+{
+  _camera = camera;
+}
+
+const y::wvec2& GameStage::get_camera() const
+{
+  return _camera;
+}
+
+void GameStage::set_camera_rotation(y::world rotation)
+{
+  _camera_rotation = rotation;
+}
+
+y::world GameStage::get_camera_rotation() const
+{
+  return _camera_rotation;
+}
+
 void GameStage::add_script(y::unique<Script> script)
 {
   _scripts.emplace_back();
@@ -360,6 +382,7 @@ void GameStage::add_script(y::unique<Script> script)
 
 void GameStage::update_camera(Script* focus)
 {
+  // TODO: make deadzone square or respect rotation somehow.
   static const y::wvec2 camera_deadzone =
       y::wvec2(RenderUtil::native_size) / 5;
   static const y::wvec2 camera_deadzone_buffer =

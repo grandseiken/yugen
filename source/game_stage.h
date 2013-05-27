@@ -47,6 +47,10 @@ public:
   void set_player(Script* script);
   Script* get_player() const;
   bool is_key_down(y::int32 key) const;
+  void set_camera(const y::wvec2& camera);
+  const y::wvec2& get_camera() const;
+  void set_camera_rotation(y::world rotation);
+  y::world get_camera_rotation() const;
 
 private:
 
@@ -62,6 +66,7 @@ private:
   WorldWindow _world;
   Collision _collision;
   y::wvec2 _camera;
+  y::world _camera_rotation;
   bool _is_camera_moving_x;
   bool _is_camera_moving_y;
   Script* _player;

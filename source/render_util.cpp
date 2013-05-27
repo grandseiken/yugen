@@ -5,11 +5,13 @@
 void RenderBatch::add_sprite(const GlTexture& sprite,
                              const y::ivec2& frame_size,
                              const y::fvec2& origin, const y::ivec2& frame,
-                             float depth, const y::fvec4& colour)
+                             float depth, float rotation,
+                             const y::fvec4& colour)
 {
   batched_texture bt{sprite, frame_size};
   batched_sprite bs{origin[xx], origin[yy],
-                    float(frame[xx]), float(frame[yy]), depth, colour};
+                    float(frame[xx]), float(frame[yy]),
+                    depth, rotation, colour};
   _map[bt].emplace_back(bs);
 }
 
@@ -18,7 +20,7 @@ void RenderBatch::iadd_sprite(const GlTexture& sprite,
                               const y::ivec2& origin, const y::ivec2& frame,
                               float depth, const y::fvec4& colour)
 {
-  add_sprite(sprite, frame_size, y::fvec2(origin), frame, depth, colour);
+  add_sprite(sprite, frame_size, y::fvec2(origin), frame, depth, 0.f, colour);
 }
 
 bool RenderBatch::batched_texture_order::operator()(
@@ -73,6 +75,7 @@ RenderUtil::RenderUtil(GlUtil& gl)
   , _draw_program(gl.make_program({"/shaders/draw.v.glsl",
                                    "/shaders/draw.f.glsl"}))
   , _pixels_buffer(gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _rotation_buffer(gl.make_buffer<float, 1>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _origin_buffer(gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _frame_index_buffer(
       gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
@@ -91,6 +94,7 @@ RenderUtil::~RenderUtil()
 {
   _gl.delete_buffer(_quad);
   _gl.delete_buffer(_pixels_buffer);
+  _gl.delete_buffer(_rotation_buffer);
   _gl.delete_buffer(_frame_index_buffer);
   _gl.delete_buffer(_depth_buffer);
   _gl.delete_buffer(_colour_buffer);
@@ -277,11 +281,12 @@ void RenderUtil::set_sprite(const GlTexture& texture,
 }
 
 void RenderUtil::batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
-                              float depth, const y::fvec4& colour) const
+                              float depth, float rotation,
+                              const y::fvec4& colour) const
 {
   _batched_sprites.emplace_back(RenderBatch::batched_sprite{
       origin[xx], origin[yy],
-      float(frame[xx]), float(frame[yy]), depth, colour});
+      float(frame[xx]), float(frame[yy]), depth, rotation, colour});
 }
 
 template<typename T>
@@ -317,6 +322,8 @@ void RenderUtil::render_batch() const
         left + _frame_size[xx], top,
         left, top + _frame_size[yy],
         left + _frame_size[xx], top + _frame_size[yy]});
+    write_vector(_rotation_data, 4 * i, {
+        s.rotation, s.rotation, s.rotation, s.rotation});
     write_vector(_origin_data, 8 * i, {
         left, top, left, top,
         left, top, left, top});
@@ -333,6 +340,8 @@ void RenderUtil::render_batch() const
   }
 
   _pixels_buffer.reupload_data(_pixels_data.data(), sizeof(float) * 8 * length);
+  _rotation_buffer.reupload_data(_rotation_data.data(),
+                                 sizeof(float) * 4 * length);
   _frame_index_buffer.reupload_data(_frame_index_data.data(),
                                     sizeof(float) * 8 * length);
   _origin_buffer.reupload_data(_origin_data.data(), sizeof(float) * 8 * length);
@@ -351,6 +360,7 @@ void RenderUtil::render_batch() const
 
   _sprite_program.bind();
   _sprite_program.bind_attribute("pixels", _pixels_buffer);
+  _sprite_program.bind_attribute("rotation", _rotation_buffer);
   _sprite_program.bind_attribute("origin", _origin_buffer);
   _sprite_program.bind_attribute("frame_index", _frame_index_buffer);
   _sprite_program.bind_attribute("depth", _depth_buffer);
@@ -382,10 +392,10 @@ void RenderUtil::render_batch(const RenderBatch& batch)
 void RenderUtil::render_sprite(
     const GlTexture& sprite, const y::ivec2& frame_size,
     const y::fvec2& origin, const y::ivec2& frame,
-    float depth, const y::fvec4& colour)
+    float depth, float rotation, const y::fvec4& colour)
 {
   set_sprite(sprite, frame_size);
-  batch_sprite(origin, frame, depth, colour);
+  batch_sprite(origin, frame, depth, rotation, colour);
   render_batch();
 }
 
@@ -394,7 +404,8 @@ void RenderUtil::irender_sprite(
     const y::ivec2& origin, const y::ivec2& frame,
     float depth, const y::fvec4& colour)
 {
-  render_sprite(sprite, frame_size, y::fvec2(origin), frame, depth, colour);
+  render_sprite(sprite, frame_size, y::fvec2(origin),
+                frame, depth, 0.f, colour);
 }
 
 y::ivec2 RenderUtil::from_grid(const y::ivec2& grid)

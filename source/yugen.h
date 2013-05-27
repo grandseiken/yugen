@@ -35,7 +35,6 @@ private:
   mutable y::vector<y::size> _measurements;
   mutable bool _recording;
   mutable y::vector<unsigned char*> _save_file_frames;
-  mutable float _rotation;
 
   RenderUtil& _util;
   GlFramebuffer _framebuffer;

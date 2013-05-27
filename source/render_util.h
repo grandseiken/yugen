@@ -36,12 +36,13 @@ public:
     float frame_x;
     float frame_y;
     float depth;
+    float rotation;
     y::fvec4 colour;
   };
 
   void add_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
                   const y::fvec2& origin, const y::ivec2& frame,
-                  float depth, const y::fvec4& colour);
+                  float depth, float rotation, const y::fvec4& colour);
   void iadd_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
                    const y::ivec2& origin, const y::ivec2& frame,
                    float depth, const y::fvec4& colour);
@@ -121,7 +122,7 @@ public:
   // Batch and render sprites (at pixel coordinates).
   void set_sprite(const GlTexture& sprite, const y::ivec2& frame_size);
   void batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
-                    float depth, const y::fvec4& colour) const;
+                    float depth, float rotation, const y::fvec4& colour) const;
   void render_batch() const;
 
   // Render an entire set of batches at once. Sprite set with set_sprite
@@ -131,7 +132,7 @@ public:
   // Render a sprite immediately.
   void render_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
                      const y::fvec2& origin, const y::ivec2& frame,
-                     float depth, const y::fvec4& colour);
+                     float depth, float rotation, const y::fvec4& colour);
   void irender_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
                       const y::ivec2& origin, const y::ivec2& frame,
                       float depth, const y::fvec4& colour);
@@ -159,6 +160,7 @@ private:
   GlProgram _draw_program;
 
   mutable y::vector<float> _pixels_data;
+  mutable y::vector<float> _rotation_data;
   mutable y::vector<float> _origin_data;
   mutable y::vector<float> _frame_index_data;
   mutable y::vector<float> _depth_data;
@@ -166,6 +168,7 @@ private:
   mutable y::vector<GLushort> _element_data;
 
   GlBuffer<float, 2> _pixels_buffer;
+  GlBuffer<float, 1> _rotation_buffer;
   GlBuffer<float, 2> _origin_buffer;
   GlBuffer<float, 2> _frame_index_buffer;
   GlBuffer<float, 1> _depth_buffer;

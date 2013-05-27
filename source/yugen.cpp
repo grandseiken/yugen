@@ -41,7 +41,6 @@ const GLfloat vertex_data[] = {
 
 Yugen::Yugen(RenderUtil& util)
   : _recording(false)
-  , _rotation(0.f)
   , _util(util)
   , _framebuffer(util.get_gl().make_framebuffer(
         RenderUtil::native_overflow_size))
@@ -153,12 +152,11 @@ void Yugen::draw() const
   _crop_program.bind_attribute("position", _vertex_buffer);
   _crop_program.bind_uniform("native_res", _crop_buffer.get_size());
   _crop_program.bind_uniform("native_overflow_res", _post_buffer.get_size());
-  _crop_program.bind_uniform("rotation", _rotation);
+  _crop_program.bind_uniform(
+      "rotation", _stage ? float(_stage->get_camera_rotation()) : 0.f);
   _post_buffer.get_texture().bind(GL_TEXTURE0);
   _crop_program.bind_uniform("framebuffer", 0);
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
-  // TODO: real rotation control.
-  _rotation += float(y::pi) / 2400;
 
   // Render crop-buffer to a file.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tilde)) {
@@ -224,9 +222,9 @@ y::int32 main(y::int32 argc, char** argv)
   for (y::int32 i = 1; i < argc; ++i) {
     args.emplace_back(argv[i]);
   }
-  // Usage: yugen map x y
+  // Usage: yugen [map x y]
   if (!args.empty() && args.size() != 3) {
-    std::cerr << "Usage: yugen map x y" << std::endl;
+    std::cerr << "Usage: yugen [map x y]" << std::endl;
     return 1;
   }
 

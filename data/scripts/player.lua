@@ -100,7 +100,7 @@ local function jump_logic(left_down, right_down, up_down,
 end
 
 -- Controls jump sequence.
-local function jump_timer_logic()
+local function jump_timer_logic(down_check_now)
   if jump_timer > 0 then
     jump_timer = jump_timer - 1
   end
@@ -110,6 +110,11 @@ local function jump_timer_logic()
         jump_stage == JUMP_STAGE_CHANGE_UP and JUMP_PERIOD_CHANGE or
         jump_stage == JUMP_STAGE_CAP and JUMP_PERIOD_CAP or
         jump_stage == JUMP_STAGE_CHANGE_DOWN and JUMP_PERIOD_CHANGE or 0
+  end
+  -- Cancel jump when we hit the ground.
+  if down_check_now and jump_stage >= JUMP_STAGE_CAP then
+    jump_timer = 0
+    jump_stage = JUMP_STAGE_NONE
   end
 end
 
@@ -125,6 +130,16 @@ local function y_multiplier()
     return (JUMP_PERIOD_CHANGE - jump_timer) / JUMP_PERIOD_CHANGE
   end
   return 1
+end
+
+local function step_multiplier()
+  if jump_stage == JUMP_STAGE_NONE then
+    return -1
+  elseif jump_stage < JUMP_STAGE_CAP then
+    return 0
+  else
+    return 1
+  end
 end
 
 local function is_jumping()
@@ -154,13 +169,15 @@ function update()
   local down_check_start = body_check(self, down_check, COLLIDE_WORLD)
   local down_check_now = false
 
-  -- Handle x-axis movement with stepping up slopes (when not in the air).
+  -- Handle x-axis movement with stepping up slopes (or down overhangs when
+  -- in the air).
   local original_y = get_origin(self):y()
-  if not is_jumping() then
-    collider_move(self, vec(0, -MOVE_SPEED))
+  local step_amount = MOVE_SPEED * step_multiplier()
+  if step_amount ~= 0 then
+    collider_move(self, vec(0, step_amount))
   end
   collider_move(self, vec(v, 0))
-  if not is_jumping() then
+  if step_amount ~= 0 then
     collider_move(self, vec(0, original_y - get_origin(self):y()))
   end
 
@@ -188,7 +205,7 @@ function update()
              left_check_now, right_check_now, up_check_now,
              down_check_start, down_check_now)
   collider_move(self, vec(0, GRAVITY * y_multiplier()))
-  jump_timer_logic()
+  jump_timer_logic(down_check_now)
 end
 
 function key(k)
@@ -202,6 +219,9 @@ local sprite = get_sprite("/tiles/easy.png")
 local frame_size = vec(32, 32)
 local frame = vec(3, 16)
 
+local rot = 0
+
 function draw()
-  render_sprite(self, sprite, frame_size, frame, 0.0)
+  --rot = rot + math.pi / 240
+  render_sprite(self, sprite, frame_size, frame, rot, 0.0)
 end

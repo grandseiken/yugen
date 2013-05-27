@@ -8,9 +8,11 @@ varying float depth_coord;
 
 void main()
 {
+  // TODO: rotations are not working quite right here.
   vec2 coord = mod(frame_coord, frame_count) +
       mod(tex_coord, vec2(frame_size)) / frame_size;
-  vec4 color = texture2D(sprite, coord / frame_count) * colour_coord;
+  coord = coord / frame_count;
+  vec4 color = texture2D(sprite, coord) * colour_coord;
   // Don't write the depth buffer.
   if (color.a == 0) {
     discard;
