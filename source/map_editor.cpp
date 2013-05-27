@@ -744,19 +744,17 @@ void MapEditor::event(const sf::Event& e)
     // Zoom in.
     case sf::Keyboard::Z:
       ++_zoom;
-      if (_zoom >= 0 && _zoom < y::int32(zoom_array.size())) {
-        _hover = y::ivec2(y::fvec2(_hover) *
-                          zoom_array[old_zoom] / zoom_array[_zoom]);
-      }
+      y::clamp(_zoom, 0, y::int32(zoom_array.size()));
+      _hover = y::ivec2(y::fvec2(_hover) *
+                        zoom_array[old_zoom] / zoom_array[_zoom]);
       break;
 
     // Zoom out.
     case sf::Keyboard::X:
       --_zoom;
-      if (_zoom >= 0 && _zoom < y::int32(zoom_array.size())) {
-        _hover = y::ivec2(y::fvec2(_hover) *
-                          zoom_array[old_zoom] / zoom_array[_zoom]);
-      }
+      y::clamp(_zoom, 0, y::int32(zoom_array.size()));
+      _hover = y::ivec2(y::fvec2(_hover) *
+                        zoom_array[old_zoom] / zoom_array[_zoom]);
       break;
 
     // Unused key.
@@ -766,8 +764,6 @@ void MapEditor::event(const sf::Event& e)
 
 void MapEditor::update()
 {
-  y::clamp(_zoom, 0, y::int32(zoom_array.size()));
-
   // Layout UI.
   const Resolution& r = _util.get_window().get_mode();
   const y::ivec2 spacing = RenderUtil::from_grid({0, 1});

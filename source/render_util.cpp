@@ -289,16 +289,16 @@ void RenderUtil::batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
       float(frame[xx]), float(frame[yy]), depth, rotation, colour});
 }
 
-template<typename T>
+template<typename T, typename U = T>
 void write_vector(std::vector<T>& dest, y::size dest_index,
-                  const std::vector<T>& source)
+                  const std::vector<U>& source)
 {
   for (y::size i = 0; i < source.size(); ++i) {
     if (dest_index + i < dest.size()) {
-      dest[dest_index + i] = source[i];
+      dest[dest_index + i] = T(source[i]);
     }
     else {
-      dest.emplace_back(source[i]);
+      dest.emplace_back(T(source[i]));
     }
   }
 }
@@ -317,11 +317,11 @@ void RenderUtil::render_batch() const
     float left = s.left;
     float top = s.top;
 
-    write_vector(_pixels_data, 8 * i, {
-        left, top,
-        left + _frame_size[xx], top,
-        left, top + _frame_size[yy],
-        left + _frame_size[xx], top + _frame_size[yy]});
+    write_vector<float, y::int32>(_pixels_data, 8 * i, {
+        -_frame_size[xx] / 2, -_frame_size[yy] / 2,
+        _frame_size[xx] / 2, -_frame_size[yy] / 2,
+        -_frame_size[xx] / 2, _frame_size[yy] / 2,
+        _frame_size[xx] / 2, _frame_size[yy] / 2});
     write_vector(_rotation_data, 4 * i, {
         s.rotation, s.rotation, s.rotation, s.rotation});
     write_vector(_origin_data, 8 * i, {
