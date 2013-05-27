@@ -193,8 +193,9 @@ void Yugen::upscale_render(const GlFramebuffer& source,
   _upscale_program.bind_attribute("position", _vertex_buffer);
   _upscale_program.bind_uniform("screen_res", target_size);
   _upscale_program.bind_uniform("native_res", source.get_size());
-  _upscale_program.bind_uniform("integral_scale_lock", true);
+  _upscale_program.bind_uniform("integral_scale_lock", false);
   _upscale_program.bind_uniform("use_epx", false);
+  _upscale_program.bind_uniform("use_fra", true);
   _upscale_program.bind_uniform("framebuffer", source);
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
 }

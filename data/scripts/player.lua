@@ -224,5 +224,5 @@ local rot = 0
 function draw()
   rot = rot + math.pi / 480
   render_sprite(self, sprite, frame_size, frame, rot, 0.0)
-  set_camera_rotation(-rot)
+  --set_camera_rotation(-rot)
 end
