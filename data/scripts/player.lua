@@ -53,9 +53,9 @@ local function jump_logic(left_down, right_down, up_down,
   end
   if wall_jump_timer > 0 then
     if jump_input_buffer == JUMP_ALLOWANCE and
-        not (down_check_now or down_check_start) and (
-          wall_jump_left and right_down and not left_down or
-          not wall_jump_left and left_down and not right_down) then
+        not (down_check_now or down_check_start) and
+        (wall_jump_left and right_down and not left_down or
+         not wall_jump_left and left_down and not right_down) then
       jump_stage = JUMP_STAGE_UP
       jump_timer = JUMP_PERIOD_UP
       jump_input_buffer = 0
@@ -66,7 +66,8 @@ local function jump_logic(left_down, right_down, up_down,
   -- Gives a small allowance for pressing jump key before landing.
   if jump_input_buffer > 0 then
     jump_input_buffer = jump_input_buffer - 1
-    if jump_stage == JUMP_STAGE_NONE and (down_check_now or down_check_start) then
+    if jump_stage == JUMP_STAGE_NONE and
+        (down_check_now or down_check_start) then
       jump_stage = JUMP_STAGE_UP
       jump_timer = JUMP_PERIOD_UP
       jump_input_buffer = 0

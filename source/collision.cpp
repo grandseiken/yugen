@@ -275,7 +275,7 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
     }
   }
   // Limit the movement to the minimum blocking ratio (i.e., least 0 <= t <= 1
-  // such that moving by t * move is blocked, and recurse in any free unblocked
+  // such that moving by t * move is blocked), and recurse in any free unblocked
   // direction.
   source.set_origin(min_ratio * move + source.get_origin());
   // TODO: (optionally) recurse.

@@ -35,13 +35,16 @@ private:
   mutable y::vector<y::size> _measurements;
   mutable bool _recording;
   mutable y::vector<unsigned char*> _save_file_frames;
+  mutable float _rotation;
 
   RenderUtil& _util;
   GlFramebuffer _framebuffer;
   GlFramebuffer _post_buffer;
+  GlFramebuffer _crop_buffer;
   GameStage* _stage;
 
   GlProgram _post_program;
+  GlProgram _crop_program;
   GlProgram _upscale_program;
   GlTexture _bayer_texture;
   mutable y::size _bayer_frame;
