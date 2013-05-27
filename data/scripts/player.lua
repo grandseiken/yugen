@@ -222,6 +222,6 @@ local frame = vec(3, 16)
 local rot = 0
 
 function draw()
-  --rot = rot + math.pi / 240
+  rot = rot + math.pi / 480
   render_sprite(self, sprite, frame_size, frame, rot, 0.0)
 end

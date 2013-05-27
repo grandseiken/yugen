@@ -187,6 +187,9 @@ public:
   template<typename T>
   bool bind_uniform(const y::string& name, const y::vec<T, 4>& arg) const;
 
+  bool bind_uniform(const y::string& name, const GlFramebuffer& arg) const;
+  bool bind_uniform(const y::string& name, const GlTexture& arg) const;
+
   // Bind the value of an attribute variable in an array.
   template<typename T, y::size N>
   bool bind_attribute(y::size index, const y::string& name,
@@ -216,6 +219,11 @@ public:
   bool bind_uniform(y::size index, const y::string& name,
                     const y::vec<T, 4>& arg) const;
 
+  bool bind_uniform(y::size index, const y::string& name,
+                    const GlFramebuffer& arg) const;
+  bool bind_uniform(y::size index, const y::string& name,
+                    const GlTexture& arg) const;
+
 protected:
 
   friend class GlUtil;
@@ -236,6 +244,8 @@ private:
 
   typedef y::map<y::string, GLint> single_map;
   typedef y::map<y::pair<y::string, y::size>, GLint> array_map;
+
+  mutable y::int32 _texture_index;
 
   mutable single_map _uniform_single_map;
   mutable array_map _uniform_array_map;

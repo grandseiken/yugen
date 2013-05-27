@@ -84,112 +84,42 @@ GlShader::GlShader(GLuint handle)
 
 GlProgram::GlProgram(GLuint handle)
   : GlHandle(handle)
+  , _texture_index(0)
 {
 }
 
 void GlProgram::bind() const
 {
   glUseProgram(get_handle());
+  _texture_index = 0;
 }
 
-bool GlProgram::check_name_exists(bool attribute, const y::string& name,
-                                  bool array, y::size index,
-                                  GLenum& type_output) const
+bool GlProgram::bind_uniform(const y::string& name,
+                             const GlFramebuffer& arg) const
 {
-  GLint name_count;
-  glGetProgramiv(
-      get_handle(), attribute ? GL_ACTIVE_ATTRIBUTES : GL_ACTIVE_UNIFORMS,
-      &name_count);
-
-  GLint name_length;
-  glGetProgramiv(
-      get_handle(),
-      attribute ? GL_ACTIVE_ATTRIBUTE_MAX_LENGTH : GL_ACTIVE_UNIFORM_MAX_LENGTH,
-      &name_length);
-
-  y::unique<char[]> buffer(new char[name_length]);
-  GLint array_size;
-  for (GLint i = 0; i < name_count; ++i) {
-    if (attribute) {
-      glGetActiveAttrib(get_handle(), i, name_length, y::null,
-                        &array_size, &type_output, buffer.get());
-    }
-    else {
-      glGetActiveUniform(get_handle(), i, name_length, y::null,
-                         &array_size, &type_output, buffer.get());
-    }
-    if (name == buffer.get() &&
-        ((!array && array_size == 1) ||
-         (array && signed(index) < array_size))) {
-      return true;
-    }
-  }
-  return false;
+  arg.get_texture().bind(GL_TEXTURE0 + _texture_index);
+  return bind_uniform(name, _texture_index++);
 }
 
-namespace std {
-
-  y::size hash<y::pair<y::string, y::size>>::operator()(
-      const y::pair<y::string, y::size>& pair) const
-  {
-    y::size seed = 0;
-    boost::hash_combine(seed, pair.first);
-    boost::hash_combine(seed, pair.second);
-    return seed;
-  }
-
-}
-
-GLint GlProgram::get_uniform_location(const y::string& name) const
+bool GlProgram::bind_uniform(const y::string& name,
+                             const GlTexture& arg) const
 {
-  auto it = _uniform_single_map.find(name);
-  if (it != _uniform_single_map.end()) {
-    return it->second;
-  }
-  GLint location = glGetUniformLocation(get_handle(), name.c_str());
-  _uniform_single_map.insert(y::make_pair(name, location));
-  return location;
+  arg.bind(GL_TEXTURE0 + _texture_index);
+  return bind_uniform(name, _texture_index++);
 }
 
-GLint GlProgram::get_uniform_location(const y::string& name,
-                                      y::size index) const
+bool GlProgram::bind_uniform(y::size index, const y::string& name,
+                             const GlFramebuffer& arg) const
 {
-  auto p = y::make_pair(name, index);
-  auto it = _uniform_array_map.find(p);
-  if (it != _uniform_array_map.end()) {
-    return it->second;
-  }
-  y::sstream n;
-  n << name << "[" << index << "]";
-  GLint location = glGetUniformLocation(get_handle(), n.str().c_str());
-  _uniform_array_map.insert(y::make_pair(p, location));
-  return location;
+  arg.get_texture().bind(GL_TEXTURE0 + _texture_index);
+  return bind_uniform(index, name, _texture_index++);
 }
 
-GLint GlProgram::get_attribute_location(const y::string& name) const
+bool GlProgram::bind_uniform(y::size index, const y::string& name,
+                             const GlTexture& arg) const
 {
-  auto it = _attribute_single_map.find(name);
-  if (it != _attribute_single_map.end()) {
-    return it->second;
-  }
-  GLint location = glGetAttribLocation(get_handle(), name.c_str());
-  _attribute_single_map.insert(y::make_pair(name, location));
-  return location;
-}
-
-GLint GlProgram::get_attribute_location(const y::string& name,
-                                        y::size index) const
-{
-  auto p = y::make_pair(name, index);
-  auto it = _attribute_array_map.find(p);
-  if (it != _attribute_array_map.end()) {
-    return it->second;
-  }
-  y::sstream n;
-  n << name << "[" << index << "]";
-  GLint location = glGetAttribLocation(get_handle(), n.str().c_str());
-  _attribute_array_map.insert(y::make_pair(p, location));
-  return location;
+  arg.bind(GL_TEXTURE0 + _texture_index);
+  return bind_uniform(index, name, _texture_index++);
 }
 
 void composite_type_to_base_and_length(GLenum type, GLenum& type_output,
@@ -288,6 +218,105 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
   }
   return true;
 #endif
+}
+bool GlProgram::check_name_exists(bool attribute, const y::string& name,
+                                  bool array, y::size index,
+                                  GLenum& type_output) const
+{
+  GLint name_count;
+  glGetProgramiv(
+      get_handle(), attribute ? GL_ACTIVE_ATTRIBUTES : GL_ACTIVE_UNIFORMS,
+      &name_count);
+
+  GLint name_length;
+  glGetProgramiv(
+      get_handle(),
+      attribute ? GL_ACTIVE_ATTRIBUTE_MAX_LENGTH : GL_ACTIVE_UNIFORM_MAX_LENGTH,
+      &name_length);
+
+  y::unique<char[]> buffer(new char[name_length]);
+  GLint array_size;
+  for (GLint i = 0; i < name_count; ++i) {
+    if (attribute) {
+      glGetActiveAttrib(get_handle(), i, name_length, y::null,
+                        &array_size, &type_output, buffer.get());
+    }
+    else {
+      glGetActiveUniform(get_handle(), i, name_length, y::null,
+                         &array_size, &type_output, buffer.get());
+    }
+    if (name == buffer.get() &&
+        ((!array && array_size == 1) ||
+         (array && signed(index) < array_size))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+namespace std {
+
+  y::size hash<y::pair<y::string, y::size>>::operator()(
+      const y::pair<y::string, y::size>& pair) const
+  {
+    y::size seed = 0;
+    boost::hash_combine(seed, pair.first);
+    boost::hash_combine(seed, pair.second);
+    return seed;
+  }
+
+}
+
+GLint GlProgram::get_uniform_location(const y::string& name) const
+{
+  auto it = _uniform_single_map.find(name);
+  if (it != _uniform_single_map.end()) {
+    return it->second;
+  }
+  GLint location = glGetUniformLocation(get_handle(), name.c_str());
+  _uniform_single_map.insert(y::make_pair(name, location));
+  return location;
+}
+
+GLint GlProgram::get_uniform_location(const y::string& name,
+                                      y::size index) const
+{
+  auto p = y::make_pair(name, index);
+  auto it = _uniform_array_map.find(p);
+  if (it != _uniform_array_map.end()) {
+    return it->second;
+  }
+  y::sstream n;
+  n << name << "[" << index << "]";
+  GLint location = glGetUniformLocation(get_handle(), n.str().c_str());
+  _uniform_array_map.insert(y::make_pair(p, location));
+  return location;
+}
+
+GLint GlProgram::get_attribute_location(const y::string& name) const
+{
+  auto it = _attribute_single_map.find(name);
+  if (it != _attribute_single_map.end()) {
+    return it->second;
+  }
+  GLint location = glGetAttribLocation(get_handle(), name.c_str());
+  _attribute_single_map.insert(y::make_pair(name, location));
+  return location;
+}
+
+GLint GlProgram::get_attribute_location(const y::string& name,
+                                        y::size index) const
+{
+  auto p = y::make_pair(name, index);
+  auto it = _attribute_array_map.find(p);
+  if (it != _attribute_array_map.end()) {
+    return it->second;
+  }
+  y::sstream n;
+  n << name << "[" << index << "]";
+  GLint location = glGetAttribLocation(get_handle(), n.str().c_str());
+  _attribute_array_map.insert(y::make_pair(p, location));
+  return location;
 }
 
 GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)

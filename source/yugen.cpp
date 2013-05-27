@@ -129,70 +129,16 @@ void Yugen::draw() const
 
   // Render framebuffer to second buffer with post-processing.
   _post_buffer.bind(true, true);
-  _post_program.bind();
-  _post_program.bind_attribute("position", _vertex_buffer);
-  _post_program.bind_uniform("native_res", _post_buffer.get_size());
-  _framebuffer.get_texture().bind(GL_TEXTURE0);
-  _post_program.bind_uniform("framebuffer", 0);
-  _bayer_texture.bind(GL_TEXTURE1);
-  _post_program.bind_uniform("bayer", 1);
-  _post_program.bind_uniform("bayer_res", _bayer_texture.get_size());
-  _post_program.bind_uniform(
-      "bayer_off", _stage ? y::fvec2(_stage->world_to_camera(y::wvec2())) :
-                            y::fvec2());
-  _post_program.bind_uniform("bayer_frame", y::int32(++_bayer_frame));
-  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+  post_render(_framebuffer);
 
   // Crop and rotate to the crop buffer.
-  // TODO: some sort of cleverer algorithm? Dithering after rotation in a
-  // separate step from the post-processing would mean we could do averaged
-  // rotation.
   _crop_buffer.bind(true, true);
-  _crop_program.bind();
-  _crop_program.bind_attribute("position", _vertex_buffer);
-  _crop_program.bind_uniform("native_res", _crop_buffer.get_size());
-  _crop_program.bind_uniform("native_overflow_res", _post_buffer.get_size());
-  _crop_program.bind_uniform(
-      "rotation", _stage ? float(_stage->get_camera_rotation()) : 0.f);
-  _post_buffer.get_texture().bind(GL_TEXTURE0);
-  _crop_program.bind_uniform("framebuffer", 0);
-  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+  crop_render(_post_buffer, _crop_buffer.get_size());
 
   // Render crop-buffer to a file.
-  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tilde)) {
-    _recording = true;
-  }
-  if (_recording) {
-    y::ivec2 size = _crop_buffer.get_size();
-    y::int32 length = 4 * size[xx] * size[yy];
-    unsigned char* data = new unsigned char[length];
-    glReadPixels(0, 0, size[xx], size[yy], GL_RGBA, GL_UNSIGNED_BYTE, data);
-    _save_file_frames.emplace_back(data);
-  }
-  if (sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace)) {
-    _recording = false;
-    _save_file_frames.clear();
-  }
-  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Return)) {
-    _recording = false;
-    y::size n = 0;
-    for (unsigned char* data : _save_file_frames) {
-      y::ivec2 size = _crop_buffer.get_size();
-      sf::Image image;
-      image.create(size[xx], size[yy], data);
-      image.flipVertically();
+  recording_render(_crop_buffer);
 
-      y::sstream ss;
-      ss << "tmp/" << std::setw(4) << std::setfill('0') << n++ << ".png";
-      image.saveToFile(ss.str());
-      delete[] data;
-      std::cout << "Saved frame " << n << " of " << _save_file_frames.size() <<
-          std::endl;
-    }
-    _save_file_frames.clear();
-  }
-
-  // Render FPS indicator.
+  // Render debug status.
   _util.set_resolution(_crop_buffer.get_size());
   if (total) {
     y::sstream ss;
@@ -206,14 +152,86 @@ void Yugen::draw() const
   // Upscale the crop-buffer to the window.
   const Resolution& screen = _util.get_window().get_mode();
   _util.get_gl().bind_window(true, true);
+  upscale_render(_crop_buffer, screen.size);
+}
+
+void Yugen::post_render(const GlFramebuffer& source) const
+{
+  _post_program.bind();
+  _post_program.bind_attribute("position", _vertex_buffer);
+  _post_program.bind_uniform("native_res", _post_buffer.get_size());
+  _post_program.bind_uniform("framebuffer", source);
+  _post_program.bind_uniform("bayer", _bayer_texture);
+  _post_program.bind_uniform("bayer_res", _bayer_texture.get_size());
+  _post_program.bind_uniform(
+      "bayer_off", _stage ? y::fvec2(_stage->world_to_camera(y::wvec2())) :
+                            y::fvec2());
+  _post_program.bind_uniform("bayer_frame", y::int32(++_bayer_frame));
+  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+}
+
+void Yugen::crop_render(const GlFramebuffer& source,
+                        const y::ivec2& target_size) const
+{
+  // TODO: some sort of cleverer algorithm? Dithering after rotation in a
+  // separate step from the post-processing would mean we could do averaged
+  // rotation.
+  _crop_program.bind();
+  _crop_program.bind_attribute("position", _vertex_buffer);
+  _crop_program.bind_uniform("native_res", target_size);
+  _crop_program.bind_uniform("native_overflow_res", source.get_size());
+  _crop_program.bind_uniform(
+      "rotation", _stage ? float(_stage->get_camera_rotation()) : 0.f);
+  _crop_program.bind_uniform("framebuffer", source);
+  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+}
+
+void Yugen::upscale_render(const GlFramebuffer& source,
+                           const y::ivec2& target_size) const
+{
   _upscale_program.bind();
   _upscale_program.bind_attribute("position", _vertex_buffer);
-  _upscale_program.bind_uniform("screen_res", screen.size);
-  _upscale_program.bind_uniform("native_res", _crop_buffer.get_size());
+  _upscale_program.bind_uniform("screen_res", target_size);
+  _upscale_program.bind_uniform("native_res", source.get_size());
   _upscale_program.bind_uniform("integral_scale_lock", true);
-  _crop_buffer.get_texture().bind(GL_TEXTURE0);
-  _upscale_program.bind_uniform("framebuffer", 0);
+  _upscale_program.bind_uniform("framebuffer", source);
   _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+}
+
+void Yugen::recording_render(const GlFramebuffer& source) const
+{
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tilde)) {
+    _recording = true;
+  }
+  if (_recording) {
+    y::ivec2 size = source.get_size();
+    y::int32 length = 4 * size[xx] * size[yy];
+    unsigned char* data = new unsigned char[length];
+    glReadPixels(0, 0, size[xx], size[yy], GL_RGBA, GL_UNSIGNED_BYTE, data);
+    _save_file_frames.emplace_back(data);
+  }
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace)) {
+    _recording = false;
+    _save_file_frames.clear();
+  }
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::Return)) {
+    _recording = false;
+    y::size n = 0;
+    for (unsigned char* data : _save_file_frames) {
+      y::ivec2 size = source.get_size();
+      sf::Image image;
+      image.create(size[xx], size[yy], data);
+      image.flipVertically();
+
+      y::sstream ss;
+      ss << "tmp/" << std::setw(4) << std::setfill('0') << n++ << ".png";
+      image.saveToFile(ss.str());
+      delete[] data;
+      std::cout << "Saved frame " << n << " of " << _save_file_frames.size() <<
+          std::endl;
+    }
+    _save_file_frames.clear();
+  }
 }
 
 y::int32 main(y::int32 argc, char** argv)

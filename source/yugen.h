@@ -30,6 +30,13 @@ public:
 
 private:
 
+  void post_render(const GlFramebuffer& source) const;
+  void crop_render(const GlFramebuffer& source,
+                   const y::ivec2& target_size) const;
+  void upscale_render(const GlFramebuffer& source,
+                      const y::ivec2& target_size) const;
+  void recording_render(const GlFramebuffer& source) const;
+
   static const y::size samples = 16;
   mutable sf::Clock _clock;
   mutable y::vector<y::size> _measurements;
