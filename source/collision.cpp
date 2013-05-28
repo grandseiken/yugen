@@ -229,6 +229,10 @@ void Collision::collider_rotate(Script& source, y::world rotate) const
   y::wvec2 min_bound = source.get_origin() + y::wvec2{-size, -size};
   y::wvec2 max_bound = source.get_origin() + y::wvec2{size, size};
 
+  // TODO: repetition.
+  y::wvec2 row_0(cos(source.get_rotation()), -sin(source.get_rotation()));
+  y::wvec2 row_1(sin(source.get_rotation()), cos(source.get_rotation()));
+
   y::world limiting_rotation = y::abs(rotate);
   // See collider_move for details. Can we unify this into a common function?
   for (y::size i = 0; i < geometry.buckets.size(); ++i) {
@@ -262,13 +266,19 @@ void Collision::collider_rotate(Script& source, y::world rotate) const
           continue;
         }
 
-        y::wvec2 origin = source.get_origin() + b.offset;
         vertices.clear();
         geometries.clear();
-        y::wvec2 dr = origin + b.size / 2;
-        y::wvec2 ur = origin + y::wvec2{1., -1.} * b.size / 2;
-        y::wvec2 dl = origin + y::wvec2{-1., 1.} * b.size / 2;
-        y::wvec2 ul = origin + y::wvec2{-1., -1.} * b.size / 2;
+
+        // TODO: repetition.
+        y::wvec2 dr = b.offset + b.size / 2;
+        y::wvec2 ur = b.offset + y::wvec2{1., -1.} * b.size / 2;
+        y::wvec2 dl = b.offset + y::wvec2{-1., 1.} * b.size / 2;
+        y::wvec2 ul = b.offset + y::wvec2{-1., -1.} * b.size / 2;
+
+        dr = source.get_origin() + y::wvec2{dr.dot(row_0), dr.dot(row_1)};
+        ur = source.get_origin() + y::wvec2{ur.dot(row_0), ur.dot(row_1)};
+        dl = source.get_origin() + y::wvec2{dl.dot(row_0), dl.dot(row_1)};
+        ul = source.get_origin() + y::wvec2{ul.dot(row_0), ul.dot(row_1)};
 
         vertices.emplace_back(dr);
         vertices.emplace_back(ur);
@@ -446,7 +456,7 @@ y::world Collision::get_arc_projection(
 
   y::world a = g_vec.length_squared();
   y::world b = 2 * g_dot - g_vec.dot(origin) - 2 * g.start.length_squared();
-  y::world c = (g.start - origin).length_squared() + g_dot - r_sq;
+  y::world c = (g.start - origin).length_squared() + g.start.dot(origin) - r_sq;
 
   y::world sqrtand = b * b - 4 * a * c;
 
