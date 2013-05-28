@@ -304,6 +304,7 @@ bool Collision::body_check(const Script& source, const Body& body,
   y::wvec2 min_bound = origin + body.get_min();
   y::wvec2 max_bound = origin + body.get_max();
 
+  // TODO: handle rotation.
   origin += body.offset;
   y::wvec2 dr = origin + body.size / 2;
   y::wvec2 ur = origin + y::wvec2{1., -1.} * body.size / 2;
@@ -452,8 +453,11 @@ y::world Collision::get_arc_projection(
   // If no roots the line and circle do not meet. If one root they touch at a
   // single point, so also cannot be blocking. If a is zero the line is a point.
   if (sqrtand <= 0 || a == 0) {
-    return rotation;
+    // TODO: this always seems to return no matter what.
+    return y::abs(rotation);
   }
+  // TODO.
+  std::cout << "Didn't return" << std::endl;
 
   y::world sqrted = sqrt(sqrtand);
   y::world t_0 = (-b + sqrted) / (2 * a);
