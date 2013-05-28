@@ -20,6 +20,9 @@ struct Body {
   y::wvec2 get_min() const;
   y::wvec2 get_max() const;
 
+  void get_vertices(y::vector<y::wvec2>& output,
+                    const y::wvec2& origin, y::world rotation) const;
+
   const Script& source;
   y::wvec2 offset;
   y::wvec2 size;
@@ -76,6 +79,8 @@ private:
 
   y::wvec2 get_min(const entry_list& bodies, y::int32 collide_mask) const;
   y::wvec2 get_max(const entry_list& bodies, y::int32 collide_mask) const;
+  void get_geometries(y::vector<world_geometry>& output,
+                      const y::vector<y::wvec2>& vertices) const;
 
   const WorldWindow& _world;
 

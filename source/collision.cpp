@@ -19,12 +19,37 @@ Body::Body(const Script& source)
 
 y::wvec2 Body::get_min() const
 {
-  return offset - size / 2;
+  y::wvec2 min = offset - size / 2;
+  y::wvec2 max = offset + size / 2;
+  y::world size = y::max(y::abs(min), y::abs(max)).length();
+  return {-size, -size};
 }
 
 y::wvec2 Body::get_max() const
 {
-  return offset + size / 2;
+  y::wvec2 min = offset - size / 2;
+  y::wvec2 max = offset + size / 2;
+  y::world size = y::max(y::abs(min), y::abs(max)).length();
+  return {size, size};
+}
+
+void Body::get_vertices(y::vector<y::wvec2>& output,
+                        const y::wvec2& origin, y::world rotation) const
+{
+  // Rotation matrix.
+  // TODO: if we need to use this elsewhere, standardise it somewhere.
+  y::wvec2 row_0(cos(rotation), -sin(rotation));
+  y::wvec2 row_1(sin(rotation), cos(rotation));
+
+  y::wvec2 dr = offset + size / 2;
+  y::wvec2 ur = offset + y::wvec2{size[xx], -size[yy]} / 2;
+  y::wvec2 dl = offset + y::wvec2{-size[xx], size[yy]} / 2;
+  y::wvec2 ul = offset - size / 2;
+
+  output.emplace_back(origin + y::wvec2{ul.dot(row_0), ul.dot(row_1)});
+  output.emplace_back(origin + y::wvec2{ur.dot(row_0), ur.dot(row_1)});
+  output.emplace_back(origin + y::wvec2{dr.dot(row_0), dr.dot(row_1)});
+  output.emplace_back(origin + y::wvec2{dl.dot(row_0), dl.dot(row_1)});
 }
 
 Collision::Collision(const WorldWindow& world)
@@ -55,31 +80,25 @@ void Collision::render(
   source_list sources;
   get_sources(sources);
   for (const Script* s : sources) {
-    // TODO: standardise matrix operations. I don't really want to write
-    // a whole templated matrix class, though.
-    y::wvec2 row_0(cos(s->get_rotation()), -sin(s->get_rotation()));
-    y::wvec2 row_1(sin(s->get_rotation()), cos(s->get_rotation()));
+    y::vector<y::wvec2> vertices;
 
     for (const entry& b : get_list(*s)) {
-      // TODO: bounding-box check (respecting rotation).
       if (!b->collide_mask) {
         continue;
       }
 
-      y::wvec2 dr = b->offset + b->size / 2;
-      y::wvec2 ur = b->offset + y::wvec2{1., -1.} * b->size / 2;
-      y::wvec2 dl = b->offset + y::wvec2{-1., 1.} * b->size / 2;
-      y::wvec2 ul = b->offset + y::wvec2{-1., -1.} * b->size / 2;
+      y::wvec2 min = s->get_origin() + b->get_min();
+      y::wvec2 max = s->get_origin() + b->get_max();
+      if (!(max >= camera_min && min < camera_max)) {
+        continue;
+      }
 
-      dr = s->get_origin() + y::wvec2{dr.dot(row_0), dr.dot(row_1)};
-      ur = s->get_origin() + y::wvec2{ur.dot(row_0), ur.dot(row_1)};
-      dl = s->get_origin() + y::wvec2{dl.dot(row_0), dl.dot(row_1)};
-      ul = s->get_origin() + y::wvec2{ul.dot(row_0), ul.dot(row_1)};
-
-      util.render_line(y::fvec2(dr), y::fvec2(dl), c);
-      util.render_line(y::fvec2(dl), y::fvec2(ul), c);
-      util.render_line(y::fvec2(ul), y::fvec2(ur), c);
-      util.render_line(y::fvec2(ur), y::fvec2(dr), c);
+      vertices.clear();
+      b->get_vertices(vertices, s->get_origin(), s->get_rotation());
+      for (y::size i = 0; i < vertices.size(); ++i) {
+        util.render_line(y::fvec2(vertices[i]),
+                         y::fvec2(vertices[(i + 1) % vertices.size()]), c);
+      }
     }
   }
 }
@@ -101,19 +120,12 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // Bounding boxes of the source Bodies.
-  // TODO: update bounds to work with rotations.
   y::wvec2 min_bound =
       source.get_origin() + get_min(bodies, COLLIDE_RESV_WORLD);
   min_bound = y::min(min_bound, move + min_bound);
   y::wvec2 max_bound =
       source.get_origin() + get_max(bodies, COLLIDE_RESV_WORLD);
   max_bound = y::max(max_bound, move + max_bound);
-
-  // TODO: work with rotation.
-  bool project_downright = move[xx] > 0 || move[yy] > 0;
-  bool project_upright = move[xx] > 0 || move[yy] < 0;
-  bool project_downleft = move[xx] < 0 || move[yy] > 0;
-  bool project_upleft = move[xx] < 0 || move[yy] < 0;
 
   y::world min_ratio = 1;
   // Eliminating geometry by bucket and order depends heavily on structure of
@@ -136,10 +148,13 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
       if (g_min[xx] >= max_bound[xx]) {
         break;
       }
+
+      world_geometry wg{y::wvec2(g.start), y::wvec2(g.end)};
       // Skip geometry which is defined opposite the direction of movement, and
       // geometry for which a general bounding-box check fails.
-      y::world normal = (g.end - g.start).angle() - y::pi / 2;
-      if (y::angle_distance(normal, move.angle()) < y::pi / 2 ||
+      y::wvec2 g_vec = wg.end - wg.start;
+      y::wvec2 normal{g_vec[yy], -g_vec[xx]};
+      if (normal.dot(-move) <= 0 ||
           !(g_min < max_bound && g_max > min_bound)) {
         continue;
       }
@@ -153,7 +168,6 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
       // exactly the reverse of the same process, i.e., project the geometry
       // backwards by the movement vector and take the minimum blocking ratio
       // among intersections with the original shape.
-      world_geometry wg{y::wvec2(g.start), y::wvec2(g.end)};
       y::vector<y::wvec2> vertices;
       y::vector<world_geometry> geometries;
 
@@ -162,40 +176,12 @@ void Collision::collider_move(Script& source, const y::wvec2& move) const
         if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
           continue;
         }
-        y::wvec2 origin = source.get_origin() + b.offset;
         vertices.clear();
         geometries.clear();
-        // TODO: work with rotation.
-        y::wvec2 dr = origin + b.size / 2;
-        y::wvec2 ur = origin + y::wvec2{1., -1.} * b.size / 2;
-        y::wvec2 dl = origin + y::wvec2{-1., 1.} * b.size / 2;
-        y::wvec2 ul = origin + y::wvec2{-1., -1.} * b.size / 2;
 
-        if (project_downright) {
-          vertices.emplace_back(dr);
-        }
-        if (project_upright) {
-          vertices.emplace_back(ur);
-        }
-        if (project_downleft) {
-          vertices.emplace_back(dl);
-        }
-        if (project_upleft) {
-          vertices.emplace_back(ul);
-        }
-
-        if (move[yy] > 0) {
-          geometries.push_back({dl, dr});
-        }
-        if (move[yy] < 0) {
-          geometries.push_back({ul, ur});
-        }
-        if (move[xx] > 0) {
-          geometries.push_back({ur, dr});
-        }
-        if (move[xx] < 0) {
-          geometries.push_back({ul, dl});
-        }
+        b.get_vertices(vertices,
+                       source.get_origin(), source.get_rotation());
+        get_geometries(geometries, vertices);
 
         min_ratio = y::min(min_ratio, get_projection_ratio(wg, vertices, move));
         min_ratio = y::min(min_ratio, get_projection_ratio(
@@ -222,16 +208,10 @@ void Collision::collider_rotate(Script& source, y::world rotate) const
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // Bounding boxes of the source Bodies.
-  // TODO: work out if we can eliminate any vertices as in collider_move?
-  y::world size =
-      y::max(y::abs(get_max(bodies, COLLIDE_RESV_WORLD)),
-             y::abs(get_min(bodies, COLLIDE_RESV_WORLD))).length();
-  y::wvec2 min_bound = source.get_origin() + y::wvec2{-size, -size};
-  y::wvec2 max_bound = source.get_origin() + y::wvec2{size, size};
-
-  // TODO: repetition.
-  y::wvec2 row_0(cos(source.get_rotation()), -sin(source.get_rotation()));
-  y::wvec2 row_1(sin(source.get_rotation()), cos(source.get_rotation()));
+  y::wvec2 min_bound =
+      source.get_origin() + get_min(bodies, COLLIDE_RESV_WORLD);
+  y::wvec2 max_bound =
+      source.get_origin() + get_max(bodies, COLLIDE_RESV_WORLD);
 
   y::world limiting_rotation = y::abs(rotate);
   // See collider_move for details. Can we unify this into a common function?
@@ -247,9 +227,9 @@ void Collision::collider_rotate(Script& source, y::world rotate) const
       if (g_min[xx] >= max_bound[xx]) {
         break;
       }
-      // We can't skip geometry defined in opposite direction, since direction
-      // depends on body involved.
-      // TODO: can we skip them in the inner loops, or in get_arc_projection?
+      // We can't skip geometry defined in opposite direction in the outer loop,
+      // since direction depends on body involved. That happens in
+      // get_arc_projection.
       if (!(g_min < max_bound && g_max > min_bound)) {
         continue;
       }
@@ -265,30 +245,12 @@ void Collision::collider_rotate(Script& source, y::world rotate) const
         if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
           continue;
         }
-
         vertices.clear();
         geometries.clear();
 
-        // TODO: repetition.
-        y::wvec2 dr = b.offset + b.size / 2;
-        y::wvec2 ur = b.offset + y::wvec2{1., -1.} * b.size / 2;
-        y::wvec2 dl = b.offset + y::wvec2{-1., 1.} * b.size / 2;
-        y::wvec2 ul = b.offset + y::wvec2{-1., -1.} * b.size / 2;
-
-        dr = source.get_origin() + y::wvec2{dr.dot(row_0), dr.dot(row_1)};
-        ur = source.get_origin() + y::wvec2{ur.dot(row_0), ur.dot(row_1)};
-        dl = source.get_origin() + y::wvec2{dl.dot(row_0), dl.dot(row_1)};
-        ul = source.get_origin() + y::wvec2{ul.dot(row_0), ul.dot(row_1)};
-
-        vertices.emplace_back(dr);
-        vertices.emplace_back(ur);
-        vertices.emplace_back(dl);
-        vertices.emplace_back(ul);
-
-        geometries.push_back({dl, dr});
-        geometries.push_back({ul, ur});
-        geometries.push_back({ur, dr});
-        geometries.push_back({ul, dl});
+        b.get_vertices(vertices,
+                       source.get_origin(), source.get_rotation());
+        get_geometries(geometries, vertices);
 
         limiting_rotation = y::min(limiting_rotation, get_arc_projection(
                                 wg, vertices, source.get_origin(), rotate));
@@ -310,19 +272,15 @@ bool Collision::body_check(const Script& source, const Body& body,
     return false;
   }
   const OrderedGeometry& geometry = _world.get_geometry();
-  y::wvec2 origin = source.get_origin();
-  y::wvec2 min_bound = origin + body.get_min();
-  y::wvec2 max_bound = origin + body.get_max();
+  y::wvec2 min_bound = source.get_origin() + body.get_min();
+  y::wvec2 max_bound = source.get_origin() + body.get_max();
 
-  // TODO: handle rotation.
-  origin += body.offset;
-  y::wvec2 dr = origin + body.size / 2;
-  y::wvec2 ur = origin + y::wvec2{1., -1.} * body.size / 2;
-  y::wvec2 dl = origin + y::wvec2{-1., 1.} * body.size / 2;
-  y::wvec2 ul = origin + y::wvec2{-1., -1.} * body.size / 2;
+  y::vector<y::wvec2> vertices;
+  y::vector<world_geometry> geometries;
 
-  y::vector<world_geometry> geometries{
-     {ul, ur}, {ur, dr}, {dr, dl}, {dl, ul}};
+  body.get_vertices(vertices,
+                    source.get_origin(), source.get_rotation());
+  get_geometries(geometries, vertices);
 
   // See collider_move for details.
   for (y::size i = 0; i < geometry.buckets.size(); ++i) {
@@ -382,6 +340,13 @@ y::world Collision::get_projection_ratio(
   world_geometry v{vertex, move + vertex};
   const world_geometry& g = geometry;
 
+  // Skip geometry in the wrong direction.
+  y::wvec2 g_vec = g.end - g.start;
+  y::wvec2 normal{g_vec[yy], -g_vec[xx]};
+  if (normal.dot(-move) <= 0) {
+    return 2;
+  }
+
   // Equations of lines (for t, u in [0, 1]):
   // v(t) = v.start + t * (v.end - v.start)
   // g(u) = g.start + u * (g.end - g.start)
@@ -402,8 +367,9 @@ y::world Collision::get_projection_ratio(
       (v.end[xx] - v.start[xx]) * (g.start[yy] - v.start[yy]) -
       (v.end[yy] - v.start[yy]) * (g.start[xx] - v.start[xx])) / denominator;
 
+  y::world tolerance = 1.0 / 2048;
   // Lines intersect outside of the segments.
-  if (t < 0 || t > 1 || u < 0 || u > 1) {
+  if (t < -tolerance || t > 1 || u < 0 || u > 1) {
     return 2;
   }
   return t;
@@ -478,16 +444,34 @@ y::world Collision::get_arc_projection(
                           const y::wvec2& g_start, const y::wvec2& g_vec,
                           const y::wvec2& origin)
     {
+      static const y::world tolerance = 1.0 / 4096;
+      // Impact outside the line segment.
       if (t < 0 || t > 1) {
         return y::abs(rotation);
       }
-      y::world limiting_angle = (g_start + t * g_vec - origin).angle();
+      y::wvec2 impact_rel = g_start + t * g_vec - origin;
+      // Skip if the collision is opposite the direction the line is defined in.
+      // This is done by forming a line from the origin in the direction of the
+      // collision line's normal, and checking which side of it the impact point
+      // is on.
+      y::world signed_distance = g_vec.dot(impact_rel);
+      if ((rotation > 0) != (signed_distance > 0)) {
+        return y::abs(rotation);
+      }
+
+      y::world limiting_angle = impact_rel.angle();
       // Finds the (absolute) limiting rotation in the direction of rotation
       // (so it needs to be made negative again if the rotation is negative).
       y::world limiting_rotation =
           (rotation > 0 ? limiting_angle - initial_angle :
                           initial_angle - limiting_angle) +
           ((rotation > 0) != (limiting_angle > initial_angle) ? 2 * y::pi : 0);
+      // Because of trigonometric inaccuracies and the fact that if we are a
+      // tiny bit out in the wrong direction the rotation will not be blocked
+      // at all, it's best to have a small amount of tolerance.
+      if (2 * y::pi - limiting_rotation < tolerance) {
+        return limiting_rotation - 2 * y::pi;
+      }
       return limiting_rotation;
     }
   };
@@ -545,4 +529,12 @@ y::wvec2 Collision::get_max(const entry_list& bodies,
     first = false;
   }
   return max;
+}
+
+void Collision::get_geometries(y::vector<world_geometry>& output,
+                               const y::vector<y::wvec2>& vertices) const
+{
+  for (y::size i = 0; i < vertices.size(); ++i) {
+    output.push_back({vertices[i], vertices[(i + 1) % vertices.size()]});
+  }
 }

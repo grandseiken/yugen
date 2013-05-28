@@ -215,9 +215,6 @@ function update()
              down_check_start, down_check_now)
   collider_move(self, vec(0, GRAVITY * y_multiplier()))
   jump_timer_logic(down_check_now)
-
-  -- X FILES MUSIC --
-  collider_rotate(self, move_dir and math.pi / 45 or -math.pi / 45)
 end
 
 function key(k)
