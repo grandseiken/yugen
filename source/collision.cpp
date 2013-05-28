@@ -451,23 +451,20 @@ y::world Collision::get_arc_projection(
   // Finds all t such that |g(t) - origin| = |vertex - origin|.
   // These are the roots of the equation a * t^2 + b * t + c = 0.
   y::world r_sq = (vertex - origin).length_squared();
-  y::world g_dot = g.start.dot(g.end);
   y::wvec2 g_vec = (g.end - g.start);
 
   y::world a = g_vec.length_squared();
-  y::world b = 2 * g_dot - g_vec.dot(origin) - 2 * g.start.length_squared();
-  y::world c = (g.start - origin).length_squared() + g.start.dot(origin) - r_sq;
+  y::world b = 2 * (g.start.dot(g.end) + g.start.dot(origin) -
+                    g.end.dot(origin) - g.start.length_squared());
+  y::world c = (g.start - origin).length_squared() - r_sq;
 
   y::world sqrtand = b * b - 4 * a * c;
 
   // If no roots the line and circle do not meet. If one root they touch at a
   // single point, so also cannot be blocking. If a is zero the line is a point.
   if (sqrtand <= 0 || a == 0) {
-    // TODO: this always seems to return no matter what.
     return y::abs(rotation);
   }
-  // TODO.
-  std::cout << "Didn't return" << std::endl;
 
   y::world sqrted = sqrt(sqrtand);
   y::world t_0 = (-b + sqrted) / (2 * a);
