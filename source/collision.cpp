@@ -47,7 +47,6 @@ y::wvec2 Body::get_max(const y::wvec2& origin, y::world rotation) const
 
 y::wvec2 Body::get_full_rotation_min(const y::wvec2& origin) const
 {
-  return offset - size / 2;
   y::wvec2 min = offset - size / 2;
   y::wvec2 max = offset + size / 2;
   y::world size = y::max(y::abs(min), y::abs(max)).length();
@@ -56,7 +55,6 @@ y::wvec2 Body::get_full_rotation_min(const y::wvec2& origin) const
 
 y::wvec2 Body::get_full_rotation_max(const y::wvec2& origin) const
 {
-  return offset + size / 2;
   y::wvec2 min = offset - size / 2;
   y::wvec2 max = offset + size / 2;
   y::world size = y::max(y::abs(min), y::abs(max)).length();
@@ -551,6 +549,9 @@ bool Collision::has_intersection(const world_geometry& a,
 
 // TODO: not having collide_mask here makes collision different?
 // Since this should just be an optimisation that's odd; investigate.
+// TODO: bounds checks in general seem to affect things!
+// Without bounds checks, check_body succeeds for things touching at a line,
+// for instance, where they otherwise wouldn't.
 y::wvec2 Collision::get_min(const entry_list& bodies,
                             y::int32 collide_mask,
                             const y::wvec2& origin, y::world rotation) const

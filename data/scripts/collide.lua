@@ -11,7 +11,7 @@ local COLLIDE_RESV2 = 8
 -- Custom values.
 
 -- Standard overlap size for check bodies.
-local CHECK_OVERLAP = 0.01
+local CHECK_OVERLAP = 0.1
 
 -- Create standard check bodies.
 local function create_up_check(script, offset, size)

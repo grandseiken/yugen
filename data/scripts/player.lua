@@ -150,9 +150,24 @@ end
 local GRAVITY = 4
 local MOVE_SPEED = 2.5
 
-local move_dir = false
+local stage_rot = 0
+local unrot = 0
 
 function update()
+  -- Implement Sonic Bonus Level Mode.
+  local rot = math.pi / 2400
+  stage_rot = stage_rot + rot
+  unrot = unrot - rot - collider_rotate(self, -rot)
+  unrot = unrot - collider_rotate(self, unrot)
+  local sr = get_rotation(self)
+  set_camera_rotation(stage_rot)
+  local row0 = vec(math.cos(sr), -math.sin(sr))
+  local row1 = vec(math.sin(sr), math.cos(sr))
+  function move(s, v)
+    collider_move(s, vec(vec_dot(v, row0), vec_dot(v, row1)))
+  end
+
+  -- Real stuff.
   local left_down = is_key_down(KEY_LEFT)
   local right_down = is_key_down(KEY_RIGHT)
   local up_down = is_key_down(KEY_UP)
@@ -163,13 +178,6 @@ function update()
   end
   if right_down then
     v = v + MOVE_SPEED
-  end
-
-  if v > 0 then
-    move_dir = true
-  end
-  if v < 0 then
-    move_dir = false
   end
 
   -- Need to know the down check before the x-axis move for applying
@@ -183,11 +191,11 @@ function update()
   local original_y = get_origin(self):y()
   local step_amount = MOVE_SPEED * step_multiplier()
   if step_amount ~= 0 then
-    collider_move(self, vec(0, step_amount))
+    move(self, vec(0, step_amount))
   end
-  collider_move(self, vec(v, 0))
+  move(self, vec(v, 0))
   if step_amount ~= 0 then
-    collider_move(self, vec(0, original_y - get_origin(self):y()))
+    move(self, vec(0, original_y - get_origin(self):y()))
   end
 
   -- Step down if we're not jumping to stick to down ramps; if this doesn't
@@ -195,10 +203,10 @@ function update()
   -- slope or is too steep).
   if not is_jumping() then
     original_y = get_origin(self):y()
-    collider_move(self, vec(0, MOVE_SPEED))
+    move(self, vec(0, MOVE_SPEED))
     down_check_now = body_check(self, down_check, COLLIDE_WORLD)
     if not down_check_now then
-      collider_move(self, vec(0, original_y - get_origin(self):y()))
+      move(self, vec(0, original_y - get_origin(self):y()))
       down_check_now = body_check(self, down_check, COLLIDE_WORLD)
     end
   else
@@ -213,7 +221,7 @@ function update()
   jump_logic(left_down, right_down, up_down,
              left_check_now, right_check_now, up_check_now,
              down_check_start, down_check_now)
-  collider_move(self, vec(0, GRAVITY * y_multiplier()))
+  move(self, vec(0, GRAVITY * y_multiplier()))
   jump_timer_logic(down_check_now)
 end
 
@@ -228,10 +236,6 @@ local sprite = get_sprite("/tiles/easy.png")
 local frame_size = vec(32, 32)
 local frame = vec(3, 16)
 
-local rot = 0
-
 function draw()
-  rot = rot + (move_dir and math.pi / 45 or -math.pi / 45)
-  render_sprite(self, sprite, frame_size, frame, rot, 0.0)
-  --set_camera_rotation(-rot)
+  render_sprite(self, sprite, frame_size, frame, get_rotation(self), 0.0)
 end

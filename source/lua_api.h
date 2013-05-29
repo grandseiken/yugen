@@ -191,7 +191,7 @@ ylib_api(get_region)
 ylib_api(get_rotation)
     ylib_arg(const Script*, script)
 {
-  ylib_return(script->get_region());
+  ylib_return(script->get_rotation());
 }
 
 ylib_api(set_origin)
