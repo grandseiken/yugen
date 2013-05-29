@@ -385,15 +385,13 @@ ylib_api(set_collide_mask)
 ylib_api(collider_move)
     ylib_arg(Script*, script) ylib_refarg(const y::wvec2, move)
 {
-  stage.get_collision().collider_move(*script, move);
-  ylib_void();
+  ylib_return(stage.get_collision().collider_move(*script, move));
 }
 
 ylib_api(collider_rotate)
    ylib_arg(Script*, script) ylib_arg(y::world, rotate)
 {
-  stage.get_collision().collider_rotate(*script, rotate);
-  ylib_void();
+  ylib_return(stage.get_collision().collider_rotate(*script, rotate));
 }
 
 ylib_api(body_check)
