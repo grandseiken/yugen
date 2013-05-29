@@ -320,6 +320,9 @@ void GameStage::draw() const
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
     _collision.render(_util, camera_min, camera_max);
   }
+
+  // Render lighting.
+  _lighting.render(_util, camera_min, camera_max);
   _util.add_translation(-translation);
 }
 

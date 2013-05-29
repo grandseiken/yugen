@@ -98,6 +98,21 @@ namespace y {
   typedef vector<string> string_vector;
   const std::nullptr_t null = nullptr;
 
+  template<typename T, typename U = vector<T>>
+  void write_vector(vector<T>& dest, size dest_index, const U& source)
+  {
+    size i = 0;
+    for (const auto& u : source) {
+      if (dest_index + i < dest.size()) {
+        dest[dest_index + i] = T(u);
+      }
+      else {
+        dest.emplace_back(T(u));
+      }
+      ++i;
+    }
+  }
+
   template<typename T>
   auto move(T t) -> decltype(std::move(std::forward<T>(t)))
   {

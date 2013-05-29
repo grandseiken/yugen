@@ -289,20 +289,6 @@ void RenderUtil::batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
       float(frame[xx]), float(frame[yy]), depth, rotation, colour});
 }
 
-template<typename T, typename U = T>
-void write_vector(std::vector<T>& dest, y::size dest_index,
-                  const std::vector<U>& source)
-{
-  for (y::size i = 0; i < source.size(); ++i) {
-    if (dest_index + i < dest.size()) {
-      dest[dest_index + i] = T(source[i]);
-    }
-    else {
-      dest.emplace_back(T(source[i]));
-    }
-  }
-}
-
 void RenderUtil::render_batch() const
 {
   if (!(_native_size >= y::ivec2()) ||
@@ -317,22 +303,22 @@ void RenderUtil::render_batch() const
     float left = s.left;
     float top = s.top;
 
-    write_vector<float, y::int32>(_pixels_data, 8 * i, {
+    y::write_vector<float, y::vector<y::int32>>(_pixels_data, 8 * i, {
         -_frame_size[xx] / 2, -_frame_size[yy] / 2,
         _frame_size[xx] / 2, -_frame_size[yy] / 2,
         -_frame_size[xx] / 2, _frame_size[yy] / 2,
         _frame_size[xx] / 2, _frame_size[yy] / 2});
-    write_vector(_rotation_data, 4 * i, {
+    y::write_vector(_rotation_data, 4 * i, {
         s.rotation, s.rotation, s.rotation, s.rotation});
-    write_vector(_origin_data, 8 * i, {
+    y::write_vector(_origin_data, 8 * i, {
         left, top, left, top,
         left, top, left, top});
-    write_vector(_frame_index_data, 8 * i, {
+    y::write_vector(_frame_index_data, 8 * i, {
         s.frame_x, s.frame_y, s.frame_x, s.frame_y,
         s.frame_x, s.frame_y, s.frame_x, s.frame_y});
-    write_vector(_depth_data, 4 * i, {
+    y::write_vector(_depth_data, 4 * i, {
         s.depth, s.depth, s.depth, s.depth});
-    write_vector(_colour_data, 16 * i, {
+    y::write_vector(_colour_data, 16 * i, {
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
@@ -351,7 +337,7 @@ void RenderUtil::render_batch() const
 
   if (_element_data.size() / 6 < length) {
     for (y::size i = _element_data.size() / 6; i < length; ++i) {
-      write_vector(_element_data, 6 * i, {
+      y::write_vector(_element_data, 6 * i, {
           GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
           GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
     }

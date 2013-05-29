@@ -5,6 +5,7 @@
 #include "lua.h"
 #include "vector.h"
 
+struct Geometry;
 class RenderUtil;
 class WorldWindow;
 
@@ -13,10 +14,12 @@ class WorldWindow;
 struct Light {
   Light();
 
+  y::world get_max_range() const;
+
   y::world intensity;
 };
 
-// Keeps a record of Lights and handles sweeping and collision.
+// Keeps a record of Lights and handles fancy lighting algorithms.
 class Lighting : public ScriptMap<Light> {
 public:
 
@@ -30,6 +33,8 @@ private:
 
   // Internal lighting functions.
   struct world_geometry {
+    world_geometry(const Geometry& geometry);
+
     y::wvec2 start;
     y::wvec2 end;
   };
