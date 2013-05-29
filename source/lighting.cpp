@@ -43,14 +43,31 @@ void Lighting::render(
 
   // Sorts points radially by angle from the origin point.
   struct order {
+    const y::wvec2& origin;
+
+    order(const y::wvec2& origin)
+      : origin(origin)
+    {
+    }
+
     bool operator()(const vwa& a, const vwa& b) const
     {
+      // TODO: it may be faster to use 2D cross-product as in the Graham scan,
+      // i.e.:
+      // (a[xx] - origin[xx]) * (b[yy] - origin[yy]) <
+      // (b[xx] - origin[xx]) * (a[yy] - origin[yy])
+      // with some way of determining the bounds (this simply finds "left-turn"
+      // or "right-turn").
+      if (a.angle != b.angle) {
+        return a.angle < b.angle;
+      }
+      // Fall back to signed distance.
+      // TODO.
       return a.angle < b.angle;
     }
   };
-  y::vector<vwa> vertex_buffer;
-  order o;
 
+  y::vector<vwa> vertex_buffer;
   source_list sources;
   get_sources(sources);
   for (const Script* s : sources) {
@@ -58,8 +75,10 @@ void Lighting::render(
       continue;
     }
 
-    // Check the maximum range among all the Lights.
     const y::wvec2& origin = s->get_origin();
+    order o(origin);
+
+    // Check the maximum range among all the Lights.
     y::world max_range = 0;
     for (const entry& light : get_list(*s)) {
       max_range = y::max(max_range, light->get_max_range());
