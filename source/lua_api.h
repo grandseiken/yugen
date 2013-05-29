@@ -11,6 +11,7 @@
 ylib_typedef(Body);
 ylib_typedef(GameStage);
 ylib_typedef(GlTexture);
+ylib_typedef(Light);
 ylib_typedef(LuaFile);
 ylib_typedef(Script);
 
@@ -399,4 +400,43 @@ ylib_api(body_check)
     ylib_arg(y::int32, collide_mask)
 {
   ylib_return(stage.get_collision().body_check(*script, *body, collide_mask));
+}
+
+/******************************************************************************/
+// Lighting API
+/******************************************************************************/
+
+ylib_api(create_light)
+    ylib_arg(Script*, script) ylib_arg(y::world, intensity)
+{
+  Light* light = stage.get_lighting().create_obj(*script);
+  light->intensity = intensity;
+  ylib_return(light);
+}
+
+ylib_api(destroy_light)
+    ylib_arg(const Script*, script) ylib_arg(Light*, light)
+{
+  stage.get_lighting().destroy_obj(*script, light);
+  ylib_void();
+}
+
+ylib_api(destroy_lights)
+    ylib_arg(const Script*, script)
+{
+  stage.get_lighting().destroy_all(*script);
+  ylib_void();
+}
+
+ylib_api(get_light_intensity)
+    ylib_arg(const Light*, light)
+{
+  ylib_return(light->intensity);
+}
+
+ylib_api(set_light_intensity)
+    ylib_arg(Light*, light) ylib_arg(y::world, intensity)
+{
+  light->intensity = intensity;
+  ylib_void();
 }

@@ -11,9 +11,8 @@ enum CollideMaskReserved {
   COLLIDE_RESV_2 = 8,
 };
 
-Body::Body(const Script& source)
-  : source(source)
-  , collide_mask(COLLIDE_RESV_NONE)
+Body::Body()
+  : collide_mask(COLLIDE_RESV_NONE)
 {
 }
 

@@ -14,6 +14,7 @@ GameStage::GameStage(const Databank& bank,
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
   , _collision(_world)
+  , _lighting(_world)
   , _camera_rotation(0)
   , _is_camera_moving_x(false)
   , _is_camera_moving_y(false)
@@ -65,6 +66,16 @@ const Collision& GameStage::get_collision() const
 Collision& GameStage::get_collision()
 {
   return _collision;
+}
+
+const Lighting& GameStage::get_lighting() const
+{
+  return _lighting;
+}
+
+Lighting& GameStage::get_lighting()
+{
+  return _lighting;
 }
 
 y::wvec2 GameStage::world_to_camera(const y::wvec2& v) const

@@ -151,7 +151,7 @@ private:
 template<typename T>
 T* ScriptMap<T>::create_obj(Script& source)
 {
-  T* obj = new T(source);
+  T* obj = new T();
   auto it = _map.find(&source);
   if (it != _map.end() && !it->second.ref.is_valid()) {
     _map.erase(it);

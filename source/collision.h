@@ -6,14 +6,12 @@
 #include "vector.h"
 
 class RenderUtil;
-class Script;
 class WorldWindow;
-struct Geometry;
 
 // A Body is, thus far, a rectangular area of some size, whose center
 // is offset some amount from the origin of the source Script.
 struct Body {
-  Body(const Script& source);
+  Body();
 
   // Get bounds (on x-axis). Potentially this could be made virtual and
   // overridden for other shapes.
@@ -25,7 +23,6 @@ struct Body {
   void get_vertices(y::vector<y::wvec2>& output,
                     const y::wvec2& origin, y::world rotation) const;
 
-  const Script& source;
   y::wvec2 offset;
   y::wvec2 size;
   y::int32 collide_mask;
@@ -36,6 +33,7 @@ class Collision : public ScriptMap<Body> {
 public:
 
   Collision(const WorldWindow& world);
+  virtual ~Collision() {}
 
   void render(RenderUtil& util,
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;

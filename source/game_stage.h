@@ -3,6 +3,7 @@
 
 #include "collision.h"
 #include "common.h"
+#include "lighting.h"
 #include "lua.h"
 #include "modal.h"
 #include "render_util.h"
@@ -25,8 +26,12 @@ public:
 
   const Databank& get_bank() const;
   RenderUtil& get_util() const;
+
   const Collision& get_collision() const;
   /***/ Collision& get_collision();
+
+  const Lighting& get_lighting() const;
+  /***/ Lighting& get_lighting();
 
   y::wvec2 world_to_camera(const y::wvec2& v) const;
   y::wvec2 camera_to_world(const y::wvec2& v) const;
@@ -66,6 +71,8 @@ private:
 
   WorldWindow _world;
   Collision _collision;
+  Lighting _lighting;
+
   y::wvec2 _camera;
   y::world _camera_rotation;
   bool _is_camera_moving_x;
