@@ -30,7 +30,7 @@ void Lighting::render(
   typedef y::vector<world_geometry> geometry_entry;
   struct vwa {
     const y::wvec2* v;
-    y::world angle;
+    y::wvec2 vec;
   };
 
   y::map<y::wvec2, geometry_entry> geometry_map;
@@ -41,7 +41,9 @@ void Lighting::render(
     }
   }
 
-  // Sorts points radially by angle from the origin point.
+  // Sorts points radially by angle from the origin point using a Graham
+  // scan-like algorithm, starting at angle 0 (rightwards) and increasing
+  // by angle.
   struct order {
     const y::wvec2& origin;
 
@@ -52,18 +54,23 @@ void Lighting::render(
 
     bool operator()(const vwa& a, const vwa& b) const
     {
-      // TODO: it may be faster to use 2D cross-product as in the Graham scan,
-      // i.e.:
-      // (a[xx] - origin[xx]) * (b[yy] - origin[yy]) <
-      // (b[xx] - origin[xx]) * (a[yy] - origin[yy])
-      // with some way of determining the bounds (this simply finds "left-turn"
-      // or "right-turn").
-      if (a.angle != b.angle) {
-        return a.angle < b.angle;
+      // Eliminate points in opposite half-planes.
+      if (a.vec[yy] >= 0 && b.vec[yy] < 0) {
+        return true;
       }
-      // Fall back to signed distance.
-      // TODO.
-      return a.angle < b.angle;
+      if (a.vec[yy] < 0 && b.vec[yy] >= 0) {
+        return false;
+      }
+      if (a.vec[yy] == 0 && b.vec[yy] == 0) {
+        return a.vec[xx] >= 0 && b.vec[xx] >= 0 ?
+            a.vec[xx] < b.vec[xx] : a.vec[xx] > b.vec[xx];
+      }
+
+      y::world d = a.vec[yy] * b.vec[xx] - a.vec[xx] * b.vec[yy];
+      // If d is zero, points are on same half-line so fall back to distance
+      // from the origin.
+      return d < 0 ||
+        (d == 0 && a.vec.length_squared() < b.vec.length_squared());
     }
   };
 
@@ -86,13 +93,15 @@ void Lighting::render(
     y::world max_range_sq = max_range * max_range;
 
     // Find all the vertices close enough to the Script.
+    // TODO: skip geometry defined in wrong order.
     vertex_buffer.clear();
     for (const auto& p : geometry_map) {
-      if ((p.first - origin).length_squared() > max_range_sq) {
+      y::wvec2 vec = p.first - origin;
+      if (vec.length_squared() > max_range_sq) {
         continue;
       }
 
-      vertex_buffer.emplace_back(vwa{&p.first, (p.first - origin).angle()});
+      vertex_buffer.emplace_back(vwa{&p.first, vec});
     }
 
     // Perform angular sort.
