@@ -45,13 +45,6 @@ void Lighting::render(
   // scan-like algorithm, starting at angle 0 (rightwards) and increasing
   // by angle.
   struct order {
-    const y::wvec2& origin;
-
-    order(const y::wvec2& origin)
-      : origin(origin)
-    {
-    }
-
     bool operator()(const vwa& a, const vwa& b) const
     {
       // Eliminate points in opposite half-planes.
@@ -75,6 +68,8 @@ void Lighting::render(
   };
 
   y::vector<vwa> vertex_buffer;
+  order o;
+
   source_list sources;
   get_sources(sources);
   for (const Script* s : sources) {
@@ -82,8 +77,6 @@ void Lighting::render(
       continue;
     }
 
-    const y::wvec2& origin = s->get_origin();
-    order o(origin);
 
     // Check the maximum range among all the Lights.
     y::world max_range = 0;
@@ -96,7 +89,7 @@ void Lighting::render(
     // TODO: skip geometry defined in wrong order.
     vertex_buffer.clear();
     for (const auto& p : geometry_map) {
-      y::wvec2 vec = p.first - origin;
+      y::wvec2 vec = p.first - s->get_origin();
       if (vec.length_squared() > max_range_sq) {
         continue;
       }
