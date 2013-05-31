@@ -38,6 +38,16 @@ private:
     y::wvec2 start;
     y::wvec2 end;
   };
+  struct vwv {
+    const y::wvec2* v;
+    y::wvec2 vec;
+  };
+  typedef y::vector<world_geometry> geometry_entry;
+  typedef y::map<y::wvec2, geometry_entry> geometry_map;
+  void trace_light_geometry(y::vector<y::wvec2>& output,
+                            const y::wvec2& origin,
+                            const geometry_map& map,
+                            const y::vector<vwv>& vertex_buffer) const;
 
   const WorldWindow& _world;
 

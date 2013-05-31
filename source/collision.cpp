@@ -413,7 +413,7 @@ y::world Collision::get_projection_ratio(
   // Lines intersect outside of the segments. A small amount of tolerance is
   // necessary when bodies are rotated due to trigonometric innaccuracy.
   // (But we don't want tolerance when this is just a generic line check rather
-  // than an actual projection!)
+  // than an actual projection.)
   // TODO: work out what makes us get stuck inside inside corners of zero
   // width.
   if (t < (tolerance ? -tolerance_factor : 0) || t > 1 || u < 0 || u > 1) {
