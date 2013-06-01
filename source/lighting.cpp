@@ -101,6 +101,10 @@ void Lighting::render(
   }
 }
 
+Lighting::world_geometry::world_geometry()
+{
+}
+
 Lighting::world_geometry::world_geometry(const Geometry& geometry)
   : start(y::wvec2(geometry.start))
   , end(y::wvec2(geometry.end))
@@ -192,6 +196,53 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     }
   };
 
+  typedef y::set<world_geometry, wg_hash> geometry_set;
+  struct local {
+    // Returns closest point and geometry.
+    static const y::wvec2 get_closest(
+        world_geometry& closest_geometry_output,
+        const y::wvec2& v, const geometry_set& stack)
+    {
+      if (stack.empty()) {
+        // TODO: work this out.
+        closest_geometry_output.start = y::wvec2();
+        closest_geometry_output.end = y::wvec2();
+        return y::wvec2();
+      }
+
+      const world_geometry* closest_geometry = y::null;
+      y::wvec2 closest_point;
+
+      bool first = true;
+      y::world min_dist_sq = 0;
+      for (const world_geometry& g : stack) {
+        // Distance is defined by the intersection of the geometry through the
+        // line from the origin to the current vertex.
+        // Finds t such that g(t) = g.start + t * (g.end - g.start) has
+        // g(t) cross v == 0.
+        y::wvec2 g_vec = g.end - g.start;
+        y::world d = v[xx] * g_vec[yy] - v[yy] * g_vec[xx];
+        if (!d) {
+          continue;
+        }
+        y::world t = (v[yy] * g.start[xx] - v[xx] * g.start[yy]) / d;
+
+        y::wvec2 point = g.start + t * g_vec;
+        y::world dist_sq = point.length_squared();
+
+        if (first || dist_sq < min_dist_sq) {
+          min_dist_sq = dist_sq;
+          closest_geometry = &g;
+          closest_point = point;
+        }
+        first = false;
+      }
+
+      closest_geometry_output = *closest_geometry;
+      return closest_point;
+    }
+  };
+
   if (vertex_buffer.empty()) {
     // Special case: use the square.
     output.emplace_back(max_range, max_range);
@@ -201,7 +252,6 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     return;
   }
 
-  typedef y::set<world_geometry, wg_hash> geometry_set;
   geometry_set stack;
 
   // Initialise the stack with geometry that intersects the line from the origin
@@ -223,20 +273,17 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
   // stack. When it's the start, add to the stack. Since we've excluded geometry
   // defined opposite the sweep direction, this corresponds exactly to whether
   // the vertice is the start or end point of the geometry.
+  y::wvec2 prev_closest_point;
+  world_geometry prev_closest_geometry;
+
   for (y::size i = 0; i < vertex_buffer.size(); ++i) {
     const auto& v = vertex_buffer[i];
-    bool on_same_line_as_prev = false;
-    if (i > 0) {
-      const auto& prev = vertex_buffer[i - 1];
-      on_same_line_as_prev =
-          v[xx] * prev[yy] - v[yy] - prev[xx] == 0;
-    }
 
+    // Add or remove from stack as appropriate.
     auto it = map.find(v);
     if (it == map.end()) {
       continue;
     }
-    // Add or remove from stack as appropriate.
     for (const world_geometry& g : it->second) {
       if (v == g.start) {
         stack.insert(g);
@@ -246,33 +293,27 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
       }
     }
 
-    // Wait until we have a new angle to compute any vertices.
-    if (on_same_line_as_prev) {
-      continue;    
+    // Determine whether this point represents a new angle or not. If we're on
+    // the same line from the origin as the previous vertex, skip.
+    if (i > 0) {
+      const auto& prev = vertex_buffer[i - 1];
+      if (v[xx] * prev[yy] - v[yy] - prev[xx] == 0) {
+        continue;
+      }
     }
 
     // Find the new closest geometry.
-    world_geometry new_closest_geometry({0., 0.}, {0., 0.});
-    bool first = true;
-    y::world min_dist_sq = 0;
-    for (const world_geometry& g : stack) {
-      // Distance is defined by the intersection of the geometry through the
-      // line from the origin to the current vertex.
-      // Finds t such that g(t) = g.start + t * (g.end - g.start) has
-      // g(t) cross v == 0.
-      y::wvec2 g_vec = g.end - g.start;
-      y::world d = v[xx] * g_vec[yy] - v[yy] * g_vec[xx];
-      if (!d) {
-        continue;
-      }
-      y::world t = (v[yy] * g.start[xx] - v[xx] * g.start[yy]) / d;
-      y::world dist_sq = (g.start + t * g_vec).length_squared();
+    world_geometry new_closest_geometry;
+    y::wvec2 new_closest_point =
+        local::get_closest(new_closest_geometry, v, stack);
 
-      if (first || dist_sq < min_dist_sq) {
-        min_dist_sq = dist_sq;
-        new_closest_geometry = g;
-      }
-      first = false;
+    // When nothing has changed, skip.
+    if (new_closest_geometry == prev_closest_geometry) {
+      continue;
     }
+
+    // Store previous.
+    prev_closest_geometry = new_closest_geometry;
+    prev_closest_point = new_closest_point;
   }
 }

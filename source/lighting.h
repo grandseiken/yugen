@@ -33,6 +33,7 @@ private:
 
   // Internal lighting functions.
   struct world_geometry {
+    world_geometry();
     world_geometry(const Geometry& geometry);
     world_geometry(const y::wvec2& start, const y::wvec2& end);
 
