@@ -25,10 +25,6 @@ void Lighting::render(
     RenderUtil& util,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
-  (void)util;
-  (void)camera_min;
-  (void)camera_max;
-
   // Set up list of all geometry.
   geometry_entry all_geometry;
   for (const auto& bucket : _world.get_geometry().buckets) {
@@ -84,7 +80,7 @@ void Lighting::render(
     }
 
     // Skip if maximum range doesn't overlap camera.
-    if (!(y::wvec2{max_range, max_range} > camera_min &&
+    if (!(y::wvec2{max_range, max_range} >= camera_min &&
           y::wvec2{-max_range, -max_range} < camera_max)) {
       continue;
     }
@@ -106,12 +102,17 @@ void Lighting::render(
                          vertex_buffer, geometry_buffer, map);
 
     // Draw it.
+    // TODO: batch it.
     y::fvec4 c{1.f, 1.f, 1.f, .5f};
     for (y::size i = 0; i < trace.size(); ++i) {
       y::wvec2 a = origin + trace[i];
       y::wvec2 b = origin + trace[(i + 1) % trace.size()];
 
-      util.render_line(y::fvec2(a), y::fvec2(b), c);
+      const y::wvec2 max = y::max(a, b);
+      const y::wvec2 min = y::min(a, b);
+      if (max >= camera_min && min < camera_max) {
+        util.render_line(y::fvec2(a), y::fvec2(b), c);
+      }
     }
   }
 }

@@ -93,6 +93,16 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     EDGE_LEFT,
     EDGE_RIGHT,
   };
+  enum HalfEdge {
+    HALF_EDGE_UP_LEFT,
+    HALF_EDGE_UP_RIGHT,
+    HALF_EDGE_DOWN_LEFT,
+    HALF_EDGE_DOWN_RIGHT,
+    HALF_EDGE_LEFT_UP,
+    HALF_EDGE_LEFT_DOWN,
+    HALF_EDGE_RIGHT_UP,
+    HALF_EDGE_RIGHT_DOWN,
+  };
 
   // Lots of impenetrable case statements.
   struct local {
@@ -158,6 +168,68 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
       };
     }
 
+    static bool is_tile_half_blocked(const CellBlueprint& cell,
+                                     const y::ivec2& v, HalfEdge edge)
+    {
+      if (!(v >= y::ivec2() && v < Cell::cell_size)) {
+        return true;
+      }
+      y::int32 c = cell.get_tile(collision_layer, v).get_collision();
+
+      switch (edge) {
+        case HALF_EDGE_UP_LEFT:
+          return
+              is_tile_blocked(cell, v, EDGE_LEFT) ||
+              c == Tileset::COLLIDE_HALF_U ||
+              c == Tileset::COLLIDE_SLOPEH_DL_A ||
+              c == Tileset::COLLIDE_SLOPEH_DR_B;
+        case HALF_EDGE_UP_RIGHT:
+          return
+              is_tile_blocked(cell, v, EDGE_RIGHT) ||
+              c == Tileset::COLLIDE_HALF_U ||
+              c == Tileset::COLLIDE_SLOPEH_DL_B ||
+              c == Tileset::COLLIDE_SLOPEH_DR_A;
+        case HALF_EDGE_DOWN_LEFT:
+          return
+              is_tile_blocked(cell, v, EDGE_LEFT) ||
+              c == Tileset::COLLIDE_HALF_D ||
+              c == Tileset::COLLIDE_SLOPEH_UL_A ||
+              c == Tileset::COLLIDE_SLOPEH_UR_B;
+        case HALF_EDGE_DOWN_RIGHT:
+          return
+              is_tile_blocked(cell, v, EDGE_RIGHT) ||
+              c == Tileset::COLLIDE_HALF_D ||
+              c == Tileset::COLLIDE_SLOPEH_UL_B ||
+              c == Tileset::COLLIDE_SLOPEH_UR_A;
+        case HALF_EDGE_LEFT_UP:
+          return
+              is_tile_blocked(cell, v, EDGE_UP) ||
+              c == Tileset::COLLIDE_HALF_L ||
+              c == Tileset::COLLIDE_SLOPE2_DL_A ||
+              c == Tileset::COLLIDE_SLOPE2_UL_B;
+        case HALF_EDGE_LEFT_DOWN:
+          return
+              is_tile_blocked(cell, v, EDGE_DOWN) ||
+              c == Tileset::COLLIDE_HALF_L ||
+              c == Tileset::COLLIDE_SLOPE2_DL_B ||
+              c == Tileset::COLLIDE_SLOPE2_UL_A;
+        case HALF_EDGE_RIGHT_UP:
+          return
+              is_tile_blocked(cell, v, EDGE_UP) ||
+              c == Tileset::COLLIDE_HALF_R ||
+              c == Tileset::COLLIDE_SLOPE2_DR_A ||
+              c == Tileset::COLLIDE_SLOPE2_UR_B;
+        case HALF_EDGE_RIGHT_DOWN:
+          return
+              is_tile_blocked(cell, v, EDGE_DOWN) ||
+              c == Tileset::COLLIDE_HALF_R ||
+              c == Tileset::COLLIDE_SLOPE2_DR_B ||
+              c == Tileset::COLLIDE_SLOPE2_UR_A;
+        default:
+          return false;
+      };
+    }
+
     static void add_straight_half_edges(
         geometry_list& list,
         const CellBlueprint& cell, const y::ivec2& v, y::int32 collision)
@@ -168,49 +240,57 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
       // Up-left.
       if ((c == Tileset::COLLIDE_HALF_U || c == Tileset::COLLIDE_SLOPEH_DR_B ||
            c == Tileset::COLLIDE_SLOPEH_DL_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{-1, 0}, EDGE_RIGHT)) {
+          !is_tile_half_blocked(cell, v + y::ivec2{-1, 0},
+                                HALF_EDGE_UP_RIGHT)) {
         list.emplace_back(Geometry{v * t + Tileset::l, v * t + Tileset::ul});
       }
       // Up-right.
       if ((c == Tileset::COLLIDE_HALF_U || c == Tileset::COLLIDE_SLOPEH_DL_B ||
            c == Tileset::COLLIDE_SLOPEH_DR_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{1, 0}, EDGE_LEFT)) {
+          !is_tile_half_blocked(cell, v + y::ivec2{1, 0},
+                                HALF_EDGE_UP_LEFT)) {
         list.emplace_back(Geometry{v * t + Tileset::ur, v * t + Tileset::r});
       }
       // Down-left.
       if ((c == Tileset::COLLIDE_HALF_D || c == Tileset::COLLIDE_SLOPEH_UR_B ||
            c == Tileset::COLLIDE_SLOPEH_UL_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{-1, 0}, EDGE_RIGHT)) {
+          !is_tile_half_blocked(cell, v + y::ivec2{-1, 0},
+                                HALF_EDGE_DOWN_RIGHT)) {
         list.emplace_back(Geometry{v * t + Tileset::dl, v * t + Tileset::l});
       }
       // Down-right.
       if ((c == Tileset::COLLIDE_HALF_D || c == Tileset::COLLIDE_SLOPEH_UL_B ||
            c == Tileset::COLLIDE_SLOPEH_UR_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{1, 0}, EDGE_LEFT)) {
+          !is_tile_half_blocked(cell, v + y::ivec2{1, 0},
+                                HALF_EDGE_DOWN_LEFT)) {
         list.emplace_back(Geometry{v * t + Tileset::r, v * t + Tileset::dr});
       }
       // Left-up.
       if ((c == Tileset::COLLIDE_HALF_L || c == Tileset::COLLIDE_SLOPE2_UL_B ||
            c == Tileset::COLLIDE_SLOPE2_DL_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{0, -1}, EDGE_DOWN)) {
+          !is_tile_half_blocked(cell, v + y::ivec2{0, -1},
+                                HALF_EDGE_LEFT_DOWN)) {
         list.emplace_back(Geometry{v * t + Tileset::ul, v * t + Tileset::u});
       }
       // Left-down.
       if ((c == Tileset::COLLIDE_HALF_L || c == Tileset::COLLIDE_SLOPE2_DL_B ||
            c == Tileset::COLLIDE_SLOPE2_UL_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{0, 1}, EDGE_UP)) {
+          !is_tile_half_blocked(cell, v + y::ivec2{0, 1},
+                                HALF_EDGE_LEFT_UP)) {
         list.emplace_back(Geometry{v * t + Tileset::d, v * t + Tileset::dl});
       }
       // Right-up.
       if ((c == Tileset::COLLIDE_HALF_R || c == Tileset::COLLIDE_SLOPE2_UR_B ||
            c == Tileset::COLLIDE_SLOPE2_DR_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{0, -1}, EDGE_DOWN)) {
+          !is_tile_half_blocked(cell, v + y::ivec2{0, -1},
+                                HALF_EDGE_RIGHT_DOWN)) {
         list.emplace_back(Geometry{v * t + Tileset::u, v * t + Tileset::ur});
       }
       // Right-down.
       if ((c == Tileset::COLLIDE_HALF_R || c == Tileset::COLLIDE_SLOPE2_DR_B ||
            c == Tileset::COLLIDE_SLOPE2_UR_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{0, 1}, EDGE_UP)) {
+          !is_tile_half_blocked(cell, v + y::ivec2{0, 1},
+                                HALF_EDGE_RIGHT_UP)) {
         list.emplace_back(Geometry{v * t + Tileset::dr, v * t + Tileset::d});
       }
     }
