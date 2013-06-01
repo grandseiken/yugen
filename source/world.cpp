@@ -92,8 +92,6 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     EDGE_DOWN,
     EDGE_LEFT,
     EDGE_RIGHT,
-  };
-  enum HalfEdge {
     HALF_EDGE_UP_LEFT,
     HALF_EDGE_UP_RIGHT,
     HALF_EDGE_DOWN_LEFT,
@@ -163,20 +161,6 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
               c == Tileset::COLLIDE_SLOPE2_DR_B ||
               c == Tileset::COLLIDE_SLOPEH_UR_B ||
               c == Tileset::COLLIDE_SLOPEH_DR_B;
-        default:
-          return false;
-      };
-    }
-
-    static bool is_tile_half_blocked(const CellBlueprint& cell,
-                                     const y::ivec2& v, HalfEdge edge)
-    {
-      if (!(v >= y::ivec2() && v < Cell::cell_size)) {
-        return true;
-      }
-      y::int32 c = cell.get_tile(collision_layer, v).get_collision();
-
-      switch (edge) {
         case HALF_EDGE_UP_LEFT:
           return
               is_tile_blocked(cell, v, EDGE_LEFT) ||
@@ -240,57 +224,49 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
       // Up-left.
       if ((c == Tileset::COLLIDE_HALF_U || c == Tileset::COLLIDE_SLOPEH_DR_B ||
            c == Tileset::COLLIDE_SLOPEH_DL_A) &&
-          !is_tile_half_blocked(cell, v + y::ivec2{-1, 0},
-                                HALF_EDGE_UP_RIGHT)) {
+          !is_tile_blocked(cell, v + y::ivec2{-1, 0}, HALF_EDGE_UP_RIGHT)) {
         list.emplace_back(Geometry{v * t + Tileset::l, v * t + Tileset::ul});
       }
       // Up-right.
       if ((c == Tileset::COLLIDE_HALF_U || c == Tileset::COLLIDE_SLOPEH_DL_B ||
            c == Tileset::COLLIDE_SLOPEH_DR_A) &&
-          !is_tile_half_blocked(cell, v + y::ivec2{1, 0},
-                                HALF_EDGE_UP_LEFT)) {
+          !is_tile_blocked(cell, v + y::ivec2{1, 0}, HALF_EDGE_UP_LEFT)) {
         list.emplace_back(Geometry{v * t + Tileset::ur, v * t + Tileset::r});
       }
       // Down-left.
       if ((c == Tileset::COLLIDE_HALF_D || c == Tileset::COLLIDE_SLOPEH_UR_B ||
            c == Tileset::COLLIDE_SLOPEH_UL_A) &&
-          !is_tile_half_blocked(cell, v + y::ivec2{-1, 0},
-                                HALF_EDGE_DOWN_RIGHT)) {
+          !is_tile_blocked(cell, v + y::ivec2{-1, 0}, HALF_EDGE_DOWN_RIGHT)) {
         list.emplace_back(Geometry{v * t + Tileset::dl, v * t + Tileset::l});
       }
       // Down-right.
       if ((c == Tileset::COLLIDE_HALF_D || c == Tileset::COLLIDE_SLOPEH_UL_B ||
            c == Tileset::COLLIDE_SLOPEH_UR_A) &&
-          !is_tile_half_blocked(cell, v + y::ivec2{1, 0},
-                                HALF_EDGE_DOWN_LEFT)) {
+          !is_tile_blocked(cell, v + y::ivec2{1, 0}, HALF_EDGE_DOWN_LEFT)) {
         list.emplace_back(Geometry{v * t + Tileset::r, v * t + Tileset::dr});
       }
       // Left-up.
       if ((c == Tileset::COLLIDE_HALF_L || c == Tileset::COLLIDE_SLOPE2_UL_B ||
            c == Tileset::COLLIDE_SLOPE2_DL_A) &&
-          !is_tile_half_blocked(cell, v + y::ivec2{0, -1},
-                                HALF_EDGE_LEFT_DOWN)) {
+          !is_tile_blocked(cell, v + y::ivec2{0, -1}, HALF_EDGE_LEFT_DOWN)) {
         list.emplace_back(Geometry{v * t + Tileset::ul, v * t + Tileset::u});
       }
       // Left-down.
       if ((c == Tileset::COLLIDE_HALF_L || c == Tileset::COLLIDE_SLOPE2_DL_B ||
            c == Tileset::COLLIDE_SLOPE2_UL_A) &&
-          !is_tile_half_blocked(cell, v + y::ivec2{0, 1},
-                                HALF_EDGE_LEFT_UP)) {
+          !is_tile_blocked(cell, v + y::ivec2{0, 1}, HALF_EDGE_LEFT_UP)) {
         list.emplace_back(Geometry{v * t + Tileset::d, v * t + Tileset::dl});
       }
       // Right-up.
       if ((c == Tileset::COLLIDE_HALF_R || c == Tileset::COLLIDE_SLOPE2_UR_B ||
            c == Tileset::COLLIDE_SLOPE2_DR_A) &&
-          !is_tile_half_blocked(cell, v + y::ivec2{0, -1},
-                                HALF_EDGE_RIGHT_DOWN)) {
+          !is_tile_blocked(cell, v + y::ivec2{0, -1}, HALF_EDGE_RIGHT_DOWN)) {
         list.emplace_back(Geometry{v * t + Tileset::u, v * t + Tileset::ur});
       }
       // Right-down.
       if ((c == Tileset::COLLIDE_HALF_R || c == Tileset::COLLIDE_SLOPE2_DR_B ||
            c == Tileset::COLLIDE_SLOPE2_UR_A) &&
-          !is_tile_half_blocked(cell, v + y::ivec2{0, 1},
-                                HALF_EDGE_RIGHT_UP)) {
+          !is_tile_blocked(cell, v + y::ivec2{0, 1}, HALF_EDGE_RIGHT_UP)) {
         list.emplace_back(Geometry{v * t + Tileset::dr, v * t + Tileset::d});
       }
     }
@@ -512,6 +488,10 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
   Boundary boundary;
   y::int32 boundary_start = 0;
 
+  // TODO: fix drawing full edges when half an adjacent tile is blocked.
+  // TODO: fix half-edge merging on cell boundaries. This is implicitly handled
+  // by doing half-edges in the main straight-line loop. Then we can get rid of
+  // the add_straight_half_edges function.
   // Horizontal geometry lines.
   for (y::int32 row = 0; row <= Cell::cell_height; ++row) {
     geometry_list& list =
@@ -530,7 +510,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
       }
 
       if (boundary != NONE) {
-        y::ivec2 start = Tileset::tile_size * y::ivec2{boundary_start, row};
+        y::ivec2 start = y::ivec2{boundary_start, Tileset::tile_size[yy] * row};
         y::ivec2 end = Tileset::tile_size * y::ivec2{t, row};
 
         // Make sure the geometry is always on the right of its boundary.
@@ -538,7 +518,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
                           Geometry{start, end} : Geometry{end, start});
       }
       if (new_boundary != NONE) {
-        boundary_start = t;
+        boundary_start = Tileset::tile_size[xx] * t;
       }
       boundary = new_boundary;
     }
@@ -564,14 +544,14 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
       }
 
       if (boundary != NONE) {
-        y::ivec2 start = Tileset::tile_size * y::ivec2{col, boundary_start};
+        y::ivec2 start = y::ivec2{Tileset::tile_size[xx] * col, boundary_start};
         y::ivec2 end = Tileset::tile_size * y::ivec2{col, t};
 
         list.emplace_back(boundary == RIGHT ?
                           Geometry{start, end} : Geometry{end, start});
       }
       if (new_boundary != NONE) {
-        boundary_start = t;
+        boundary_start = Tileset::tile_size[yy] * t;
       }
       boundary = new_boundary;
     }
