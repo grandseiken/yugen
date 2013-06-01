@@ -13,7 +13,7 @@ Light::Light()
 y::world Light::get_max_range() const
 {
   // TODO.
-  return intensity * 100;
+  return intensity * 10;
 }
 
 Lighting::Lighting(const WorldWindow& world)
@@ -192,6 +192,16 @@ void Lighting::get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
   for (const auto& pair : map_output) {
     vertex_output.emplace_back(pair.first);
   }
+
+  // Add corners of the max-range square. These aren't real vertices, but cause
+  // the trace_light_geometry algorithm to stick to the outside of the square
+  // when there is a period of rotation greater than pi / 2 containing no
+  // vertices.
+  // TODO: this is not quite working yet.
+  vertex_output.emplace_back(y::wvec2{-max_range, -max_range});
+  vertex_output.emplace_back(y::wvec2{max_range, -max_range});
+  vertex_output.emplace_back(y::wvec2{-max_range, max_range});
+  vertex_output.emplace_back(y::wvec2{max_range, max_range});
 }
 
 void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
@@ -244,17 +254,18 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
         const y::wvec2 dl{-max_range, max_range};
         const y::wvec2 dr{max_range, max_range};
 
-        if (v[xx] > 0 && v[xx] >= y::abs(v[yy])) {
+        // Something's odd here. Swapping the order of these changes things.
+        if (v[yy] > 0 && v[yy] >= y::abs(v[xx])) {
+          closest_geometry_output = world_geometry(dr, dl);
+        }
+        else if (v[yy] < 0 && -v[yy] >= y::abs(v[xx])) {
+          closest_geometry_output = world_geometry(ul, ur);
+        }
+        else if (v[xx] > 0 && v[xx] >= y::abs(v[yy])) {
           closest_geometry_output = world_geometry(ur, dr);
         }
         else if (v[xx] < 0 && -v[xx] >= y::abs(v[yy])) {
           closest_geometry_output = world_geometry(dl, ul);
-        }
-        else if (v[yy] > 0 && v[yy] >= y::abs(v[xx])) {
-          closest_geometry_output = world_geometry(dl, dr);
-        }
-        else if (v[yy] < 0 && -v[yy] >= y::abs(v[xx])) {
-          closest_geometry_output = world_geometry(ur, ul);
         }
         else {
           closest_geometry_output.start = y::wvec2();
@@ -288,24 +299,11 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     }
   };
 
-  if (vertex_buffer.empty()) {
-    // Special case: use the square.
-    // TODO: need to special-case generally when there are large rotations
-    // without any vertices at all, and then we can get rid of this particular
-    // special case.
-    output.emplace_back(max_range, max_range);
-    output.emplace_back(-max_range, max_range);
-    output.emplace_back(-max_range, -max_range);
-    output.emplace_back(max_range, -max_range);
-    return;
-  }
-
-  geometry_set stack;
-
   // Initialise the stack with geometry that intersects the line from the origin
   // to the first vertex (but doesn't start exactly on it). To make sure we get
   // only geometry crossing the positive half of the line and not the negative
   // half, make sure line is defined in correct direction.
+  geometry_set stack;
   const y::wvec2& first_vec = vertex_buffer[0];
   for (const world_geometry& g : geometry_buffer) {
     y::world d_s = first_vec[xx] * g.start[yy] - first_vec[yy] * g.start[xx];
@@ -329,15 +327,14 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
 
     // Add or remove from stack as appropriate.
     auto it = map.find(v);
-    if (it == map.end()) {
-      continue;
-    }
-    for (const world_geometry& g : it->second) {
-      if (v == g.start) {
-        stack.insert(g);
-      }
-      else {
-        stack.erase(g);
+    if (it != map.end()) {
+      for (const world_geometry& g : it->second) {
+        if (v == g.start) {
+          stack.insert(g);
+        }
+        else {
+          stack.erase(g);
+        }
       }
     }
 
