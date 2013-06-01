@@ -36,6 +36,9 @@ private:
     world_geometry(const Geometry& geometry);
     world_geometry(const y::wvec2& start, const y::wvec2& end);
 
+    bool operator==(const world_geometry& g) const;
+    bool operator!=(const world_geometry& g) const;
+
     y::wvec2 start;
     y::wvec2 end;
   };

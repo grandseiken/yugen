@@ -2,6 +2,7 @@
 #include "world.h"
 
 #include <algorithm>
+#include <boost/functional/hash.hpp>
 
 Light::Light()
   : intensity(1.)
@@ -113,6 +114,16 @@ Lighting::world_geometry::world_geometry(const y::wvec2& start,
 {
 }
 
+bool Lighting::world_geometry::operator==(const world_geometry& g) const
+{
+  return start == g.start && end == g.end;
+}
+
+bool Lighting::world_geometry::operator!=(const world_geometry& g) const
+{
+  return !operator==(g);
+}
+
 void Lighting::get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
                                      geometry_entry& geometry_output,
                                      geometry_map& map_output,
@@ -149,7 +160,7 @@ void Lighting::get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
       }
     }
 
-    // Exclude geometries which are defined in the wrong order.
+    // Exclude geometries which are defined in the wrong direction.
     if (g_s[yy] * g_e[xx] - g_s[xx] * g_e[yy] >= 0) {
       continue;
     }
@@ -169,33 +180,15 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
                                     const geometry_entry& geometry_buffer,
                                     const geometry_map& map) const
 {
-  struct local {
-    // Get geometry we care about that a vertex is part of.
-    static bool get_incident_geometry(world_geometry& output,
-                                      const geometry_map& map, const y::wvec2& v)
+  struct wg_hash {
+    y::size operator()(const world_geometry& g) const
     {
-      auto it = map.find(v);
-      if (it == map.end()) {
-        return false;
-      }
-      for (const world_geometry& g : it->second) {
-        // Skip geometry defined in the wrong direction.
-        if (g.start[yy] * g.end[xx] - g.start[xx] * g.end[yy] >= 0) {
-          continue;
-        }
-
-        // Take the first geometry line whose other point falls on the correct
-        // (positive) side of the line defined by the origin and the first
-        // point. This point is part of exactly two geometry lines so, by
-        // skipping geometry in the wrong direction, there will be at
-        // most one, which is exactly the geometry line whose start-point we're
-        // looking at.
-        if (v == g.start) {
-          output = g;
-          return true;
-        }
-      }
-      return false;
+      y::size seed = 0;
+      boost::hash_combine(seed, g.start[xx]);
+      boost::hash_combine(seed, g.start[yy]);
+      boost::hash_combine(seed, g.end[xx]);
+      boost::hash_combine(seed, g.end[yy]);
+      return seed;
     }
   };
 
@@ -208,24 +201,29 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     return;
   }
 
+  typedef y::set<world_geometry, wg_hash> geometry_set;
+  geometry_set stack;
+
   // Initialise the stack with geometry that intersects the line from the origin
-  // to the first vertex (but doesn't start or end exactly on it). To make sure
-  // we get only geometry crossing the positive half of the line and not the
-  // negative half, make sure line is defined in correct direction.
-  geometry_entry stack;
+  // to the first vertex (but doesn't start exactly on it). To make sure we get
+  // only geometry crossing the positive half of the line and not the negative
+  // half, make sure line is defined in correct direction.
   const y::wvec2& first_vec = vertex_buffer[0];
   for (const world_geometry& g : geometry_buffer) {
     y::world d_s = first_vec[xx] * g.start[yy] - first_vec[yy] * g.start[xx];
     y::world d_e = first_vec[xx] * g.end[yy] - first_vec[yy] * g.end[xx];
-    // If d_e < 0 && d_s > 0 then line crosses negative half.
-    if (d_s < 0 && d_e > 0) {
-      stack.emplace_back(g);
+    // If d_e < 0 && d_s > 0 then line crosses the negative half.
+    if (d_s < 0 && d_e >= 0) {
+      stack.insert(g);
     }
   }  
 
-  // TODO: algorithm. use the square.
+  // Algorithm: loop through the vertices. When it's the end of a geometry line
+  // in the stack, relative to the angular sweep direction, remove from the
+  // stack. When it's the start, add to the stack. Since we've excluded geometry
+  // defined opposite the sweep direction, this corresponds exactly to whether
+  // the vertice is the start or end point of the geometry.
   y::world dist_sq = 0;
-  world_geometry incident_geometry({y::ivec2(), y::ivec2()});
 
   for (y::size i = 0; i < vertex_buffer.size(); ++i) {
     const auto& v = vertex_buffer[i];
@@ -235,12 +233,24 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
       on_same_line_as_prev =
           v[xx] * prev[yy] - v[yy] - prev[xx] == 0;
     }
-
-    if (!local::get_incident_geometry(incident_geometry, map, v)) {
-    }
     dist_sq = v.length_squared();
+
+    auto it = map.find(v);
+    if (it == map.end()) {
+      continue;
+    }
+    // Add or remove from stack as appropriate.
+    for (const world_geometry& g : it->second) {
+      if (v == g.start) {
+        stack.insert(g);
+      }
+      else {
+        stack.erase(g);
+      }
+    }
+
+    // Are these even useful?
     (void)dist_sq;
     (void)on_same_line_as_prev;
   }
-  (void)output;
 }
