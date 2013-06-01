@@ -95,22 +95,23 @@ void Collision::render(
     RenderUtil& util,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
-  // TODO: consider batching all these line draws?
+  y::vector<RenderUtil::line> red;
+  y::vector<RenderUtil::line> green;
+  y::vector<RenderUtil::line> blue;
+
   y::size i = 0;
   for (const OrderedBucket& bucket : _world.get_geometry().buckets) {
     for (const Geometry& g : bucket) {
-      const y::fvec4 c = ++i % 2 ? y::fvec4(1.f, 0.f, 0.f, .5f) :
-                                   y::fvec4(0.f, 1.f, 0.f, .5f);
+      y::vector<RenderUtil::line>& v = ++i % 2 ? red : green;
 
       const y::ivec2 max = y::max(g.start, g.end);
       const y::ivec2 min = y::min(g.start, g.end);
       if (y::wvec2(max) >= camera_min && y::wvec2(min) < camera_max) {
-        util.render_line(y::fvec2(g.start), y::fvec2(g.end), c);
+        v.emplace_back(RenderUtil::line{y::fvec2(g.start), y::fvec2(g.end)});
       }
     }
   }
 
-  const y::fvec4 c{0.f, 0.f, 1.f, .5f};
   source_list sources;
   get_sources(sources);
   for (const Script* s : sources) {
@@ -130,11 +131,16 @@ void Collision::render(
       vertices.clear();
       b->get_vertices(vertices, s->get_origin(), s->get_rotation());
       for (y::size i = 0; i < vertices.size(); ++i) {
-        util.render_line(y::fvec2(vertices[i]),
-                         y::fvec2(vertices[(i + 1) % vertices.size()]), c);
+        blue.emplace_back(RenderUtil::line{
+            y::fvec2(vertices[i]),
+            y::fvec2(vertices[(i + 1) % vertices.size()])});
       }
     }
   }
+
+  util.render_lines(red, {1.f, 0.f, 0.f, .5f});
+  util.render_lines(green, {0.f, 1.f, 0.f, .5f});
+  util.render_lines(blue, {0.f, 0.f, 1.f, .5f});
 }
 
 y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const

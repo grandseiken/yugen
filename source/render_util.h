@@ -106,11 +106,19 @@ public:
                    const y::fvec4& colour) const;
   void render_fill(const y::fvec2& a, const y::fvec2& b, const y::fvec2& c,
                    const y::fvec4& colour) const;
-  void render_line(const y::fvec2& a, const y::fvec2& b,
-                   const y::fvec4& colour) const;
   void irender_fill(const y::ivec2& origin, const y::ivec2& size,
                     const y::fvec4& colour) const;
   void irender_fill(const y::ivec2& a, const y::ivec2& b, const y::ivec2& c,
+                    const y::fvec4& colour) const;
+
+  // Render lines (at pixel coordinates).
+  void render_line(const y::fvec2& a, const y::fvec2& b,
+                   const y::fvec4& colour) const;
+  struct line {
+    y::fvec2 a;
+    y::fvec2 b;
+  };
+  void render_lines(const y::vector<line>& lines,
                     const y::fvec4& colour) const;
 
   // Render outline (at pixel coordinates).

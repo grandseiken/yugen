@@ -102,8 +102,7 @@ void Lighting::render(
                          vertex_buffer, geometry_buffer, map);
 
     // Draw it.
-    // TODO: batch it.
-    y::fvec4 c{1.f, 1.f, 1.f, .5f};
+    y::vector<RenderUtil::line> lines;
     for (y::size i = 0; i < trace.size(); ++i) {
       y::wvec2 a = origin + trace[i];
       y::wvec2 b = origin + trace[(i + 1) % trace.size()];
@@ -111,9 +110,10 @@ void Lighting::render(
       const y::wvec2 max = y::max(a, b);
       const y::wvec2 min = y::min(a, b);
       if (max >= camera_min && min < camera_max) {
-        util.render_line(y::fvec2(a), y::fvec2(b), c);
+        lines.emplace_back(RenderUtil::line{y::fvec2(a), y::fvec2(b)});
       }
     }
+    util.render_lines(lines, {1.f, 1.f, 1.f, .5f});
   }
 }
 
@@ -290,6 +290,9 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
 
   if (vertex_buffer.empty()) {
     // Special case: use the square.
+    // TODO: need to special-case generally when there are large rotations
+    // without any vertices at all, and then we can get rid of this particular
+    // special case.
     output.emplace_back(max_range, max_range);
     output.emplace_back(-max_range, max_range);
     output.emplace_back(-max_range, -max_range);

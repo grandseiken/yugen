@@ -232,14 +232,6 @@ void RenderUtil::render_fill(const y::fvec2& a, const y::fvec2& b,
   _gl.delete_buffer(tri_buffer);
 }
 
-void RenderUtil::render_line(const y::fvec2& a, const y::fvec2& b,
-                             const y::fvec4& colour) const
-{
-  y::fvec2 normal = y::fvec2::from_angle((b - a).angle() + float(y::pi / 2));
-  render_fill(a, a + normal, b, colour);
-  render_fill(a + normal, b, b + normal, colour);
-}
-
 void RenderUtil::irender_fill(const y::ivec2& origin, const y::ivec2& size,
                               const y::fvec4& colour) const
 {
@@ -250,6 +242,57 @@ void RenderUtil::irender_fill(const y::ivec2& a, const y::ivec2& b,
                               const y::ivec2& c, const y::fvec4& colour) const
 {
   render_fill(y::fvec2(a), y::fvec2(b), y::fvec2(c), colour);
+}
+
+void RenderUtil::render_line(const y::fvec2& a, const y::fvec2& b,
+                             const y::fvec4& colour) const
+{
+  render_lines({{a, b}}, colour);
+}
+
+void RenderUtil::render_lines(const y::vector<line>& lines,
+                              const y::fvec4& colour) const
+{
+  if (!(_native_size >= y::ivec2())) {
+    return;
+  }
+  _gl.enable_depth(false);
+
+  y::vector<GLfloat> tri_data;
+  y::vector<GLushort> element_data;
+
+  y::size i = 0;
+  for (const line& x : lines) {
+    y::fvec2 normal =
+        y::fvec2::from_angle((x.b - x.a).angle() + float(y::pi / 2));
+
+    y::write_vector(tri_data, 12 * i++, {
+        x.a[xx], x.a[yy],
+        (x.a + normal)[xx], (x.a + normal)[yy],
+        x.b[xx], x.b[yy],
+        (x.a + normal)[xx], (x.a + normal)[yy],
+        x.b[xx], x.b[yy],
+        (x.b + normal)[xx], (x.b + normal)[yy]});
+  }
+  for (i = 0; i < 6 * lines.size(); ++i) {
+    element_data.emplace_back(i);
+  }
+
+  auto tri_buffer = _gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, tri_data);
+  auto element_buffer = _gl.make_buffer<GLushort, 1>(
+      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
+
+  _draw_program.bind();
+  _draw_program.bind_attribute("pixels", tri_buffer);
+  _draw_program.bind_uniform("resolution", _native_size);
+  _draw_program.bind_uniform("translation", _translation);
+  _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
+  _draw_program.bind_uniform("colour", colour);
+  element_buffer.draw_elements(GL_TRIANGLES, 6 * lines.size());
+
+  _gl.delete_buffer(tri_buffer);
+  _gl.delete_buffer(element_buffer);
 }
 
 void RenderUtil::render_outline(const y::fvec2& origin, const y::fvec2& size,
