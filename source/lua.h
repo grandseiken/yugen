@@ -144,7 +144,7 @@ private:
   typedef y::map<Script*, map_entry> map;
   map _map;
 
-  const static y::vector<entry> no_list;
+  static const y::vector<entry> no_list;
 
 };
 
