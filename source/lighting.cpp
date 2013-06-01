@@ -78,25 +78,18 @@ void Lighting::render(
     for (const entry& light : get_list(*s)) {
       max_range = y::max(max_range, light->get_max_range());
     }
-    y::world max_range_sq = max_range * max_range;
     // TODO: skip if maximum range doesn't overlap camera.
 
-    // Find all the vertices close enough to the Script.
+    // Find all the vertices whose geometries intersect the max range square.
     vertex_buffer.clear();
-    for (const auto& pair : map) {
-      y::wvec2 vec = pair.first - origin;
-      if (vec.length_squared() > max_range_sq) {
-        continue;
-      }
+    get_relevant_vertices(vertex_buffer, origin, max_range, map);
 
-      vertex_buffer.emplace_back(vwv{&pair.first, vec});
-    }
     // Perform angular sort.
     std::sort(vertex_buffer.begin(), vertex_buffer.end(), o);
 
     // Trace the light geometry.
     y::vector<y::wvec2> trace;
-    trace_light_geometry(trace, origin, map, vertex_buffer);
+    trace_light_geometry(trace, origin, max_range, map, vertex_buffer);
   }
 }
 
@@ -106,8 +99,54 @@ Lighting::world_geometry::world_geometry(const Geometry& geometry)
 {
 }
 
+void Lighting::get_relevant_vertices(y::vector<vwv>& output,
+                                     const y::wvec2& origin,
+                                     y::world max_range,
+                                     const geometry_map& map) const
+{
+  // We could find only the vertices whose geometries intersect the circle
+  // defined by origin and max_range, but that is way more expensive and
+  // squares are easier anyway.
+  for (const auto& pair : map) {
+    bool intersect = false;
+    for (const world_geometry& g : pair.second) {
+      const y::wvec2 g_s = g.start - origin;
+      const y::wvec2 g_e = g.end - origin;
+
+      y::wvec2 min = y::min(g_s, g_e);
+      y::wvec2 max = y::max(g_s, g_e);
+
+      // Check bounds.
+      if (max[xx] < -max_range || min[xx] >= max_range ||
+          max[yy] < -max_range || min[yy] >= max_range) {
+        continue;
+      }
+
+      // Check equation.
+      if (g_s[xx] - g_e[xx] != 0) {
+        y::world m = (g_e[yy] - g_s[yy]) / (g_e[xx] - g_s[xx]);
+        y::world y_neg = g_e[yy] + m * (g_e[xx] - max_range);
+        y::world y_pos = g_e[yy] + m * (g_e[xx] + max_range);
+
+        if ((max_range < y_neg && max_range < y_pos) ||
+            (-max_range >= y_neg && -max_range >= y_pos)) {
+          continue;
+        }
+      }
+
+      intersect = true;
+      break;
+    }
+
+    if (intersect) {
+      output.emplace_back(vwv{&pair.first, pair.first - origin});
+    }
+  }
+}
+
 void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
                                     const y::wvec2& origin,
+                                    y::world max_range,
                                     const geometry_map& map,
                                     const y::vector<vwv>& vertex_buffer) const
 {
@@ -144,14 +183,17 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
       return false;
     }
   };
+
   if (vertex_buffer.empty()) {
-    // TODO: special case with square around the area. Similar special case is
-    // if two points which are adjacent in the buffer are rotated by more than
-    // pi. Allowing up to pi creates unbounded regions in the trace, though, so
-    // limit to pi / 2 or so.
+    // Special case: use the square.
+    output.emplace_back(max_range, max_range);
+    output.emplace_back(-max_range, max_range);
+    output.emplace_back(-max_range, -max_range);
+    output.emplace_back(max_range, -max_range);
     return;
   }
 
+  // TODO: algorithm. use the square.
   y::world dist_sq = 0;
   world_geometry incident_geometry({y::ivec2(), y::ivec2()});
 

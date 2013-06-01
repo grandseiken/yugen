@@ -44,8 +44,15 @@ private:
   };
   typedef y::vector<world_geometry> geometry_entry;
   typedef y::map<y::wvec2, geometry_entry> geometry_map;
+
+  void get_relevant_vertices(y::vector<vwv>& output,
+                             const y::wvec2& origin,
+                             y::world max_range,
+                             const geometry_map& map) const;
+
   void trace_light_geometry(y::vector<y::wvec2>& output,
                             const y::wvec2& origin,
+                            y::world max_range,
                             const geometry_map& map,
                             const y::vector<vwv>& vertex_buffer) const;
 
