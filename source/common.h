@@ -43,6 +43,16 @@ namespace y {
   {
     return std::abs(t);
   }
+  template<>
+  inline float abs<float>(const float& t)
+  {
+    return std::fabs(t);
+  }
+  template<>
+  inline double abs<double>(const double& t)
+  {
+    return std::fabs(t);
+  }
   template<typename T>
   T min(const T& a, const T& b)
   {

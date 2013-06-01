@@ -34,27 +34,26 @@ private:
   // Internal lighting functions.
   struct world_geometry {
     world_geometry(const Geometry& geometry);
+    world_geometry(const y::wvec2& start, const y::wvec2& end);
 
     y::wvec2 start;
     y::wvec2 end;
   };
-  struct vwv {
-    const y::wvec2* v;
-    y::wvec2 vec;
-  };
   typedef y::vector<world_geometry> geometry_entry;
   typedef y::map<y::wvec2, geometry_entry> geometry_map;
 
-  void get_relevant_vertices(y::vector<vwv>& output,
+  void get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
+                             geometry_entry& geometry_output,
+                             geometry_map& map_output,
                              const y::wvec2& origin,
                              y::world max_range,
-                             const geometry_map& map) const;
+                             const geometry_entry& all_geometry) const;
 
   void trace_light_geometry(y::vector<y::wvec2>& output,
-                            const y::wvec2& origin,
                             y::world max_range,
-                            const geometry_map& map,
-                            const y::vector<vwv>& vertex_buffer) const;
+                            const y::vector<y::wvec2>& vertex_buffer,
+                            const geometry_entry& geometry_buffer,
+                            const geometry_map& map) const;
 
   const WorldWindow& _world;
 
