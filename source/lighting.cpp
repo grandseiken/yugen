@@ -13,7 +13,7 @@ Light::Light()
 y::world Light::get_max_range() const
 {
   // TODO.
-  return intensity * 10;
+  return intensity * 100;
 }
 
 Lighting::Lighting(const WorldWindow& world)
@@ -199,7 +199,6 @@ void Lighting::get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
   // the trace_light_geometry algorithm to stick to the outside of the square
   // when there is a period of rotation greater than pi / 2 containing no
   // vertices.
-  // TODO: this is not quite working yet.
   vertex_output.emplace_back(y::wvec2{-max_range, -max_range});
   vertex_output.emplace_back(y::wvec2{max_range, -max_range});
   vertex_output.emplace_back(y::wvec2{-max_range, max_range});
@@ -258,7 +257,6 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
 
         // Make sure we choose the edge in the direction of rotation at the
         // corners.
-        // TODO: still not quite right.
         if (v[xx] == v[yy]) {
           closest_geometry_output = v[xx] > 0 ?
               world_geometry(dr, dl) : world_geometry(ul, ur);
@@ -330,9 +328,13 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
   // in the stack, relative to the angular sweep direction, remove from the
   // stack. When it's the start, add to the stack. Since we've excluded geometry
   // defined opposite the sweep direction, this corresponds exactly to whether
-  // the vertice is the start or end point of the geometry.
+  // the vertex is the start or end point of the geometry.
   world_geometry prev_closest_geometry;
-  local::get_closest(prev_closest_geometry, max_range, vertex_buffer[0], stack);
+  // If stack is empty, make sure the first vertex gets added.
+  if (!stack.empty()) {
+    local::get_closest(prev_closest_geometry, max_range,
+                       vertex_buffer[0], stack);
+  }
 
   for (y::size i = 0; i < vertex_buffer.size(); ++i) {
     const auto& v = vertex_buffer[i];
@@ -369,10 +371,14 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
       continue;
     }
 
-    // Add the two new points.
+    // Add the two new points, with some special-casing for if the stack was
+    // empty at the very start (so prev_closest_geometry is invalid).
     y::wvec2 prev_closest_point =
         local::get_point_on_geometry(v, prev_closest_geometry);
-    output.emplace_back(prev_closest_point);
+    if (prev_closest_geometry.start != y::wvec2() ||
+        prev_closest_geometry.end != y::wvec2()) {
+      output.emplace_back(prev_closest_point);
+    }
     if (new_closest_point != prev_closest_point) {
       output.emplace_back(new_closest_point);
     }
