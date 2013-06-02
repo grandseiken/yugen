@@ -263,6 +263,9 @@ void GameStage::update()
   if (get_player()) {
     update_camera(get_player());
   }
+
+  // Recalculate lighting.
+  _lighting.recalculate_traces(get_camera_min(), get_camera_max());
 }
 
 void GameStage::draw() const
@@ -270,9 +273,6 @@ void GameStage::draw() const
   y::fvec2 translation = y::fvec2(world_to_camera(y::wvec2()));
   _util.add_translation(translation);
   _current_batch.clear();
-  const y::wvec2 camera_min = camera_to_world(y::wvec2());
-  const y::wvec2 camera_max =
-      camera_to_world(y::wvec2(_framebuffer.get_size()));
 
   // Render all the tiles in the world at once, batched by texture.
   for (auto it = _world.get_cartesian(); it; ++it) {
@@ -282,8 +282,8 @@ void GameStage::draw() const
     }
     for (auto jt = y::cartesian(Cell::cell_size); jt; ++jt) {
       y::ivec2 world = Tileset::tile_size * (*jt + *it * Cell::cell_size);
-      if (y::wvec2(world + Tileset::tile_size) <= camera_min ||
-          y::wvec2(world) >= camera_max) {
+      if (y::wvec2(world + Tileset::tile_size) <= get_camera_min() ||
+          y::wvec2(world) >= get_camera_max()) {
         continue;
       }
 
@@ -310,7 +310,8 @@ void GameStage::draw() const
   for (const auto& script : _scripts) {
     const y::wvec2 min = script->get_origin() - script->get_region() / 2;
     const y::wvec2 max = script->get_origin() + script->get_region() / 2;
-    if (max > camera_min && min < camera_max && script->has_function("draw")) {
+    if (max > get_camera_min() && min < get_camera_max() &&
+        script->has_function("draw")) {
       script->call("draw");
     }
   }
@@ -318,11 +319,13 @@ void GameStage::draw() const
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-    _collision.render(_util, camera_min, camera_max);
+    _collision.render(_util, get_camera_min(), get_camera_max());
   }
 
   // Render lighting.
-  _lighting.render(_util, camera_min, camera_max);
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+    _lighting.render_traces(_util, get_camera_min(), get_camera_max());
+  }
   _util.add_translation(-translation);
 }
 
@@ -435,4 +438,14 @@ void GameStage::update_camera(Script* focus)
   if (_is_camera_moving_y && dir[yy]) {
     _camera[yy] += camera_speed[yy] * (dir[yy] / y::abs(dir[yy]));
   }
+}
+
+y::wvec2 GameStage::get_camera_min() const
+{
+  return camera_to_world(y::wvec2());
+}
+
+y::wvec2 GameStage::get_camera_max() const
+{
+  return camera_to_world(y::wvec2(_framebuffer.get_size()));
 }

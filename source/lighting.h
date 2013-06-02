@@ -27,8 +27,21 @@ public:
   Lighting(const WorldWindow& world);
   virtual ~Lighting() {}
 
-  void render(RenderUtil& util,
-              const y::wvec2& camera_min, const y::wvec2& camera_max) const;
+  // Stores trace results. Trace is relative to origin.
+  struct light_trace {
+    light_trace(const y::wvec2& origin);
+
+    y::wvec2 origin;
+    y::vector<y::wvec2> trace;
+  };
+  typedef y::vector<light_trace> trace_results;
+
+  void recalculate_traces(
+      const y::wvec2& camera_min, const y::wvec2& camera_max);
+  const trace_results& get_traces() const;
+  void render_traces(
+      RenderUtil& util,
+      const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
 private:
 
@@ -61,6 +74,7 @@ private:
                             const geometry_map& map) const;
 
   const WorldWindow& _world;
+  trace_results _trace_results;
 
 };
 

@@ -63,6 +63,8 @@ private:
   void script_maps_clean_up();
 
   void update_camera(Script* focus);
+  y::wvec2 get_camera_min() const;
+  y::wvec2 get_camera_max() const;
 
   const Databank& _bank;
   RenderUtil& _util;

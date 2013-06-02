@@ -21,9 +21,13 @@ Lighting::Lighting(const WorldWindow& world)
 {
 }
 
-void Lighting::render(
-    RenderUtil& util,
-    const y::wvec2& camera_min, const y::wvec2& camera_max) const
+Lighting::light_trace::light_trace(const y::wvec2& origin)
+  : origin(origin)
+{
+}
+
+void Lighting::recalculate_traces(
+    const y::wvec2& camera_min, const y::wvec2& camera_max)
 {
   // Sorts points radially by angle from the origin point using a Graham
   // scan-like algorithm, starting at angle 0 (rightwards) and increasing
@@ -50,15 +54,17 @@ void Lighting::render(
     }
   };
 
+  // TODO: cache results if they don't change per-frame. We could also limit
+  // max_range to camera bounds. However, this would reduce the benefit of
+  // caching a lot, so probably we can only do one of these two things.
+  // Investigate.
+  _trace_results.clear();
+
   y::vector<y::wvec2> vertex_buffer;
   geometry_entry geometry_buffer;
   geometry_map map;
   order o;
 
-  // TODO: cache results if they don't change per-frame. Split this into
-  // a tracing phase and a drawing phase.
-  // TODO: we could limit max_range to camera bounds. However, this would
-  // reduce the benefit of caching a lot. Investigate.
   source_list sources;
   get_sources(sources);
   for (const Script* s : sources) {
@@ -91,15 +97,26 @@ void Lighting::render(
     std::sort(vertex_buffer.begin(), vertex_buffer.end(), o);
 
     // Trace the light geometry.
-    y::vector<y::wvec2> trace;
-    trace_light_geometry(trace, max_range,
+    _trace_results.emplace_back(origin);
+    trace_light_geometry((_trace_results.end() - 1)->trace, max_range,
                          vertex_buffer, geometry_buffer, map);
+  }
+}
 
-    // Draw it.
-    y::vector<RenderUtil::line> lines;
-    for (y::size i = 0; i < trace.size(); ++i) {
-      y::wvec2 a = origin + trace[i];
-      y::wvec2 b = origin + trace[(i + 1) % trace.size()];
+const Lighting::trace_results& Lighting::get_traces() const
+{
+  return _trace_results;
+}
+
+void Lighting::render_traces(
+    RenderUtil& util,
+    const y::wvec2& camera_min, const y::wvec2& camera_max) const
+{
+  y::vector<RenderUtil::line> lines;
+  for (const light_trace& t : get_traces()) {
+    for (y::size i = 0; i < t.trace.size(); ++i) {
+      y::wvec2 a = t.origin + t.trace[i];
+      y::wvec2 b = t.origin + t.trace[(i + 1) % t.trace.size()];
 
       const y::wvec2 max = y::max(a, b);
       const y::wvec2 min = y::min(a, b);
@@ -107,8 +124,8 @@ void Lighting::render(
         lines.emplace_back(RenderUtil::line{y::fvec2(a), y::fvec2(b)});
       }
     }
-    util.render_lines(lines, {1.f, 1.f, 1.f, .5f});
   }
+  util.render_lines(lines, {1.f, 1.f, 1.f, .5f});
 }
 
 Lighting::world_geometry::world_geometry()
@@ -373,13 +390,13 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     y::wvec2 new_closest_point =
         local::get_closest(new_closest_geometry, max_range, v, stack);
 
-    // When nothing has changed, skip.
+    // When nothing has changed, skip (with special-case for empty stack at the
+    // beginning).
     if (new_closest_geometry == prev_closest_geometry && !add_first) {
       continue;
     }
 
-    // Add the two new points, with some special-casing for if the stack was
-    // empty at the very start (so prev_closest_geometry is invalid).
+    // Add the two new points.
     y::wvec2 prev_closest_point =
         local::get_point_on_geometry(v, prev_closest_geometry);
     output.emplace_back(prev_closest_point);
