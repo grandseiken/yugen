@@ -21,9 +21,23 @@ Lighting::Lighting(const WorldWindow& world)
 {
 }
 
-Lighting::light_trace::light_trace(const y::wvec2& origin)
-  : origin(origin)
+bool Lighting::trace_key::operator==(const trace_key& key) const
 {
+  return origin == key.origin && max_range == key.max_range;
+}
+
+bool Lighting::trace_key::operator!=(const trace_key& key) const
+{
+  return !operator==(key);
+}
+
+y::size Lighting::trace_key_hash::operator()(const trace_key& key) const
+{
+  y::size seed = 0;
+  boost::hash_combine(seed, key.origin[xx]);
+  boost::hash_combine(seed, key.origin[yy]);
+  boost::hash_combine(seed, key.max_range);
+  return seed;
 }
 
 void Lighting::recalculate_traces(
@@ -54,11 +68,11 @@ void Lighting::recalculate_traces(
     }
   };
 
-  // TODO: cache results if they don't change per-frame. We could also limit
-  // max_range to camera bounds. However, this would reduce the benefit of
-  // caching a lot, so probably we can only do one of these two things.
-  // Investigate.
-  _trace_results.clear();
+  // TODO: we could also limit max_range to camera bounds. However, this would
+  // reduce the benefit of caching a lot, so probably we can only do one or the
+  // other. Dynamically change strategy based on max_range? If it's large,
+  // caching is better. If it's small, eliminating based on bounds is better.
+  y::set<trace_key, trace_key_hash> trace_preserve;
 
   y::vector<y::wvec2> vertex_buffer;
   geometry_entry geometry_buffer;
@@ -85,6 +99,14 @@ void Lighting::recalculate_traces(
       continue;
     }
 
+    trace_key key{origin, max_range};
+    trace_preserve.insert(key);
+
+    // If the result is cached, we don't need to recalculate it.
+    if (_trace_results.find(key) != _trace_results.end()) {
+      continue;
+    }
+
     // Find all the geometries that intersect the max-range square and their
     // vertices, translated respective to origin.
     vertex_buffer.clear();
@@ -97,9 +119,18 @@ void Lighting::recalculate_traces(
     std::sort(vertex_buffer.begin(), vertex_buffer.end(), o);
 
     // Trace the light geometry.
-    _trace_results.emplace_back(origin);
-    trace_light_geometry((_trace_results.end() - 1)->trace, max_range,
+    trace_light_geometry(_trace_results[key], max_range,
                          vertex_buffer, geometry_buffer, map);
+  }
+
+  // Get rid of the cached results we didn't use this frame.
+  for (auto it = _trace_results.begin(); it != _trace_results.end();) {
+    if (trace_preserve.find(it->first) != trace_preserve.end()) {
+      ++it;
+    }
+    else {
+      it = _trace_results.erase(it);
+    }
   }
 }
 
@@ -113,10 +144,11 @@ void Lighting::render_traces(
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
   y::vector<RenderUtil::line> lines;
-  for (const light_trace& t : get_traces()) {
-    for (y::size i = 0; i < t.trace.size(); ++i) {
-      y::wvec2 a = t.origin + t.trace[i];
-      y::wvec2 b = t.origin + t.trace[(i + 1) % t.trace.size()];
+  for (const auto& pair : get_traces()) {
+    for (y::size i = 0; i < pair.second.size(); ++i) {
+      y::wvec2 a = pair.first.origin + pair.second[i];
+      y::wvec2 b = pair.first.origin + pair.second[(i + 1) %
+                                                   pair.second.size()];
 
       const y::wvec2 max = y::max(a, b);
       const y::wvec2 min = y::min(a, b);

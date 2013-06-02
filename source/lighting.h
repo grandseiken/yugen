@@ -28,14 +28,20 @@ public:
   virtual ~Lighting() {}
 
   // Stores trace results. Trace is relative to origin.
-  struct light_trace {
-    light_trace(const y::wvec2& origin);
-
+  struct trace_key {
     y::wvec2 origin;
-    y::vector<y::wvec2> trace;
-  };
-  typedef y::vector<light_trace> trace_results;
+    y::world max_range;
 
+    bool operator==(const trace_key& key) const;
+    bool operator!=(const trace_key& key) const;
+  };
+  struct trace_key_hash {
+    y::size operator()(const trace_key& key) const;
+  };
+  typedef y::vector<y::wvec2> light_trace;
+  typedef y::map<trace_key, light_trace, trace_key_hash> trace_results;
+
+  // Lighting functions.
   void recalculate_traces(
       const y::wvec2& camera_min, const y::wvec2& camera_max);
   const trace_results& get_traces() const;
