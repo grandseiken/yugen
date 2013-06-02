@@ -12,13 +12,21 @@ Light::Light()
 
 y::world Light::get_max_range() const
 {
-  // TODO.
-  return intensity * 10;
+  return intensity;
 }
 
-Lighting::Lighting(const WorldWindow& world)
+Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
   : _world(world)
+  , _gl(gl)
+  , _light_program(gl.make_program({
+        "/shaders/light.v.glsl",
+        "/shaders/light.f.glsl"}))
 {
+}
+
+Lighting::~Lighting()
+{
+  _gl.delete_program(_light_program);
 }
 
 bool Lighting::trace_key::operator==(const trace_key& key) const
@@ -164,6 +172,104 @@ void Lighting::render_traces(
     }
   }
   util.render_lines(lines, {1.f, 1.f, 1.f, .5f});
+}
+
+void Lighting::render_lightbuffer(
+    RenderUtil& util,
+    const y::wvec2& camera_min, const y::wvec2& camera_max) const
+{
+  // TODO: respect camera bounds? Necessary?
+  (void)camera_min;
+  (void)camera_max;
+
+  if (!(util.get_resolution() >= y::ivec2())) {
+    return;
+  }
+  y::vector<GLfloat> tri_data;
+  y::vector<GLfloat> origin_data;
+  y::vector<GLfloat> intensity_data;
+  y::vector<GLushort> element_data;
+
+  source_list sources;
+  get_sources(sources);
+  for (const Script* s : sources) {
+    if (get_list(*s).empty()) {
+      continue;
+    }
+    const y::wvec2 origin = s->get_origin();
+
+    y::world max_range = 0;
+    for (const entry& light : get_list(*s)) {
+      max_range = y::max(max_range, light->get_max_range());
+    }
+
+    trace_key key{origin, max_range};
+    auto it = _trace_results.find(key);
+    if (it == _trace_results.end()) {
+      continue;
+    }
+    const light_trace& trace = it->second;
+    if (!trace.size()) {
+      continue;
+    }
+
+    for (const entry& light : get_list(*s)) {
+      // Arrange in a triangle fan.
+      y::size start_index = tri_data.size() / 2;
+
+      tri_data.emplace_back(GLfloat(origin[xx]));
+      tri_data.emplace_back(GLfloat(origin[yy]));
+      origin_data.emplace_back(GLfloat(origin[xx]));
+      origin_data.emplace_back(GLfloat(origin[yy]));
+      intensity_data.emplace_back(light->intensity);
+
+      for (y::size i = 0; i < trace.size(); ++i) {
+        const y::wvec2 p = origin + trace[i];
+        tri_data.emplace_back(GLfloat(p[xx]));
+        tri_data.emplace_back(GLfloat(p[yy]));
+        origin_data.emplace_back(GLfloat(origin[xx]));
+        origin_data.emplace_back(GLfloat(origin[yy]));
+        intensity_data.emplace_back(light->intensity);
+
+        // Skip drawing the triangle when we're on the same line (snapping
+        // further or closer).
+        // TODO: fix the seams.
+        y::size next = (i + 1) % trace.size();
+        if (trace[i][xx] * trace[next][yy] -
+            trace[i][yy] * trace[next][xx] != 0) {
+          element_data.emplace_back(start_index);
+          element_data.emplace_back(1 + i + start_index);
+          element_data.emplace_back(1 + ((1 + i) % trace.size()) + start_index);
+        }
+      }
+    }
+  }
+
+  auto tri_buffer = _gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, tri_data);
+  auto origin_buffer = _gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, origin_data);
+  auto intensity_buffer = _gl.make_buffer<GLfloat, 1>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, intensity_data);
+  auto element_buffer = _gl.make_buffer<GLushort, 1>(
+      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
+
+  util.get_gl().enable_depth(false);
+  // TODO: these should be a generic function pixel_uniforms in RenderUtil.
+  _light_program.bind();
+  _light_program.bind_attribute("pixels", tri_buffer);
+  _light_program.bind_attribute("origin", origin_buffer);
+  _light_program.bind_attribute("intensity", intensity_buffer);
+  _light_program.bind_uniform("resolution", util.get_resolution());
+  _light_program.bind_uniform("translation", util.get_translation());
+  _light_program.bind_uniform("scale", y::fvec2{util.get_scale(),
+                                                util.get_scale()});
+  element_buffer.draw_elements(GL_TRIANGLES, element_data.size());
+
+  _gl.delete_buffer(tri_buffer);
+  _gl.delete_buffer(origin_buffer);
+  _gl.delete_buffer(intensity_buffer);
+  _gl.delete_buffer(element_buffer);
 }
 
 Lighting::world_geometry::world_geometry()

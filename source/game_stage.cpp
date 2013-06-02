@@ -10,11 +10,12 @@ GameStage::GameStage(const Databank& bank,
   : _bank(bank)
   , _util(util)
   , _framebuffer(framebuffer)
+  , _lightbuffer(util.get_gl().make_framebuffer(framebuffer.get_size()))
   , _map(map)
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
   , _collision(_world)
-  , _lighting(_world)
+  , _lighting(_world, util.get_gl())
   , _camera_rotation(0)
   , _is_camera_moving_x(false)
   , _is_camera_moving_y(false)
@@ -46,6 +47,7 @@ GameStage::GameStage(const Databank& bank,
 
 GameStage::~GameStage()
 {
+  _util.get_gl().delete_framebuffer(_lightbuffer);
 }
 
 const Databank& GameStage::get_bank() const
@@ -272,9 +274,15 @@ void GameStage::draw() const
 {
   y::fvec2 translation = y::fvec2(world_to_camera(y::wvec2()));
   _util.add_translation(translation);
-  _current_batch.clear();
+
+  // Render lightbuffer.
+  // _lightbuffer.bind(true, true);
+  // _lighting.render_lightbuffer(_util,
+  //                              get_camera_min(), get_camera_max());
 
   // Render all the tiles in the world at once, batched by texture.
+  _framebuffer.bind(false, false);
+  _current_batch.clear();
   for (auto it = _world.get_cartesian(); it; ++it) {
     Cell* cell = _world.get_active_window_cell(*it);
     if (!cell) {
@@ -316,6 +324,10 @@ void GameStage::draw() const
     }
   }
   _util.render_batch(_current_batch);
+
+  // TODO: testing.
+  _lighting.render_lightbuffer(_util,
+                               get_camera_min(), get_camera_max());
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {

@@ -87,13 +87,16 @@ public:
   // Native (target framebuffer) resolution must be set for utility methods
   // to behave correctly.
   void set_resolution(const y::ivec2& native_size);
+  const y::ivec2& get_resolution() const;
 
   // Offset all render operations.
   void add_translation(const y::fvec2& translation);
   void iadd_translation(const y::ivec2& translation);
+  const y::fvec2& get_translation() const;
 
   // Scale all render operations.
   void set_scale(float scale);
+  float get_scale() const;
 
   // Render text (at pixel coordinates).
   void render_text(const y::string& text, const y::fvec2& origin,

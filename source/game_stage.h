@@ -12,7 +12,6 @@
 #include <SFML/Window.hpp>
 
 class CellMap;
-class GlFramebuffer;
 class RenderUtil;
 struct LuaFile;
 
@@ -69,6 +68,7 @@ private:
   const Databank& _bank;
   RenderUtil& _util;
   const GlFramebuffer& _framebuffer;
+  GlFramebuffer _lightbuffer;
   const CellMap& _map;
 
   WorldWindow _world;

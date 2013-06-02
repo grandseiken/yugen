@@ -2,6 +2,7 @@
 #define LIGHTING_H
 
 #include "common.h"
+#include "gl_util.h"
 #include "lua.h"
 #include "vector.h"
 
@@ -24,8 +25,8 @@ struct Light {
 class Lighting : public ScriptMap<Light> {
 public:
 
-  Lighting(const WorldWindow& world);
-  virtual ~Lighting() {}
+  Lighting(const WorldWindow& world, GlUtil& gl);
+  virtual ~Lighting();
 
   // Stores trace results. Trace is relative to origin.
   struct trace_key {
@@ -48,6 +49,9 @@ public:
 
   const trace_results& get_traces() const;
   void render_traces(
+      RenderUtil& util,
+      const y::wvec2& camera_min, const y::wvec2& camera_max) const;
+  void render_lightbuffer(
       RenderUtil& util,
       const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
@@ -82,6 +86,9 @@ private:
                             const geometry_map& map) const;
 
   const WorldWindow& _world;
+  GlUtil& _gl;
+  GlProgram _light_program;
+
   trace_results _trace_results;
 
 };

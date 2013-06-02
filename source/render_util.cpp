@@ -121,6 +121,11 @@ void RenderUtil::set_resolution(const y::ivec2& native_size)
   _native_size = native_size;
 }
 
+const y::ivec2& RenderUtil::get_resolution() const
+{
+  return _native_size;
+}
+
 void RenderUtil::add_translation(const y::fvec2& translation)
 {
   _translation += translation;
@@ -131,9 +136,19 @@ void RenderUtil::iadd_translation(const y::ivec2& translation)
   add_translation(y::fvec2(translation));
 }
 
+const y::fvec2& RenderUtil::get_translation() const
+{
+  return _translation;
+}
+
 void RenderUtil::set_scale(float scale)
 {
   _scale = scale;
+}
+
+float RenderUtil::get_scale() const
+{
+  return _scale;
 }
 
 void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
@@ -289,7 +304,7 @@ void RenderUtil::render_lines(const y::vector<line>& lines,
   _draw_program.bind_uniform("translation", _translation);
   _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
   _draw_program.bind_uniform("colour", colour);
-  element_buffer.draw_elements(GL_TRIANGLES, 6 * lines.size());
+  element_buffer.draw_elements(GL_TRIANGLES, element_data.size());
 
   _gl.delete_buffer(tri_buffer);
   _gl.delete_buffer(element_buffer);
