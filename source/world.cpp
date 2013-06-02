@@ -214,63 +214,6 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
       };
     }
 
-    static void add_straight_half_edges(
-        geometry_list& list,
-        const CellBlueprint& cell, const y::ivec2& v, y::int32 collision)
-    {
-      static const y::ivec2& t = Tileset::tile_size;
-      const y::int32 c = collision;
-
-      // Up-left.
-      if ((c == Tileset::COLLIDE_HALF_U || c == Tileset::COLLIDE_SLOPEH_DR_B ||
-           c == Tileset::COLLIDE_SLOPEH_DL_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{-1, 0}, HALF_EDGE_UP_RIGHT)) {
-        list.emplace_back(Geometry{v * t + Tileset::l, v * t + Tileset::ul});
-      }
-      // Up-right.
-      if ((c == Tileset::COLLIDE_HALF_U || c == Tileset::COLLIDE_SLOPEH_DL_B ||
-           c == Tileset::COLLIDE_SLOPEH_DR_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{1, 0}, HALF_EDGE_UP_LEFT)) {
-        list.emplace_back(Geometry{v * t + Tileset::ur, v * t + Tileset::r});
-      }
-      // Down-left.
-      if ((c == Tileset::COLLIDE_HALF_D || c == Tileset::COLLIDE_SLOPEH_UR_B ||
-           c == Tileset::COLLIDE_SLOPEH_UL_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{-1, 0}, HALF_EDGE_DOWN_RIGHT)) {
-        list.emplace_back(Geometry{v * t + Tileset::dl, v * t + Tileset::l});
-      }
-      // Down-right.
-      if ((c == Tileset::COLLIDE_HALF_D || c == Tileset::COLLIDE_SLOPEH_UL_B ||
-           c == Tileset::COLLIDE_SLOPEH_UR_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{1, 0}, HALF_EDGE_DOWN_LEFT)) {
-        list.emplace_back(Geometry{v * t + Tileset::r, v * t + Tileset::dr});
-      }
-      // Left-up.
-      if ((c == Tileset::COLLIDE_HALF_L || c == Tileset::COLLIDE_SLOPE2_UL_B ||
-           c == Tileset::COLLIDE_SLOPE2_DL_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{0, -1}, HALF_EDGE_LEFT_DOWN)) {
-        list.emplace_back(Geometry{v * t + Tileset::ul, v * t + Tileset::u});
-      }
-      // Left-down.
-      if ((c == Tileset::COLLIDE_HALF_L || c == Tileset::COLLIDE_SLOPE2_DL_B ||
-           c == Tileset::COLLIDE_SLOPE2_UL_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{0, 1}, HALF_EDGE_LEFT_UP)) {
-        list.emplace_back(Geometry{v * t + Tileset::d, v * t + Tileset::dl});
-      }
-      // Right-up.
-      if ((c == Tileset::COLLIDE_HALF_R || c == Tileset::COLLIDE_SLOPE2_UR_B ||
-           c == Tileset::COLLIDE_SLOPE2_DR_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{0, -1}, HALF_EDGE_RIGHT_DOWN)) {
-        list.emplace_back(Geometry{v * t + Tileset::u, v * t + Tileset::ur});
-      }
-      // Right-down.
-      if ((c == Tileset::COLLIDE_HALF_R || c == Tileset::COLLIDE_SLOPE2_DR_B ||
-           c == Tileset::COLLIDE_SLOPE2_UR_A) &&
-          !is_tile_blocked(cell, v + y::ivec2{0, 1}, HALF_EDGE_RIGHT_UP)) {
-        list.emplace_back(Geometry{v * t + Tileset::dr, v * t + Tileset::d});
-      }
-    }
-
     // Defines a consistent traversal direction for the edges of irregular
     // tiles.
     static y::ivec2 consistent_traversal(y::int32 collision, bool positive)
@@ -488,10 +431,6 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
   Boundary boundary;
   y::int32 boundary_start = 0;
 
-  // TODO: fix drawing full edges when half an adjacent tile is blocked.
-  // TODO: fix half-edge merging on cell boundaries. This is implicitly handled
-  // by doing half-edges in the main straight-line loop. Then we can get rid of
-  // the add_straight_half_edges function.
   // Horizontal geometry lines.
   for (y::int32 row = 0; row <= Cell::cell_height; ++row) {
     geometry_list& list =
@@ -499,9 +438,13 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
         row == Cell::cell_height ? bucket.bottom : bucket.middle;
 
     boundary = NONE;
-    for (y::int32 t = 0; t <= Cell::cell_width; ++t) {
-      bool above = local::is_tile_blocked(cell, {t, row - 1}, EDGE_DOWN);
-      bool below = local::is_tile_blocked(cell, {t, row}, EDGE_UP);
+    for (y::int32 t = 0; t <= 2 * Cell::cell_width; ++t) {
+      bool above = local::is_tile_blocked(
+          cell, {t / 2, row - 1}, t % 2 ? HALF_EDGE_RIGHT_DOWN :
+                                          HALF_EDGE_LEFT_DOWN);
+      bool below = local::is_tile_blocked(
+          cell, {t / 2, row}, t % 2 ? HALF_EDGE_RIGHT_UP :
+                                      HALF_EDGE_LEFT_UP);
 
       Boundary new_boundary = above && !below ? LEFT :
                               below && !above ? RIGHT : NONE;
@@ -510,15 +453,16 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
       }
 
       if (boundary != NONE) {
-        y::ivec2 start = y::ivec2{boundary_start, Tileset::tile_size[yy] * row};
-        y::ivec2 end = Tileset::tile_size * y::ivec2{t, row};
+        y::ivec2 mul = Tileset::tile_size / y::ivec2{2, 1};
+        y::ivec2 start = mul * y::ivec2{boundary_start, row};
+        y::ivec2 end = mul * y::ivec2{t, row};
 
         // Make sure the geometry is always on the right of its boundary.
         list.emplace_back(boundary == RIGHT ?
                           Geometry{start, end} : Geometry{end, start});
       }
       if (new_boundary != NONE) {
-        boundary_start = Tileset::tile_size[xx] * t;
+        boundary_start = t;
       }
       boundary = new_boundary;
     }
@@ -531,9 +475,13 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
         col == Cell::cell_width ? bucket.right : bucket.middle;
 
     boundary = NONE;
-    for (y::int32 t = 0; t <= Cell::cell_height; ++t) {
-      bool left = local::is_tile_blocked(cell, {col - 1, t}, EDGE_RIGHT);
-      bool right = local::is_tile_blocked(cell, {col, t}, EDGE_LEFT);
+    for (y::int32 t = 0; t <= 2 * Cell::cell_height; ++t) {
+      bool left = local::is_tile_blocked(
+          cell, {col - 1, t / 2}, t % 2 ? HALF_EDGE_DOWN_RIGHT :
+                                          HALF_EDGE_UP_RIGHT);
+      bool right = local::is_tile_blocked(
+          cell, {col, t / 2}, t % 2 ? HALF_EDGE_DOWN_LEFT :
+                                      HALF_EDGE_UP_LEFT);
 
       // Since we're moving downwards, left tile blocked means
       // boundary is actually on the right.
@@ -544,14 +492,15 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
       }
 
       if (boundary != NONE) {
-        y::ivec2 start = y::ivec2{Tileset::tile_size[xx] * col, boundary_start};
-        y::ivec2 end = Tileset::tile_size * y::ivec2{col, t};
+        y::ivec2 mul = Tileset::tile_size / y::ivec2{1, 2};
+        y::ivec2 start = mul * y::ivec2{col, boundary_start};
+        y::ivec2 end = mul * y::ivec2{col, t};
 
         list.emplace_back(boundary == RIGHT ?
                           Geometry{start, end} : Geometry{end, start});
       }
       if (new_boundary != NONE) {
-        boundary_start = Tileset::tile_size[yy] * t;
+        boundary_start = t;
       }
       boundary = new_boundary;
     }
@@ -563,15 +512,9 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
   y::set<y::ivec2> set;
   for (auto it = y::cartesian(Cell::cell_size); it; ++it) {
     y::int32 c = cell.get_tile(collision_layer, *it).get_collision();
-    if (c == Tileset::COLLIDE_NONE || c == Tileset::COLLIDE_FULL) {
-      continue;
+    if (c != Tileset::COLLIDE_NONE && c != Tileset::COLLIDE_FULL) {
+      set.insert(*it);
     }
-    set.insert(*it);
-
-    // At the same time, add the straight half-length edges. These are not
-    // currently handled by the main horizontal/vertical loop.
-    // TODO: would be cleaner if we could join them.
-    local::add_straight_half_edges(bucket.middle, cell, *it, c);
   }
 
   // Now pick one irregular tile at a time and find the longest line formed

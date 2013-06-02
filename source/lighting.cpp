@@ -68,10 +68,11 @@ void Lighting::recalculate_traces(
     }
   };
 
-  // TODO: we could also limit max_range to camera bounds. However, this would
-  // reduce the benefit of caching a lot, so probably we can only do one or the
-  // other. Dynamically change strategy based on max_range? If it's large,
-  // caching is better. If it's small, eliminating based on bounds is better.
+  // TODO: we could also limit max_range to camera bounds. However, this blows
+  // the cache so it's not necessarily a good idea. In fact, it's certainly
+  // only worth it for lights which are moving a lot (and also have a large
+  // max-range), and so won't be cached anyway. Perhaps we can set this as a
+  // hint somehow.
   y::set<trace_key, trace_key_hash> trace_preserve;
 
   y::vector<y::wvec2> vertex_buffer;
@@ -132,6 +133,11 @@ void Lighting::recalculate_traces(
       it = _trace_results.erase(it);
     }
   }
+}
+
+void Lighting::clear_results_and_cache()
+{
+  _trace_results.clear();
 }
 
 const Lighting::trace_results& Lighting::get_traces() const

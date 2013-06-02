@@ -44,6 +44,8 @@ public:
   // Lighting functions.
   void recalculate_traces(
       const y::wvec2& camera_min, const y::wvec2& camera_max);
+  void clear_results_and_cache();
+
   const trace_results& get_traces() const;
   void render_traces(
       RenderUtil& util,
