@@ -13,7 +13,7 @@ Light::Light()
 y::world Light::get_max_range() const
 {
   // TODO.
-  return intensity * 100;
+  return intensity * 10;
 }
 
 Lighting::Lighting(const WorldWindow& world)
@@ -25,14 +25,6 @@ void Lighting::render(
     RenderUtil& util,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
-  // Set up list of all geometry.
-  geometry_entry all_geometry;
-  for (const auto& bucket : _world.get_geometry().buckets) {
-    for (const auto& g : bucket) {
-      all_geometry.emplace_back(g);
-    }
-  }
-
   // Sorts points radially by angle from the origin point using a Graham
   // scan-like algorithm, starting at angle 0 (rightwards) and increasing
   // by angle.
@@ -65,6 +57,8 @@ void Lighting::render(
 
   // TODO: cache results if they don't change per-frame. Split this into
   // a tracing phase and a drawing phase.
+  // TODO: we could limit max_range to camera bounds. However, this would
+  // reduce the benefit of caching a lot. Investigate.
   source_list sources;
   get_sources(sources);
   for (const Script* s : sources) {
@@ -80,20 +74,18 @@ void Lighting::render(
     }
 
     // Skip if maximum range doesn't overlap camera.
-    if (!(y::wvec2{max_range, max_range} >= camera_min &&
-          y::wvec2{-max_range, -max_range} < camera_max)) {
+    if (!(origin + y::wvec2{max_range, max_range} >= camera_min &&
+          origin + y::wvec2{-max_range, -max_range} < camera_max)) {
       continue;
     }
 
     // Find all the geometries that intersect the max-range square and their
     // vertices, translated respective to origin.
-    // TODO: use buckets to filter out a bunch, idiot!
-    // TODO: limit max_range to camera bounds, idiot!
     vertex_buffer.clear();
     geometry_buffer.clear();
     map.clear();
     get_relevant_geometry(vertex_buffer, geometry_buffer, map,
-                          origin, max_range, all_geometry);
+                          origin, max_range, _world.get_geometry());
 
     // Perform angular sort.
     std::sort(vertex_buffer.begin(), vertex_buffer.end(), o);
@@ -151,45 +143,61 @@ void Lighting::get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
                                      geometry_map& map_output,
                                      const y::wvec2& origin,
                                      y::world max_range,
-                                     const geometry_entry& all_geometry) const
+                                     const OrderedGeometry& all_geometry) const
 {
   // We could find only the vertices whose geometries intersect the circle
   // defined by origin and max_range, but that is way more expensive and
   // squares are easier anyway.
   y::set<y::wvec2> added_vertices;
-  for (const world_geometry& g : all_geometry) {
-    const y::wvec2 g_s = g.start - origin;
-    const y::wvec2 g_e = g.end - origin;
+  y::wvec2 min_bound = y::wvec2{-max_range, -max_range};
+  y::wvec2 max_bound = y::wvec2{max_range, max_range};
 
-    y::wvec2 min = y::min(g_s, g_e);
-    y::wvec2 max = y::max(g_s, g_e);
-
-    // Check bounds.
-    if (max[xx] < -max_range || min[xx] >= max_range ||
-        max[yy] < -max_range || min[yy] >= max_range) {
+  // See Collision::collider_move for details.
+  for (y::size i = 0; i < all_geometry.buckets.size(); ++i) {
+    y::int32 g_max = all_geometry.get_max_for_bucket(i);
+    if (origin[xx] + min_bound[xx] >= g_max) {
       continue;
     }
 
-    // Check equation.
-    if (g_s[xx] - g_e[xx] != 0) {
-      y::world m = (g_e[yy] - g_s[yy]) / (g_e[xx] - g_s[xx]);
-      y::world y_neg = g_e[yy] + m * (g_e[xx] - max_range);
-      y::world y_pos = g_e[yy] + m * (g_e[xx] + max_range);
+    for (const Geometry& g : all_geometry.buckets[i]) {
+      // Translate to origin.
+      const y::wvec2 g_s = y::wvec2(g.start) - origin;
+      const y::wvec2 g_e = y::wvec2(g.end) - origin;
 
-      if ((max_range < y_neg && max_range < y_pos) ||
-          (-max_range >= y_neg && -max_range >= y_pos)) {
+      y::wvec2 g_min = y::min(g_s, g_e);
+      y::wvec2 g_max = y::max(g_s, g_e);
+
+      // Break by ordering.
+      if (g_min[xx] >= max_bound[xx]) {
+        break;
+      }
+
+      // Check bounds.
+      if (!(g_min < max_bound && g_max > min_bound)) {
         continue;
       }
-    }
 
-    // Exclude geometries which are defined in the wrong direction.
-    if (g_s[yy] * g_e[xx] - g_s[xx] * g_e[yy] >= 0) {
-      continue;
-    }
+      // Check equation.
+      if (g_s[xx] - g_e[xx] != 0) {
+        y::world m = (g_e[yy] - g_s[yy]) / (g_e[xx] - g_s[xx]);
+        y::world y_neg = g_e[yy] + m * (g_e[xx] - max_range);
+        y::world y_pos = g_e[yy] + m * (g_e[xx] + max_range);
 
-    geometry_output.emplace_back(g_s, g_e);
-    map_output[g_s].emplace_back(g_s, g_e);
-    map_output[g_e].emplace_back(g_s, g_e);
+        if ((max_range < y_neg && max_range < y_pos) ||
+            (-max_range >= y_neg && -max_range >= y_pos)) {
+          continue;
+        }
+      }
+
+      // Exclude geometries which are defined in the wrong direction.
+      if (g_s[yy] * g_e[xx] - g_s[xx] * g_e[yy] >= 0) {
+        continue;
+      }
+
+      geometry_output.emplace_back(g_s, g_e);
+      map_output[g_s].emplace_back(g_s, g_e);
+      map_output[g_e].emplace_back(g_s, g_e);
+    }
   }
   for (const auto& pair : map_output) {
     vertex_output.emplace_back(pair.first);
@@ -330,11 +338,10 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
   // defined opposite the sweep direction, this corresponds exactly to whether
   // the vertex is the start or end point of the geometry.
   world_geometry prev_closest_geometry;
+  local::get_closest(prev_closest_geometry, max_range,
+                     vertex_buffer[0], stack);
   // If stack is empty, make sure the first vertex gets added.
-  if (!stack.empty()) {
-    local::get_closest(prev_closest_geometry, max_range,
-                       vertex_buffer[0], stack);
-  }
+  bool add_first = stack.empty();
 
   for (y::size i = 0; i < vertex_buffer.size(); ++i) {
     const auto& v = vertex_buffer[i];
@@ -367,7 +374,7 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
         local::get_closest(new_closest_geometry, max_range, v, stack);
 
     // When nothing has changed, skip.
-    if (new_closest_geometry == prev_closest_geometry) {
+    if (new_closest_geometry == prev_closest_geometry && !add_first) {
       continue;
     }
 
@@ -375,10 +382,7 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     // empty at the very start (so prev_closest_geometry is invalid).
     y::wvec2 prev_closest_point =
         local::get_point_on_geometry(v, prev_closest_geometry);
-    if (prev_closest_geometry.start != y::wvec2() ||
-        prev_closest_geometry.end != y::wvec2()) {
-      output.emplace_back(prev_closest_point);
-    }
+    output.emplace_back(prev_closest_point);
     if (new_closest_point != prev_closest_point) {
       output.emplace_back(new_closest_point);
     }

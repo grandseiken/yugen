@@ -6,6 +6,7 @@
 #include "vector.h"
 
 struct Geometry;
+struct OrderedGeometry;
 class RenderUtil;
 class WorldWindow;
 
@@ -51,7 +52,7 @@ private:
                              geometry_map& map_output,
                              const y::wvec2& origin,
                              y::world max_range,
-                             const geometry_entry& all_geometry) const;
+                             const OrderedGeometry& all_geometry) const;
 
   void trace_light_geometry(y::vector<y::wvec2>& output,
                             y::world max_range,
