@@ -87,6 +87,8 @@ void Lighting::render(
 
     // Find all the geometries that intersect the max-range square and their
     // vertices, translated respective to origin.
+    // TODO: use buckets to filter out a bunch, idiot!
+    // TODO: limit max_range to camera bounds, idiot!
     vertex_buffer.clear();
     geometry_buffer.clear();
     map.clear();
@@ -254,8 +256,18 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
         const y::wvec2 dl{-max_range, max_range};
         const y::wvec2 dr{max_range, max_range};
 
-        // Something's odd here. Swapping the order of these changes things.
-        if (v[yy] > 0 && v[yy] >= y::abs(v[xx])) {
+        // Make sure we choose the edge in the direction of rotation at the
+        // corners.
+        // TODO: still not quite right.
+        if (v[xx] == v[yy]) {
+          closest_geometry_output = v[xx] > 0 ?
+              world_geometry(dr, dl) : world_geometry(ul, ur);
+        }
+        else if (v[xx] == -v[yy]) {
+          closest_geometry_output = v[xx] > 0 ?
+              world_geometry(ur, dr) : world_geometry(dl, ul);
+        }
+        else if (v[yy] > 0 && v[yy] >= y::abs(v[xx])) {
           closest_geometry_output = world_geometry(dr, dl);
         }
         else if (v[yy] < 0 && -v[yy] >= y::abs(v[xx])) {
@@ -361,7 +373,9 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     y::wvec2 prev_closest_point =
         local::get_point_on_geometry(v, prev_closest_geometry);
     output.emplace_back(prev_closest_point);
-    output.emplace_back(new_closest_point);
+    if (new_closest_point != prev_closest_point) {
+      output.emplace_back(new_closest_point);
+    }
 
     // Store previous.
     prev_closest_geometry = new_closest_geometry;
