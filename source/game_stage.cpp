@@ -276,9 +276,10 @@ void GameStage::draw() const
   _util.add_translation(translation);
 
   // Render lightbuffer.
-  // _lightbuffer.bind(true, true);
-  // _lighting.render_lightbuffer(_util,
-  //                              get_camera_min(), get_camera_max());
+  _lightbuffer.bind(true, true);
+  _lighting.render_lightbuffer(_util,
+                               get_camera_min(), get_camera_max());
+  _util.set_lightbuffer(_lightbuffer);
 
   // Render all the tiles in the world at once, batched by texture.
   _framebuffer.bind(false, false);
@@ -324,10 +325,6 @@ void GameStage::draw() const
     }
   }
   _util.render_batch(_current_batch);
-
-  // TODO: testing.
-  _lighting.render_lightbuffer(_util,
-                               get_camera_min(), get_camera_max());
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {

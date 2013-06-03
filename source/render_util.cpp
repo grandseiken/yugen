@@ -158,6 +158,7 @@ void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
     return;
   }
   _gl.enable_depth(false);
+  _gl.enable_blend(true);
 
   y::fvec2 font_size = y::fvec2(from_grid());
   const GLfloat text_data[] = {
@@ -171,7 +172,6 @@ void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
 
   _text_program.bind();
   _text_program.bind_attribute("pixels", text_buffer);
-  _text_program.bind_uniform("resolution", _native_size);
   _text_program.bind_uniform("origin", text_data[0], text_data[1]);
   for (y::size i = 0; i < 1024; ++i) {
     _text_program.bind_uniform(i, "string",
@@ -180,9 +180,8 @@ void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
   _font.bind(GL_TEXTURE0);
   _text_program.bind_uniform("font", 0);
   _text_program.bind_uniform("font_size", font_size);
-  _text_program.bind_uniform("translation", _translation);
-  _text_program.bind_uniform("scale", y::fvec2{_scale, _scale});
   _text_program.bind_uniform("colour", colour);
+  bind_pixel_uniforms(_text_program);
   _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
 
   _gl.delete_buffer(text_buffer);
@@ -201,6 +200,7 @@ void RenderUtil::render_fill(const y::fvec2& origin, const y::fvec2& size,
     return;
   }
   _gl.enable_depth(false);
+  _gl.enable_blend(true);
 
   const GLfloat rect_data[] = {
       origin[xx], origin[yy],
@@ -213,10 +213,8 @@ void RenderUtil::render_fill(const y::fvec2& origin, const y::fvec2& size,
 
   _draw_program.bind();
   _draw_program.bind_attribute("pixels", rect_buffer);
-  _draw_program.bind_uniform("resolution", _native_size);
-  _draw_program.bind_uniform("translation", _translation);
-  _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
   _draw_program.bind_uniform("colour", colour);
+  bind_pixel_uniforms(_draw_program);
   _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
 
   _gl.delete_buffer(rect_buffer);
@@ -229,6 +227,7 @@ void RenderUtil::render_fill(const y::fvec2& a, const y::fvec2& b,
     return;
   }
   _gl.enable_depth(false);
+  _gl.enable_blend(true);
 
   const GLfloat tri_data[] = {
       a[xx], a[yy], b[xx], b[yy], c[xx], c[yy]};
@@ -238,10 +237,8 @@ void RenderUtil::render_fill(const y::fvec2& a, const y::fvec2& b,
 
   _draw_program.bind();
   _draw_program.bind_attribute("pixels", tri_buffer);
-  _draw_program.bind_uniform("resolution", _native_size);
-  _draw_program.bind_uniform("translation", _translation);
-  _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
   _draw_program.bind_uniform("colour", colour);
+  bind_pixel_uniforms(_draw_program);
   _quad.draw_elements(GL_TRIANGLES, 3);
 
   _gl.delete_buffer(tri_buffer);
@@ -272,6 +269,7 @@ void RenderUtil::render_lines(const y::vector<line>& lines,
     return;
   }
   _gl.enable_depth(false);
+  _gl.enable_blend(true);
 
   y::vector<GLfloat> tri_data;
   y::vector<GLushort> element_data;
@@ -300,10 +298,8 @@ void RenderUtil::render_lines(const y::vector<line>& lines,
 
   _draw_program.bind();
   _draw_program.bind_attribute("pixels", tri_buffer);
-  _draw_program.bind_uniform("resolution", _native_size);
-  _draw_program.bind_uniform("translation", _translation);
-  _draw_program.bind_uniform("scale", y::fvec2{_scale, _scale});
   _draw_program.bind_uniform("colour", colour);
+  bind_pixel_uniforms(_draw_program);
   element_buffer.draw_elements(GL_TRIANGLES, element_data.size());
 
   _gl.delete_buffer(tri_buffer);
@@ -354,6 +350,7 @@ void RenderUtil::render_batch() const
     return;
   }
   _gl.enable_depth(true);
+  _gl.enable_blend(true);
 
   y::size length = _batched_sprites.size();
   for (y::size i = 0; i < length; ++i) {
@@ -409,15 +406,16 @@ void RenderUtil::render_batch() const
   _sprite_program.bind_attribute("frame_index", _frame_index_buffer);
   _sprite_program.bind_attribute("depth", _depth_buffer);
   _sprite_program.bind_attribute("colour", _colour_buffer);
-  _sprite_program.bind_uniform("resolution", _native_size);
-  _sprite_program.bind_uniform("translation", _translation);
-  _sprite_program.bind_uniform("scale", y::fvec2{_scale, _scale});
 
   y::ivec2 v = _sprite.get_size() / _frame_size;
-  _sprite.bind(GL_TEXTURE0);
-  _sprite_program.bind_uniform("sprite", 0);
+  _sprite_program.bind_uniform("sprite", _sprite);
   _sprite_program.bind_uniform("frame_size", _frame_size);
   _sprite_program.bind_uniform("frame_count", v);
+  _sprite_program.bind_uniform("use_lightbuffer", bool(_lightbuffer));
+  if (_lightbuffer) {
+    _sprite_program.bind_uniform("lightbuffer", _lightbuffer);
+  }
+  bind_pixel_uniforms(_sprite_program);
   _element_buffer.draw_elements(GL_TRIANGLES, 6 * length);
 
   _batched_sprites.clear();
@@ -452,6 +450,16 @@ void RenderUtil::irender_sprite(
                 frame, depth, 0.f, colour);
 }
 
+void RenderUtil::set_lightbuffer(const GlFramebuffer& lightbuffer)
+{
+  _lightbuffer = lightbuffer;
+}
+
+void RenderUtil::clear_lightbuffer()
+{
+  _lightbuffer = GlFramebuffer();
+}
+
 y::ivec2 RenderUtil::from_grid(const y::ivec2& grid)
 {
   return grid * font_size;
@@ -460,6 +468,13 @@ y::ivec2 RenderUtil::from_grid(const y::ivec2& grid)
 y::ivec2 RenderUtil::to_grid(const y::ivec2& pixels)
 {
   return pixels / font_size;
+}
+
+void RenderUtil::bind_pixel_uniforms(const GlProgram& program) const
+{
+  program.bind_uniform("resolution", _native_size);
+  program.bind_uniform("translation", _translation);
+  program.bind_uniform("scale", y::fvec2{_scale, _scale});
 }
 
 const y::ivec2 RenderUtil::font_size{

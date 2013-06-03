@@ -148,9 +148,16 @@ public:
                       const y::ivec2& origin, const y::ivec2& frame,
                       float depth, const y::fvec4& colour);
 
+  // Set lightbuffer for sprite rendering.
+  void set_lightbuffer(const GlFramebuffer& lightbuffer);
+  void clear_lightbuffer();
+
   // Helpers for font-size grid coordinates.
   static y::ivec2 from_grid(const y::ivec2& grid = {1, 1});
   static y::ivec2 to_grid(const y::ivec2& pixels);
+
+  // Helpers for standard uniform variables.
+  void bind_pixel_uniforms(const GlProgram& program) const;
 
 private:
 
@@ -190,6 +197,8 @@ private:
   y::ivec2 _frame_size;
   mutable y::vector<RenderBatch::batched_sprite> _batched_sprites;
   GlProgram _sprite_program;
+
+  GlFramebuffer _lightbuffer;
 
 };
 

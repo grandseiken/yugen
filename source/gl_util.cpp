@@ -30,6 +30,11 @@ GLuint GlHandle::get_handle() const
   return _handle;
 }
 
+GlTexture::GlTexture()
+  : GlHandle(0)
+{
+}
+
 GlTexture::GlTexture(GLuint handle, const y::ivec2& size)
   : GlHandle(handle)
   , _size(size)
@@ -45,6 +50,12 @@ void GlTexture::bind(GLenum target) const
 const y::ivec2& GlTexture::get_size() const
 {
   return _size;
+}
+
+GlFramebuffer::GlFramebuffer()
+  : GlHandle(0)
+  , _depth_handle(0)
+{
 }
 
 GlFramebuffer::GlFramebuffer(GLuint handle, const GlTexture& texture,
@@ -77,8 +88,19 @@ GLuint GlFramebuffer::get_depth_handle() const
   return _depth_handle;
 }
 
+GlShader::GlShader()
+  : GlHandle(0)
+{
+}
+
 GlShader::GlShader(GLuint handle)
   : GlHandle(handle)
+{
+}
+
+GlProgram::GlProgram()
+  : GlHandle(0)
+  , _texture_index(0)
 {
 }
 
@@ -353,9 +375,6 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
       _setup_ok = false;
     }
   }
-
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 GlUtil::~GlUtil()
@@ -415,7 +434,7 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size)
     delete_texture(texture);
     glDeleteFramebuffers(1, &framebuffer);
     glDeleteRenderbuffers(1, &depth);
-    return GlFramebuffer(0, GlTexture(0, {0, 0}), 0);
+    return GlFramebuffer();
   }
 
   _framebuffer_set.insert(framebuffer);
@@ -464,13 +483,13 @@ GlTexture GlUtil::make_texture(const y::string& filename, bool loop)
   _filesystem.read_file(data, filename);
   if (data.empty()) {
     std::cerr << "Couldn't read file " << filename << std::endl;
-    return GlTexture(0, y::ivec2());
+    return GlTexture();
   }
 
   sf::Image image;
   if (!image.loadFromMemory(data.data(), data.length())) {
     std::cerr << "Couldn't load image " << filename << std::endl;
-    return GlTexture(0, y::ivec2());
+    return GlTexture();
   }
   y::ivec2 size{y::int32(image.getSize().x), y::int32(image.getSize().y)};
   GlTexture texture(make_texture(size, GL_UNSIGNED_BYTE, GL_RGBA8, GL_RGBA,
@@ -530,7 +549,7 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
   y::string data = header;
   if (!_filesystem.read_file_with_includes(data, filename)) {
     std::cerr << "Couldn't read file " << filename << std::endl;
-    return GlShader(0);
+    return GlShader();
   }
 
   if (!type) {
@@ -570,13 +589,13 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
   glGetShaderInfoLog(shader, log_length, 0, log.get());
   std::cerr << log.get();
   glDeleteShader(shader);
-  return GlShader(0);
+  return GlShader();
 }
 
 GlShader GlUtil::get_shader(const y::string& filename) const
 {
   auto it = _shader_map.find(filename);
-  return it == _shader_map.end() ? GlShader(0) : it->second;
+  return it == _shader_map.end() ? GlShader() : it->second;
 }
 
 void GlUtil::delete_shader(const y::string& filename)
@@ -636,7 +655,7 @@ GlProgram GlUtil::make_program(const y::string_vector& shaders)
   glGetProgramInfoLog(program, log_length, 0, log.get());
   std::cerr << log.get();
   glDeleteProgram(program);
-  return GlProgram(0);
+  return GlProgram();
 }
 
 GlProgram GlUtil::get_program(const y::string_vector& shaders) const
@@ -651,7 +670,7 @@ GlProgram GlUtil::get_program(const y::string_vector& shaders) const
   }
 
   auto it = _program_map.find(hash);
-  return it == _program_map.end() ? GlProgram(0) : it->second;
+  return it == _program_map.end() ? GlProgram() : it->second;
 }
 
 void GlUtil::delete_program(const y::string_vector& shaders)
@@ -691,14 +710,25 @@ void GlUtil::bind_window(bool clear, bool clear_depth) const
   glClear((GL_COLOR_BUFFER_BIT * clear) | (GL_DEPTH_BUFFER_BIT * clear_depth));
 }
 
-void GlUtil::enable_depth(bool depth) const
+void GlUtil::enable_depth(bool depth, GLenum test) const
 {
   if (depth) {
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
+    glDepthFunc(test);
     glDepthRange(0.f, 1.f);
   }
   else {
     glDisable(GL_DEPTH_TEST);
+  }
+}
+
+void GlUtil::enable_blend(bool blend, GLenum source, GLenum target) const
+{
+  if (blend) {
+    glEnable(GL_BLEND);
+    glBlendFunc(source, target);
+  }
+  else {
+    glDisable(GL_BLEND);
   }
 }

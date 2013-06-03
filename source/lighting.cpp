@@ -270,16 +270,14 @@ void Lighting::render_lightbuffer(
   auto element_buffer = _gl.make_buffer<GLushort, 1>(
       GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
 
-  // TODO: these should be a generic function pixel_uniforms in RenderUtil.
   util.get_gl().enable_depth(false);
+  util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
+
   _light_program.bind();
   _light_program.bind_attribute("pixels", tri_buffer);
   _light_program.bind_attribute("origin", origin_buffer);
   _light_program.bind_attribute("intensity", intensity_buffer);
-  _light_program.bind_uniform("resolution", util.get_resolution());
-  _light_program.bind_uniform("translation", util.get_translation());
-  _light_program.bind_uniform("scale", y::fvec2{util.get_scale(),
-                                                util.get_scale()});
+  util.bind_pixel_uniforms(_light_program);
   element_buffer.draw_elements(GL_TRIANGLES, element_data.size());
 
   _gl.delete_buffer(tri_buffer);

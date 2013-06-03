@@ -67,6 +67,7 @@ template<typename T, y::size N>
 class GlBuffer : public GlHandle {
 public:
 
+  GlBuffer();
   ~GlBuffer() override {}
 
   void bind() const;
@@ -91,6 +92,7 @@ private:
 class GlTexture : public GlHandle {
 public:
 
+  GlTexture();
   ~GlTexture() override {}
 
   void bind(GLenum target) const;
@@ -112,6 +114,7 @@ private:
 class GlFramebuffer : public GlHandle {
 public:
 
+  GlFramebuffer();
   ~GlFramebuffer() override {}
 
   // Don't delete this texture manually!
@@ -138,6 +141,7 @@ private:
 class GlShader : public GlHandle {
 public:
 
+  GlShader();
   ~GlShader() override {}
 
 protected:
@@ -160,6 +164,7 @@ namespace std {
 class GlProgram : public GlHandle {
 public:
 
+  GlProgram();
   ~GlProgram() override {}
 
   // Render using this shader.
@@ -325,7 +330,10 @@ public:
   void bind_window(bool clear, bool clear_depth) const;
 
   // Enable or disable depth test.
-  void enable_depth(bool depth) const;
+  void enable_depth(bool depth, GLenum test = GL_LEQUAL) const;
+  // Enable or disable blending.
+  void enable_blend(bool blend, GLenum source = GL_SRC_ALPHA,
+                                GLenum target = GL_ONE_MINUS_SRC_ALPHA) const;
 
 private:
 
@@ -386,6 +394,14 @@ void GlUtil::delete_buffer(const GlBuffer<T, N>& buffer)
     glDeleteBuffers(1, &*it);
     _buffer_set.erase(it);
   }
+}
+
+template<typename T, y::size N>
+GlBuffer<T, N>::GlBuffer()
+  : GlHandle(0)
+  , _target(0)
+  , _usage_hint(0)
+{
 }
 
 template<typename T, y::size N>
