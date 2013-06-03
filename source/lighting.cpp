@@ -214,8 +214,10 @@ void Lighting::render_lightbuffer(
     }
 
     for (const entry& light : get_list(*s)) {
-      // Arrange in a triangle fan.
-      y::size start_index = tri_data.size() / 2;
+      // Arranging in a triangle fan causes tears in the triangles due to slight
+      // inaccuracies, so we use a fan with three triangles per actual triangle
+      // to make sure the edges line up exactly.
+      y::size origin_index = tri_data.size() / 2;
 
       tri_data.emplace_back(GLfloat(origin[xx]));
       tri_data.emplace_back(GLfloat(origin[yy]));
@@ -223,6 +225,7 @@ void Lighting::render_lightbuffer(
       origin_data.emplace_back(GLfloat(origin[yy]));
       intensity_data.emplace_back(light->intensity);
 
+      // Set up the vertices.
       for (y::size i = 0; i < trace.size(); ++i) {
         const y::wvec2 p = origin + trace[i];
         tri_data.emplace_back(GLfloat(p[xx]));
@@ -230,17 +233,30 @@ void Lighting::render_lightbuffer(
         origin_data.emplace_back(GLfloat(origin[xx]));
         origin_data.emplace_back(GLfloat(origin[yy]));
         intensity_data.emplace_back(light->intensity);
+      }
 
-        // Skip drawing the triangle when we're on the same line (snapping
-        // further or closer).
-        // TODO: fix the seams.
-        y::size next = (i + 1) % trace.size();
-        if (trace[i][xx] * trace[next][yy] -
-            trace[i][yy] * trace[next][xx] != 0) {
-          element_data.emplace_back(start_index);
-          element_data.emplace_back(1 + i + start_index);
-          element_data.emplace_back(1 + ((1 + i) % trace.size()) + start_index);
-        }
+      // Set up the indices.
+      for (y::size i = 1; i < trace.size(); i += 2) {
+        y::size a = i;
+        y::size b = (1 + i) % trace.size();
+        y::size prev = i - 1;
+        y::size next = (2 + i) % trace.size();
+
+        y::size l = trace[a].length_squared() <=
+                    trace[prev].length_squared() ? a : prev;
+        y::size r = trace[b].length_squared() <=
+                    trace[next].length_squared() ? b : next;
+
+        // Render the triangles: origin, l, r; l, r, b; a, b, l.
+        element_data.emplace_back(origin_index);
+        element_data.emplace_back(origin_index + 1 + l);
+        element_data.emplace_back(origin_index + 1 + r);
+        element_data.emplace_back(origin_index + 1 + l);
+        element_data.emplace_back(origin_index + 1 + r);
+        element_data.emplace_back(origin_index + 1 + b);
+        element_data.emplace_back(origin_index + 1 + a);
+        element_data.emplace_back(origin_index + 1 + b);
+        element_data.emplace_back(origin_index + 1 + l);
       }
     }
   }
@@ -254,8 +270,8 @@ void Lighting::render_lightbuffer(
   auto element_buffer = _gl.make_buffer<GLushort, 1>(
       GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
 
-  util.get_gl().enable_depth(false);
   // TODO: these should be a generic function pixel_uniforms in RenderUtil.
+  util.get_gl().enable_depth(false);
   _light_program.bind();
   _light_program.bind_attribute("pixels", tri_buffer);
   _light_program.bind_attribute("origin", origin_buffer);
@@ -544,9 +560,7 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     y::wvec2 prev_closest_point =
         local::get_point_on_geometry(v, prev_closest_geometry);
     output.emplace_back(prev_closest_point);
-    if (new_closest_point != prev_closest_point) {
-      output.emplace_back(new_closest_point);
-    }
+    output.emplace_back(new_closest_point);
 
     // Store previous.
     prev_closest_geometry = new_closest_geometry;
