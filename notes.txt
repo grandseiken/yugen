@@ -1,24 +1,19 @@
 MILESTONES
 
  + DONE: Collision tracing (full cells at first); with cell load / unload
- + Lighting using radial corner swoop / stencil buffer algorithm
- + Water, bump mapping
+ + DONE: Lighting using radial corner swoop / stencil buffer algorithm
+ + DONE: World rotations and gravity
+ + Normal / bump mapping
+ + Water, mirrors, procedural fog, weather, lightning, snow, etc
  + Physics, hook shot, long shot, morph ball, etc
- + World rotations and gravity
- + Procedural fog, weather, lightning, snow, etc
  + Terrain modification may be unecessary if scripts are cheap enough
 
-LANGUAGES USED
+DEPENDENCIES
 
  - Bash
+ - Boost
  - C++
  - GLSL
- - Lua
- - Protobuf
-
-LIBRARIES USED
-
- - Boost
  - Lua
  - Protobuf
  - SFML

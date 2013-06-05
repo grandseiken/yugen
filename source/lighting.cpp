@@ -7,12 +7,13 @@
 
 Light::Light()
   : intensity(1.)
+  , range(1.)
 {
 }
 
 y::world Light::get_max_range() const
 {
-  return intensity;
+  return range;
 }
 
 Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
@@ -72,7 +73,7 @@ void Lighting::recalculate_traces(
       // If d is zero, points are on same half-line so fall back to distance
       // from the origin.
       return d < 0 ||
-        (d == 0 && a.length_squared() < b.length_squared());
+          (d == 0 && a.length_squared() < b.length_squared());
     }
   };
 
@@ -161,7 +162,7 @@ void Lighting::render_traces(
   for (const auto& pair : get_traces()) {
     for (y::size i = 0; i < pair.second.size(); ++i) {
       y::wvec2 a = pair.first.origin + pair.second[i];
-      y::wvec2 b = pair.first.origin + pair.second[(i + 1) %
+      y::wvec2 b = pair.first.origin + pair.second[(1 + i) %
                                                    pair.second.size()];
 
       const y::wvec2 max = y::max(a, b);
@@ -187,6 +188,7 @@ void Lighting::render_lightbuffer(
   }
   y::vector<GLfloat> tri_data;
   y::vector<GLfloat> origin_data;
+  y::vector<GLfloat> range_data;
   y::vector<GLfloat> intensity_data;
   y::vector<GLushort> element_data;
 
@@ -219,19 +221,21 @@ void Lighting::render_lightbuffer(
       // to make sure the edges line up exactly.
       y::size origin_index = tri_data.size() / 2;
 
-      tri_data.emplace_back(GLfloat(origin[xx]));
-      tri_data.emplace_back(GLfloat(origin[yy]));
-      origin_data.emplace_back(GLfloat(origin[xx]));
-      origin_data.emplace_back(GLfloat(origin[yy]));
+      tri_data.emplace_back(origin[xx]);
+      tri_data.emplace_back(origin[yy]);
+      origin_data.emplace_back(origin[xx]);
+      origin_data.emplace_back(origin[yy]);
+      range_data.emplace_back(light->range);
       intensity_data.emplace_back(light->intensity);
 
       // Set up the vertices.
       for (y::size i = 0; i < trace.size(); ++i) {
         const y::wvec2 p = origin + trace[i];
-        tri_data.emplace_back(GLfloat(p[xx]));
-        tri_data.emplace_back(GLfloat(p[yy]));
-        origin_data.emplace_back(GLfloat(origin[xx]));
-        origin_data.emplace_back(GLfloat(origin[yy]));
+        tri_data.emplace_back(p[xx]);
+        tri_data.emplace_back(p[yy]);
+        origin_data.emplace_back(origin[xx]);
+        origin_data.emplace_back(origin[yy]);
+        range_data.emplace_back(light->range);
         intensity_data.emplace_back(light->intensity);
       }
 
@@ -265,6 +269,8 @@ void Lighting::render_lightbuffer(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, tri_data);
   auto origin_buffer = _gl.make_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, origin_data);
+  auto range_buffer = _gl.make_buffer<GLfloat, 1>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, range_data);
   auto intensity_buffer = _gl.make_buffer<GLfloat, 1>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, intensity_data);
   auto element_buffer = _gl.make_buffer<GLushort, 1>(
@@ -276,12 +282,14 @@ void Lighting::render_lightbuffer(
   _light_program.bind();
   _light_program.bind_attribute("pixels", tri_buffer);
   _light_program.bind_attribute("origin", origin_buffer);
+  _light_program.bind_attribute("range", range_buffer);
   _light_program.bind_attribute("intensity", intensity_buffer);
   util.bind_pixel_uniforms(_light_program);
   element_buffer.draw_elements(GL_TRIANGLES, element_data.size());
 
   _gl.delete_buffer(tri_buffer);
   _gl.delete_buffer(origin_buffer);
+  _gl.delete_buffer(range_buffer);
   _gl.delete_buffer(intensity_buffer);
   _gl.delete_buffer(element_buffer);
 }

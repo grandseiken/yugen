@@ -341,4 +341,5 @@ void Databank::save_all(Filesystem& filesystem) const
 {
   get_set<T>().template save_all<P>(filesystem, *this);
 }
+
 #endif

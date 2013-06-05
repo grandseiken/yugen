@@ -19,6 +19,7 @@ struct Light {
   y::world get_max_range() const;
 
   y::world intensity;
+  y::world range;
 };
 
 // Keeps a record of Lights and handles fancy lighting algorithms.

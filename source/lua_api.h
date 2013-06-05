@@ -407,9 +407,11 @@ ylib_api(body_check)
 /******************************************************************************/
 
 ylib_api(create_light)
-    ylib_arg(Script*, script) ylib_arg(y::world, intensity)
+    ylib_arg(Script*, script)
+    ylib_arg(y::world, range) ylib_arg(y::world, intensity)
 {
   Light* light = stage.get_lighting().create_obj(*script);
+  light->range = range;
   light->intensity = intensity;
   ylib_return(light);
 }
@@ -425,6 +427,19 @@ ylib_api(destroy_lights)
     ylib_arg(const Script*, script)
 {
   stage.get_lighting().destroy_all(*script);
+  ylib_void();
+}
+
+ylib_api(get_light_range)
+    ylib_arg(const Light*, light)
+{
+  ylib_return(light->range);
+}
+
+ylib_api(set_light_range)
+    ylib_arg(Light*, light) ylib_arg(y::world, range)
+{
+  light->range = range;
   ylib_void();
 }
 
