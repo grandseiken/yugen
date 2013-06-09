@@ -171,12 +171,12 @@ bool TilesetPanel::event(const sf::Event& e)
 
 void TilesetPanel::update()
 {
-  set_size(_tileset.get_texture().get_size());
+  set_size(_tileset.get_texture().texture.get_size());
 }
 
 void TilesetPanel::draw(RenderUtil& util) const
 {
-  const GlTexture& texture = _tileset.get_texture();
+  const GlTexture& texture = _tileset.get_texture().texture;
   util.irender_sprite(texture, texture.get_size(), y::ivec2(), y::ivec2(),
                       0.f, colour::white);
 

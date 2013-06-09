@@ -10,7 +10,7 @@
 
 ylib_typedef(Body);
 ylib_typedef(GameStage);
-ylib_typedef(GlTexture);
+ylib_typedef(Sprite);
 ylib_typedef(Light);
 ylib_typedef(LuaFile);
 ylib_typedef(Script);
@@ -249,13 +249,16 @@ ylib_api(create_region)
 }
 
 ylib_api(render_sprite)
-    ylib_arg(const Script*, script) ylib_arg(const GlTexture*, sprite)
+    ylib_arg(const Script*, script) ylib_arg(const Sprite*, sprite)
     ylib_refarg(const y::wvec2, frame_size) ylib_refarg(const y::wvec2, frame)
     ylib_arg(y::world, rotation) ylib_arg(y::world, depth)
 {
   RenderBatch& batch = stage.get_current_batch();
+  const GlTexture& texture = stage.is_current_normal_buffer() ?
+      sprite->normal : sprite->texture;
+
   y::wvec2 origin = script->get_origin() - frame_size / 2;
-  batch.add_sprite(*sprite, y::ivec2(frame_size),
+  batch.add_sprite(texture, y::ivec2(frame_size),
                    y::fvec2(origin), y::ivec2(frame),
                    depth, rotation, colour::white);
   ylib_void();

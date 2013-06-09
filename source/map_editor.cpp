@@ -224,7 +224,7 @@ void BrushPanel::draw(RenderUtil& util) const
       continue;
     }
 
-    batch.iadd_sprite(e.tileset->get_texture(), Tileset::tile_size,
+    batch.iadd_sprite(e.tileset->get_texture().texture, Tileset::tile_size,
                       *it * Tileset::tile_size, e.tileset->from_index(e.index),
                       0.f, colour::white);
   }
@@ -299,7 +299,8 @@ void TilePanel::update()
 {
   y::roll<y::int32>(_tileset_select, 0, _bank.tilesets.size());
 
-  const GlTexture& tex = _bank.tilesets.get(_tileset_select).get_texture();
+  const GlTexture& tex =
+      _bank.tilesets.get(_tileset_select).get_texture().texture;
   y::int32 tx_max = RenderUtil::to_grid(tex.get_size())[xx];
   y::int32 ty_max = y::min(y::size(7), _bank.tilesets.size());
 
@@ -311,7 +312,7 @@ void TilePanel::draw(RenderUtil& util) const
 {
   // Render panel.
   const Tileset& t = _bank.tilesets.get(_tileset_select);
-  const GlTexture& tex = t.get_texture();
+  const GlTexture& tex = t.get_texture().texture;
 
   _list.draw(util, _bank.tilesets.get_names(), _tileset_select);
 
@@ -570,7 +571,7 @@ void MinimapPanel::draw(RenderUtil& util) const
 
         float d = .8f - layer * .1f;
         y::ivec2 u = Tileset::tile_size * (v + (c - min) * Cell::cell_size);
-        batch.iadd_sprite(t.tileset->get_texture(), Tileset::tile_size,
+        batch.iadd_sprite(t.tileset->get_texture().texture, Tileset::tile_size,
                           u, t.tileset->from_index(t.index), d, colour::white);
       }
     }
@@ -1012,7 +1013,7 @@ void MapEditor::draw_cell_layer(
     y::ivec2 camera = world_to_camera(
         Tileset::tile_size * (*it + coord * Cell::cell_size));
 
-    batch.iadd_sprite(t.tileset->get_texture(), Tileset::tile_size,
+    batch.iadd_sprite(t.tileset->get_texture().texture, Tileset::tile_size,
                       camera, t.tileset->from_index(t.index), 0.f, c);
   }
 }

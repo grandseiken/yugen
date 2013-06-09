@@ -2,8 +2,7 @@
 
 #include <boost/functional/hash.hpp>
 
-void RenderBatch::add_sprite(const GlTexture& sprite,
-                             const y::ivec2& frame_size,
+void RenderBatch::add_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
                              const y::fvec2& origin, const y::ivec2& frame,
                              float depth, float rotation,
                              const y::fvec4& colour)
@@ -15,8 +14,7 @@ void RenderBatch::add_sprite(const GlTexture& sprite,
   _map[bt].emplace_back(bs);
 }
 
-void RenderBatch::iadd_sprite(const GlTexture& sprite,
-                              const y::ivec2& frame_size,
+void RenderBatch::iadd_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
                               const y::ivec2& origin, const y::ivec2& frame,
                               float depth, const y::fvec4& colour)
 {
@@ -326,8 +324,7 @@ void RenderUtil::irender_outline(const y::ivec2& origin, const y::ivec2& size,
   render_outline(y::fvec2(origin), y::fvec2(size), colour);
 }
 
-void RenderUtil::set_sprite(const GlTexture& texture,
-                            const y::ivec2& frame_size)
+void RenderUtil::set_sprite(const GlTexture& texture, const y::ivec2& frame_size)
 {
   _sprite = texture;
   _frame_size = frame_size;
@@ -411,10 +408,6 @@ void RenderUtil::render_batch() const
   _sprite_program.bind_uniform("sprite", _sprite);
   _sprite_program.bind_uniform("frame_size", _frame_size);
   _sprite_program.bind_uniform("frame_count", v);
-  _sprite_program.bind_uniform("use_lightbuffer", bool(_lightbuffer));
-  if (_lightbuffer) {
-    _sprite_program.bind_uniform("lightbuffer", _lightbuffer);
-  }
   bind_pixel_uniforms(_sprite_program);
   _element_buffer.draw_elements(GL_TRIANGLES, 6 * length);
 
@@ -448,16 +441,6 @@ void RenderUtil::irender_sprite(
 {
   render_sprite(sprite, frame_size, y::fvec2(origin),
                 frame, depth, 0.f, colour);
-}
-
-void RenderUtil::set_lightbuffer(const GlFramebuffer& lightbuffer)
-{
-  _lightbuffer = lightbuffer;
-}
-
-void RenderUtil::clear_lightbuffer()
-{
-  _lightbuffer = GlFramebuffer();
 }
 
 y::ivec2 RenderUtil::from_grid(const y::ivec2& grid)

@@ -4,16 +4,22 @@ attribute vec2 pixels;
 attribute vec2 origin;
 attribute float range;
 attribute float intensity;
+
 varying vec2 pixels_coord;
 varying vec2 origin_coord;
+varying vec2 pos_coord;
 varying float range_coord;
 varying float intensity_coord;
 
 void main()
 {
-  gl_Position = pos_from_pixels(pixels);
+  vec4 pos = pos_from_pixels(pixels);
+  gl_Position = pos;
+
   pixels_coord = pixels;
   origin_coord = origin;
+  pos_coord = 0.5 + 0.5 * vec2(pos.x, pos.y);
+
   range_coord = range;
   intensity_coord = intensity;
 }

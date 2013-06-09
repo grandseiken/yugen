@@ -19,6 +19,9 @@ y::world Light::get_max_range() const
 Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
   : _world(world)
   , _gl(gl)
+  , _ambient_light_program(gl.make_program({
+        "/shaders/ambient_light.v.glsl",
+        "/shaders/ambient_light.f.glsl"}))
   , _light_program(gl.make_program({
         "/shaders/light.v.glsl",
         "/shaders/light.f.glsl"}))
@@ -175,8 +178,15 @@ void Lighting::render_traces(
   util.render_lines(lines, {1.f, 1.f, 1.f, .5f});
 }
 
-void Lighting::render_lightbuffer(
+const GLfloat vertex_data[] = {
+    -1.f, -1.f,
+     1.f, -1.f,
+    -1.f, +1.f,
+     1.f, +1.f};
+
+void Lighting::render_scene(
     RenderUtil& util,
+    const GlFramebuffer& colourbuffer, const GlFramebuffer& normalbuffer,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
   // TODO: respect camera bounds? Necessary?
@@ -186,6 +196,22 @@ void Lighting::render_lightbuffer(
   if (!(util.get_resolution() >= y::ivec2())) {
     return;
   }
+
+  // TODO: render to intermediate lightbuffer to avoid giving total lightvalues
+  // greater than one? Or should we allow that?
+  // TODO: coloured lights should be easy now.
+  util.get_gl().enable_depth(false);
+  util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
+
+  // Draw ambient light.
+  auto quad_buffer = util.get_gl().make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data));
+  _ambient_light_program.bind();
+  _ambient_light_program.bind_attribute("position", quad_buffer);
+  _ambient_light_program.bind_uniform("colourbuffer", colourbuffer);
+  util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+  _gl.delete_buffer(quad_buffer);
+
   y::vector<GLfloat> tri_data;
   y::vector<GLfloat> origin_data;
   y::vector<GLfloat> range_data;
@@ -276,10 +302,9 @@ void Lighting::render_lightbuffer(
   auto element_buffer = _gl.make_buffer<GLushort, 1>(
       GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
 
-  util.get_gl().enable_depth(false);
-  util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
-
   _light_program.bind();
+  _light_program.bind_uniform("colourbuffer", colourbuffer);
+  _light_program.bind_uniform("normalbuffer", normalbuffer);
   _light_program.bind_attribute("pixels", tri_buffer);
   _light_program.bind_attribute("origin", origin_buffer);
   _light_program.bind_attribute("range", range_buffer);

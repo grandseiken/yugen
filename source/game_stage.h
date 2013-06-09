@@ -46,7 +46,9 @@ public:
   Script& create_script(
       const LuaFile& file,
       const y::wvec2& origin, const y::wvec2& region);
-  RenderBatch& get_current_batch();
+
+  RenderBatch& get_current_batch() const;
+  bool is_current_normal_buffer() const;
 
   void set_player(Script* script);
   Script* get_player() const;
@@ -65,10 +67,13 @@ private:
   y::wvec2 get_camera_min() const;
   y::wvec2 get_camera_max() const;
 
+  void render_all(bool normal_buffer) const;
+
   const Databank& _bank;
   RenderUtil& _util;
   const GlFramebuffer& _framebuffer;
-  GlFramebuffer _lightbuffer;
+  GlFramebuffer _colourbuffer;
+  GlFramebuffer _normalbuffer;
   const CellMap& _map;
 
   WorldWindow _world;
@@ -88,6 +93,7 @@ private:
   script_list _scripts;
 
   mutable RenderBatch _current_batch;
+  mutable bool _current_is_normal_buffer;
 
 };
 

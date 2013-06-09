@@ -10,7 +10,8 @@ GameStage::GameStage(const Databank& bank,
   : _bank(bank)
   , _util(util)
   , _framebuffer(framebuffer)
-  , _lightbuffer(util.get_gl().make_framebuffer(framebuffer.get_size()))
+  , _colourbuffer(util.get_gl().make_framebuffer(framebuffer.get_size()))
+  , _normalbuffer(util.get_gl().make_framebuffer(framebuffer.get_size()))
   , _map(map)
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
@@ -47,7 +48,8 @@ GameStage::GameStage(const Databank& bank,
 
 GameStage::~GameStage()
 {
-  _util.get_gl().delete_framebuffer(_lightbuffer);
+  _util.get_gl().delete_framebuffer(_colourbuffer);
+  _util.get_gl().delete_framebuffer(_normalbuffer);
 }
 
 const Databank& GameStage::get_bank() const
@@ -275,56 +277,22 @@ void GameStage::draw() const
   y::fvec2 translation = y::fvec2(world_to_camera(y::wvec2()));
   _util.add_translation(translation);
 
-  // Render lightbuffer.
-  _lightbuffer.bind(true, true);
-  _lighting.render_lightbuffer(_util,
-                               get_camera_min(), get_camera_max());
-  _util.set_lightbuffer(_lightbuffer);
-
-  // Render all the tiles in the world at once, batched by texture.
-  _framebuffer.bind(false, false);
+  // Render colour buffer.
   _current_batch.clear();
-  for (auto it = _world.get_cartesian(); it; ++it) {
-    Cell* cell = _world.get_active_window_cell(*it);
-    if (!cell) {
-      continue;
-    }
-    for (auto jt = y::cartesian(Cell::cell_size); jt; ++jt) {
-      y::ivec2 world = Tileset::tile_size * (*jt + *it * Cell::cell_size);
-      if (y::wvec2(world + Tileset::tile_size) <= get_camera_min() ||
-          y::wvec2(world) >= get_camera_max()) {
-        continue;
-      }
-
-      for (y::int32 layer = -Cell::background_layers;
-           layer <= Cell::foreground_layers; ++layer) {
-        const Tile& t = cell->get_tile(layer, *jt);
-        if (!t.tileset) {
-          continue;
-        }
-        // Foreground: .4
-        // Collision layer: .5
-        // Background: .6
-        float d = .5f - layer * .1f;
-
-        _current_batch.add_sprite(
-            t.tileset->get_texture(), Tileset::tile_size,
-            y::fvec2(world), t.tileset->from_index(t.index),
-            d, 0.f, colour::white);
-      }
-    }
-  }
-
-  // Render all scripts which overlap the screen.
-  for (const auto& script : _scripts) {
-    const y::wvec2 min = script->get_origin() - script->get_region() / 2;
-    const y::wvec2 max = script->get_origin() + script->get_region() / 2;
-    if (max > get_camera_min() && min < get_camera_max() &&
-        script->has_function("draw")) {
-      script->call("draw");
-    }
-  }
+  _colourbuffer.bind(true, true);
+  render_all(false);
   _util.render_batch(_current_batch);
+
+  // Render normal buffer.
+  _current_batch.clear();
+  _normalbuffer.bind(true, true);
+  render_all(true);
+  _util.render_batch(_current_batch);
+
+  // Render the scene by the lighting.
+  _framebuffer.bind(false, false);
+  _lighting.render_scene(_util, _colourbuffer, _normalbuffer,
+                         get_camera_min(), get_camera_max());
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
@@ -351,9 +319,14 @@ Script& GameStage::create_script(const LuaFile& file,
   return *s;
 }
 
-RenderBatch& GameStage::get_current_batch()
+RenderBatch& GameStage::get_current_batch() const
 {
   return _current_batch;
+}
+
+bool GameStage::is_current_normal_buffer() const
+{
+  return _current_is_normal_buffer;
 }
 
 void GameStage::set_player(Script* player)
@@ -457,4 +430,52 @@ y::wvec2 GameStage::get_camera_min() const
 y::wvec2 GameStage::get_camera_max() const
 {
   return camera_to_world(y::wvec2(_framebuffer.get_size()));
+}
+
+void GameStage::render_all(bool normal_buffer) const
+{
+  // Render all the tiles in the world at once, batched by texture.
+  for (auto it = _world.get_cartesian(); it; ++it) {
+    Cell* cell = _world.get_active_window_cell(*it);
+    if (!cell) {
+      continue;
+    }
+    for (auto jt = y::cartesian(Cell::cell_size); jt; ++jt) {
+      y::ivec2 world = Tileset::tile_size * (*jt + *it * Cell::cell_size);
+      if (y::wvec2(world + Tileset::tile_size) <= get_camera_min() ||
+          y::wvec2(world) >= get_camera_max()) {
+        continue;
+      }
+
+      for (y::int32 layer = -Cell::background_layers;
+           layer <= Cell::foreground_layers; ++layer) {
+        const Tile& t = cell->get_tile(layer, *jt);
+        if (!t.tileset) {
+          continue;
+        }
+        // Foreground: .4
+        // Collision layer: .5
+        // Background: .6
+        float d = .5f - layer * .1f;
+
+        const GlTexture texture = normal_buffer ?
+            t.tileset->get_texture().normal : t.tileset->get_texture().texture;
+
+        _current_batch.add_sprite(
+            texture, Tileset::tile_size, y::fvec2(world),
+            t.tileset->from_index(t.index), d, 0.f, colour::white);
+      }
+    }
+  }
+
+  // Render all scripts which overlap the screen.
+  _current_is_normal_buffer = normal_buffer;
+  for (const auto& script : _scripts) {
+    const y::wvec2 min = script->get_origin() - script->get_region() / 2;
+    const y::wvec2 max = script->get_origin() + script->get_region() / 2;
+    if (max > get_camera_min() && min < get_camera_max() &&
+        script->has_function("draw")) {
+      script->call("draw");
+    }
+  }
 }

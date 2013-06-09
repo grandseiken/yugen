@@ -6,7 +6,13 @@
 #include "save.h"
 #include "vector.h"
 
-class GlTexture;
+#ifndef SPRITE_DEC
+#define SPRITE_DEC
+struct Sprite {
+  GlTexture texture;
+  GlTexture normal;
+};
+#endif
 namespace proto {
   class Tileset;
 }
@@ -56,10 +62,9 @@ public:
   static const y::ivec2 l;
   static const y::ivec2 r;
 
+  Tileset(const Sprite& texture);
+  const Sprite& get_texture() const;
 
-  Tileset(const GlTexture& texture);
-
-  const GlTexture& get_texture() const;
   const y::ivec2& get_size() const;
   y::size get_tile_count() const;
 
@@ -83,7 +88,7 @@ private:
   // Width and height, in tiles.
   y::ivec2 _size;
 
-  GlTexture _texture;
+  Sprite _texture;
   y::unique<Collision[]> _collision;
 
 };

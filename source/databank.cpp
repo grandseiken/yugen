@@ -5,7 +5,8 @@
 
 Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   : _default_script{"/yedit/missing.lua", ""}
-  , _default_sprite(gl.make_texture("/yedit/missing.png"))
+  , _default_sprite{gl.make_texture("/yedit/missing.png"),
+                    gl.make_texture("/default_normal.png")}
   , _default_tileset(_default_sprite)
   , scripts(_default_script)
   , sprites(_default_sprite)
@@ -26,26 +27,44 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   }
 
   paths.clear();
+  filesystem.list_pattern(paths, "/sprites/**.png");
+  for (const y::string& s : paths) {
+    y::string bare_path;
+    filesystem.barename(bare_path, s);
+    if (bare_path.substr(bare_path.length() - 7) == "_normal") {
+      continue;
+    }
+    y::string normal_path = bare_path + "_normal.png";
+
+    GlTexture texture = gl.make_texture(s);
+    GlTexture normal_texture = filesystem.is_file(normal_path) ?
+        gl.make_texture(normal_path) : _default_sprite.normal;
+
+    sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
+  }
+
+  // Tilesets are available as sprites as well.
+  paths.clear();
   filesystem.list_pattern(paths, "/tiles/**.png");
   for (const y::string& s : paths) {
-    y::string data_path;
-    filesystem.barename(data_path, s);
-    data_path += ".tile";
-    Tileset* tileset = new Tileset(gl.make_texture(s));
+    y::string bare_path;
+    filesystem.barename(bare_path, s);
+    if (bare_path.substr(bare_path.length() - 7) == "_normal") {
+      continue;
+    }
+    y::string data_path = bare_path + ".tile";
+    y::string normal_path = bare_path + "_normal.png";
+
+    GlTexture texture = gl.make_texture(s);
+    GlTexture normal_texture = filesystem.is_file(normal_path) ?
+        gl.make_texture(normal_path) : _default_sprite.normal;
+
+    Tileset* tileset = new Tileset({texture, normal_texture});
     if (filesystem.exists(data_path)) {
       tileset->load(filesystem, *this, data_path);
     }
     tilesets.insert(data_path, y::move_unique(tileset));
-  }
-
-  // Don't clear; make tilesets accessible as sprites too.
-  filesystem.list_pattern(paths, "/sprites/**.png");
-  for (const y::string& s : paths) {
-    GlTexture t = gl.get_texture(s);
-    if (!t) {
-      t = gl.make_texture(s);
-    }
-    sprites.insert(s, y::move_unique(new GlTexture(t)));
+    sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
   }
 
   paths.clear();

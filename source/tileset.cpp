@@ -13,8 +13,8 @@ const y::ivec2 Tileset::d{tile_size[xx] / 2, tile_size[yy]};
 const y::ivec2 Tileset::l{0, tile_size[yy] / 2};
 const y::ivec2 Tileset::r{tile_size[xx], tile_size[yy] / 2};
 
-Tileset::Tileset(const GlTexture& texture)
-  : _size{texture.get_size() / tile_size}
+Tileset::Tileset(const Sprite& texture)
+  : _size{texture.texture.get_size() / tile_size}
   , _texture(texture)
   , _collision(new Collision[get_tile_count()])
 {
@@ -23,7 +23,7 @@ Tileset::Tileset(const GlTexture& texture)
   }
 }
 
-const GlTexture& Tileset::get_texture() const
+const Sprite& Tileset::get_texture() const
 {
   return _texture;
 }
