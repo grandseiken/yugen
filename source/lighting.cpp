@@ -233,7 +233,7 @@ void Lighting::render_lightbuffer(
       // Arranging in a triangle fan causes tears in the triangles due to slight
       // inaccuracies, so we use a fan with three triangles per actual triangle
       // to make sure the edges line up exactly.
-      // TODO: there is still some occasional tearing!
+      // TODO: there is still occassional tearing.
       y::size origin_index = tri_data.size() / 2;
 
       tri_data.emplace_back(origin[xx]);
