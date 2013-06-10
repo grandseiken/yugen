@@ -71,10 +71,13 @@ private:
 
   const Databank& _bank;
   RenderUtil& _util;
+  const CellMap& _map;
+
   const GlFramebuffer& _framebuffer;
   GlFramebuffer _colourbuffer;
   GlFramebuffer _normalbuffer;
-  const CellMap& _map;
+  GlFramebuffer _lightbuffer;
+  GlProgram _scene_program;
 
   WorldWindow _world;
   Collision _collision;

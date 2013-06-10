@@ -377,15 +377,12 @@ void RenderUtil::render_batch() const
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa]});
   }
 
-  _pixels_buffer.reupload_data(_pixels_data.data(), sizeof(float) * 8 * length);
-  _rotation_buffer.reupload_data(_rotation_data.data(),
-                                 sizeof(float) * 4 * length);
-  _frame_index_buffer.reupload_data(_frame_index_data.data(),
-                                    sizeof(float) * 8 * length);
-  _origin_buffer.reupload_data(_origin_data.data(), sizeof(float) * 8 * length);
-  _depth_buffer.reupload_data(_depth_data.data(), sizeof(float) * 4 * length);
-  _colour_buffer.reupload_data(_colour_data.data(),
-                               sizeof(float) * 16 * length);
+  _pixels_buffer.reupload_data(_pixels_data);
+  _rotation_buffer.reupload_data(_rotation_data);
+  _frame_index_buffer.reupload_data(_frame_index_data);
+  _origin_buffer.reupload_data(_origin_data);
+  _depth_buffer.reupload_data(_depth_data);
+  _colour_buffer.reupload_data(_colour_data);
 
   if (_element_data.size() / 6 < length) {
     for (y::size i = _element_data.size() / 6; i < length; ++i) {

@@ -9,10 +9,14 @@ GameStage::GameStage(const Databank& bank,
                      const CellMap& map, const y::wvec2& coord)
   : _bank(bank)
   , _util(util)
+  , _map(map)
   , _framebuffer(framebuffer)
   , _colourbuffer(util.get_gl().make_framebuffer(framebuffer.get_size()))
   , _normalbuffer(util.get_gl().make_framebuffer(framebuffer.get_size()))
-  , _map(map)
+  , _lightbuffer(util.get_gl().make_framebuffer(framebuffer.get_size()))
+  , _scene_program(util.get_gl().make_program({
+        "/shaders/scene.v.glsl",
+        "/shaders/scene.f.glsl"}))
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
   , _collision(_world)
@@ -48,8 +52,10 @@ GameStage::GameStage(const Databank& bank,
 
 GameStage::~GameStage()
 {
+  _util.get_gl().delete_program(_scene_program);
   _util.get_gl().delete_framebuffer(_colourbuffer);
   _util.get_gl().delete_framebuffer(_normalbuffer);
+  _util.get_gl().delete_framebuffer(_lightbuffer);
 }
 
 const Databank& GameStage::get_bank() const
@@ -272,6 +278,12 @@ void GameStage::update()
   _lighting.recalculate_traces(get_camera_min(), get_camera_max());
 }
 
+const GLfloat vertex_data[] = {
+    -1.f, -1.f,
+     1.f, -1.f,
+    -1.f, +1.f,
+     1.f, +1.f};
+
 void GameStage::draw() const
 {
   y::fvec2 translation = y::fvec2(world_to_camera(y::wvec2()));
@@ -290,9 +302,22 @@ void GameStage::draw() const
   _util.render_batch(_current_batch);
 
   // Render the scene by the lighting.
+  _lightbuffer.bind(true, false);
+  _lighting.render_lightbuffer(_util, _normalbuffer,
+                               get_camera_min(), get_camera_max());
+
+  // Draw scene with lighting.
+  _util.get_gl().enable_depth(false);
+  _util.get_gl().enable_blend(false);
   _framebuffer.bind(false, false);
-  _lighting.render_scene(_util, _colourbuffer, _normalbuffer,
-                         get_camera_min(), get_camera_max());
+  auto quad_buffer = _util.get_gl().make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STREAM_DRAW, vertex_data, sizeof(vertex_data));
+  _scene_program.bind();
+  _scene_program.bind_attribute("position", quad_buffer);
+  _scene_program.bind_uniform("colourbuffer", _colourbuffer);
+  _scene_program.bind_uniform("lightbuffer", _lightbuffer);
+  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+  _util.get_gl().delete_buffer(quad_buffer);
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {

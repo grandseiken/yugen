@@ -19,18 +19,27 @@ y::world Light::get_max_range() const
 Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
   : _world(world)
   , _gl(gl)
-  , _ambient_light_program(gl.make_program({
-        "/shaders/ambient_light.v.glsl",
-        "/shaders/ambient_light.f.glsl"}))
-  , _light_program(gl.make_program({
-        "/shaders/light.v.glsl",
-        "/shaders/light.f.glsl"}))
+  , _point_light_program(gl.make_program({
+        "/shaders/point_light.v.glsl",
+        "/shaders/point_light.f.glsl"}))
+  , _tri_buffer(gl.make_buffer<GLfloat, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _origin_buffer(gl.make_buffer<GLfloat, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _range_buffer(gl.make_buffer<GLfloat, 1>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _intensity_buffer(
+      gl.make_buffer<GLfloat, 1>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _element_buffer(
+      gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_STREAM_DRAW))
 {
 }
 
 Lighting::~Lighting()
 {
-  _gl.delete_program(_light_program);
+  _gl.delete_buffer(_tri_buffer);
+  _gl.delete_buffer(_origin_buffer);
+  _gl.delete_buffer(_range_buffer);
+  _gl.delete_buffer(_intensity_buffer);
+  _gl.delete_buffer(_element_buffer);
+  _gl.delete_program(_point_light_program);
 }
 
 bool Lighting::trace_key::operator==(const trace_key& key) const
@@ -178,15 +187,8 @@ void Lighting::render_traces(
   util.render_lines(lines, {1.f, 1.f, 1.f, .5f});
 }
 
-const GLfloat vertex_data[] = {
-    -1.f, -1.f,
-     1.f, -1.f,
-    -1.f, +1.f,
-     1.f, +1.f};
-
-void Lighting::render_scene(
-    RenderUtil& util,
-    const GlFramebuffer& colourbuffer, const GlFramebuffer& normalbuffer,
+void Lighting::render_lightbuffer(
+    RenderUtil& util, const GlFramebuffer& normalbuffer,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
   // TODO: respect camera bounds? Necessary?
@@ -197,21 +199,7 @@ void Lighting::render_scene(
     return;
   }
 
-  // TODO: render to intermediate lightbuffer to avoid giving total lightvalues
-  // greater than one? Or should we allow that?
   // TODO: coloured lights should be easy now.
-  util.get_gl().enable_depth(false);
-  util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
-
-  // Draw ambient light.
-  auto quad_buffer = util.get_gl().make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data));
-  _ambient_light_program.bind();
-  _ambient_light_program.bind_attribute("position", quad_buffer);
-  _ambient_light_program.bind_uniform("colourbuffer", colourbuffer);
-  util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
-  _gl.delete_buffer(quad_buffer);
-
   y::vector<GLfloat> tri_data;
   y::vector<GLfloat> origin_data;
   y::vector<GLfloat> range_data;
@@ -245,6 +233,7 @@ void Lighting::render_scene(
       // Arranging in a triangle fan causes tears in the triangles due to slight
       // inaccuracies, so we use a fan with three triangles per actual triangle
       // to make sure the edges line up exactly.
+      // TODO: there is still some occasional tearing!
       y::size origin_index = tri_data.size() / 2;
 
       tri_data.emplace_back(origin[xx]);
@@ -291,32 +280,22 @@ void Lighting::render_scene(
     }
   }
 
-  auto tri_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, tri_data);
-  auto origin_buffer = _gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, origin_data);
-  auto range_buffer = _gl.make_buffer<GLfloat, 1>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, range_data);
-  auto intensity_buffer = _gl.make_buffer<GLfloat, 1>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, intensity_data);
-  auto element_buffer = _gl.make_buffer<GLushort, 1>(
-      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
+  _tri_buffer.reupload_data(tri_data);
+  _origin_buffer.reupload_data(origin_data);
+  _range_buffer.reupload_data(range_data);
+  _intensity_buffer.reupload_data(intensity_data);
+  _element_buffer.reupload_data(element_data);
 
-  _light_program.bind();
-  _light_program.bind_uniform("colourbuffer", colourbuffer);
-  _light_program.bind_uniform("normalbuffer", normalbuffer);
-  _light_program.bind_attribute("pixels", tri_buffer);
-  _light_program.bind_attribute("origin", origin_buffer);
-  _light_program.bind_attribute("range", range_buffer);
-  _light_program.bind_attribute("intensity", intensity_buffer);
-  util.bind_pixel_uniforms(_light_program);
-  element_buffer.draw_elements(GL_TRIANGLES, element_data.size());
-
-  _gl.delete_buffer(tri_buffer);
-  _gl.delete_buffer(origin_buffer);
-  _gl.delete_buffer(range_buffer);
-  _gl.delete_buffer(intensity_buffer);
-  _gl.delete_buffer(element_buffer);
+  util.get_gl().enable_depth(false);
+  util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
+  _point_light_program.bind();
+  _point_light_program.bind_uniform("normalbuffer", normalbuffer);
+  _point_light_program.bind_attribute("pixels", _tri_buffer);
+  _point_light_program.bind_attribute("origin", _origin_buffer);
+  _point_light_program.bind_attribute("range", _range_buffer);
+  _point_light_program.bind_attribute("intensity", _intensity_buffer);
+  util.bind_pixel_uniforms(_point_light_program);
+  _element_buffer.draw_elements(GL_TRIANGLES, element_data.size());
 }
 
 Lighting::world_geometry::world_geometry()

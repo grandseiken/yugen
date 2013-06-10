@@ -1,4 +1,3 @@
-uniform sampler2D colourbuffer;
 uniform sampler2D normalbuffer;
 
 varying vec2 pixels_coord;
@@ -32,7 +31,6 @@ void main()
   // Scale by the distance from the origin.
   vec2 light_dir = dir_v * (dist / range);
 
-  vec4 colour = texture2D(colourbuffer, pos_coord);
   vec4 normal = texture2D(normalbuffer, pos_coord);
 
   // Convert texture normal values to world normal values.
@@ -54,5 +52,5 @@ void main()
   normal_world.y = -normal_world.y;
   float light = dot(normal_world, light_dir_world) * intensity;
 
-  gl_FragColor = vec4(colour.r, colour.g, colour.b, light);
+  gl_FragColor = vec4(1.0, 1.0, 1.0, light);
 }

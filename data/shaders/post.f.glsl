@@ -6,7 +6,7 @@ uniform vec2 bayer_off;
 uniform int bayer_frame;
 varying vec2 tex_coord;
 
-const int colours_per_channel = 8;
+const int colours_per_channel = 12;
 const float div = 1.0 / (colours_per_channel - 1);
 const float pi = 3.1415926536;
 // Make sure no direction aligns exactly with an axis.

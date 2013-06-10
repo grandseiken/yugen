@@ -123,7 +123,6 @@ void Yugen::draw() const
   }
 
   // Render the game.
-  _framebuffer.bind(true, true);
   _util.set_resolution(_framebuffer.get_size());
   draw_next();
 

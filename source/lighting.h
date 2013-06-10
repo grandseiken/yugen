@@ -52,9 +52,8 @@ public:
   void render_traces(
       RenderUtil& util,
       const y::wvec2& camera_min, const y::wvec2& camera_max) const;
-  void render_scene(
-      RenderUtil& util,
-      const GlFramebuffer& colourbuffer, const GlFramebuffer& normalbuffer,
+  void render_lightbuffer(
+      RenderUtil& util, const GlFramebuffer& normalbuffer,
       const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
 private:
@@ -89,8 +88,13 @@ private:
 
   const WorldWindow& _world;
   GlUtil& _gl;
-  GlProgram _ambient_light_program;
-  GlProgram _light_program;
+  GlProgram _point_light_program;
+
+  GlBuffer<float, 2> _tri_buffer;
+  GlBuffer<float, 2> _origin_buffer;
+  GlBuffer<float, 1> _range_buffer;
+  GlBuffer<float, 1> _intensity_buffer;
+  GlBuffer<GLushort, 1> _element_buffer;
 
   trace_results _trace_results;
 
