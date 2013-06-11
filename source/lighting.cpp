@@ -198,8 +198,6 @@ void Lighting::render_lightbuffer(
   if (!(util.get_resolution() >= y::ivec2())) {
     return;
   }
-
-  // TODO: coloured lights should be easy now.
   y::vector<GLfloat> tri_data;
   y::vector<GLfloat> origin_data;
   y::vector<GLfloat> range_data;

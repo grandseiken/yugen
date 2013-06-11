@@ -6,6 +6,13 @@ varying vec2 pos_coord;
 varying float range_coord;
 varying vec4 colour_coord;
 
+// TODO: specular lighting.
+// Possible strategies!
+// A: in normal-map, store x-normal, y-normal and specular coefficient.
+// Associate everything else with a tileset.
+// B: in normal-map, store x-normal, y-normal and specular power.
+// In another coefficient map, store the coefficients of direct, indirect
+// and specular lighting.
 const float direct_coefficient = 0.6;
 const float indirect_coefficient = 0.4;
 
