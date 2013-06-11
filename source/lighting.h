@@ -17,9 +17,10 @@ struct Light {
   Light();
 
   y::world get_max_range() const;
-
-  y::world intensity;
   y::world range;
+
+  // Red, green, blue, and intensity.
+  y::fvec4 colour;
 };
 
 // Keeps a record of Lights and handles fancy lighting algorithms.
@@ -93,7 +94,7 @@ private:
   GlBuffer<float, 2> _tri_buffer;
   GlBuffer<float, 2> _origin_buffer;
   GlBuffer<float, 1> _range_buffer;
-  GlBuffer<float, 1> _intensity_buffer;
+  GlBuffer<float, 4> _colour_buffer;
   GlBuffer<GLushort, 1> _element_buffer;
 
   trace_results _trace_results;

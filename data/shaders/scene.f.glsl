@@ -2,7 +2,7 @@ uniform sampler2D colourbuffer;
 uniform sampler2D lightbuffer;
 varying vec2 tex_coord;
 
-const float ambient_light = 0.1;
+const float ambient_light = 0.05;
 
 void main()
 {

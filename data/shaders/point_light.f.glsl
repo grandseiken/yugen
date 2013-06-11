@@ -4,10 +4,10 @@ varying vec2 pixels_coord;
 varying vec2 origin_coord;
 varying vec2 pos_coord;
 varying float range_coord;
-varying float intensity_coord;
+varying vec4 colour_coord;
 
-const float direct_coefficient = 0.7;
-const float indirect_coefficient = 0.3;
+const float direct_coefficient = 0.6;
+const float indirect_coefficient = 0.4;
 
 // Given coords in [-1, 1] X [-1, 1], returns vector v such that v.x and v.y
 // are the coords scaled to the unit circle, v.z is positive, and v has
@@ -36,9 +36,6 @@ void main()
   if (dist_sq > range_sq) {
     discard;
   }
-
-  // Calculate intensity at this point.
-  float intensity = intensity_coord * (1.0 - dist_sq / range_sq);
   float range_inv = inversesqrt(range_sq);
   float dist_inv = inversesqrt(dist_sq);
 
@@ -55,6 +52,8 @@ void main()
 
   // Convert texture normal values to world normal values.
   // Normal has x, y in [0, 1], scale and transform to world normal.
+  // TODO: is it possible to discard early if the normalbuffer was never written
+  // to, somehow?
   vec4 normal_tex = texture2D(normalbuffer, pos_coord);
   vec3 normal_world =
       sq_coords_to_world_normal(2.0 * vec2(normal_tex.x, normal_tex.y) - 1.0);
@@ -72,5 +71,8 @@ void main()
   float total_light = direct_coefficient * max(0.0, direct_light) +
                       indirect_coefficient * max(0.0, indirect_light);
 
-  gl_FragColor = vec4(1.0, 1.0, 1.0, total_light * intensity);
+  // Calculate intensity at this point.
+  vec4 colour = colour_coord;
+  colour.a *= total_light * (1.0 - dist_sq / range_sq);
+  gl_FragColor = colour;
 }

@@ -6,8 +6,8 @@
 #include <boost/functional/hash.hpp>
 
 Light::Light()
-  : intensity(1.)
-  , range(1.)
+  : range(1.)
+  , colour{1.f, 1.f, 1.f, 1.f}
 {
 }
 
@@ -25,8 +25,8 @@ Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
   , _tri_buffer(gl.make_buffer<GLfloat, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _origin_buffer(gl.make_buffer<GLfloat, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _range_buffer(gl.make_buffer<GLfloat, 1>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _intensity_buffer(
-      gl.make_buffer<GLfloat, 1>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _colour_buffer(
+      gl.make_buffer<GLfloat, 4>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _element_buffer(
       gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_STREAM_DRAW))
 {
@@ -37,7 +37,7 @@ Lighting::~Lighting()
   _gl.delete_buffer(_tri_buffer);
   _gl.delete_buffer(_origin_buffer);
   _gl.delete_buffer(_range_buffer);
-  _gl.delete_buffer(_intensity_buffer);
+  _gl.delete_buffer(_colour_buffer);
   _gl.delete_buffer(_element_buffer);
   _gl.delete_program(_point_light_program);
 }
@@ -203,7 +203,7 @@ void Lighting::render_lightbuffer(
   y::vector<GLfloat> tri_data;
   y::vector<GLfloat> origin_data;
   y::vector<GLfloat> range_data;
-  y::vector<GLfloat> intensity_data;
+  y::vector<GLfloat> colour_data;
   y::vector<GLushort> element_data;
 
   source_list sources;
@@ -241,7 +241,10 @@ void Lighting::render_lightbuffer(
       origin_data.emplace_back(origin[xx]);
       origin_data.emplace_back(origin[yy]);
       range_data.emplace_back(light->range);
-      intensity_data.emplace_back(light->intensity);
+      colour_data.emplace_back(light->colour[rr]);
+      colour_data.emplace_back(light->colour[gg]);
+      colour_data.emplace_back(light->colour[bb]);
+      colour_data.emplace_back(light->colour[aa]);
 
       // Set up the vertices.
       for (y::size i = 0; i < trace.size(); ++i) {
@@ -251,7 +254,10 @@ void Lighting::render_lightbuffer(
         origin_data.emplace_back(origin[xx]);
         origin_data.emplace_back(origin[yy]);
         range_data.emplace_back(light->range);
-        intensity_data.emplace_back(light->intensity);
+        colour_data.emplace_back(light->colour[rr]);
+        colour_data.emplace_back(light->colour[gg]);
+        colour_data.emplace_back(light->colour[bb]);
+        colour_data.emplace_back(light->colour[aa]);
       }
 
       // Set up the indices.
@@ -283,7 +289,7 @@ void Lighting::render_lightbuffer(
   _tri_buffer.reupload_data(tri_data);
   _origin_buffer.reupload_data(origin_data);
   _range_buffer.reupload_data(range_data);
-  _intensity_buffer.reupload_data(intensity_data);
+  _colour_buffer.reupload_data(colour_data);
   _element_buffer.reupload_data(element_data);
 
   util.get_gl().enable_depth(false);
@@ -293,7 +299,7 @@ void Lighting::render_lightbuffer(
   _point_light_program.bind_attribute("pixels", _tri_buffer);
   _point_light_program.bind_attribute("origin", _origin_buffer);
   _point_light_program.bind_attribute("range", _range_buffer);
-  _point_light_program.bind_attribute("intensity", _intensity_buffer);
+  _point_light_program.bind_attribute("colour", _colour_buffer);
   util.bind_pixel_uniforms(_point_light_program);
   _element_buffer.draw_elements(GL_TRIANGLES, element_data.size());
 }

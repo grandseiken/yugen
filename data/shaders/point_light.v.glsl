@@ -3,13 +3,13 @@
 attribute vec2 pixels;
 attribute vec2 origin;
 attribute float range;
-attribute float intensity;
+attribute vec4 colour;
 
 varying vec2 pixels_coord;
 varying vec2 origin_coord;
 varying vec2 pos_coord;
 varying float range_coord;
-varying float intensity_coord;
+varying vec4 colour_coord;
 
 void main()
 {
@@ -21,5 +21,5 @@ void main()
   pos_coord = 0.5 + 0.5 * vec2(pos.x, pos.y);
 
   range_coord = range;
-  intensity_coord = intensity;
+  colour_coord = colour;
 }

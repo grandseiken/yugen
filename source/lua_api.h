@@ -408,14 +408,12 @@ ylib_api(body_check)
 /******************************************************************************/
 // Lighting API
 /******************************************************************************/
-
 ylib_api(create_light)
     ylib_arg(Script*, script)
-    ylib_arg(y::world, range) ylib_arg(y::world, intensity)
+    ylib_arg(y::world, range)
 {
   Light* light = stage.get_lighting().create_obj(*script);
   light->range = range;
-  light->intensity = intensity;
   ylib_return(light);
 }
 
@@ -446,15 +444,43 @@ ylib_api(set_light_range)
   ylib_void();
 }
 
+ylib_api(get_light_r)
+    ylib_arg(const Light*, light)
+{
+  ylib_return(light->colour[rr]);
+}
+
+ylib_api(get_light_g)
+    ylib_arg(const Light*, light)
+{
+  ylib_return(light->colour[gg]);
+}
+
+ylib_api(get_light_b)
+    ylib_arg(const Light*, light)
+{
+  ylib_return(light->colour[bb]);
+}
+
 ylib_api(get_light_intensity)
     ylib_arg(const Light*, light)
 {
-  ylib_return(light->intensity);
+  ylib_return(light->colour[aa]);
+}
+
+ylib_api(set_light_colour)
+    ylib_arg(Light*, light)
+    ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
+{
+  light->colour[rr] = r;
+  light->colour[gg] = g;
+  light->colour[bb] = b;
+  ylib_void();
 }
 
 ylib_api(set_light_intensity)
     ylib_arg(Light*, light) ylib_arg(y::world, intensity)
 {
-  light->intensity = intensity;
+  light->colour[aa] = intensity;
   ylib_void();
 }

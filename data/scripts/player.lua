@@ -9,7 +9,8 @@ local up_check, down_check, left_check, right_check =
     create_all_checks(self, vec(0, 8), vec(6, 16))
 
 -- Test light.
-local light = create_light(self, 256, 1)
+local light = create_light(self, 256)
+set_light_colour(light, 1, 1, 1)
 
 -- Jump constants.
 local JUMP_STAGE_NONE = 0
