@@ -4,7 +4,7 @@ MILESTONES
  + DONE: Lighting using radial corner swoop / stencil buffer algorithm
  + DONE: World rotations and gravity
  + Normal / bump mapping, specular mapping
- + Water, mirrors, procedural fog, weather, lightning, snow, etc
+ + Water, mirrors, procedural fog, weather, lightning, snow, etc i.e. PERLIN
  + Physics, hook shot, long shot, morph ball, etc
  + Terrain modification may be unecessary if scripts are cheap enough
 
