@@ -26,6 +26,22 @@ struct DefaultGenerator {
   }
 };
 
+// Generalised vector generator.
+template<typename T, y::size N>
+struct DefaultGenerator<y::vec<T, N>> : DefaultGenerator<T> {
+  using DefaultGenerator<T>::DefaultGenerator;
+
+  typedef y::vec<T, N> V;
+  y::vec<T, N> operator()()
+  {
+    V v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = DefaultGenerator<T>::operator()();
+    }
+    return v;
+  }
+};
+
 // Arbitrary-dimensional perlin noise over values of type T, using random number
 // generator of type G. G must have overload T operator()() which generates
 // the next random T (in the desired range).
@@ -121,7 +137,7 @@ void Perlin<T, G>::generate_layer(field& output,
     return;
   }
 
-  // Build lookup table for each offset.
+  /// Build lookup table for each offset.
   typedef y::vector<float> coefficient_list;
   y::vector<coefficient_list> coefficient_map;
   for (auto it = y::cartesian(scale_vec); it; ++it) {
@@ -158,7 +174,7 @@ void Perlin<T, G>::generate_layer(field& output,
 
     // Loop through the 2^N grid-corners (*it in {0, 1}^N), and add their
     // contribution to the value.
-    T value(0);
+    T value{};
     y::size i = 0;
     const coefficient_list& list =
         coefficient_map[grid_offset[xx] + scale * grid_offset[yy]];
@@ -203,7 +219,7 @@ void Perlin<T, G>::generate_perlin(
     size[i] = grid_count * scale;
   }
   for (auto it = y::cartesian(size); it; ++it) {
-    T out(0);
+    T out{};
     for (y::size i = 0; i < layers; ++i) {
       out += field_lookup<N>(layer_data[i], layer_side_lengths[i], *it);
     }

@@ -238,9 +238,14 @@ void Yugen::recording_render(const GlFramebuffer& source) const
 #include "perlin.h"
 void test_perlin()
 {
-  Perlin<float> p;
-  Perlin<float>::field f;
-  p.generate_perlin<3>(f, 16, 16, 5);
+  typedef Perlin<y::fvec2> perlin_fvec2;
+  perlin_fvec2 p;
+  perlin_fvec2::field f;
+  p.generate_perlin<3>(f, 8, 8, 5);
+
+  for (const auto& g : f) {
+    std::cout << g << std::endl;
+  }
 }
 
 y::int32 main(y::int32 argc, char** argv)
