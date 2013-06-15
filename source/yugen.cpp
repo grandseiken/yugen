@@ -240,16 +240,7 @@ void test_perlin()
 {
   Perlin<float> p;
   Perlin<float>::field f;
-  p.generate_perlin<3>(f, 4, 4, 5);
-
-  std::cout << std::cout.precision(3) << std::endl;
-  for (y::size i = 0; i < f.size(); ++i) {
-    if (i % 256 == 0) {
-      std::cout << std::endl;
-    }
-    std::cout << f[i] << "\t";
-  }
-  std::cout << std::endl;
+  p.generate_perlin<3>(f, 16, 16, 5);
 }
 
 y::int32 main(y::int32 argc, char** argv)

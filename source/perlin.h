@@ -98,40 +98,77 @@ void Perlin<T, G>::generate_layer(field& output,
 
   sv grid_corners;
   sv grid_size;
+  sv scale_vec;
   for (y::size i = 0; i < N; ++i) {
     grid_corners[i] = 2;
     grid_size[i] = grid_count;
+    scale_vec[i] = scale;
   }
 
-  // Loop through all the points in the output.
-  for (auto it = y::cartesian(scale * grid_size); it; ++it) {
-    sv truncated_grid = *it / scale;
+  // Special case: if scale is 1, just output directly; no interpolation is
+  // necessary.
+  if (scale == 1) {
+    generate_field<N>(output, grid_count);
+    return;
+  }
 
-    // The position of this point within its grid-cell, in [0, 1)^N.
-    fv cell_point = fv(*it) / scale - fv(truncated_grid);
+  // Special case: if grid_count is 1 there is only one value; just output it.
+  if (grid_count == 1) {
+    const T& value = field_lookup(f, grid_count, sv());
+    for (auto it = y::cartesian(scale_vec); it; ++it) {
+      output.emplace_back(value);
+    }
+    return;
+  }
+
+  // Build lookup table for each offset.
+  typedef y::vector<float> coefficient_list;
+  y::vector<coefficient_list> coefficient_map;
+  for (auto it = y::cartesian(scale_vec); it; ++it) {
+    // Position of offset within grid-cell, in [0, 1)^N.
+    fv cell_point = fv(*it) / scale;
 
     // Applying smoothing function to soften the interpolation.
     // TODO: allow custom smoothing functions?
     cell_point = 3.f * y::pow(cell_point, 2.f) - 2.f * y::pow(cell_point, 3.f);
 
     // Loop through the 2^N grid-corners (*it in {0, 1}^N), and add their
-    // contribution to the value.
-    T value(0);
+    // coefficients to the map. These coefficients linearly interpolate the
+    // values at the corners through the cell (with respect to the smoothed
+    // offset).
+    coefficient_map.emplace_back();
+    coefficient_list& list = *(coefficient_map.end() - 1);
     for (auto it = y::cartesian(grid_corners); it; ++it) {
-      sv corner = (*it + truncated_grid).euclidean_mod(grid_size);
-
-      // Calculate the coefficient of this corner. These coefficients linearly
-      // interpolate the values at the corners through the cell (with respect to
-      // the smoothed point).
       float coefficient = 1;
       for (y::size i = 0; i < N; ++i) {
         y::size c = (*it)[i];
         coefficient *= c * cell_point[i] + (1 - c) * (1 - cell_point[i]);
       }
-
-      value += coefficient * field_lookup(f, grid_count, corner);
+      list.push_back(coefficient);
     }
+  }
 
+  // Loop through all the points in the output.
+  for (auto it = y::cartesian(scale * grid_size); it; ++it) {
+    sv grid_offset;
+    for (y::size i = 0; i < N; ++i) {
+      grid_offset[i] = (*it)[i] % scale;
+    }
+    sv truncated_grid = *it / scale;
+
+    // Loop through the 2^N grid-corners (*it in {0, 1}^N), and add their
+    // contribution to the value.
+    T value(0);
+    y::size i = 0;
+    const coefficient_list& list =
+        coefficient_map[grid_offset[xx] + scale * grid_offset[yy]];
+    for (auto it = y::cartesian(grid_corners); it; ++it) {
+      sv corner = *it + truncated_grid;
+      for (y::size j = 0; j < N; ++j) {
+        corner[j] %= grid_count;
+      }
+      value += list[i++] * field_lookup(f, grid_count, corner);
+    }
     output.emplace_back(value);
   }
 }
