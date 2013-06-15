@@ -375,6 +375,36 @@ namespace y {
   }
 
   template<typename T, y::size N>
+  vec<T, N> pow(const T& a, const vec<T, N>& b)
+  {
+    vec<T, N> v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = pow(a, b[i]);
+    }
+    return v;
+  }
+
+  template<typename T, y::size N>
+  vec<T, N> pow(const vec<T, N>& a, const T& b)
+  {
+    vec<T, N> v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = pow(a[i], b);
+    }
+    return v;
+  }
+
+  template<typename T, y::size N>
+  vec<T, N> pow(const vec<T, N>& a, const vec<T, N>& b)
+  {
+    vec<T, N> v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = pow(a[i], b[i]);
+    }
+    return v;
+  }
+
+  template<typename T, y::size N>
   vec<T, N> min(const vec<T, N>& a, const vec<T, N>& b)
   {
     vec<T, N> v;

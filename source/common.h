@@ -54,6 +54,11 @@ namespace y {
     return std::fabs(t);
   }
   template<typename T>
+  T pow (const T& a, const T& b)
+  {
+    return std::pow(a, b);
+  }
+  template<typename T>
   T min(const T& a, const T& b)
   {
     return std::min(a, b);

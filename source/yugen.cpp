@@ -235,8 +235,27 @@ void Yugen::recording_render(const GlFramebuffer& source) const
   }
 }
 
+#include "perlin.h"
+void test_perlin()
+{
+  Perlin<float> p;
+  Perlin<float>::field f;
+  p.generate_perlin<3>(f, 16, 16, 2);
+
+  std::cout << std::cout.precision(3) << std::endl;
+  for (y::size i = 0; i < f.size(); ++i) {
+    if (i % 256 == 0) {
+      std::cout << std::endl;
+    }
+    std::cout << f[i] << "\t";
+  }
+  std::cout << std::endl;
+}
+
 y::int32 main(y::int32 argc, char** argv)
 {
+  test_perlin();
+
   y::string_vector args;
   for (y::int32 i = 1; i < argc; ++i) {
     args.emplace_back(argv[i]);
