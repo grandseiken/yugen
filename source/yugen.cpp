@@ -240,7 +240,7 @@ void test_perlin()
 {
   Perlin<float> p;
   Perlin<float>::field f;
-  p.generate_perlin<3>(f, 16, 16, 2);
+  p.generate_perlin<3>(f, 4, 4, 5);
 
   std::cout << std::cout.precision(3) << std::endl;
   for (y::size i = 0; i < f.size(); ++i) {
