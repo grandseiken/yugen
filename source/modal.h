@@ -185,7 +185,7 @@ private:
 
 // A stack of modes. The topmost mode receives all events and controls the
 // program flow. Modes are rendered from back to front.
-class ModalStack {
+class ModalStack : public y::no_copy {
 public:
 
   void push(y::unique<Modal> modal);

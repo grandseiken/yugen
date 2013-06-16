@@ -18,7 +18,7 @@ void main()
   vec4 cel = vec4(cel_shade_clamp, cel_shade_clamp, cel_shade_clamp, 1.0);
   vec4 c_light = light + 0.5 * cel;
   c_light = c_light - mod(c_light, cel);
-  light = cel_shade_mix *  c_light + (1 - cel_shade_mix) * light;
+  light = cel_shade_mix * c_light + (1 - cel_shade_mix) * light;
 
   gl_FragColor = colour * light;
 }

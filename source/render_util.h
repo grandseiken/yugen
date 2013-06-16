@@ -22,7 +22,7 @@ namespace colour {
 }
 
 // Helper class to automatically batch renders using the same texture.
-class RenderBatch {
+class RenderBatch : public y::no_copy {
 public:
 
   struct batched_texture {
@@ -67,7 +67,7 @@ private:
 
 class Window;
 
-class RenderUtil {
+class RenderUtil : public y::no_copy {
 public:
 
   static const y::int32 native_width = 640;

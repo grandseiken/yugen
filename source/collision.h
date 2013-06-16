@@ -10,7 +10,7 @@ class WorldWindow;
 
 // A Body is, thus far, a rectangular area of some size, whose center
 // is offset some amount from the origin of the source Script.
-struct Body {
+struct Body : y::no_copy {
   Body();
 
   // Get bounds (on x-axis). Potentially this could be made virtual and

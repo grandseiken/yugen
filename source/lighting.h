@@ -13,7 +13,7 @@ class WorldWindow;
 
 // Point lights only, so far!
 // TODO: cone lights, plane lights.
-struct Light {
+struct Light : y::no_copy {
   Light();
 
   y::world get_max_range() const;

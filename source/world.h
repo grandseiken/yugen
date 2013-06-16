@@ -20,7 +20,7 @@ struct Geometry {
 // x-coordinate. The OrderedGeometry groups several buckets together, one per
 // x-cell, each bucket's elements having maximum x-coordinate in that cell.
 typedef y::ordered_set<Geometry, Geometry::order> OrderedBucket;
-struct OrderedGeometry {
+struct OrderedGeometry : public y::no_copy {
   OrderedGeometry();
 
   void insert(const Geometry& g);
@@ -31,7 +31,7 @@ struct OrderedGeometry {
 };
 
 // Stores world geometry.
-class WorldGeometry {
+class WorldGeometry : public y::no_copy {
 public:
 
   WorldGeometry();
@@ -76,7 +76,7 @@ struct WorldScript {
 // Sliding window into a Cell source. The source can be changed to simulate
 // non-planar geometry.
 // TODO: use a WorldSource interface instead of CellMap directly?
-class WorldWindow {
+class WorldWindow : public y::no_copy {
 public:
 
   // Boundary width, in cells, around (0, 0) in the active window.

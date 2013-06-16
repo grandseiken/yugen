@@ -69,7 +69,7 @@ void main()
   // spherical coordinates.
   vec3 direct_world = circular_coords_to_world_normal(direct_dir);
   vec3 indirect_world = circular_coords_to_world_normal(indirect_dir);
-  
+
   // Calculate light value.
   normal_world.x = -normal_world.x;
   normal_world.y = -normal_world.y;
