@@ -294,7 +294,8 @@ public:
   void delete_buffer(const GlBuffer<T, N>& buffer);
 
   // Make an OpenGL framebuffer.
-  GlFramebuffer make_framebuffer(const y::ivec2& size);
+  // TODO: allow making a framebuffer with no depth component?
+  GlFramebuffer make_framebuffer(const y::ivec2& size, bool has_alpha);
   // Delete an existing framebuffer.
   void delete_framebuffer(const GlFramebuffer& framebuffer);
 

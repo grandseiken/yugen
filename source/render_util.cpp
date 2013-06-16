@@ -51,7 +51,12 @@ void RenderBatch::clear()
   _map.clear();
 }
 
-static const GLushort quad_data[] = {0, 1, 2, 3};
+static const GLushort quad_element_data[] = {0, 1, 2, 3};
+static const float quad_vertex_data[] = {
+  -1.f, -1.f,
+   1.f, -1.f,
+  -1.f, +1.f,
+   1.f, +1.f};
 
 const y::ivec2 RenderUtil::native_size{RenderUtil::native_width,
                                        RenderUtil::native_height};
@@ -64,8 +69,12 @@ const y::ivec2 RenderUtil::native_overflow_size{native_overflow_dimensions,
 
 RenderUtil::RenderUtil(GlUtil& gl)
   : _gl(gl)
-  , _quad(gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
-                                      quad_data, sizeof(quad_data)))
+  , _quad_element(gl.make_buffer<GLushort, 1>(
+      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
+      quad_element_data, sizeof(quad_element_data)))
+  , _quad_vertex(gl.make_buffer<GLfloat, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW,
+      quad_vertex_data, sizeof(quad_vertex_data)))
   , _native_size{0, 0}
   , _translation{0.f, 0.f}
   , _scale(1.f)
@@ -92,7 +101,9 @@ RenderUtil::RenderUtil(GlUtil& gl)
 
 RenderUtil::~RenderUtil()
 {
-  _gl.delete_buffer(_quad);
+  _gl.delete_buffer(_quad_element);
+  _gl.delete_buffer(_quad_vertex);
+
   _gl.delete_buffer(_pixels_buffer);
   _gl.delete_buffer(_rotation_buffer);
   _gl.delete_buffer(_frame_index_buffer);
@@ -111,9 +122,14 @@ const Window& RenderUtil::get_window() const
   return get_gl().get_window();
 }
 
-const RenderUtil::gl_quad& RenderUtil::quad() const
+const RenderUtil::gl_quad_element& RenderUtil::quad_element() const
 {
-  return _quad;
+  return _quad_element;
+}
+
+const RenderUtil::gl_quad_vertex& RenderUtil::quad_vertex() const
+{
+  return _quad_vertex;
 }
 
 void RenderUtil::set_resolution(const y::ivec2& native_size)
@@ -182,7 +198,7 @@ void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
   _text_program.bind_uniform("font_size", font_size);
   _text_program.bind_uniform("colour", colour);
   bind_pixel_uniforms(_text_program);
-  _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
+  _quad_element.draw_elements(GL_TRIANGLE_STRIP, 4);
 
   _gl.delete_buffer(text_buffer);
 }
@@ -215,7 +231,7 @@ void RenderUtil::render_fill(const y::fvec2& origin, const y::fvec2& size,
   _draw_program.bind_attribute("pixels", rect_buffer);
   _draw_program.bind_uniform("colour", colour);
   bind_pixel_uniforms(_draw_program);
-  _quad.draw_elements(GL_TRIANGLE_STRIP, 4);
+  _quad_element.draw_elements(GL_TRIANGLE_STRIP, 4);
 
   _gl.delete_buffer(rect_buffer);
 }
@@ -239,7 +255,7 @@ void RenderUtil::render_fill(const y::fvec2& a, const y::fvec2& b,
   _draw_program.bind_attribute("pixels", tri_buffer);
   _draw_program.bind_uniform("colour", colour);
   bind_pixel_uniforms(_draw_program);
-  _quad.draw_elements(GL_TRIANGLES, 3);
+  _quad_element.draw_elements(GL_TRIANGLES, 3);
 
   _gl.delete_buffer(tri_buffer);
 }

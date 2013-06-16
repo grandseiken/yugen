@@ -54,7 +54,6 @@ private:
   GlProgram _upscale_program;
   GlTexture _bayer_texture;
   mutable y::size _bayer_frame;
-  GlBuffer<GLfloat, 2> _vertex_buffer;
 
 };
 

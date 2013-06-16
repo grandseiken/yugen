@@ -11,9 +11,9 @@ GameStage::GameStage(const Databank& bank,
   , _util(util)
   , _map(map)
   , _framebuffer(framebuffer)
-  , _colourbuffer(util.get_gl().make_framebuffer(framebuffer.get_size()))
-  , _normalbuffer(util.get_gl().make_framebuffer(framebuffer.get_size()))
-  , _lightbuffer(util.get_gl().make_framebuffer(framebuffer.get_size()))
+  , _colourbuffer(util.get_gl().make_framebuffer(framebuffer.get_size(), true))
+  , _normalbuffer(util.get_gl().make_framebuffer(framebuffer.get_size(), false))
+  , _lightbuffer(util.get_gl().make_framebuffer(framebuffer.get_size(), false))
   , _scene_program(util.get_gl().make_program({
         "/shaders/scene.v.glsl",
         "/shaders/scene.f.glsl"}))
@@ -21,6 +21,7 @@ GameStage::GameStage(const Databank& bank,
         Tileset::tile_size * Cell::cell_size))
   , _collision(_world)
   , _lighting(_world, util.get_gl())
+  , _environment(util.get_gl())
   , _camera_rotation(0)
   , _is_camera_moving_x(false)
   , _is_camera_moving_y(false)
@@ -278,12 +279,6 @@ void GameStage::update()
   _lighting.recalculate_traces(get_camera_min(), get_camera_max());
 }
 
-const GLfloat vertex_data[] = {
-    -1.f, -1.f,
-     1.f, -1.f,
-    -1.f, +1.f,
-     1.f, +1.f};
-
 void GameStage::draw() const
 {
   y::fvec2 translation = y::fvec2(world_to_camera(y::wvec2()));
@@ -307,17 +302,33 @@ void GameStage::draw() const
                                get_camera_min(), get_camera_max());
 
   // Draw scene with lighting.
+  _framebuffer.bind(false, false);
   _util.get_gl().enable_depth(false);
   _util.get_gl().enable_blend(false);
-  _framebuffer.bind(false, false);
-  auto quad_buffer = _util.get_gl().make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STREAM_DRAW, vertex_data, sizeof(vertex_data));
   _scene_program.bind();
-  _scene_program.bind_attribute("position", quad_buffer);
+  _scene_program.bind_attribute("position", _util.quad_vertex());
   _scene_program.bind_uniform("colourbuffer", _colourbuffer);
   _scene_program.bind_uniform("lightbuffer", _lightbuffer);
-  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
-  _util.get_gl().delete_buffer(quad_buffer);
+  _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
+
+  // Re-render colour and normal buffer for the environment.
+  // TODO: make it a function.
+  _environment.render(_util, _colourbuffer, _normalbuffer);
+  // Re-render the scene by the lighting.
+  _lightbuffer.bind(true, false);
+  _lighting.render_lightbuffer(_util, _normalbuffer,
+                               get_camera_min(), get_camera_max());
+
+  // Draw environment overlay with lighting.
+  _framebuffer.bind(false, false);
+  _util.get_gl().enable_depth(false);
+  _util.get_gl().enable_blend(true);
+  _scene_program.bind();
+  // TODO: do we need to re-bind?
+  _scene_program.bind_attribute("position", _util.quad_vertex());
+  _scene_program.bind_uniform("colourbuffer", _colourbuffer);
+  _scene_program.bind_uniform("lightbuffer", _lightbuffer);
+  _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
@@ -328,6 +339,7 @@ void GameStage::draw() const
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
     _lighting.render_traces(_util, get_camera_min(), get_camera_max());
   }
+
   _util.add_translation(-translation);
 }
 

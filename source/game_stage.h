@@ -3,6 +3,7 @@
 
 #include "collision.h"
 #include "common.h"
+#include "environment.h"
 #include "lighting.h"
 #include "lua.h"
 #include "modal.h"
@@ -15,6 +16,8 @@ class CellMap;
 class RenderUtil;
 struct LuaFile;
 
+// TODO: this is getting monolithic. Split out... camera? Lua API stuff?
+// Rendering?
 class GameStage : public Modal {
 public:
 
@@ -82,6 +85,7 @@ private:
   WorldWindow _world;
   Collision _collision;
   Lighting _lighting;
+  Environment _environment;
 
   y::wvec2 _camera;
   y::world _camera_rotation;

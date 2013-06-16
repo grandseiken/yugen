@@ -13,8 +13,8 @@ varying vec4 colour_coord;
 // B: in normal-map, store x-normal, y-normal and specular power.
 // In another coefficient map, store the coefficients of direct, indirect
 // and specular lighting.
-const float direct_coefficient = 0.6;
-const float indirect_coefficient = 0.4;
+const float direct_coefficient = 0.5;
+const float indirect_coefficient = 1.0 - direct_coefficient;
 
 // Given coords in [-1, 1] X [-1, 1], returns vector v such that v.x and v.y
 // are the coords scaled to the unit circle, v.z is positive, and v has

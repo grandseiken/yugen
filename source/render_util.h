@@ -81,10 +81,13 @@ public:
   /***/ GlUtil& get_gl() const;
   const Window& get_window() const;
 
-  typedef GlBuffer<GLushort, 1> gl_quad;
+  typedef GlBuffer<GLushort, 1> gl_quad_element;
+  typedef GlBuffer<float, 2> gl_quad_vertex;
 
   // Element array for a quad.
-  const gl_quad& quad() const;
+  const gl_quad_element& quad_element() const;
+  // Vertex positions for a quad.
+  const gl_quad_vertex& quad_vertex() const;
 
   // Native (target framebuffer) resolution must be set for utility methods
   // to behave correctly.
@@ -165,7 +168,8 @@ private:
   static const y::ivec2 font_size;
 
   GlUtil& _gl;
-  gl_quad _quad;
+  gl_quad_element _quad_element;
+  gl_quad_vertex _quad_vertex;
 
   y::ivec2 _native_size;
   y::fvec2 _translation;

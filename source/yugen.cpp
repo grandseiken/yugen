@@ -33,21 +33,15 @@ const GLfloat bayer_matrix[] = {
     bayer_d * 43, bayer_d * 27, bayer_d * 39, bayer_d * 23,
     bayer_d * 42, bayer_d * 26, bayer_d * 38, bayer_d * 22};
 
-const GLfloat vertex_data[] = {
-    -1.f, -1.f,
-     1.f, -1.f,
-    -1.f, +1.f,
-     1.f, +1.f};
-
 Yugen::Yugen(RenderUtil& util)
   : _recording(false)
   , _util(util)
   , _framebuffer(util.get_gl().make_framebuffer(
-        RenderUtil::native_overflow_size))
+        RenderUtil::native_overflow_size, false))
   , _post_buffer(util.get_gl().make_framebuffer(
-        RenderUtil::native_overflow_size))
+        RenderUtil::native_overflow_size, false))
   , _crop_buffer(util.get_gl().make_framebuffer(
-        RenderUtil::native_size))
+        RenderUtil::native_size, false))
   , _stage(y::null)
   , _post_program(util.get_gl().make_program({
       "/shaders/post.v.glsl",
@@ -61,8 +55,6 @@ Yugen::Yugen(RenderUtil& util)
   , _bayer_texture(util.get_gl().make_texture(
       y::ivec2{8, 8}, GL_FLOAT, GL_R8, GL_RED, bayer_matrix, true))
   , _bayer_frame(0)
-  , _vertex_buffer(util.get_gl().make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertex_data, sizeof(vertex_data)))
 {
 }
 
@@ -85,7 +77,7 @@ Yugen::~Yugen()
   _util.get_gl().delete_program(_post_program);
   _util.get_gl().delete_program(_crop_program);
   _util.get_gl().delete_program(_upscale_program);
-  _util.get_gl().delete_buffer(_vertex_buffer);
+
   for (unsigned char* data : _save_file_frames) {
     delete[] data;
   }
@@ -157,7 +149,7 @@ void Yugen::draw() const
 void Yugen::post_render(const GlFramebuffer& source) const
 {
   _post_program.bind();
-  _post_program.bind_attribute("position", _vertex_buffer);
+  _post_program.bind_attribute("position", _util.quad_vertex());
   _post_program.bind_uniform("native_res", _post_buffer.get_size());
   _post_program.bind_uniform("framebuffer", source);
   _post_program.bind_uniform("bayer", _bayer_texture);
@@ -166,7 +158,7 @@ void Yugen::post_render(const GlFramebuffer& source) const
       "bayer_off", _stage ? y::fvec2(_stage->world_to_camera(y::wvec2())) :
                             y::fvec2());
   _post_program.bind_uniform("bayer_frame", y::int32(++_bayer_frame));
-  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+  _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
 void Yugen::crop_render(const GlFramebuffer& source,
@@ -176,27 +168,27 @@ void Yugen::crop_render(const GlFramebuffer& source,
   // separate step from the post-processing would mean we could do averaged
   // rotation.
   _crop_program.bind();
-  _crop_program.bind_attribute("position", _vertex_buffer);
+  _crop_program.bind_attribute("position", _util.quad_vertex());
   _crop_program.bind_uniform("native_res", target_size);
   _crop_program.bind_uniform("native_overflow_res", source.get_size());
   _crop_program.bind_uniform(
       "rotation", _stage ? float(_stage->get_camera_rotation()) : 0.f);
   _crop_program.bind_uniform("framebuffer", source);
-  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+  _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
 void Yugen::upscale_render(const GlFramebuffer& source,
                            const y::ivec2& target_size) const
 {
   _upscale_program.bind();
-  _upscale_program.bind_attribute("position", _vertex_buffer);
+  _upscale_program.bind_attribute("position", _util.quad_vertex());
   _upscale_program.bind_uniform("screen_res", target_size);
   _upscale_program.bind_uniform("native_res", source.get_size());
   _upscale_program.bind_uniform("integral_scale_lock", true);
   _upscale_program.bind_uniform("use_epx", false);
   _upscale_program.bind_uniform("use_fra", true);
   _upscale_program.bind_uniform("framebuffer", source);
-  _util.quad().draw_elements(GL_TRIANGLE_STRIP, 4);
+  _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
 void Yugen::recording_render(const GlFramebuffer& source) const
@@ -235,23 +227,8 @@ void Yugen::recording_render(const GlFramebuffer& source) const
   }
 }
 
-#include "perlin.h"
-void test_perlin()
-{
-  typedef Perlin<y::fvec2> perlin_fvec2;
-  perlin_fvec2 p;
-  perlin_fvec2::field f;
-  p.generate_perlin<3>(f, 8, 8, 5);
-
-  for (const auto& g : f) {
-    std::cout << g << std::endl;
-  }
-}
-
 y::int32 main(y::int32 argc, char** argv)
 {
-  test_perlin();
-
   y::string_vector args;
   for (y::int32 i = 1; i < argc; ++i) {
     args.emplace_back(argv[i]);

@@ -6,7 +6,7 @@ uniform vec2 bayer_off;
 uniform int bayer_frame;
 varying vec2 tex_coord;
 
-const int colours_per_channel = 32;
+const int colours_per_channel = 16;
 const float div = 1.0 / (colours_per_channel - 1);
 const float pi = 3.1415926536;
 // Make sure no direction aligns exactly with an axis.
@@ -14,7 +14,7 @@ const vec2 r_dir = vec2(sin(0.2), cos(0.2));
 const vec2 g_dir = vec2(sin(0.2 + 2 * pi / 3), cos(0.2 + 2 * pi / 3));
 const vec2 b_dir = vec2(sin(0.2 + 4 * pi / 3), cos(0.2 + 4 * pi / 3));
 
-const float dithering_mix = 0.5;
+const float dithering_mix = 1.0;
 
 void main()
 {

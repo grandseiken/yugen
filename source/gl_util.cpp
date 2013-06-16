@@ -409,13 +409,15 @@ const Window& GlUtil::get_window() const
   return _window;
 }
 
-GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size)
+GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size, bool has_alpha)
 {
   GLuint framebuffer;
   glGenFramebuffers(1, &framebuffer);
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-  GlTexture texture(make_texture(size, GL_UNSIGNED_BYTE, GL_RGB, GL_RGB, 0));
+  GlTexture texture(make_texture(size, GL_UNSIGNED_BYTE,
+                                 has_alpha ? GL_RGBA8 : GL_RGB,
+                                 has_alpha ? GL_RGBA : GL_RGB, 0));
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                          GL_TEXTURE_2D, texture.get_handle(), 0);
   GLenum draw_buffers = GL_COLOR_ATTACHMENT0;
