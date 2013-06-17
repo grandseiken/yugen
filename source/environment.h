@@ -11,13 +11,15 @@ public:
 
   Environment(GlUtil& util);
 
-  void render(RenderUtil& util,
-              const GlFramebuffer& colourbuffer,
-              const GlFramebuffer& normalbuffer) const;
+  void render(
+      RenderUtil& util, const y::wvec2& camera_min, const y::wvec2& camera_max,
+      const GlFramebuffer& colourbuffer,
+      const GlFramebuffer& normalbuffer) const;
 
 private:
 
   GlProgram _fog_program;
+  GlTexture _f2d_256;
 
 };
 

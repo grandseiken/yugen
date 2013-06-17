@@ -103,6 +103,9 @@ public:
   void set_scale(float scale);
   float get_scale() const;
 
+  // Clear colour to value.
+  void clear(const y::fvec4& colour) const;
+
   // Render text (at pixel coordinates).
   void render_text(const y::string& text, const y::fvec2& origin,
                    const y::fvec4& colour) const;
@@ -179,6 +182,8 @@ private:
   GlProgram _text_program;
   GlProgram _draw_program;
 
+  // TODO: figure out if this is really worth it, and if so, come up with a
+  // more easily-reusable way to do it (lighting.h too).
   mutable y::vector<float> _pixels_data;
   mutable y::vector<float> _rotation_data;
   mutable y::vector<float> _origin_data;

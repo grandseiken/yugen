@@ -167,6 +167,13 @@ float RenderUtil::get_scale() const
   return _scale;
 }
 
+void RenderUtil::clear(const y::fvec4& colour) const
+{
+  glClearColor(colour[rr], colour[gg], colour[bb], colour[aa]);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glClearColor(0.f, 0.f, 0.f, 0.f);
+}
+
 void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
                              const y::fvec4& colour) const
 {

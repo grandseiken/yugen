@@ -3,7 +3,7 @@ uniform sampler2D lightbuffer;
 varying vec2 tex_coord;
 
 const float cel_shade_clamp = 1.0 / 4;
-const float cel_shade_mix = 1.0;
+const float cel_shade_mix = 0.6;
 
 const float ambient_light = 0.05;
 const bool ambient_is_post_cel_shade = true;

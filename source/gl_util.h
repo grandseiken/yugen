@@ -39,6 +39,10 @@ GL_UNIFORM(GLuint, glUniform1ui, glUniform2ui, glUniform3ui, glUniform4ui);
 GL_UNIFORM(GLfloat, glUniform1f, glUniform2f, glUniform3f, glUniform4f);
 #undef GL_UNIFORM
 
+// TODO: move GlHandle and subclasses into a separate header since they often
+// need to be included when GlUtil is not needed.
+// TODO: add a wrapper which automatically deletes the thing when it goes out of
+// scope.
 class GlHandle {
 public:
 
@@ -302,7 +306,7 @@ public:
   // Make an OpenGL texture.
   GlTexture make_texture(const y::ivec2& size, GLenum value_type,
                          GLenum bit_depth, GLenum format,
-                         const void* data, bool loop=false);
+                         const void* data, bool loop = false);
   // Load texture from file.
   GlTexture make_texture(const y::string& filename, bool loop = false);
   // Get preloaded texture.

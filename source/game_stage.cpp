@@ -313,7 +313,8 @@ void GameStage::draw() const
 
   // Re-render colour and normal buffer for the environment.
   // TODO: make it a function.
-  _environment.render(_util, _colourbuffer, _normalbuffer);
+  _environment.render(_util, get_camera_min(), get_camera_max(),
+                      _colourbuffer, _normalbuffer);
   // Re-render the scene by the lighting.
   _lightbuffer.bind(true, false);
   _lighting.render_lightbuffer(_util, _normalbuffer,
