@@ -5,13 +5,13 @@ uniform int frame;
 varying vec2 tex_coord;
 
 const float fog_min = 0.4;
-const float fog_max = 0.8;
+const float fog_max = 0.7;
 const float fog_scale = 1.0 / (fog_max - fog_min);
 
 void main()
 {
   float p = texture3D(perlin, vec3(tex_coord.x, tex_coord.y,
-                                   frame / (16.0 * perlin_size.z))).x;
+                                   frame / (8.0 * perlin_size.z))).x;
   if (p < fog_min) {
     discard;
   }

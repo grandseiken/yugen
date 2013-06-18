@@ -20,7 +20,8 @@ Environment::Environment(GlUtil& gl)
 
   // 3D perlin field of size 128x128x128.
   fperlin::field f3d_128;
-  fp.generate_perlin<3>(f3d_128, 64, 2, 7);
+  LinearWeights<float> weights(1.f, 1.f);
+  fp.generate_perlin<3>(f3d_128, 64, 2, 6, weights);
   _f3d_128 = gl.make_texture<float, 3>(
       y::ivec3{128, 128, 128}, GL_R8, GL_RED, f3d_128.data(), true);
 

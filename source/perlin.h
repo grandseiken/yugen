@@ -42,6 +42,76 @@ struct DefaultGenerator<y::vec<T, N>> : DefaultGenerator<T> {
   }
 };
 
+// Default weighting scheme computes average of layers. Any weighting scheme
+// must have a const operator() taking the layer and returning a scalar.
+template<typename T>
+struct DefaultWeights {
+  T operator()(y::size layer) const
+  {
+    (void)layer;
+    return T(1);
+  }
+};
+
+// Weighting scheme that uses a linear sequence of weights.
+template<typename T>
+struct LinearWeights {
+  LinearWeights(const T& first, const T& delta)
+    : first(first)
+    , delta(delta)
+  {
+  }
+
+  T operator()(y::size layer) const
+  {
+    return first + delta * layer;
+  }
+
+  T first;
+  T delta;
+};
+
+// No smoothing. Any smoothing scheme must have a const operator() taking the
+// cell-coordinate in [0, 1)^N and returning a smoothed coordinate in [0, 1)^N.
+// The function should have zero derivative at the endpoints {0, 1}. It must
+// also typedef the scalar coefficient type as coefficient_type.
+template<typename T>
+struct NoSmoothing {
+  typedef T coefficient_type;
+
+  template<y::size N>
+  const y::vec<T, N>& operator()(const y::vec<T, N>& coordinate) const
+  {
+    return coordinate;
+  }
+};
+
+// Power smoothing. Negative powers are trippy.
+template<typename T>
+struct PowerSmoothing {
+  typedef T coefficient_type;
+
+  PowerSmoothing()
+    : power(2)
+  {
+  }
+
+  PowerSmoothing(const T& power)
+    : power(power)
+  {
+  }
+
+  template<y::size N>
+  y::vec<T, N> operator()(const y::vec<T, N>& coordinate) const
+  {
+    T a = power < 0 ? -1 : 1;
+    return (a + power) * y::pow(coordinate, power) -
+        power * y::pow(coordinate, a + power);
+  }
+
+  T power;
+};
+
 // Arbitrary-dimensional perlin noise over values of type T, using random number
 // generator of type G. G must have overload T operator()() which generates
 // the next random T (in the desired range).
@@ -59,15 +129,28 @@ public:
   // Generate a single N-dimensional layer of perlin noise. The resulting noise
   // has grid_count independent points per dimension, scaled by scale, so the
   // output will have (grid_count * scale)^N values.
-  template<y::size N>
+  template<y::size N, typename Smoothing = PowerSmoothing<T>>
   void generate_layer(field& output,
-                      y::size grid_count, y::size scale);
+                      y::size grid_count, y::size scale,
+                      const Smoothing& smoothing);
 
   // Combine several perlin layers into one. The first layer is as above; each
-  // subsequent layer has scale doubled, and they are all averaged.
-  template<y::size N>
+  // subsequent layer has scale doubled, and they are combined using the given
+  // weighting scheme.
+  template<y::size N, typename Weights = DefaultWeights<T>,
+                      typename Smoothing = PowerSmoothing<T>>
   void generate_perlin(field& output,
                        y::size grid_count, y::size scale, y::size layers);
+  template<y::size N, typename Weights = DefaultWeights<T>,
+                      typename Smoothing = PowerSmoothing<T>>
+  void generate_perlin(field& output,
+                       y::size grid_count, y::size scale, y::size layers,
+                       const Weights& weights);
+  template<y::size N, typename Weights = DefaultWeights<T>,
+                      typename Smoothing = PowerSmoothing<T>>
+  void generate_perlin(field& output,
+                       y::size grid_count, y::size scale, y::size layers,
+                       const Weights& weights, const Smoothing& smoothing);
 
 private:
 
@@ -102,12 +185,14 @@ Perlin<T, G>::Perlin(const G& generator)
 }
 
 template<typename T, typename G>
-template<y::size N>
+template<y::size N, typename Smoothing>
 void Perlin<T, G>::generate_layer(field& output,
-                                  y::size grid_count, y::size scale)
+                                  y::size grid_count, y::size scale,
+                                  const Smoothing& smoothing)
 {
+  typedef typename Smoothing::coefficient_type coefficient;
   typedef y::vec<y::size, N> sv;
-  typedef y::vec<float, N> fv;
+  typedef y::vec<coefficient, N> fv;
 
   sv grid_corners;
   sv grid_size;
@@ -143,16 +228,13 @@ void Perlin<T, G>::generate_layer(field& output,
   }
 
   /// Build lookup table for each offset.
-  typedef y::vector<float> coefficient_list;
+  typedef y::vector<coefficient> coefficient_list;
   y::vector<coefficient_list> coefficient_map;
   coefficient_map.reserve(scale_power);
   for (auto it = y::cartesian(scale_vec); it; ++it) {
-    // Position of offset within grid-cell, in [0, 1)^N.
-    fv cell_point = fv(*it) / scale;
-
-    // Applying smoothing function to soften the interpolation.
-    // TODO: allow custom smoothing functions?
-    cell_point = 3.f * y::pow(cell_point, 2.f) - 2.f * y::pow(cell_point, 3.f);
+    // Position of offset within grid-cell, in [0, 1)^N and apply smoothing
+    // function.
+    fv cell_point = smoothing(fv(*it) / scale);
 
     // Loop through the 2^N grid-corners (*it in {0, 1}^N), and add their
     // coefficients to the map. These coefficients linearly interpolate the
@@ -161,12 +243,12 @@ void Perlin<T, G>::generate_layer(field& output,
     coefficient_map.push_back(coefficient_list());
     coefficient_list& list = *(coefficient_map.end() - 1);
     for (auto it = y::cartesian(grid_corners); it; ++it) {
-      float coefficient = 1;
+      coefficient compound = 1;
       for (y::size i = 0; i < N; ++i) {
         y::size c = (*it)[i];
-        coefficient *= c * cell_point[i] + (1 - c) * (1 - cell_point[i]);
+        compound *= c * cell_point[i] + (1 - c) * (1 - cell_point[i]);
       }
-      list.emplace_back(coefficient);
+      list.emplace_back(compound);
     }
   }
 
@@ -197,9 +279,29 @@ void Perlin<T, G>::generate_layer(field& output,
 }
 
 template<typename T, typename G>
-template<y::size N>
+template<y::size N, typename Weights, typename Smoothing>
 void Perlin<T, G>::generate_perlin(
     field& output, y::size grid_count, y::size scale, y::size layers)
+{
+  generate_perlin<N, Weights, Smoothing>(
+      output, grid_count, scale, layers, Weights());
+}
+
+template<typename T, typename G>
+template<y::size N, typename Weights, typename Smoothing>
+void Perlin<T, G>::generate_perlin(
+    field& output, y::size grid_count, y::size scale, y::size layers,
+    const Weights& weights)
+{
+  generate_perlin<N, Weights, Smoothing>(
+      output, grid_count, scale, layers, weights, Smoothing());
+}
+
+template<typename T, typename G>
+template<y::size N, typename Weights, typename Smoothing>
+void Perlin<T, G>::generate_perlin(
+    field& output, y::size grid_count, y::size scale, y::size layers,
+    const Weights& weights, const Smoothing& smoothing)
 {
   y::vector<field> layer_data;
   y::vector<y::size> layer_side_lengths;
@@ -215,7 +317,8 @@ void Perlin<T, G>::generate_perlin(
       ++layer_grid_count;
     }
 
-    generate_layer<N>(*(layer_data.end() - 1), layer_grid_count, layer_scale);
+    generate_layer<N>(*(layer_data.end() - 1),
+                      layer_grid_count, layer_scale, smoothing);
     layer_side_lengths.emplace_back(layer_grid_count * layer_scale);
     pow *= 2;
   }
@@ -223,17 +326,21 @@ void Perlin<T, G>::generate_perlin(
     output.reserve(layer_data[0].size());
   }
 
-  // TODO: allow custom weighting?
   y::vec<y::size, N> size;
   for (y::size i = 0; i < N; ++i) {
     size[i] = grid_count * scale;
   }
+  decltype(weights(0)) weight_d = 0;
+  for (y::size i = 0; i < layers; ++i) {
+    weight_d += weights(i);
+  }
   for (auto it = y::cartesian(size); it; ++it) {
     T out{};
     for (y::size i = 0; i < layers; ++i) {
-      out += field_lookup<N>(layer_data[i], layer_side_lengths[i], *it);
+      out += weights(i) *
+          field_lookup<N>(layer_data[i], layer_side_lengths[i], *it);
     }
-    output.push_back(out / layers);
+    output.push_back(out / weight_d);
   }
 }
 
