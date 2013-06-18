@@ -109,17 +109,22 @@ void Perlin<T, G>::generate_layer(field& output,
   typedef y::vec<y::size, N> sv;
   typedef y::vec<float, N> fv;
 
-  field f;
-  generate_field<N>(f, grid_count);
-
   sv grid_corners;
   sv grid_size;
   sv scale_vec;
+  y::size scale_power = 1;
+  y::size total_power = 1;
   for (y::size i = 0; i < N; ++i) {
     grid_corners[i] = 2;
     grid_size[i] = grid_count;
     scale_vec[i] = scale;
+    total_power *= scale * grid_count;
+    scale_power *= scale;
   }
+
+  field f;
+  generate_field<N>(f, grid_count);
+  output.reserve(total_power);
 
   // Special case: if scale is 1, just output directly; no interpolation is
   // necessary.
@@ -140,6 +145,7 @@ void Perlin<T, G>::generate_layer(field& output,
   /// Build lookup table for each offset.
   typedef y::vector<float> coefficient_list;
   y::vector<coefficient_list> coefficient_map;
+  coefficient_map.reserve(scale_power);
   for (auto it = y::cartesian(scale_vec); it; ++it) {
     // Position of offset within grid-cell, in [0, 1)^N.
     fv cell_point = fv(*it) / scale;
@@ -152,7 +158,7 @@ void Perlin<T, G>::generate_layer(field& output,
     // coefficients to the map. These coefficients linearly interpolate the
     // values at the corners through the cell (with respect to the smoothed
     // offset).
-    coefficient_map.emplace_back();
+    coefficient_map.push_back(coefficient_list());
     coefficient_list& list = *(coefficient_map.end() - 1);
     for (auto it = y::cartesian(grid_corners); it; ++it) {
       float coefficient = 1;
@@ -160,7 +166,7 @@ void Perlin<T, G>::generate_layer(field& output,
         y::size c = (*it)[i];
         coefficient *= c * cell_point[i] + (1 - c) * (1 - cell_point[i]);
       }
-      list.push_back(coefficient);
+      list.emplace_back(coefficient);
     }
   }
 
@@ -186,7 +192,7 @@ void Perlin<T, G>::generate_layer(field& output,
       }
       value += list[i++] * field_lookup(f, grid_count, corner);
     }
-    output.emplace_back(value);
+    output.push_back(value);
   }
 }
 
@@ -213,6 +219,9 @@ void Perlin<T, G>::generate_perlin(
     layer_side_lengths.emplace_back(layer_grid_count * layer_scale);
     pow *= 2;
   }
+  if (layers) {
+    output.reserve(layer_data[0].size());
+  }
 
   // TODO: allow custom weighting?
   y::vec<y::size, N> size;
@@ -224,7 +233,7 @@ void Perlin<T, G>::generate_perlin(
     for (y::size i = 0; i < layers; ++i) {
       out += field_lookup<N>(layer_data[i], layer_side_lengths[i], *it);
     }
-    output.emplace_back(out / layers);
+    output.push_back(out / layers);
   }
 }
 
@@ -236,9 +245,10 @@ void Perlin<T, G>::generate_field(field& output, y::size side_length)
   for (y::size i = 0; i < N; ++i) {
     count *= side_length;
   }
+  output.reserve(count);
 
   for (y::size i = 0; i < count; ++i) {
-    output.emplace_back(_generator());
+    output.push_back(_generator());
   }
 }
 

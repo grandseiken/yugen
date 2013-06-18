@@ -21,9 +21,9 @@ void main()
   vec4 raw = texture2D(framebuffer, tex_coord);
 
   vec2 bayer_div = vec2(1.0 / bayer_res.x, 1.0 / bayer_res.y);
-  vec2 r_off = 0.07 * bayer_frame * bayer_div * r_dir;
-  vec2 g_off = 0.11 * bayer_frame * bayer_div * g_dir;
-  vec2 b_off = 0.17 * bayer_frame * bayer_div * b_dir;
+  vec2 r_off = 0.05 * bayer_frame * bayer_div * r_dir;
+  vec2 g_off = 0.07 * bayer_frame * bayer_div * g_dir;
+  vec2 b_off = 0.11 * bayer_frame * bayer_div * b_dir;
 
   vec2 off = bayer_off + 0.5;
   off = off - mod(off, 1.0);
