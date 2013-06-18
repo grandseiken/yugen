@@ -254,7 +254,7 @@ ylib_api(render_sprite)
     ylib_arg(y::world, rotation) ylib_arg(y::world, depth)
 {
   RenderBatch& batch = stage.get_current_batch();
-  const GlTexture& texture = stage.is_current_normal_buffer() ?
+  const GlTexture2D& texture = stage.is_current_normal_buffer() ?
       sprite->normal : sprite->texture;
 
   y::wvec2 origin = script->get_origin() - frame_size / 2;

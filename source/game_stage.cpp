@@ -496,7 +496,7 @@ void GameStage::render_all(bool normal_buffer) const
         // Background: .6
         float d = .5f - layer * .1f;
 
-        const GlTexture texture = normal_buffer ?
+        const GlTexture2D texture = normal_buffer ?
             t.tileset->get_texture().normal : t.tileset->get_texture().texture;
 
         _current_batch.add_sprite(

@@ -515,6 +515,7 @@ namespace y {
   }
 
   typedef vec<int32, 2> ivec2;
+  typedef vec<int32, 3> ivec3;
   typedef vec<float, 2> fvec2;
   typedef vec<float, 4> fvec4;
   typedef vec<world, 2> wvec2;

@@ -30,35 +30,13 @@ GLuint GlHandle::get_handle() const
   return _handle;
 }
 
-GlTexture::GlTexture()
-  : GlHandle(0)
-{
-}
-
-GlTexture::GlTexture(GLuint handle, const y::ivec2& size)
-  : GlHandle(handle)
-  , _size(size)
-{
-}
-
-void GlTexture::bind(GLenum target) const
-{
-  glActiveTexture(target);
-  glBindTexture(GL_TEXTURE_2D, get_handle());
-}
-
-const y::ivec2& GlTexture::get_size() const
-{
-  return _size;
-}
-
 GlFramebuffer::GlFramebuffer()
   : GlHandle(0)
   , _depth_handle(0)
 {
 }
 
-GlFramebuffer::GlFramebuffer(GLuint handle, const GlTexture& texture,
+GlFramebuffer::GlFramebuffer(GLuint handle, const GlTexture2D& texture,
                              GLuint depth)
   : GlHandle(handle)
   , _texture(texture)
@@ -66,7 +44,7 @@ GlFramebuffer::GlFramebuffer(GLuint handle, const GlTexture& texture,
 {
 }
 
-const GlTexture& GlFramebuffer::get_texture() const
+const GlTexture2D& GlFramebuffer::get_texture() const
 {
   return _texture;
 }
@@ -123,24 +101,10 @@ bool GlProgram::bind_uniform(const y::string& name,
   return bind_uniform(name, _texture_index++);
 }
 
-bool GlProgram::bind_uniform(const y::string& name,
-                             const GlTexture& arg) const
-{
-  arg.bind(GL_TEXTURE0 + _texture_index);
-  return bind_uniform(name, _texture_index++);
-}
-
 bool GlProgram::bind_uniform(y::size index, const y::string& name,
                              const GlFramebuffer& arg) const
 {
   arg.get_texture().bind(GL_TEXTURE0 + _texture_index);
-  return bind_uniform(index, name, _texture_index++);
-}
-
-bool GlProgram::bind_uniform(y::size index, const y::string& name,
-                             const GlTexture& arg) const
-{
-  arg.bind(GL_TEXTURE0 + _texture_index);
   return bind_uniform(index, name, _texture_index++);
 }
 
@@ -415,9 +379,10 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size, bool has_alpha)
   glGenFramebuffers(1, &framebuffer);
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-  GlTexture texture(make_texture(size, GL_UNSIGNED_BYTE,
-                                 has_alpha ? GL_RGBA8 : GL_RGB,
-                                 has_alpha ? GL_RGBA : GL_RGB, 0));
+  GlTexture2D texture(make_texture<GLubyte>(size,
+                                            has_alpha ? GL_RGBA8 : GL_RGB,
+                                            has_alpha ? GL_RGBA : GL_RGB,
+                                            y::null));
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                          GL_TEXTURE_2D, texture.get_handle(), 0);
   GLenum draw_buffers = GL_COLOR_ATTACHMENT0;
@@ -461,41 +426,23 @@ void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
   }
 }
 
-GlTexture GlUtil::make_texture(const y::ivec2& size, GLenum value_type,
-                               GLenum bit_depth, GLenum format,
-                               const void* data, bool loop)
-{
-  GLenum wrap_type = loop ? GL_REPEAT : GL_CLAMP_TO_EDGE;
-  GLuint texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_type);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_type);
-  glTexImage2D(GL_TEXTURE_2D, 0, bit_depth, size[xx], size[yy],
-               0, format, value_type, data);
-  _texture_set.insert(texture);
-  return GlTexture(texture, size);
-}
-
-GlTexture GlUtil::make_texture(const y::string& filename, bool loop)
+GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
 {
   y::string data;
   _filesystem.read_file(data, filename);
   if (data.empty()) {
     std::cerr << "Couldn't read file " << filename << std::endl;
-    return GlTexture();
+    return GlTexture2D();
   }
 
   sf::Image image;
   if (!image.loadFromMemory(data.data(), data.length())) {
     std::cerr << "Couldn't load image " << filename << std::endl;
-    return GlTexture();
+    return GlTexture2D();
   }
   y::ivec2 size{y::int32(image.getSize().x), y::int32(image.getSize().y)};
-  GlTexture texture(make_texture(size, GL_UNSIGNED_BYTE, GL_RGBA8, GL_RGBA,
-                                 image.getPixelsPtr(), loop));
+  GlTexture2D texture(make_texture<GLubyte>(size, GL_RGBA8, GL_RGBA,
+                                            image.getPixelsPtr(), loop));
 
   auto it = _texture_map.find(filename);
   if (it != _texture_map.end()) {
@@ -507,10 +454,10 @@ GlTexture GlUtil::make_texture(const y::string& filename, bool loop)
   return texture;
 }
 
-GlTexture GlUtil::get_texture(const y::string& filename) const
+GlTexture2D GlUtil::get_texture(const y::string& filename) const
 {
   auto it = _texture_map.find(filename);
-  return it == _texture_map.end() ? GlTexture(0, y::ivec2()) : it->second;
+  return it == _texture_map.end() ? GlTexture2D(0, y::ivec2()) : it->second;
 }
 
 void GlUtil::delete_texture(const y::string& filename)
@@ -524,23 +471,6 @@ void GlUtil::delete_texture(const y::string& filename)
       _texture_set.erase(jt);
     }
     _texture_map.erase(it);
-  }
-}
-
-void GlUtil::delete_texture(const GlTexture& texture)
-{
-  auto it = _texture_set.find(texture.get_handle());
-  if (it != _texture_set.end()) {
-    glDeleteTextures(1, &*it);
-    _texture_set.erase(it);
-  }
-  // Make sure to clean up the map entry if we deleted a filename-loaded
-  // texture directly.
-  for (auto jt = _texture_map.begin(); jt != _texture_map.end(); ++jt) {
-    if (jt->second.get_handle() == texture.get_handle()) {
-      _texture_map.erase(jt);
-      break;
-    }
   }
 }
 

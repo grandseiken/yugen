@@ -24,7 +24,7 @@ GL_TYPE(GLfloat, GL_FLOAT);
 GL_TYPE(GLdouble, GL_DOUBLE);
 #undef GL_TYPE
 
-#define GL_UNIFORM(T, F1, F2, F3, F4) \
+#define GL_UNIFORM(T, F1, F2, F3, F4)\
   template<> struct GlUniform<T> {\
     static void uniform1(GLint l, T a) {F1(l, a);}\
     static void uniform2(GLint l, T a, T b) {F2(l, a, b);}\
@@ -93,25 +93,58 @@ private:
 };
 
 // Lightweight handle to an OpenGL texture.
+template<y::size N>
 class GlTexture : public GlHandle {
 public:
+
+  typedef y::vec<y::int32, N> ivecn;
 
   GlTexture();
   ~GlTexture() override {}
 
   void bind(GLenum target) const;
 
-  const y::ivec2& get_size() const;
+  const ivecn& get_size() const;
 
 protected:
 
   friend class GlUtil;
-  GlTexture(GLuint handle, const y::ivec2& size);
+  GlTexture(GLuint handle, const ivecn& size);
 
 private:
 
-  y::ivec2 _size;
+  ivecn _size;
 
+};
+
+typedef GlTexture<1> GlTexture1D;
+typedef GlTexture<2> GlTexture2D;
+typedef GlTexture<3> GlTexture3D;
+template<y::size N>
+struct GlTextureEnum {};
+template<> struct GlTextureEnum<1> {
+  enum {dimension_enum = GL_TEXTURE_1D};
+  static void tex_image(GLenum bit_depth, GLenum format, GLenum value_type,
+                        const GlTexture<1>::ivecn& size, const void* data) {
+    glTexImage1D(dimension_enum, 0, bit_depth, size[xx],
+                 0, format, value_type, data);
+  }
+};
+template<> struct GlTextureEnum<2> {
+  enum {dimension_enum = GL_TEXTURE_2D};
+  static void tex_image(GLenum bit_depth, GLenum format, GLenum value_type,
+                        const GlTexture<2>::ivecn& size, const void* data) {
+    glTexImage2D(dimension_enum, 0, bit_depth, size[xx], size[yy],
+                 0, format, value_type, data);
+  }
+};
+template<> struct GlTextureEnum<3> {
+  enum {dimension_enum = GL_TEXTURE_3D};
+  static void tex_image(GLenum bit_depth, GLenum format, GLenum value_type,
+                        const GlTexture<3>::ivecn& size, const void* data) {
+    glTexImage3D(dimension_enum, 0, bit_depth, size[xx], size[yy], size[zz],
+                 0, format, value_type, data);
+  }
 };
 
 // Lightweight handle to an OpenGL framebuffer (and underlying texture).
@@ -122,7 +155,7 @@ public:
   ~GlFramebuffer() override {}
 
   // Don't delete this texture manually!
-  const GlTexture& get_texture() const;
+  const GlTexture2D& get_texture() const;
   const y::ivec2& get_size() const;
 
   // Render to framebuffer, rather than window.
@@ -131,13 +164,13 @@ public:
 protected:
 
   friend class GlUtil;
-  GlFramebuffer(GLuint handle, const GlTexture& texture, GLuint depth);
+  GlFramebuffer(GLuint handle, const GlTexture2D& texture, GLuint depth);
 
   GLuint get_depth_handle() const;
 
 private:
 
-  GlTexture _texture;
+  GlTexture2D _texture;
   GLuint _depth_handle;
 
 };
@@ -197,7 +230,8 @@ public:
   bool bind_uniform(const y::string& name, const y::vec<T, 4>& arg) const;
 
   bool bind_uniform(const y::string& name, const GlFramebuffer& arg) const;
-  bool bind_uniform(const y::string& name, const GlTexture& arg) const;
+  template<y::size N>
+  bool bind_uniform(const y::string& name, const GlTexture<N>& arg) const;
 
   // Bind the value of an attribute variable in an array.
   template<typename T, y::size N>
@@ -230,8 +264,9 @@ public:
 
   bool bind_uniform(y::size index, const y::string& name,
                     const GlFramebuffer& arg) const;
+  template<y::size N>
   bool bind_uniform(y::size index, const y::string& name,
-                    const GlTexture& arg) const;
+                    const GlTexture<N>& arg) const;
 
 protected:
 
@@ -304,16 +339,18 @@ public:
   void delete_framebuffer(const GlFramebuffer& framebuffer);
 
   // Make an OpenGL texture.
-  GlTexture make_texture(const y::ivec2& size, GLenum value_type,
-                         GLenum bit_depth, GLenum format,
-                         const void* data, bool loop = false);
+  template<typename T = float, y::size N = 2>
+  GlTexture<N> make_texture(const typename GlTexture<N>::ivecn& size,
+                            GLenum bit_depth, GLenum format,
+                            const T* data, bool loop = false);
   // Load texture from file.
-  GlTexture make_texture(const y::string& filename, bool loop = false);
+  GlTexture2D make_texture(const y::string& filename, bool loop = false);
   // Get preloaded texture.
-  GlTexture get_texture(const y::string& filename) const;
+  GlTexture2D get_texture(const y::string& filename) const;
   // Delete preloaded texture.
   void delete_texture(const y::string& filename);
-  void delete_texture(const GlTexture& texture);
+  template<y::size N>
+  void delete_texture(const GlTexture<N>& texture);
 
   // Load shader from file. If type is 0, guesses based on extension.
   GlShader make_shader(const y::string& filename, GLenum type = 0);
@@ -348,7 +385,7 @@ private:
   const Window& _window;
 
   typedef y::set<GLuint> gl_handle_set;
-  typedef y::map<y::string, GlTexture> gl_texture_map;
+  typedef y::map<y::string, GlTexture2D> gl_texture_map;
   typedef y::map<y::string, GlShader> gl_shader_map;
   typedef y::map<y::string, GlProgram> gl_program_map;
 
@@ -392,12 +429,52 @@ GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint,
 }
 
 template<typename T, y::size N>
+GlTexture<N> GlUtil::make_texture(const typename GlTexture<N>::ivecn& size,
+                                  GLenum bit_depth, GLenum format,
+                                  const T* data, bool loop)
+{
+  GLenum wrap_type = loop ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+  GLenum dimension = GlTextureEnum<N>::dimension_enum;
+
+  GLuint texture;
+  glGenTextures(1, &texture);
+  glBindTexture(dimension, texture);
+  glTexParameteri(dimension, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(dimension, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(dimension, GL_TEXTURE_WRAP_S, wrap_type);
+  glTexParameteri(dimension, GL_TEXTURE_WRAP_T, wrap_type);
+
+  GlTextureEnum<N>::tex_image(
+      bit_depth, format, GlType<T>::type_enum, size, data);
+  _texture_set.insert(texture);
+  return GlTexture<N>(texture, size);
+}
+
+template<typename T, y::size N>
 void GlUtil::delete_buffer(const GlBuffer<T, N>& buffer)
 {
   auto it = _buffer_set.find(buffer._handle);
   if (it != _buffer_set.end()) {
     glDeleteBuffers(1, &*it);
     _buffer_set.erase(it);
+  }
+}
+
+template<y::size N>
+void GlUtil::delete_texture(const GlTexture<N>& texture)
+{
+  auto it = _texture_set.find(texture.get_handle());
+  if (it != _texture_set.end()) {
+    glDeleteTextures(1, &*it);
+    _texture_set.erase(it);
+  }
+  // Make sure to clean up the map entry if we deleted a filename-loaded
+  // texture directly.
+  for (auto jt = _texture_map.begin(); jt != _texture_map.end(); ++jt) {
+    if (jt->second.get_handle() == texture.get_handle()) {
+      _texture_map.erase(jt);
+      break;
+    }
   }
 }
 
@@ -441,6 +518,32 @@ template<typename T, y::size N>
 void GlBuffer<T, N>::reupload_data(const y::vector<T>& data) const
 {
   reupload_data(data.data(), sizeof(T) * data.size());
+}
+
+template<y::size N>
+GlTexture<N>::GlTexture()
+  : GlHandle(0)
+{
+}
+
+template<y::size N>
+GlTexture<N>::GlTexture(GLuint handle, const ivecn& size)
+  : GlHandle(handle)
+  , _size(size)
+{
+}
+
+template<y::size N>
+void GlTexture<N>::bind(GLenum target) const
+{
+  glActiveTexture(target);
+  glBindTexture(GlTextureEnum<N>::dimension_enum, get_handle());
+}
+
+template<y::size N>
+const typename GlTexture<N>::ivecn& GlTexture<N>::get_size() const
+{
+  return _size;
 }
 
 template<typename T, y::size N>
@@ -526,6 +629,14 @@ bool GlProgram::bind_uniform(
     const y::string& name, const y::vec<T, 4>& arg) const
 {
   return bind_uniform(name, arg[xx], arg[yy], arg[zz], arg[ww]);
+}
+
+template<y::size N>
+bool GlProgram::bind_uniform(const y::string& name,
+                             const GlTexture<N>& arg) const
+{
+  arg.bind(GL_TEXTURE0 + _texture_index);
+  return bind_uniform(name, _texture_index++);
 }
 
 template<typename T, y::size N>
@@ -615,6 +726,14 @@ bool GlProgram::bind_uniform(
     y::size index, const y::string& name, const y::vec<T, 4>& arg) const
 {
   return bind_uniform(index, name, arg[xx], arg[yy], arg[zz], arg[ww]);
+}
+
+template<y::size N>
+bool GlProgram::bind_uniform(y::size index, const y::string& name,
+                             const GlTexture<N>& arg) const
+{
+  arg.bind(GL_TEXTURE0 + _texture_index);
+  return bind_uniform(index, name, _texture_index++);
 }
 
 #endif

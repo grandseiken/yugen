@@ -166,9 +166,11 @@ void Perlin<T, G>::generate_layer(field& output,
 
   // Loop through all the points in the output.
   for (auto it = y::cartesian(scale * grid_size); it; ++it) {
-    sv grid_offset;
+    y::size power = 1;
+    y::size map_index = 0;
     for (y::size i = 0; i < N; ++i) {
-      grid_offset[i] = (*it)[i] % scale;
+      map_index += power * ((*it)[i] % scale);
+      power *= scale;
     }
     sv truncated_grid = *it / scale;
 
@@ -176,8 +178,7 @@ void Perlin<T, G>::generate_layer(field& output,
     // contribution to the value.
     T value{};
     y::size i = 0;
-    const coefficient_list& list =
-        coefficient_map[grid_offset[xx] + scale * grid_offset[yy]];
+    const coefficient_list& list = coefficient_map[map_index];
     for (auto it = y::cartesian(grid_corners); it; ++it) {
       sv corner = *it + truncated_grid;
       for (y::size j = 0; j < N; ++j) {

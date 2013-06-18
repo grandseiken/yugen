@@ -73,8 +73,8 @@ struct LuaFile {
 #ifndef SPRITE_DEC
 #define SPRITE_DEC
 struct Sprite {
-  GlTexture texture;
-  GlTexture normal;
+  GlTexture2D texture;
+  GlTexture2D normal;
 };
 #endif
 

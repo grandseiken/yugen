@@ -36,8 +36,8 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
     }
     y::string normal_path = bare_path + "_normal.png";
 
-    GlTexture texture = gl.make_texture(s);
-    GlTexture normal_texture = filesystem.is_file(normal_path) ?
+    GlTexture2D texture = gl.make_texture(s);
+    GlTexture2D normal_texture = filesystem.is_file(normal_path) ?
         gl.make_texture(normal_path) : _default_sprite.normal;
 
     sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
@@ -55,8 +55,8 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
     y::string data_path = bare_path + ".tile";
     y::string normal_path = bare_path + "_normal.png";
 
-    GlTexture texture = gl.make_texture(s);
-    GlTexture normal_texture = filesystem.is_file(normal_path) ?
+    GlTexture2D texture = gl.make_texture(s);
+    GlTexture2D normal_texture = filesystem.is_file(normal_path) ?
         gl.make_texture(normal_path) : _default_sprite.normal;
 
     Tileset* tileset = new Tileset({texture, normal_texture});

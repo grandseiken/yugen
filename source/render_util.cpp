@@ -3,7 +3,7 @@
 #include <boost/functional/hash.hpp>
 
 void RenderBatch::add_sprite(
-    const GlTexture& sprite, const y::ivec2& frame_size,
+    const GlTexture2D& sprite, const y::ivec2& frame_size,
     const y::fvec2& origin, const y::ivec2& frame,
     float depth, float rotation,
     const y::fvec4& colour)
@@ -16,7 +16,7 @@ void RenderBatch::add_sprite(
 }
 
 void RenderBatch::iadd_sprite(
-    const GlTexture& sprite, const y::ivec2& frame_size,
+    const GlTexture2D& sprite, const y::ivec2& frame_size,
     const y::ivec2& origin, const y::ivec2& frame,
     float depth, const y::fvec4& colour)
 {
@@ -349,7 +349,7 @@ void RenderUtil::irender_outline(const y::ivec2& origin, const y::ivec2& size,
   render_outline(y::fvec2(origin), y::fvec2(size), colour);
 }
 
-void RenderUtil::set_sprite(const GlTexture& texture,
+void RenderUtil::set_sprite(const GlTexture2D& texture,
                             const y::ivec2& frame_size)
 {
   _sprite = texture;
@@ -448,7 +448,7 @@ void RenderUtil::render_batch(const RenderBatch& batch)
 }
 
 void RenderUtil::render_sprite(
-    const GlTexture& sprite, const y::ivec2& frame_size,
+    const GlTexture2D& sprite, const y::ivec2& frame_size,
     const y::fvec2& origin, const y::ivec2& frame,
     float depth, float rotation, const y::fvec4& colour)
 {
@@ -458,7 +458,7 @@ void RenderUtil::render_sprite(
 }
 
 void RenderUtil::irender_sprite(
-    const GlTexture& sprite, const y::ivec2& frame_size,
+    const GlTexture2D& sprite, const y::ivec2& frame_size,
     const y::ivec2& origin, const y::ivec2& frame,
     float depth, const y::fvec4& colour)
 {

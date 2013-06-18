@@ -299,7 +299,7 @@ void TilePanel::update()
 {
   y::roll<y::int32>(_tileset_select, 0, _bank.tilesets.size());
 
-  const GlTexture& tex =
+  const GlTexture2D& tex =
       _bank.tilesets.get(_tileset_select).get_texture().texture;
   y::int32 tx_max = RenderUtil::to_grid(tex.get_size())[xx];
   y::int32 ty_max = y::min(y::size(7), _bank.tilesets.size());
@@ -312,7 +312,7 @@ void TilePanel::draw(RenderUtil& util) const
 {
   // Render panel.
   const Tileset& t = _bank.tilesets.get(_tileset_select);
-  const GlTexture& tex = t.get_texture().texture;
+  const GlTexture2D& tex = t.get_texture().texture;
 
   _list.draw(util, _bank.tilesets.get_names(), _tileset_select);
 

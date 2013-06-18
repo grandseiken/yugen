@@ -53,7 +53,7 @@ Yugen::Yugen(RenderUtil& util)
       "/shaders/upscale.v.glsl",
       "/shaders/upscale.f.glsl"}))
   , _bayer_texture(util.get_gl().make_texture(
-      {8, 8}, GL_FLOAT, GL_R8, GL_RED, bayer_matrix, true))
+      y::ivec2{8, 8}, GL_R8, GL_RED, bayer_matrix, true))
   , _bayer_frame(0)
 {
 }

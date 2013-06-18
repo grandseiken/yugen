@@ -19,7 +19,11 @@ public:
 private:
 
   GlProgram _fog_program;
-  GlTexture _f2d_256;
+  GlTexture2D _f2d_256;
+  GlTexture3D _f3d_128;
+
+  // TODO: temp. Get rid of this.
+  mutable y::int32 _frame;
 
 };
 

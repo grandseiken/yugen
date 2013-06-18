@@ -26,7 +26,7 @@ class RenderBatch : public y::no_copy {
 public:
 
   struct batched_texture {
-    GlTexture sprite;
+    GlTexture2D sprite;
     y::ivec2 frame_size;
   };
 
@@ -42,10 +42,10 @@ public:
     y::fvec4 colour;
   };
 
-  void add_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
+  void add_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size,
                   const y::fvec2& origin, const y::ivec2& frame,
                   float depth, float rotation, const y::fvec4& colour);
-  void iadd_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
+  void iadd_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size,
                    const y::ivec2& origin, const y::ivec2& frame,
                    float depth, const y::fvec4& colour);
 
@@ -139,7 +139,7 @@ public:
                        const y::fvec4& colour) const;
 
   // Batch and render sprites (at pixel coordinates).
-  void set_sprite(const GlTexture& sprite, const y::ivec2& frame_size);
+  void set_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size);
   void batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
                     float depth, float rotation, const y::fvec4& colour) const;
   void render_batch() const;
@@ -149,10 +149,10 @@ public:
   void render_batch(const RenderBatch& batch);
 
   // Render a sprite immediately.
-  void render_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
+  void render_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size,
                      const y::fvec2& origin, const y::ivec2& frame,
                      float depth, float rotation, const y::fvec4& colour);
-  void irender_sprite(const GlTexture& sprite, const y::ivec2& frame_size,
+  void irender_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size,
                       const y::ivec2& origin, const y::ivec2& frame,
                       float depth, const y::fvec4& colour);
 
@@ -178,7 +178,7 @@ private:
   y::fvec2 _translation;
   float _scale;
 
-  GlTexture _font;
+  GlTexture2D _font;
   GlProgram _text_program;
   GlProgram _draw_program;
 
@@ -200,7 +200,7 @@ private:
   GlBuffer<float, 4> _colour_buffer;
   GlBuffer<GLushort, 1> _element_buffer;
 
-  GlTexture _sprite;
+  GlTexture2D _sprite;
   y::ivec2 _frame_size;
   mutable y::vector<RenderBatch::batched_sprite> _batched_sprites;
   GlProgram _sprite_program;

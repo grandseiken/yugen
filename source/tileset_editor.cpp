@@ -176,7 +176,7 @@ void TilesetPanel::update()
 
 void TilesetPanel::draw(RenderUtil& util) const
 {
-  const GlTexture& texture = _tileset.get_texture().texture;
+  const GlTexture2D& texture = _tileset.get_texture().texture;
   util.irender_sprite(texture, texture.get_size(), y::ivec2(), y::ivec2(),
                       0.f, colour::white);
 
