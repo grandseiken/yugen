@@ -2,8 +2,9 @@
 #define ENVIRONMENT_H
 
 #include "common.h"
-#include "gl_util.h"
+#include "gl_handle.h"
 
+class GlUtil;
 class RenderUtil;
 
 class Environment : public y::no_copy {

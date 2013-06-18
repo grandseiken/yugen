@@ -1,6 +1,7 @@
 #include "map_editor.h"
 
 #include "databank.h"
+#include "gl_util.h"
 #include "render_util.h"
 #include "tileset.h"
 #include "window.h"

@@ -1,5 +1,6 @@
 #include "environment.h"
 #include "perlin.h"
+#include "gl_util.h"
 #include "render_util.h"
 
 Environment::Environment(GlUtil& gl)

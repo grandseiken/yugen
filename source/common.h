@@ -13,7 +13,9 @@
 #include <unordered_set>
 #include <vector>
 
-// TODO: do we need all this here?
+// TODO: profile whether putting this stuff into separate headers in a common
+// directory makes compiles faster. I'm pretty sure it's mostly *recompilation*
+// due to headers being changed which actually matters though.
 namespace y {
 
   typedef int8_t int8;

@@ -1,4 +1,5 @@
 #include "lighting.h"
+#include "gl_util.h"
 #include "render_util.h"
 #include "world.h"
 

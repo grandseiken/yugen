@@ -2,7 +2,7 @@
 #define YUGEN_H
 
 #include "common.h"
-#include "gl_util.h"
+#include "gl_handle.h"
 #include "modal.h"
 
 #include <SFML/System.hpp>

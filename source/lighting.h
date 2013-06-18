@@ -2,12 +2,13 @@
 #define LIGHTING_H
 
 #include "common.h"
-#include "gl_util.h"
+#include "gl_handle.h"
 #include "lua.h"
 #include "vector.h"
 
 struct Geometry;
 struct OrderedGeometry;
+class GlUtil;
 class RenderUtil;
 class WorldWindow;
 

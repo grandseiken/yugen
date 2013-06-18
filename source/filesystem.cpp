@@ -183,7 +183,12 @@ bool Filesystem::read_file(y::string& output,
                            const y::string& path) const
 {
   y::string cpath;
-  if (!canonicalise_path(cpath, path) || !is_file_internal(cpath)) {
+  if (!canonicalise_path(cpath, path)) {
+    std::cerr << "Couldn't read file " << path << ", invalid path" << std::endl;
+    return false;
+  }
+  if (!is_file_internal(cpath)) {
+    std::cerr << "Couldn't read file " << path << std::endl;
     return false;
   }
   read_file_internal(output, cpath);
@@ -222,7 +227,8 @@ bool Filesystem::read_file_with_includes(y::string& output,
     y::string after = output.substr(1 + end);
     output = output.substr(0, include);
     if (!read_file(output, include_filename)) {
-      std::cerr << "Couldn't read file " << include_filename << std::endl;
+      std::cerr << "Couldn't read included file " << include_filename <<
+          std::endl;
       return false;
     }
     output += after;
@@ -235,7 +241,14 @@ bool Filesystem::write_file(const y::string& data,
                             const y::string& path)
 {
   y::string cpath;
-  if (!canonicalise_path(cpath, path) || is_directory_internal(cpath)) {
+  if (!canonicalise_path(cpath, path)) {
+    std::cerr << "Couldn't write file " << path << ", invalid path" <<
+        std::endl;
+    return false;
+  }
+  if (is_directory_internal(cpath)) {
+    std::cerr << "Couldn't write file " << path << ", is a directory" <<
+        std::endl;
     return false;
   }
   write_file_internal(data, cpath);

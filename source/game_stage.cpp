@@ -1,6 +1,7 @@
 #include "game_stage.h"
 
 #include "databank.h"
+#include "gl_util.h"
 #include "tileset.h"
 #include "window.h"
 
@@ -303,16 +304,9 @@ void GameStage::draw() const
 
   // Draw scene with lighting.
   _framebuffer.bind(false, false);
-  _util.get_gl().enable_depth(false);
-  _util.get_gl().enable_blend(false);
-  _scene_program.bind();
-  _scene_program.bind_attribute("position", _util.quad_vertex());
-  _scene_program.bind_uniform("colourbuffer", _colourbuffer);
-  _scene_program.bind_uniform("lightbuffer", _lightbuffer);
-  _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
+  render_scene(false);
 
   // Re-render colour and normal buffer for the environment.
-  // TODO: make it a function.
   _environment.render(_util, get_camera_min(), get_camera_max(),
                       _colourbuffer, _normalbuffer);
   // Re-render the scene by the lighting.
@@ -322,14 +316,7 @@ void GameStage::draw() const
 
   // Draw environment overlay with lighting.
   _framebuffer.bind(false, false);
-  _util.get_gl().enable_depth(false);
-  _util.get_gl().enable_blend(true);
-  _scene_program.bind();
-  // TODO: do we need to re-bind?
-  _scene_program.bind_attribute("position", _util.quad_vertex());
-  _scene_program.bind_uniform("colourbuffer", _colourbuffer);
-  _scene_program.bind_uniform("lightbuffer", _lightbuffer);
-  _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
+  render_scene(true);
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
@@ -516,4 +503,16 @@ void GameStage::render_all(bool normal_buffer) const
       script->call("draw");
     }
   }
+}
+
+void GameStage::render_scene(bool enable_blend) const
+{
+  _framebuffer.bind(false, false);
+  _util.get_gl().enable_depth(false);
+  _util.get_gl().enable_blend(enable_blend);
+  _scene_program.bind();
+  _scene_program.bind_attribute("position", _util.quad_vertex());
+  _scene_program.bind_uniform("colourbuffer", _colourbuffer);
+  _scene_program.bind_uniform("lightbuffer", _lightbuffer);
+  _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }

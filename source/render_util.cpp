@@ -1,4 +1,5 @@
 #include "render_util.h"
+#include "gl_util.h"
 
 #include <boost/functional/hash.hpp>
 

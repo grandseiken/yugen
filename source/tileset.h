@@ -2,7 +2,7 @@
 #define TILESET_H
 
 #include "common.h"
-#include "gl_util.h"
+#include "gl_handle.h"
 #include "save.h"
 #include "vector.h"
 

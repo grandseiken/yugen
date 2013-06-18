@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "cell.h"
+#include "gl_handle.h"
 #include "tileset.h"
 
 #include <algorithm>
@@ -14,7 +15,6 @@ class GlUtil;
 
 // Globs and loads resources. Requesting resources by invalid names returns
 // a reference to a standard missing resource.
-// TODO: exceptions?
 template<typename T>
 class Dataset : public y::no_copy {
 public:

@@ -71,6 +71,7 @@ private:
   y::wvec2 get_camera_max() const;
 
   void render_all(bool normal_buffer) const;
+  void render_scene(bool enable_blend) const;
 
   const Databank& _bank;
   RenderUtil& _util;

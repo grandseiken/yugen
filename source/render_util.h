@@ -2,8 +2,10 @@
 #define RENDER_UTIL_H
 
 #include "common.h"
-#include "gl_util.h"
+#include "gl_handle.h"
 #include "vector.h"
+
+class GlUtil;
 
 namespace colour {
   const y::fvec4 outline{.7f, .7f, .7f, 1.f};
