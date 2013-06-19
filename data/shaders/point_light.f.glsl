@@ -16,23 +16,7 @@ varying vec4 colour_coord;
 const float direct_coefficient = 0.5;
 const float indirect_coefficient = 1.0 - direct_coefficient;
 
-// Given coords in [-1, 1] X [-1, 1], returns vector v such that v.x and v.y
-// are the coords scaled to the unit circle, v.z is positive, and v has
-// length 1.
-vec3 sq_coords_to_world_normal(vec2 coords)
-{
-  vec2 sq = coords * coords;
-  float m = max(sq.x, sq.y);
-  float d = inversesqrt((sq.x + sq.y) / m);
-  return vec3(coords.x * d, coords.y * d, sqrt(1 - m));
-}
-
-// Same as above, but takes coords scaled to the unit circle already.
-vec3 circular_coords_to_world_normal(vec2 coords)
-{
-  vec2 sq = coords * coords;
-  return vec3(coords.x, coords.y, sqrt(1 - sq.x - sq.y));
-}
+#include "light_util.glsl"
 
 void main()
 {
@@ -62,19 +46,16 @@ void main()
   // TODO: is it possible to discard early if the normalbuffer was never written
   // to, somehow?
   vec4 normal_tex = texture2D(normalbuffer, pos_coord);
-  vec3 normal_world =
-      sq_coords_to_world_normal(2.0 * vec2(normal_tex.x, normal_tex.y) - 1.0);
+  vec3 normal_world = tex_to_world_normal(normal_tex);
 
   // Similarly, light directions have x, y in [-1, 1]; scale and treat as
   // spherical coordinates.
   vec3 direct_world = circular_coords_to_world_normal(direct_dir);
   vec3 indirect_world = circular_coords_to_world_normal(indirect_dir);
 
-  // Calculate light value.
-  normal_world.x = -normal_world.x;
-  normal_world.y = -normal_world.y;
-  float direct_light = dot(normal_world, direct_world);
-  float indirect_light = dot(normal_world, indirect_world);
+  // Calculate light values.
+  float direct_light = light_value(direct_world, normal_world);
+  float indirect_light = light_value(indirect_world, normal_world);
   float total_light = direct_coefficient * max(0.0, direct_light) +
                       indirect_coefficient * max(0.0, indirect_light);
 

@@ -2,607 +2,22 @@
 
 #include "databank.h"
 #include "gl_util.h"
-#include "render_util.h"
-#include "tileset.h"
 #include "window.h"
 
 #include <SFML/Window.hpp>
-
-CellAddAction::CellAddAction(Databank& bank, CellMap& map,
-                             const y::ivec2& cell, const y::string& path)
-  : bank(bank)
-  , map(map)
-  , cell(cell)
-  , path(path)
-{
-}
-
-void CellAddAction::redo() const
-{
-  if (!bank.cells.is_name_used(path)) {
-    bank.cells.insert(path, y::move_unique(new CellBlueprint()));
-  }
-  map.set_coord(cell, bank.cells.get(path));
-}
-
-void CellAddAction::undo() const
-{
-  map.clear_coord(cell);
-}
-
-CellRenameAction::CellRenameAction(Databank& bank, CellMap& map,
-                                   const y::ivec2& cell, const y::string& path)
-  : bank(bank)
-  , map(map)
-  , cell(cell)
-  , new_path(path)
-{
-}
-
-void CellRenameAction::redo() const
-{
-  old_path = bank.cells.get_name(*map.get_coord(cell));
-  bank.cells.rename(*map.get_coord(cell), new_path);
-}
-
-void CellRenameAction::undo() const
-{
-  bank.cells.rename(*map.get_coord(cell), old_path);
-}
-
-CellRemoveAction::CellRemoveAction(Databank& bank, CellMap& map,
-                                   const y::ivec2& cell)
-  : bank(bank)
-  , map(map)
-  , cell(cell)
-{
-}
-
-void CellRemoveAction::redo() const
-{
-  path = bank.cells.get_name(*map.get_coord(cell));
-  map.clear_coord(cell);
-}
-
-void CellRemoveAction::undo() const
-{
-  map.set_coord(cell, bank.cells.get(path));
-}
-
-TileEditAction::TileEditAction(CellMap& map, y::int32 layer)
-  : map(map)
-  , layer(layer)
-{
-}
-
-void TileEditAction::set_tile(
-    const y::ivec2& cell, const y::ivec2& tile, const Tile& t)
-{
-  const auto& p = y::make_pair(cell, tile);
-
-  auto it = edits.find(p);
-  if (it == edits.end()) {
-    auto& edit = edits[p];
-    edit.old_tile = map.get_coord(cell)->get_tile(layer, tile);
-    it = edits.find(p);
-  }
-  it->second.new_tile = t;
-}
-
-void TileEditAction::redo() const
-{
-  for (const auto& pair : edits) {
-    CellBlueprint* cell = map.get_coord(pair.first.first);
-    cell->set_tile(layer, pair.first.second, pair.second.new_tile);
-  }
-}
-
-void TileEditAction::undo() const
-{
-  for (const auto& pair : edits) {
-    CellBlueprint* cell = map.get_coord(pair.first.first);
-    cell->set_tile(layer, pair.first.second, pair.second.old_tile);
-  }
-}
-
-ScriptAddAction::ScriptAddAction(
-    CellMap& map, const y::ivec2& min, const y::ivec2& max,
-    const y::string& path)
-  : map(map)
-  , min(min)
-  , max(max)
-  , path(path)
-{
-}
-
-void ScriptAddAction::redo() const
-{
-  map.add_script(min, max, path);
-}
-
-void ScriptAddAction::undo() const
-{
-  map.remove_script(map.get_script_index_at(min));
-}
-
-ScriptRemoveAction::ScriptRemoveAction(CellMap& map, const y::ivec2& world)
-  : map(map)
-  , world(world)
-{
-}
-
-void ScriptRemoveAction::redo() const
-{
-  const ScriptBlueprint& s = map.get_script_at(world);
-  min = s.min;
-  max = s.max;
-  path = s.path;
-  map.remove_script(map.get_script_index_at(world));
-}
-
-void ScriptRemoveAction::undo() const
-{
-  map.add_script(min, max, path);
-}
-
-ScriptMoveAction::ScriptMoveAction(CellMap& map,
-                                   const y::ivec2& start, const y::ivec2& end)
-  : map(map)
-  , start(start)
-  , end(end)
-{
-}
-
-void ScriptMoveAction::redo() const
-{
-  const ScriptBlueprint& s = map.get_script_at(start);
-  y::ivec2 min = s.min;
-  y::ivec2 max = s.max;
-  y::string path = s.path;
-  map.remove_script(map.get_script_index_at(start));
-  map.add_script(min + end - start, max + end - start, path);
-}
-
-void ScriptMoveAction::undo() const
-{
-  const ScriptBlueprint& s = map.get_script_at(end);
-  y::ivec2 min = s.min;
-  y::ivec2 max = s.max;
-  y::string path = s.path;
-  map.remove_script(map.get_script_index_at(end));
-  map.add_script(min + start - end, max + start - end, path);
-}
-
-TileBrush::TileBrush()
-  : size{1, 1}
-  , array(new Tile[max_size[xx] * max_size[yy]])
-{
-  auto& entry = array[0];
-  entry.tileset = 0;
-  entry.index = 0;
-}
-
-const Tile& TileBrush::get(const y::ivec2& v) const
-{
-  return array[v[xx] + v[yy] * max_size[xx]];
-}
-
-Tile& TileBrush::get(const y::ivec2& v)
-{
-  return array[v[xx] + v[yy] * max_size[xx]];
-}
-
-const y::ivec2 TileBrush::max_size{16, 16};
-
-BrushPanel::BrushPanel(const Databank& bank, const TileBrush& brush)
-  : Panel(y::ivec2(), y::ivec2())
-  , _bank(bank)
-  , _brush(brush)
-{
-}
-
-bool BrushPanel::event(const sf::Event& e)
-{
-  return e.type == sf::Event::MouseMoved;
-}
-
-void BrushPanel::update()
-{
-  y::ivec2 tiles = y::max({1, 1}, _brush.size);
-  set_size(tiles * Tileset::tile_size);
-}
-
-void BrushPanel::draw(RenderUtil& util) const
-{
-  if (!(_brush.size > y::ivec2())) {
-    return;
-  }
-
-  RenderBatch batch;
-  for (auto it = y::cartesian(_brush.size); it; ++it) {
-    const Tile& e = _brush.get(*it);
-    if (!e.tileset) {
-      continue;
-    }
-
-    batch.iadd_sprite(e.tileset->get_texture().texture, Tileset::tile_size,
-                      *it * Tileset::tile_size, e.tileset->from_index(e.index),
-                      0.f, colour::white);
-  }
-  util.render_batch(batch);
-}
-
-TilePanel::TilePanel(const Databank& bank, TileBrush& brush)
-  : Panel(y::ivec2(), y::ivec2())
-  , _bank(bank)
-  , _brush(brush)
-  , _list(y::ivec2(), y::ivec2(), colour::panel, colour::item, colour::select)
-  , _tileset_select(0)
-  , _tile_hover{-1, -1}
-{
-}
-
-bool TilePanel::event(const sf::Event& e)
-{
-  // Update hover position.
-  if (e.type == sf::Event::MouseMoved) {
-    if (e.mouseMove.y < RenderUtil::from_grid(_list.get_size())[yy]) {
-      _tile_hover = {-1, -1};
-    }
-    else {
-      _tile_hover = {e.mouseMove.x, e.mouseMove.y -
-                     RenderUtil::from_grid(_list.get_size())[yy]};
-      _tile_hover = _tile_hover.euclidean_div(Tileset::tile_size);
-    }
-    return true;
-  }
-  if (e.type == sf::Event::MouseLeft) {
-    _tile_hover = {-1, -1};
-  }
-
-  // Start drag.
-  if (e.type == sf::Event::MouseButtonPressed &&
-      (e.mouseButton.button == sf::Mouse::Left ||
-       e.mouseButton.button == sf::Mouse::Right)) {
-    start_drag(_tile_hover);
-  }
-
-  // End drag and update brush.
-  if (e.type == sf::Event::MouseButtonReleased && is_dragging() &&
-      (e.mouseButton.button == sf::Mouse::Left ||
-       e.mouseButton.button == sf::Mouse::Right)) {
-    copy_drag_to_brush();
-    stop_drag();
-  }
-
-  // Change tileset.
-  if (e.type == sf::Event::MouseWheelMoved && !is_dragging()) {
-    _tileset_select -= e.mouseWheel.delta;
-    return true;
-  }
-  if (e.type != sf::Event::KeyPressed || is_dragging()) {
-    return false;
-  }
-
-  switch (e.key.code) {
-    case sf::Keyboard::Q:
-      --_tileset_select;
-      break;
-    case sf::Keyboard::E:
-      ++_tileset_select;
-      break;
-    default: {}
-  }
-  return false;
-}
-
-void TilePanel::update()
-{
-  y::roll<y::int32>(_tileset_select, 0, _bank.tilesets.size());
-
-  const GlTexture2D& tex =
-      _bank.tilesets.get(_tileset_select).get_texture().texture;
-  y::int32 tx_max = RenderUtil::to_grid(tex.get_size())[xx];
-  y::int32 ty_max = y::min(y::size(7), _bank.tilesets.size());
-
-  set_size(tex.get_size() + RenderUtil::from_grid() * y::ivec2{0, ty_max});
-  _list.set_size({tx_max, ty_max});
-}
-
-void TilePanel::draw(RenderUtil& util) const
-{
-  // Render panel.
-  const Tileset& t = _bank.tilesets.get(_tileset_select);
-  const GlTexture2D& tex = t.get_texture().texture;
-
-  _list.draw(util, _bank.tilesets.get_names(), _tileset_select);
-
-  // Render tileset.
-  util.irender_fill({0, RenderUtil::from_grid(_list.get_size())[yy]},
-                    tex.get_size(), colour::dark_panel);
-  util.irender_sprite(tex, tex.get_size(),
-                      {0, RenderUtil::from_grid(_list.get_size())[yy]},
-                      y::ivec2(), 0.f, colour::white);
-
-  // Render hover.
-  y::ivec2 start = is_dragging() ? get_drag_start() : _tile_hover;
-  y::ivec2 min = y::min(start, _tile_hover);
-  y::ivec2 max = y::max(start, _tile_hover);
-
-  if (_tile_hover.in_region(y::ivec2(), t.get_size()) || is_dragging()) {
-    min = y::max(min, {0, 0});
-    max = y::min(max, t.get_size() - y::ivec2{1, 1});
-    util.irender_outline(
-         min * Tileset::tile_size +
-             y::ivec2{0, RenderUtil::from_grid(_list.get_size())[yy]},
-         (y::ivec2{1, 1} + (max - min)) * Tileset::tile_size, colour::hover);
-  }
-}
-
-void TilePanel::copy_drag_to_brush() const
-{
-  const Tileset& t = _bank.tilesets.get(_tileset_select);
-
-  y::ivec2 min = y::min(get_drag_start(), _tile_hover);
-  y::ivec2 max = y::max(get_drag_start(), _tile_hover);
-  min = y::max(min, {0, 0});
-  max = y::min(max, t.get_size() - y::ivec2{1, 1});
-  max = y::min(max, min + TileBrush::max_size - y::ivec2{1, 1});
-  _brush.size = y::ivec2{1, 1} + max - min;
-  for (auto it = y::cartesian(_brush.size); it; ++it) {
-    Tile& entry = _brush.get(*it);
-    entry.tileset = &_bank.tilesets.get(_tileset_select);
-    entry.index = t.to_index(*it + min);
-  }
-}
-
-ScriptPanel::ScriptPanel(const Databank& bank)
-  : Panel(y::ivec2(), y::ivec2())
-  , _bank(bank)
-  , _list(y::ivec2(), y::ivec2(), colour::panel, colour::item, colour::select)
-  , _script_select(0)
-{
-}
-
-const y::string& ScriptPanel::get_script() const
-{
-  static const y::string& missing = "/yedit/missing.lua";
-  if (y::size(_script_select) >= _bank.scripts.size()) {
-    return missing;
-  }
-  return _bank.scripts.get(_script_select).path;
-}
-
-void ScriptPanel::set_script(const y::string& path)
-{
-  y::int32 index = _bank.scripts.get_index(path);
-  if (index >= 0) {
-    _script_select = index;
-  }
-}
-
-bool ScriptPanel::event(const sf::Event& e)
-{
-  // Update hover position.
-  if (e.type == sf::Event::MouseMoved) {
-    return true;
-  }
-
-  // Change tileset.
-  if (e.type == sf::Event::MouseWheelMoved) {
-    _script_select -= e.mouseWheel.delta;
-    return true;
-  }
-
-  if (e.type != sf::Event::KeyPressed) {
-    return false;
-  }
-  switch (e.key.code) {
-    case sf::Keyboard::Q:
-      --_script_select;
-      break;
-    case sf::Keyboard::E:
-      ++_script_select;
-      break;
-    default: {}
-  }
-  return false;
-}
-
-void ScriptPanel::update()
-{
-  y::roll<y::int32>(_script_select, 0, _bank.scripts.size());
-
-  y::ivec2 v = {32, y::min(17, y::int32(_bank.scripts.size()))};
-  set_size(RenderUtil::from_grid(v));
-  _list.set_size(v);
-}
-
-void ScriptPanel::draw(RenderUtil& util) const
-{
-  _list.draw(util, _bank.scripts.get_names(), _script_select);
-}
-
-LayerPanel::LayerPanel(const y::string_vector& status)
-  : Panel(y::ivec2(), y::ivec2())
-  , _status(status)
-  , _list(y::ivec2(), y::ivec2(), colour::panel, colour::item, colour::select)
-  , _layer_select(0)
-{
-}
-
-y::int32 LayerPanel::get_layer() const
-{
-  return _layer_select;
-}
-
-bool LayerPanel::event(const sf::Event& e)
-{
-  if (e.type == sf::Event::MouseMoved) {
-    return true;
-  }
-  if (e.type == sf::Event::MouseWheelMoved) {
-    _layer_select -= e.mouseWheel.delta;
-    return true;
-  }
-  if (e.type != sf::Event::KeyPressed) {
-    return false;
-  }
-
-  switch (e.key.code) {
-    case sf::Keyboard::Num1:
-      _layer_select = -1;
-      break;
-    case sf::Keyboard::Num2:
-      _layer_select = 0;
-      break;
-    case sf::Keyboard::Num3:
-      _layer_select = 1;
-      break;
-    case sf::Keyboard::Num4:
-      _layer_select = 2;
-      break;
-    case sf::Keyboard::Tab:
-      ++_layer_select;
-      break;
-    default: {}
-  }
-  return false;
-}
-
-void LayerPanel::update()
-{
-  y::roll<y::int32>(_layer_select, -Cell::background_layers,
-                   2 + Cell::foreground_layers);
-  y::size len = 12;
-  for (const y::string& s : _status) {
-    len = y::max(len, s.length());
-  }
-  set_size(RenderUtil::from_grid({
-      y::int32(len), 4 + y::int32(_status.size())}));
-  _list.set_size({y::int32(len), 4});
-}
-
-void LayerPanel::draw(RenderUtil& util) const
-{
-  static y::string_vector layer_names{
-    "1 Background",
-    "2 Collision",
-    "3 Foreground",
-    "4 Scripts"};
-
-  _list.draw(util, layer_names, Cell::background_layers + _layer_select);
-
-  y::int32 i = 0;
-  for (const y::string& s : _status) {
-    util.irender_text(s, RenderUtil::from_grid({0, 4 + i++}), colour::item);
-  }
-}
-
-static const y::vector<float> zoom_array{.25f, .5f, 1.f, 2.f, 3.f, 4.f};
-
-MinimapPanel::MinimapPanel(const CellMap& map,
-                           y::ivec2& camera, const y::int32& zoom)
-  : Panel(y::ivec2(), y::ivec2())
-  , _map(map)
-  , _camera(camera)
-  , _zoom(zoom)
-{
-}
-
-bool MinimapPanel::event(const sf::Event& e)
-{
-  // Start drag.
-  if (e.type == sf::Event::MouseButtonPressed &&
-      (e.mouseButton.button == sf::Mouse::Left ||
-       e.mouseButton.button == sf::Mouse::Right)) {
-    start_drag(y::ivec2());
-  }
-  if (e.type == sf::Event::MouseButtonReleased && is_dragging() &&
-      (e.mouseButton.button == sf::Mouse::Left ||
-       e.mouseButton.button == sf::Mouse::Right)) {
-    stop_drag();
-  }
-
-  // Update camera position.
-  if ((e.type == sf::Event::MouseMoved ||
-       e.type == sf::Event::MouseButtonPressed) && is_dragging()) {
-    y::ivec2 v = e.type == sf::Event::MouseMoved ?
-        y::ivec2{e.mouseMove.x, e.mouseMove.y} :
-        y::ivec2{e.mouseButton.x, e.mouseButton.y};
-    _camera = v * scale +
-        _map.get_boundary_min() * Cell::cell_size * Tileset::tile_size;
-  }
-  if (e.type == sf::Event::MouseMoved) {
-    return true;
-  }
-  return false;
-}
-
-void MinimapPanel::update()
-{
-  set_size((_map.get_boundary_max() - _map.get_boundary_min()) *
-           (Tileset::tile_size / scale) * Cell::cell_size);
-}
-
-void MinimapPanel::draw(RenderUtil& util) const
-{
-  util.irender_fill(y::ivec2(), get_size(), colour::dark_panel);
-  util.set_scale(1.f / scale);
-  const y::ivec2& min = _map.get_boundary_min();
-  const y::ivec2& max = _map.get_boundary_max();
-  y::ivec2 c;
-  RenderBatch batch;
-  for (y::int32 layer = -Cell::background_layers;
-       layer <= Cell::foreground_layers; ++layer) {
-    for (auto it = _map.get_cartesian(); it; ++it) {
-      const y::ivec2& c = *it;
-      if (!_map.is_coord_used(c)) {
-        continue;
-      }
-      const CellBlueprint* cell = _map.get_coord(c);
-
-      for (auto it = y::cartesian(Cell::cell_size); it; ++it) {
-        const y::ivec2& v = *it;
-        const Tile& t = cell->get_tile(layer, v);
-        // Draw the tile.
-        if (!t.tileset) {
-          continue;
-        }
-
-        float d = .8f - layer * .1f;
-        y::ivec2 u = Tileset::tile_size * (v + (c - min) * Cell::cell_size);
-        batch.iadd_sprite(t.tileset->get_texture().texture, Tileset::tile_size,
-                          u, t.tileset->from_index(t.index), d, colour::white);
-      }
-    }
-  }
-  util.render_batch(batch);
-
-  // Draw viewport.
-  const Resolution& r = util.get_window().get_mode();
-  y::ivec2 vmin =
-      _camera - y::ivec2(y::fvec2(r.size) / (2.f * zoom_array[_zoom])) -
-      Tileset::tile_size * min * Cell::cell_size;
-  y::ivec2 vmax = vmin + y::ivec2(y::fvec2(r.size) / zoom_array[_zoom]);
-
-  vmin = y::max(vmin, y::ivec2());
-  vmax = y::min(vmax, (max - min) * Cell::cell_size * Tileset::tile_size);
-  if (vmin < vmax) {
-    util.irender_outline(vmin, vmax - vmin, colour::outline);
-  }
-  util.set_scale(1.f);
-}
-
-const y::int32 MinimapPanel::scale = 16;
 
 MapEditor::MapEditor(Databank& bank, RenderUtil& util, CellMap& map)
   : _bank(bank)
   , _util(util)
   , _map(map)
+  , _yedit_scene_program(util.get_gl().make_unique_program({
+        "/shaders/yedit_scene.v.glsl",
+        "/shaders/yedit_scene.f.glsl"}))
   , _camera_drag(false)
+  , _light_drag(false)
   , _zoom(2)
   , _hover{-1, -1}
+  , _light_direction{1.f, 1.f}
   , _brush_panel(bank, _tile_brush)
   , _tile_panel(bank, _tile_brush)
   , _script_panel(bank)
@@ -621,7 +36,7 @@ void MapEditor::event(const sf::Event& e)
   // Update hover position.
   if (e.type == sf::Event::MouseMoved) {
     _hover = y::ivec2(y::fvec2(float(e.mouseMove.x), float(e.mouseMove.y)) /
-                      zoom_array[_zoom]);
+                      Zoom::array[_zoom]);
   }
   if (e.type == sf::Event::MouseLeft) {
     _hover = {-1, -1};
@@ -639,7 +54,8 @@ void MapEditor::event(const sf::Event& e)
   if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
       (shift || e.mouseButton.button == sf::Mouse::Middle)) {
     start_drag(_hover);
-    _camera_drag = true;
+    _camera_drag = e.mouseButton.button != sf::Mouse::Right;
+    _light_drag = !_camera_drag;
   }
   else if (e.type == sf::Event::MouseButtonPressed && !is_dragging() &&
            (e.mouseButton.button == sf::Mouse::Left ||
@@ -683,11 +99,12 @@ void MapEditor::event(const sf::Event& e)
           new ScriptMoveAction(_map, get_drag_start(), get_hover_world())));
     }
     // End pick and copy tiles.
-    else if (!_camera_drag) {
+    else if (!_camera_drag && !_light_drag) {
       copy_drag_to_brush();
     }
     stop_drag();
     _camera_drag = false;
+    _light_drag = false;
   }
 
   if (e.type != sf::Event::KeyPressed) {
@@ -746,17 +163,17 @@ void MapEditor::event(const sf::Event& e)
     // Zoom in.
     case sf::Keyboard::Z:
       ++_zoom;
-      y::clamp(_zoom, 0, y::int32(zoom_array.size()));
+      y::clamp(_zoom, 0, y::int32(Zoom::array.size()));
       _hover = y::ivec2(y::fvec2(_hover) *
-                        zoom_array[old_zoom] / zoom_array[_zoom]);
+                        Zoom::array[old_zoom] / Zoom::array[_zoom]);
       break;
 
     // Zoom out.
     case sf::Keyboard::X:
       --_zoom;
-      y::clamp(_zoom, 0, y::int32(zoom_array.size()));
+      y::clamp(_zoom, 0, y::int32(Zoom::array.size()));
       _hover = y::ivec2(y::fvec2(_hover) *
-                        zoom_array[old_zoom] / zoom_array[_zoom]);
+                        Zoom::array[old_zoom] / Zoom::array[_zoom]);
       break;
 
     // Unused key.
@@ -815,7 +232,7 @@ void MapEditor::update()
   _layer_status.clear();
   y::sstream ss;
   ss << get_hover_cell() << " : " << get_hover_tile() <<
-      " [" << zoom_array[_zoom] << "X]";
+      " [" << Zoom::array[_zoom] << "X]";
   _layer_status.emplace_back(ss.str());
   if (_map.is_coord_used(get_hover_cell())) {
     _layer_status.emplace_back(
@@ -827,6 +244,14 @@ void MapEditor::update()
     _camera += get_drag_start() - _hover;
     start_drag(_hover);
     return;
+  }
+
+  // Drag light.
+  if (_light_drag) {
+    y::fvec2 d = y::fvec2(get_drag_start() - _hover);
+    if (d != y::fvec2()) {
+      _light_direction = d / y::max(y::abs(d[xx]), y::abs(d[yy]));
+    }
   }
 
   // Rename or add cell.
@@ -864,18 +289,45 @@ void MapEditor::update()
 
 void MapEditor::draw() const
 {
-  _util.set_scale(zoom_array[_zoom]);
+  _util.set_scale(Zoom::array[_zoom]);
+
+  // Set up buffers the same size as the area we're to draw.
+  const y::ivec2& screen_size = _util.get_window().get_mode().size;
+  GlUnique<GlFramebuffer> colourbuffer(
+      _util.get_gl().make_unique_framebuffer(screen_size, true));
+  GlUnique<GlFramebuffer> normalbuffer(
+      _util.get_gl().make_unique_framebuffer(screen_size, false));
 
   // Draw cell contents.
   for (y::int32 layer = -Cell::background_layers;
        layer <= Cell::foreground_layers; ++layer) {
+    // Draw layer contents to colour and normal buffers.
+    colourbuffer->bind(true, true);
     RenderBatch batch;
     for (auto it = _map.get_cartesian(); it; ++it) {
-      draw_cell_layer(batch, *it, layer);
+      draw_cell_layer(batch, *it, layer, false);
     }
     _util.render_batch(batch);
-    _util.get_gl().bind_window(false, true);
+
+    normalbuffer->bind(true, true);
+    batch.clear();
+    for (auto it = _map.get_cartesian(); it; ++it) {
+      draw_cell_layer(batch, *it, layer, true);
+    }
+    _util.render_batch(batch);
+
+    // Render scene.
+    _util.get_gl().bind_window(false, false);
+    _yedit_scene_program->bind();
+    _yedit_scene_program->bind_attribute("position", _util.quad_vertex());
+    _yedit_scene_program->bind_uniform("colourbuffer", *colourbuffer);
+    _yedit_scene_program->bind_uniform("normalbuffer", *normalbuffer);
+    _yedit_scene_program->bind_uniform("light_direction", _light_direction);
+    _yedit_scene_program->bind_uniform("layer_colour", colour_for_layer(layer));
+    _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
   }
+
+  _util.get_gl().bind_window(false, true);
 
   // Draw cell-grid.
   y::ivec2 min = y::min(_map.get_boundary_min(), get_hover_cell());
@@ -913,13 +365,13 @@ void MapEditor::draw() const
 y::ivec2 MapEditor::world_to_camera(const y::ivec2& v) const
 {
   const Resolution& r = _util.get_window().get_mode();
-  return v - _camera + y::ivec2(y::fvec2(r.size / 2) / zoom_array[_zoom]);
+  return v - _camera + y::ivec2(y::fvec2(r.size / 2) / Zoom::array[_zoom]);
 }
 
 y::ivec2 MapEditor::camera_to_world(const y::ivec2& v) const
 {
   const Resolution& r = _util.get_window().get_mode();
-  return v - y::ivec2(y::fvec2(r.size / 2) / zoom_array[_zoom]) + _camera;
+  return v - y::ivec2(y::fvec2(r.size / 2) / Zoom::array[_zoom]) + _camera;
 }
 
 void MapEditor::copy_drag_to_brush()
@@ -979,19 +431,24 @@ void MapEditor::copy_brush_to_action() const
   }
 }
 
+const y::fvec4& MapEditor::colour_for_layer(y::int32 layer) const
+{
+  y::int32 active_layer = _layer_panel.get_layer();
+
+  return active_layer > Cell::foreground_layers ? colour::white :
+      layer < active_layer ? colour::dark :
+      layer == active_layer ? colour::white :
+      colour::transparent;
+}
+
 void MapEditor::draw_cell_layer(
-    RenderBatch& batch, const y::ivec2& coord, y::int32 layer) const
+    RenderBatch& batch,
+    const y::ivec2& coord, y::int32 layer, bool normal) const
 {
   if (!_map.is_coord_used(coord)) {
     return;
   }
   const CellBlueprint* cell = _map.get_coord(coord);
-
-  y::int32 active_layer = _layer_panel.get_layer();
-  const y::fvec4& c = active_layer > Cell::foreground_layers ? colour::white :
-      layer < active_layer ? colour::dark :
-      layer == active_layer ? colour::white :
-      colour::transparent;
 
   bool edit = is_dragging() &&
       _tile_edit_action && _tile_edit_action->layer == layer;
@@ -1014,8 +471,11 @@ void MapEditor::draw_cell_layer(
     y::ivec2 camera = world_to_camera(
         Tileset::tile_size * (*it + coord * Cell::cell_size));
 
-    batch.iadd_sprite(t.tileset->get_texture().texture, Tileset::tile_size,
-                      camera, t.tileset->from_index(t.index), 0.f, c);
+    const auto& texture = normal ?
+        t.tileset->get_texture().normal : t.tileset->get_texture().texture;
+    batch.iadd_sprite(texture, Tileset::tile_size,
+                      camera, t.tileset->from_index(t.index), 0.f,
+                      colour::white);
   }
 }
 
@@ -1054,7 +514,7 @@ void MapEditor::draw_cursor() const
 
   y::ivec2 cursor_end = get_hover_world() + _tile_brush.size - y::ivec2{1, 1};
   // Draw a rectangle-dragging-out cursor.
-  if (is_dragging() && !_camera_drag &&
+  if (is_dragging() && !_camera_drag && !_light_drag &&
       (!_tile_edit_action || _tile_edit_style)) {
     y::ivec2 min = y::min(get_drag_start(), get_hover_world());
     y::ivec2 max = y::max(get_drag_start(), get_hover_world());
