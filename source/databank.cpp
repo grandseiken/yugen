@@ -26,6 +26,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
     scripts.insert(s, y::move_unique(lua_file));
   }
 
+  // TODO: clean up Textures on destroy. Use GlUnique?
   paths.clear();
   filesystem.list_pattern(paths, "/sprites/**.png");
   for (const y::string& s : paths) {

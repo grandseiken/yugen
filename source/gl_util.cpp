@@ -109,6 +109,12 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size, bool has_alpha)
   return GlFramebuffer(framebuffer, texture, depth);
 }
 
+GlUnique<GlFramebuffer> GlUtil::make_unique_framebuffer(const y::ivec2& size,
+                                                        bool has_alpha)
+{
+  return make_unique(make_framebuffer(size, has_alpha));
+}
+
 void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
 {
   auto it = _framebuffer_set.find(framebuffer.get_handle());
@@ -152,6 +158,12 @@ GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
   }
   _texture_map.insert(y::make_pair(filename, texture));
   return texture;
+}
+
+GlUnique<GlTexture2D> GlUtil::make_unique_texture(
+    const y::string& filename, bool loop)
+{
+  return make_unique(make_texture(filename, loop));
 }
 
 GlTexture2D GlUtil::get_texture(const y::string& filename) const
@@ -224,6 +236,12 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
   return GlShader();
 }
 
+GlUnique<GlShader> GlUtil::make_unique_shader(
+    const y::string& filename, GLenum type)
+{
+  return make_unique(make_shader(filename, type));
+}
+
 GlShader GlUtil::get_shader(const y::string& filename) const
 {
   auto it = _shader_map.find(filename);
@@ -288,6 +306,12 @@ GlProgram GlUtil::make_program(const y::string_vector& shaders)
   std::cerr << log.get();
   glDeleteProgram(program);
   return GlProgram();
+}
+
+GlUnique<GlProgram> GlUtil::make_unique_program(
+    const y::string_vector& shaders)
+{
+  return make_unique(make_program(shaders));
 }
 
 GlProgram GlUtil::get_program(const y::string_vector& shaders) const

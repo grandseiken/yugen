@@ -33,7 +33,7 @@ class Collision : public ScriptMap<Body> {
 public:
 
   Collision(const WorldWindow& world);
-  virtual ~Collision() {}
+  ~Collision() override {}
 
   void render(RenderUtil& util,
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;

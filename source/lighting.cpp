@@ -20,27 +20,20 @@ y::world Light::get_max_range() const
 Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
   : _world(world)
   , _gl(gl)
-  , _point_light_program(gl.make_program({
+  , _point_light_program(gl.make_unique_program({
         "/shaders/point_light.v.glsl",
         "/shaders/point_light.f.glsl"}))
-  , _tri_buffer(gl.make_buffer<GLfloat, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _origin_buffer(gl.make_buffer<GLfloat, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _range_buffer(gl.make_buffer<GLfloat, 1>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _colour_buffer(
-      gl.make_buffer<GLfloat, 4>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _element_buffer(
-      gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _tri_buffer(gl.make_unique_buffer<GLfloat, 2>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _origin_buffer(gl.make_unique_buffer<GLfloat, 2>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _range_buffer(gl.make_unique_buffer<GLfloat, 1>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _colour_buffer(gl.make_unique_buffer<GLfloat, 4>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _element_buffer(gl.make_unique_buffer<GLushort, 1>(
+        GL_ELEMENT_ARRAY_BUFFER, GL_STREAM_DRAW))
 {
-}
-
-Lighting::~Lighting()
-{
-  _gl.delete_buffer(_tri_buffer);
-  _gl.delete_buffer(_origin_buffer);
-  _gl.delete_buffer(_range_buffer);
-  _gl.delete_buffer(_colour_buffer);
-  _gl.delete_buffer(_element_buffer);
-  _gl.delete_program(_point_light_program);
 }
 
 bool Lighting::trace_key::operator==(const trace_key& key) const
@@ -285,22 +278,22 @@ void Lighting::render_lightbuffer(
     }
   }
 
-  _tri_buffer.reupload_data(tri_data);
-  _origin_buffer.reupload_data(origin_data);
-  _range_buffer.reupload_data(range_data);
-  _colour_buffer.reupload_data(colour_data);
-  _element_buffer.reupload_data(element_data);
+  _tri_buffer->reupload_data(tri_data);
+  _origin_buffer->reupload_data(origin_data);
+  _range_buffer->reupload_data(range_data);
+  _colour_buffer->reupload_data(colour_data);
+  _element_buffer->reupload_data(element_data);
 
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
-  _point_light_program.bind();
-  _point_light_program.bind_uniform("normalbuffer", normalbuffer);
-  _point_light_program.bind_attribute("pixels", _tri_buffer);
-  _point_light_program.bind_attribute("origin", _origin_buffer);
-  _point_light_program.bind_attribute("range", _range_buffer);
-  _point_light_program.bind_attribute("colour", _colour_buffer);
-  util.bind_pixel_uniforms(_point_light_program);
-  _element_buffer.draw_elements(GL_TRIANGLES, element_data.size());
+  _point_light_program->bind();
+  _point_light_program->bind_uniform("normalbuffer", normalbuffer);
+  _point_light_program->bind_attribute("pixels", *_tri_buffer);
+  _point_light_program->bind_attribute("origin", *_origin_buffer);
+  _point_light_program->bind_attribute("range", *_range_buffer);
+  _point_light_program->bind_attribute("colour", *_colour_buffer);
+  util.bind_pixel_uniforms(*_point_light_program);
+  _element_buffer->draw_elements(GL_TRIANGLES, element_data.size());
 }
 
 Lighting::world_geometry::world_geometry()

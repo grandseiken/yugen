@@ -78,7 +78,6 @@ public:
   static const y::ivec2 native_overflow_size;
 
   RenderUtil(GlUtil& gl);
-  ~RenderUtil();
 
   /***/ GlUtil& get_gl() const;
   const Window& get_window() const;
@@ -173,16 +172,16 @@ private:
   static const y::ivec2 font_size;
 
   GlUtil& _gl;
-  gl_quad_element _quad_element;
-  gl_quad_vertex _quad_vertex;
+  GlUnique<gl_quad_element> _quad_element;
+  GlUnique<gl_quad_vertex> _quad_vertex;
 
   y::ivec2 _native_size;
   y::fvec2 _translation;
   float _scale;
 
-  GlTexture2D _font;
-  GlProgram _text_program;
-  GlProgram _draw_program;
+  GlUnique<GlTexture2D> _font;
+  GlUnique<GlProgram> _text_program;
+  GlUnique<GlProgram> _draw_program;
 
   // TODO: figure out if this is really worth it, and if so, come up with a
   // more easily-reusable way to do it (lighting.h too).
@@ -194,18 +193,18 @@ private:
   mutable y::vector<float> _colour_data;
   mutable y::vector<GLushort> _element_data;
 
-  GlBuffer<float, 2> _pixels_buffer;
-  GlBuffer<float, 1> _rotation_buffer;
-  GlBuffer<float, 2> _origin_buffer;
-  GlBuffer<float, 2> _frame_index_buffer;
-  GlBuffer<float, 1> _depth_buffer;
-  GlBuffer<float, 4> _colour_buffer;
-  GlBuffer<GLushort, 1> _element_buffer;
+  GlUnique<GlBuffer<float, 2>> _pixels_buffer;
+  GlUnique<GlBuffer<float, 1>> _rotation_buffer;
+  GlUnique<GlBuffer<float, 2>> _origin_buffer;
+  GlUnique<GlBuffer<float, 2>> _frame_index_buffer;
+  GlUnique<GlBuffer<float, 1>> _depth_buffer;
+  GlUnique<GlBuffer<float, 4>> _colour_buffer;
+  GlUnique<GlBuffer<GLushort, 1>> _element_buffer;
 
   GlTexture2D _sprite;
   y::ivec2 _frame_size;
   mutable y::vector<RenderBatch::batched_sprite> _batched_sprites;
-  GlProgram _sprite_program;
+  GlUnique<GlProgram> _sprite_program;
 
 };
 

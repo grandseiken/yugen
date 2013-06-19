@@ -29,7 +29,7 @@ class Lighting : public ScriptMap<Light> {
 public:
 
   Lighting(const WorldWindow& world, GlUtil& gl);
-  virtual ~Lighting();
+  ~Lighting() override {};
 
   // Stores trace results. Trace is relative to origin.
   struct trace_key {
@@ -90,13 +90,13 @@ private:
 
   const WorldWindow& _world;
   GlUtil& _gl;
-  GlProgram _point_light_program;
+  GlUnique<GlProgram> _point_light_program;
 
-  GlBuffer<float, 2> _tri_buffer;
-  GlBuffer<float, 2> _origin_buffer;
-  GlBuffer<float, 1> _range_buffer;
-  GlBuffer<float, 4> _colour_buffer;
-  GlBuffer<GLushort, 1> _element_buffer;
+  GlUnique<GlBuffer<float, 2>> _tri_buffer;
+  GlUnique<GlBuffer<float, 2>> _origin_buffer;
+  GlUnique<GlBuffer<float, 1>> _range_buffer;
+  GlUnique<GlBuffer<float, 4>> _colour_buffer;
+  GlUnique<GlBuffer<GLushort, 1>> _element_buffer;
 
   trace_results _trace_results;
 

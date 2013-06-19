@@ -70,47 +70,42 @@ const y::ivec2 RenderUtil::native_overflow_size{native_overflow_dimensions,
 
 RenderUtil::RenderUtil(GlUtil& gl)
   : _gl(gl)
-  , _quad_element(gl.make_buffer<GLushort, 1>(
-      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
-      quad_element_data, sizeof(quad_element_data)))
-  , _quad_vertex(gl.make_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW,
-      quad_vertex_data, sizeof(quad_vertex_data)))
+  , _quad_element(gl.make_unique_buffer<GLushort, 1>(
+        GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
+        quad_element_data, sizeof(quad_element_data)))
+  , _quad_vertex(gl.make_unique_buffer<GLfloat, 2>(
+        GL_ARRAY_BUFFER, GL_STATIC_DRAW,
+        quad_vertex_data, sizeof(quad_vertex_data)))
   , _native_size{0, 0}
   , _translation{0.f, 0.f}
   , _scale(1.f)
-  , _font(gl.make_texture("/font.png"))
-  , _text_program(gl.make_program({"/shaders/text.v.glsl",
-                                   "/shaders/text.f.glsl"}))
-  , _draw_program(gl.make_program({"/shaders/draw.v.glsl",
-                                   "/shaders/draw.f.glsl"}))
-  , _pixels_buffer(gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _rotation_buffer(gl.make_buffer<float, 1>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _origin_buffer(gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _frame_index_buffer(
-      gl.make_buffer<float, 2>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _depth_buffer(gl.make_buffer<float, 1>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _colour_buffer(gl.make_buffer<float, 4>(GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _element_buffer(
-      gl.make_buffer<GLushort, 1>(GL_ELEMENT_ARRAY_BUFFER, GL_DYNAMIC_DRAW))
+  , _font(gl.make_unique_texture("/font.png"))
+  , _text_program(gl.make_unique_program({
+        "/shaders/text.v.glsl",
+        "/shaders/text.f.glsl"}))
+  , _draw_program(gl.make_unique_program({
+        "/shaders/draw.v.glsl",
+        "/shaders/draw.f.glsl"}))
+  , _pixels_buffer(gl.make_unique_buffer<float, 2>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _rotation_buffer(gl.make_unique_buffer<float, 1>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _origin_buffer(gl.make_unique_buffer<float, 2>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _frame_index_buffer(gl.make_unique_buffer<float, 2>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _depth_buffer(gl.make_unique_buffer<float, 1>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _colour_buffer(gl.make_unique_buffer<float, 4>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _element_buffer(gl.make_unique_buffer<GLushort, 1>(
+        GL_ELEMENT_ARRAY_BUFFER, GL_DYNAMIC_DRAW))
   , _sprite(gl.make_texture("/yedit/missing.png"))
   , _frame_size{0, 0}
-  , _sprite_program(gl.make_program({"/shaders/sprite.v.glsl",
-                                     "/shaders/sprite.f.glsl"}))
+  , _sprite_program(gl.make_unique_program({
+        "/shaders/sprite.v.glsl",
+        "/shaders/sprite.f.glsl"}))
 {
-}
-
-RenderUtil::~RenderUtil()
-{
-  _gl.delete_buffer(_quad_element);
-  _gl.delete_buffer(_quad_vertex);
-
-  _gl.delete_buffer(_pixels_buffer);
-  _gl.delete_buffer(_rotation_buffer);
-  _gl.delete_buffer(_frame_index_buffer);
-  _gl.delete_buffer(_depth_buffer);
-  _gl.delete_buffer(_colour_buffer);
-  _gl.delete_buffer(_element_buffer);
 }
 
 GlUtil& RenderUtil::get_gl() const
@@ -125,12 +120,12 @@ const Window& RenderUtil::get_window() const
 
 const RenderUtil::gl_quad_element& RenderUtil::quad_element() const
 {
-  return _quad_element;
+  return *_quad_element;
 }
 
 const RenderUtil::gl_quad_vertex& RenderUtil::quad_vertex() const
 {
-  return _quad_vertex;
+  return *_quad_vertex;
 }
 
 void RenderUtil::set_resolution(const y::ivec2& native_size)
@@ -191,24 +186,21 @@ void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
       (origin[xx]), (origin + font_size)[yy],
       (origin + y::fvec2(_native_size))[xx], (origin + font_size)[yy]};
 
-  auto text_buffer = _gl.make_buffer<GLfloat, 2>(
+  auto text_buffer = _gl.make_unique_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, text_data, sizeof(text_data));
 
-  _text_program.bind();
-  _text_program.bind_attribute("pixels", text_buffer);
-  _text_program.bind_uniform("origin", text_data[0], text_data[1]);
+  _text_program->bind();
+  _text_program->bind_attribute("pixels", *text_buffer);
+  _text_program->bind_uniform("origin", text_data[0], text_data[1]);
   for (y::size i = 0; i < 1024; ++i) {
-    _text_program.bind_uniform(i, "string",
+    _text_program->bind_uniform(i, "string",
         GLint(i < text.length() ? text[i] : 0));
   }
-  _font.bind(GL_TEXTURE0);
-  _text_program.bind_uniform("font", 0);
-  _text_program.bind_uniform("font_size", font_size);
-  _text_program.bind_uniform("colour", colour);
-  bind_pixel_uniforms(_text_program);
-  _quad_element.draw_elements(GL_TRIANGLE_STRIP, 4);
-
-  _gl.delete_buffer(text_buffer);
+  _text_program->bind_uniform("font", *_font);
+  _text_program->bind_uniform("font_size", font_size);
+  _text_program->bind_uniform("colour", colour);
+  bind_pixel_uniforms(*_text_program);
+  _quad_element->draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
 void RenderUtil::irender_text(const y::string& text, const y::ivec2& origin,
@@ -232,16 +224,14 @@ void RenderUtil::render_fill(const y::fvec2& origin, const y::fvec2& size,
       origin[xx], (origin + size)[yy],
       (origin + size)[xx], (origin + size)[yy]};
 
-  auto rect_buffer = _gl.make_buffer<GLfloat, 2>(
+  auto rect_buffer = _gl.make_unique_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, rect_data, sizeof(rect_data));
 
-  _draw_program.bind();
-  _draw_program.bind_attribute("pixels", rect_buffer);
-  _draw_program.bind_uniform("colour", colour);
-  bind_pixel_uniforms(_draw_program);
-  _quad_element.draw_elements(GL_TRIANGLE_STRIP, 4);
-
-  _gl.delete_buffer(rect_buffer);
+  _draw_program->bind();
+  _draw_program->bind_attribute("pixels", *rect_buffer);
+  _draw_program->bind_uniform("colour", colour);
+  bind_pixel_uniforms(*_draw_program);
+  _quad_element->draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
 void RenderUtil::render_fill(const y::fvec2& a, const y::fvec2& b,
@@ -256,16 +246,14 @@ void RenderUtil::render_fill(const y::fvec2& a, const y::fvec2& b,
   const GLfloat tri_data[] = {
       a[xx], a[yy], b[xx], b[yy], c[xx], c[yy]};
 
-  auto tri_buffer = _gl.make_buffer<GLfloat, 2>(
+  auto tri_buffer = _gl.make_unique_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, tri_data, sizeof(tri_data));
 
-  _draw_program.bind();
-  _draw_program.bind_attribute("pixels", tri_buffer);
-  _draw_program.bind_uniform("colour", colour);
-  bind_pixel_uniforms(_draw_program);
-  _quad_element.draw_elements(GL_TRIANGLES, 3);
-
-  _gl.delete_buffer(tri_buffer);
+  _draw_program->bind();
+  _draw_program->bind_attribute("pixels", *tri_buffer);
+  _draw_program->bind_uniform("colour", colour);
+  bind_pixel_uniforms(*_draw_program);
+  _quad_element->draw_elements(GL_TRIANGLES, 3);
 }
 
 void RenderUtil::irender_fill(const y::ivec2& origin, const y::ivec2& size,
@@ -315,19 +303,16 @@ void RenderUtil::render_lines(const y::vector<line>& lines,
     element_data.emplace_back(i);
   }
 
-  auto tri_buffer = _gl.make_buffer<GLfloat, 2>(
+  auto tri_buffer = _gl.make_unique_buffer<GLfloat, 2>(
       GL_ARRAY_BUFFER, GL_STATIC_DRAW, tri_data);
-  auto element_buffer = _gl.make_buffer<GLushort, 1>(
+  auto element_buffer = _gl.make_unique_buffer<GLushort, 1>(
       GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
 
-  _draw_program.bind();
-  _draw_program.bind_attribute("pixels", tri_buffer);
-  _draw_program.bind_uniform("colour", colour);
-  bind_pixel_uniforms(_draw_program);
-  element_buffer.draw_elements(GL_TRIANGLES, element_data.size());
-
-  _gl.delete_buffer(tri_buffer);
-  _gl.delete_buffer(element_buffer);
+  _draw_program->bind();
+  _draw_program->bind_attribute("pixels", *tri_buffer);
+  _draw_program->bind_uniform("colour", colour);
+  bind_pixel_uniforms(*_draw_program);
+  element_buffer->draw_elements(GL_TRIANGLES, element_data.size());
 }
 
 void RenderUtil::render_outline(const y::fvec2& origin, const y::fvec2& size,
@@ -404,12 +389,12 @@ void RenderUtil::render_batch() const
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa]});
   }
 
-  _pixels_buffer.reupload_data(_pixels_data);
-  _rotation_buffer.reupload_data(_rotation_data);
-  _frame_index_buffer.reupload_data(_frame_index_data);
-  _origin_buffer.reupload_data(_origin_data);
-  _depth_buffer.reupload_data(_depth_data);
-  _colour_buffer.reupload_data(_colour_data);
+  _pixels_buffer->reupload_data(_pixels_data);
+  _rotation_buffer->reupload_data(_rotation_data);
+  _frame_index_buffer->reupload_data(_frame_index_data);
+  _origin_buffer->reupload_data(_origin_data);
+  _depth_buffer->reupload_data(_depth_data);
+  _colour_buffer->reupload_data(_colour_data);
 
   if (_element_data.size() / 6 < length) {
     for (y::size i = _element_data.size() / 6; i < length; ++i) {
@@ -417,23 +402,23 @@ void RenderUtil::render_batch() const
           GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
           GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
     }
-    _element_buffer.reupload_data(_element_data);
+    _element_buffer->reupload_data(_element_data);
   }
 
-  _sprite_program.bind();
-  _sprite_program.bind_attribute("pixels", _pixels_buffer);
-  _sprite_program.bind_attribute("rotation", _rotation_buffer);
-  _sprite_program.bind_attribute("origin", _origin_buffer);
-  _sprite_program.bind_attribute("frame_index", _frame_index_buffer);
-  _sprite_program.bind_attribute("depth", _depth_buffer);
-  _sprite_program.bind_attribute("colour", _colour_buffer);
+  _sprite_program->bind();
+  _sprite_program->bind_attribute("pixels", *_pixels_buffer);
+  _sprite_program->bind_attribute("rotation", *_rotation_buffer);
+  _sprite_program->bind_attribute("origin", *_origin_buffer);
+  _sprite_program->bind_attribute("frame_index", *_frame_index_buffer);
+  _sprite_program->bind_attribute("depth", *_depth_buffer);
+  _sprite_program->bind_attribute("colour", *_colour_buffer);
 
   y::ivec2 v = _sprite.get_size() / _frame_size;
-  _sprite_program.bind_uniform("sprite", _sprite);
-  _sprite_program.bind_uniform("frame_size", _frame_size);
-  _sprite_program.bind_uniform("frame_count", v);
-  bind_pixel_uniforms(_sprite_program);
-  _element_buffer.draw_elements(GL_TRIANGLES, 6 * length);
+  _sprite_program->bind_uniform("sprite", _sprite);
+  _sprite_program->bind_uniform("frame_size", _frame_size);
+  _sprite_program->bind_uniform("frame_count", v);
+  bind_pixel_uniforms(*_sprite_program);
+  _element_buffer->draw_elements(GL_TRIANGLES, 6 * length);
 
   _batched_sprites.clear();
 }

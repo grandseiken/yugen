@@ -50,6 +50,7 @@ public:
 protected:
 
   friend class GlUtil;
+  template<typename T>
   friend class GlUnique;
   explicit GlHandle(GLuint handle);
 
@@ -299,58 +300,68 @@ private:
 };
 
 template<typename T>
-class UniqueHandle : public y::no_copy {
+class GlUnique : public y::no_copy {
 public:
 
-  typedef UniqueHandle<T> U;
+  typedef GlUnique<T> U;
 
-  UniqueHandle() {}
-
-  UniqueHandle(GlUtil& gl, const T& t)
-    : gl(gl)
-    , t(t)
+  GlUnique()
+    : _gl(y::null)
   {
   }
 
-  UniqueHandle(GlUtil& gl, UniqueHandle&& u)
-    : gl(gl)
-    , t(u.t)
+  GlUnique(GlUtil& gl, const T& t)
+    : _gl(&gl)
+    , _t(t)
   {
-    u.t._handle = 0;
   }
 
-  ~UniqueHandle()
+  GlUnique(GlUnique&& u)
+    : _gl(u._gl)
+    , _t(u._t)
   {
-    if (t._handle) {
-      // TODO: make this work. Call the right method on gl_util. Doing it
-      // without putting it in gl_util.h seems tricky.
-    }
+    u._t._handle = 0;
+  }
+
+  // Implemented in gl_util.h.
+  ~GlUnique();
+
+  void swap(GlUnique& u)
+  {
+    std::swap(_t, u._t);
+    std::swap(_gl, u._gl);
+  }
+
+  void swap(GlUnique&& u)
+  {
+    std::swap(_t, u._t);
+    std::swap(_gl, u._gl);
   }
 
   const T& operator*() const
   {
-    return t;
+    return _t;
   }
 
   /***/ T& operator*()
   {
-    return t;
+    return _t;
   }
 
   const T* operator->() const
   {
-    return &t;
+    return &_t;
   }
 
-  /***/ T* operator->() const
+  /***/ T* operator->()
   {
-    return &t;
+    return &_t;
   }
 
 private:
 
-  GlUtil& gl;
-  T t;
+  GlUtil* _gl;
+  T _t;
   
 };
 

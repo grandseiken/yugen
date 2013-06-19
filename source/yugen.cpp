@@ -36,23 +36,23 @@ const GLfloat bayer_matrix[] = {
 Yugen::Yugen(RenderUtil& util)
   : _recording(false)
   , _util(util)
-  , _framebuffer(util.get_gl().make_framebuffer(
+  , _framebuffer(util.get_gl().make_unique_framebuffer(
         RenderUtil::native_overflow_size, false))
-  , _post_buffer(util.get_gl().make_framebuffer(
+  , _post_buffer(util.get_gl().make_unique_framebuffer(
         RenderUtil::native_overflow_size, false))
-  , _crop_buffer(util.get_gl().make_framebuffer(
+  , _crop_buffer(util.get_gl().make_unique_framebuffer(
         RenderUtil::native_size, false))
   , _stage(y::null)
-  , _post_program(util.get_gl().make_program({
+  , _post_program(util.get_gl().make_unique_program({
       "/shaders/post.v.glsl",
       "/shaders/post.f.glsl"}))
-  , _crop_program(util.get_gl().make_program({
+  , _crop_program(util.get_gl().make_unique_program({
       "/shaders/crop.v.glsl",
       "/shaders/crop.f.glsl"}))
-  , _upscale_program(util.get_gl().make_program({
+  , _upscale_program(util.get_gl().make_unique_program({
       "/shaders/upscale.v.glsl",
       "/shaders/upscale.f.glsl"}))
-  , _bayer_texture(util.get_gl().make_texture(
+  , _bayer_texture(util.get_gl().make_unique_texture(
       y::ivec2{8, 8}, GL_R8, GL_RED, bayer_matrix, true))
   , _bayer_frame(0)
 {
@@ -60,7 +60,7 @@ Yugen::Yugen(RenderUtil& util)
 
 const GlFramebuffer& Yugen::get_framebuffer() const
 {
-  return _framebuffer;
+  return *_framebuffer;
 }
 
 void Yugen::set_stage(GameStage* stage)
@@ -70,14 +70,6 @@ void Yugen::set_stage(GameStage* stage)
 
 Yugen::~Yugen()
 {
-  _util.get_gl().delete_texture(_bayer_texture);
-  _util.get_gl().delete_framebuffer(_framebuffer);
-  _util.get_gl().delete_framebuffer(_post_buffer);
-  _util.get_gl().delete_framebuffer(_crop_buffer);
-  _util.get_gl().delete_program(_post_program);
-  _util.get_gl().delete_program(_crop_program);
-  _util.get_gl().delete_program(_upscale_program);
-
   for (unsigned char* data : _save_file_frames) {
     delete[] data;
   }
@@ -115,22 +107,22 @@ void Yugen::draw() const
   }
 
   // Render the game.
-  _util.set_resolution(_framebuffer.get_size());
+  _util.set_resolution(_framebuffer->get_size());
   draw_next();
 
   // Render framebuffer to second buffer with post-processing.
-  _post_buffer.bind(true, true);
-  post_render(_framebuffer);
+  _post_buffer->bind(true, true);
+  post_render(*_framebuffer);
 
   // Crop and rotate to the crop buffer.
-  _crop_buffer.bind(true, true);
-  crop_render(_post_buffer, _crop_buffer.get_size());
+  _crop_buffer->bind(true, true);
+  crop_render(*_post_buffer, _crop_buffer->get_size());
 
   // Render crop-buffer to a file.
-  recording_render(_crop_buffer);
+  recording_render(*_crop_buffer);
 
   // Render debug status.
-  _util.set_resolution(_crop_buffer.get_size());
+  _util.set_resolution(_crop_buffer->get_size());
   if (total) {
     y::sstream ss;
     ss << total << " ticks (" << (1000.f / total) << " fps)";
@@ -143,21 +135,21 @@ void Yugen::draw() const
   // Upscale the crop-buffer to the window.
   const Resolution& screen = _util.get_window().get_mode();
   _util.get_gl().bind_window(true, true);
-  upscale_render(_crop_buffer, screen.size);
+  upscale_render(*_crop_buffer, screen.size);
 }
 
 void Yugen::post_render(const GlFramebuffer& source) const
 {
-  _post_program.bind();
-  _post_program.bind_attribute("position", _util.quad_vertex());
-  _post_program.bind_uniform("native_res", _post_buffer.get_size());
-  _post_program.bind_uniform("framebuffer", source);
-  _post_program.bind_uniform("bayer", _bayer_texture);
-  _post_program.bind_uniform("bayer_res", _bayer_texture.get_size());
-  _post_program.bind_uniform(
+  _post_program->bind();
+  _post_program->bind_attribute("position", _util.quad_vertex());
+  _post_program->bind_uniform("native_res", _post_buffer->get_size());
+  _post_program->bind_uniform("framebuffer", source);
+  _post_program->bind_uniform("bayer", *_bayer_texture);
+  _post_program->bind_uniform("bayer_res", _bayer_texture->get_size());
+  _post_program->bind_uniform(
       "bayer_off", _stage ? y::fvec2(_stage->world_to_camera(y::wvec2())) :
                             y::fvec2());
-  _post_program.bind_uniform("bayer_frame", y::int32(++_bayer_frame));
+  _post_program->bind_uniform("bayer_frame", y::int32(++_bayer_frame));
   _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
@@ -167,27 +159,27 @@ void Yugen::crop_render(const GlFramebuffer& source,
   // TODO: some sort of cleverer algorithm? Dithering after rotation in a
   // separate step from the post-processing would mean we could do averaged
   // rotation.
-  _crop_program.bind();
-  _crop_program.bind_attribute("position", _util.quad_vertex());
-  _crop_program.bind_uniform("native_res", target_size);
-  _crop_program.bind_uniform("native_overflow_res", source.get_size());
-  _crop_program.bind_uniform(
+  _crop_program->bind();
+  _crop_program->bind_attribute("position", _util.quad_vertex());
+  _crop_program->bind_uniform("native_res", target_size);
+  _crop_program->bind_uniform("native_overflow_res", source.get_size());
+  _crop_program->bind_uniform(
       "rotation", _stage ? float(_stage->get_camera_rotation()) : 0.f);
-  _crop_program.bind_uniform("framebuffer", source);
+  _crop_program->bind_uniform("framebuffer", source);
   _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
 void Yugen::upscale_render(const GlFramebuffer& source,
                            const y::ivec2& target_size) const
 {
-  _upscale_program.bind();
-  _upscale_program.bind_attribute("position", _util.quad_vertex());
-  _upscale_program.bind_uniform("screen_res", target_size);
-  _upscale_program.bind_uniform("native_res", source.get_size());
-  _upscale_program.bind_uniform("integral_scale_lock", true);
-  _upscale_program.bind_uniform("use_epx", false);
-  _upscale_program.bind_uniform("use_fra", true);
-  _upscale_program.bind_uniform("framebuffer", source);
+  _upscale_program->bind();
+  _upscale_program->bind_attribute("position", _util.quad_vertex());
+  _upscale_program->bind_uniform("screen_res", target_size);
+  _upscale_program->bind_uniform("native_res", source.get_size());
+  _upscale_program->bind_uniform("integral_scale_lock", true);
+  _upscale_program->bind_uniform("use_epx", false);
+  _upscale_program->bind_uniform("use_fra", true);
+  _upscale_program->bind_uniform("framebuffer", source);
   _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 

@@ -12,10 +12,13 @@ GameStage::GameStage(const Databank& bank,
   , _util(util)
   , _map(map)
   , _framebuffer(framebuffer)
-  , _colourbuffer(util.get_gl().make_framebuffer(framebuffer.get_size(), true))
-  , _normalbuffer(util.get_gl().make_framebuffer(framebuffer.get_size(), false))
-  , _lightbuffer(util.get_gl().make_framebuffer(framebuffer.get_size(), false))
-  , _scene_program(util.get_gl().make_program({
+  , _colourbuffer(util.get_gl().make_unique_framebuffer(
+        framebuffer.get_size(), true))
+  , _normalbuffer(util.get_gl().make_unique_framebuffer(
+        framebuffer.get_size(), false))
+  , _lightbuffer(util.get_gl().make_unique_framebuffer(
+        framebuffer.get_size(), false))
+  , _scene_program(util.get_gl().make_unique_program({
         "/shaders/scene.v.glsl",
         "/shaders/scene.f.glsl"}))
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
@@ -50,14 +53,6 @@ GameStage::GameStage(const Databank& bank,
   _key_map[KEY_DOWN] = {sf::Keyboard::S, sf::Keyboard::Down};
   _key_map[KEY_LEFT] = {sf::Keyboard::A, sf::Keyboard::Left};
   _key_map[KEY_RIGHT] = {sf::Keyboard::D, sf::Keyboard::Right};
-}
-
-GameStage::~GameStage()
-{
-  _util.get_gl().delete_program(_scene_program);
-  _util.get_gl().delete_framebuffer(_colourbuffer);
-  _util.get_gl().delete_framebuffer(_normalbuffer);
-  _util.get_gl().delete_framebuffer(_lightbuffer);
 }
 
 const Databank& GameStage::get_bank() const
@@ -287,19 +282,19 @@ void GameStage::draw() const
 
   // Render colour buffer.
   _current_batch.clear();
-  _colourbuffer.bind(true, true);
+  _colourbuffer->bind(true, true);
   render_all(false);
   _util.render_batch(_current_batch);
 
   // Render normal buffer.
   _current_batch.clear();
-  _normalbuffer.bind(true, true);
+  _normalbuffer->bind(true, true);
   render_all(true);
   _util.render_batch(_current_batch);
 
   // Render the scene by the lighting.
-  _lightbuffer.bind(true, false);
-  _lighting.render_lightbuffer(_util, _normalbuffer,
+  _lightbuffer->bind(true, false);
+  _lighting.render_lightbuffer(_util, *_normalbuffer,
                                get_camera_min(), get_camera_max());
 
   // Draw scene with lighting.
@@ -308,10 +303,10 @@ void GameStage::draw() const
 
   // Re-render colour and normal buffer for the environment.
   _environment.render(_util, get_camera_min(), get_camera_max(),
-                      _colourbuffer, _normalbuffer);
+                      *_colourbuffer, *_normalbuffer);
   // Re-render the scene by the lighting.
-  _lightbuffer.bind(true, false);
-  _lighting.render_lightbuffer(_util, _normalbuffer,
+  _lightbuffer->bind(true, false);
+  _lighting.render_lightbuffer(_util, *_normalbuffer,
                                get_camera_min(), get_camera_max());
 
   // Draw environment overlay with lighting.
@@ -510,9 +505,9 @@ void GameStage::render_scene(bool enable_blend) const
   _framebuffer.bind(false, false);
   _util.get_gl().enable_depth(false);
   _util.get_gl().enable_blend(enable_blend);
-  _scene_program.bind();
-  _scene_program.bind_attribute("position", _util.quad_vertex());
-  _scene_program.bind_uniform("colourbuffer", _colourbuffer);
-  _scene_program.bind_uniform("lightbuffer", _lightbuffer);
+  _scene_program->bind();
+  _scene_program->bind_attribute("position", _util.quad_vertex());
+  _scene_program->bind_uniform("colourbuffer", *_colourbuffer);
+  _scene_program->bind_uniform("lightbuffer", *_lightbuffer);
   _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }

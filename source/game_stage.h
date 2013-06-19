@@ -24,7 +24,7 @@ public:
   GameStage(const Databank& bank,
             RenderUtil& util, const GlFramebuffer& framebuffer,
             const CellMap& map, const y::wvec2& coord);
-  ~GameStage() override;
+  ~GameStage() override {};
 
   const Databank& get_bank() const;
   RenderUtil& get_util() const;
@@ -78,10 +78,10 @@ private:
   const CellMap& _map;
 
   const GlFramebuffer& _framebuffer;
-  GlFramebuffer _colourbuffer;
-  GlFramebuffer _normalbuffer;
-  GlFramebuffer _lightbuffer;
-  GlProgram _scene_program;
+  GlUnique<GlFramebuffer> _colourbuffer;
+  GlUnique<GlFramebuffer> _normalbuffer;
+  GlUnique<GlFramebuffer> _lightbuffer;
+  GlUnique<GlProgram> _scene_program;
 
   WorldWindow _world;
   Collision _collision;

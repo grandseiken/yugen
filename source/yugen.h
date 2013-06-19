@@ -44,15 +44,15 @@ private:
   mutable y::vector<unsigned char*> _save_file_frames;
 
   RenderUtil& _util;
-  GlFramebuffer _framebuffer;
-  GlFramebuffer _post_buffer;
-  GlFramebuffer _crop_buffer;
+  GlUnique<GlFramebuffer> _framebuffer;
+  GlUnique<GlFramebuffer> _post_buffer;
+  GlUnique<GlFramebuffer> _crop_buffer;
   GameStage* _stage;
 
-  GlProgram _post_program;
-  GlProgram _crop_program;
-  GlProgram _upscale_program;
-  GlTexture2D _bayer_texture;
+  GlUnique<GlProgram> _post_program;
+  GlUnique<GlProgram> _crop_program;
+  GlUnique<GlProgram> _upscale_program;
+  GlUnique<GlTexture2D> _bayer_texture;
   mutable y::size _bayer_frame;
 
 };
