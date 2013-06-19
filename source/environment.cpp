@@ -11,7 +11,7 @@ Environment::Environment(GlUtil& gl)
   typedef Perlin<float> fperlin;
   typedef Perlin<y::fvec2> fv2perlin;
 
-  fperlin fp;
+  fperlin fp(123648);
 
   // 2D perlin field with 32x32 8x8 patches, down to 2x2 128x128 patches.
   fperlin::field f2d_256;
