@@ -5,6 +5,187 @@
 #include "tileset.h"
 #include "window.h"
 
+ScriptBank::ScriptBank(GameStage& stage)
+  : _stage(stage)
+{
+}
+
+Script& ScriptBank::create_script(const LuaFile& file, const y::wvec2& origin)
+{
+  return create_script(file, origin, y::wvec2(Tileset::tile_size));
+}
+
+Script& ScriptBank::create_script(
+    const LuaFile& file, const y::wvec2& origin, const y::wvec2& region)
+{
+  Script* s = new Script(_stage, file.path, file.contents, origin, region);
+  add_script(y::move_unique(s));
+  return *s;
+}
+
+void ScriptBank::add_script(y::unique<Script> script)
+{
+  _scripts.emplace_back();
+  (_scripts.end() - 1)->swap(script);
+}
+
+void ScriptBank::update_all() const
+{
+  // Can't use iterators, or they will be invalidated by new creations.
+  // Destructions won't happen here, though.
+  for (y::size i = 0; i < _scripts.size(); ++i) {
+    const auto& script = _scripts[i];
+    if (script->has_function("update") && !script->is_destroyed()) {
+      script->call("update");
+    }
+  }
+}
+
+void ScriptBank::move_all(const y::wvec2& move) const
+{
+  for (const auto& script : _scripts) {
+    script->set_origin(script->get_origin() + move);
+  }
+}
+
+void ScriptBank::render_all(const y::wvec2& camera_min,
+                            const y::wvec2& camera_max) const
+{
+  for (const auto& script : _scripts) {
+    const y::wvec2 min = script->get_origin() - script->get_region() / 2;
+    const y::wvec2 max = script->get_origin() + script->get_region() / 2;
+    if (max > camera_min && min < camera_max &&
+        script->has_function("draw")) {
+      script->call("draw");
+    }
+  }
+}
+
+void ScriptBank::get_unrefreshed(WorldWindow& world)
+{
+  // Find unrefreshed cells. In the common case where all cells are unrefreshed
+  // we can optimise most of the things away.
+  _all_unrefreshed = world.get_refreshed_cells().empty();
+  _unrefreshed.clear();
+  for (auto it = world.get_cartesian(); !_all_unrefreshed && it; ++it) {
+    bool refreshed = false;
+    for (const y::ivec2& cell : world.get_refreshed_cells()) {
+      if (cell == *it) {
+        refreshed = true;
+        break;
+      }
+    }
+    if (!refreshed) {
+      _unrefreshed.emplace_back(*it);
+    }
+  }
+  world.clear_refreshed_cells();
+}
+
+void ScriptBank::clean_out_of_bounds(
+    const Script& player, const y::wvec2& lower, const y::wvec2& upper)
+{
+  struct local {
+    bool all_unrefreshed;
+    // TODO: remove.
+    const WorldWindow::cell_list& unrefreshed;
+    const Script* player;
+
+    const y::wvec2& lower;
+    const y::wvec2& upper;
+
+    local(bool all_unrefreshed, const WorldWindow::cell_list& unrefreshed,
+          const Script* player, const y::wvec2& lower, const y::wvec2& upper)
+      : all_unrefreshed(all_unrefreshed)
+      , unrefreshed(unrefreshed)
+      , player(player)
+      , lower(lower)
+      , upper(upper)
+    {
+    }
+
+    bool operator()(const y::unique<Script>& s)
+    {
+      if (s.get() == player) {
+        return false;
+      }
+      const y::wvec2& origin = s->get_origin();
+      const y::wvec2& region = s->get_region();
+
+      bool overlaps_unrefreshed = false;
+      for (const y::ivec2& cell : unrefreshed) {
+        if (origin + region / 2 >= y::wvec2(
+                cell * Tileset::tile_size * Cell::cell_size) &&
+            origin - region / 2 < y::wvec2(
+                (y::ivec2{1, 1} + cell) *
+                    Tileset::tile_size * Cell::cell_size)) {
+          overlaps_unrefreshed = true;
+          break;
+        }
+      }
+      if (all_unrefreshed) {
+        overlaps_unrefreshed = origin + region / 2 >= lower &&
+                               origin - region / 2 < upper;
+      }
+      return !overlaps_unrefreshed;
+    }
+  };
+
+  local is_out_of_bounds(_all_unrefreshed, _unrefreshed, &player, lower, upper);
+  _scripts.erase(
+      std::remove_if(_scripts.begin(), _scripts.end(), is_out_of_bounds),
+      _scripts.end());
+}
+
+void ScriptBank::clean_destroyed()
+{
+  struct local {
+    static bool is_destroyed(const y::unique<Script>& s)
+    {
+      return s->is_destroyed();
+    }
+  };
+
+  _scripts.erase(
+      std::remove_if(_scripts.begin(), _scripts.end(), local::is_destroyed),
+      _scripts.end());
+}
+
+void ScriptBank::create_in_bounds(
+    const Databank& bank, const CellMap& map, const WorldWindow& world,
+    const y::wvec2& lower, const y::wvec2& upper)
+{
+  if (_all_unrefreshed) {
+    // In this case overlaps_world == overlaps_unrefreshed, so this will never
+    // do anything.
+    return;
+  }
+
+  for (const ScriptBlueprint& s : map.get_scripts()) {
+    WorldScript ws = world.script_blueprint_to_world_script(s);
+
+    bool overlaps_unrefreshed = false;
+    for (const y::ivec2& cell : _unrefreshed) {
+      if (ws.origin + ws.region / 2 >= y::wvec2(
+              cell * Tileset::tile_size * Cell::cell_size) &&
+          ws.origin - ws.region / 2 < y::wvec2(
+              (y::ivec2{1, 1} + cell) * Tileset::tile_size * Cell::cell_size)) {
+        overlaps_unrefreshed = true;
+        break;
+      }
+    }
+
+    bool overlaps_world = ws.origin + ws.region / 2 >= lower &&
+                          ws.origin - ws.region / 2 < upper;
+
+    if (overlaps_world && !overlaps_unrefreshed) {
+      const LuaFile& file = bank.scripts.get(ws.path);
+      add_script(y::move_unique(
+          new Script(_stage, file.path, file.contents, ws.origin, ws.region)));
+    }
+  }
+}
+
 GameStage::GameStage(const Databank& bank,
                      RenderUtil& util, const GlFramebuffer& framebuffer,
                      const CellMap& map, const y::wvec2& coord)
@@ -23,6 +204,7 @@ GameStage::GameStage(const Databank& bank,
         "/shaders/scene.f.glsl"}))
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
+  , _scripts(*this)
   , _collision(_world)
   , _lighting(_world, util.get_gl())
   , _environment(util.get_gl())
@@ -34,7 +216,7 @@ GameStage::GameStage(const Databank& bank,
   const LuaFile& file = _bank.scripts.get("/scripts/player.lua");
   y::wvec2 offset = y::wvec2(_world.get_active_coord() *
                              Cell::cell_size * Tileset::tile_size);
-  Script& player = create_script(file, coord - offset);
+  Script& player = _scripts.create_script(file, coord - offset);
   set_player(&player);
   _camera = coord - offset;
 
@@ -63,6 +245,16 @@ const Databank& GameStage::get_bank() const
 RenderUtil& GameStage::get_util() const
 {
   return _util;
+}
+
+const ScriptBank& GameStage::get_scripts() const
+{
+  return _scripts;
+}
+
+ScriptBank& GameStage::get_scripts()
+{
+  return _scripts;
 }
 
 const Collision& GameStage::get_collision() const
@@ -130,14 +322,8 @@ void GameStage::update()
   static const y::wvec2& upper_bound = y::wvec2(
       (1 + half_size) * Cell::cell_size * Tileset::tile_size);
 
-  // Update scripts. Can't use iterators, or they will be invalidated by new
-  // creations. Destructions won't happen here, though.
-  for (y::size i = 0; i < _scripts.size(); ++i) {
-    const auto& script = _scripts[i];
-    if (script->has_function("update") && !script->is_destroyed()) {
-      script->call("update");
-    }
-  }
+  // Update scripts.
+  _scripts.update_all();
 
   // Update window.
   const y::int32 cell_switch_buffer = 2;
@@ -153,117 +339,19 @@ void GameStage::update()
       _world.move_active_window(move);
       y::wvec2 script_move = y::wvec2(
           move * Cell::cell_size * Tileset::tile_size);
-      for (const auto& script : _scripts) {
-        script->set_origin(script->get_origin() - script_move);
-      }
+      _scripts.move_all(-script_move);
       _camera -= script_move;
     }
   }
 
-  // Local functions.
-  struct local {
-    bool all_unrefreshed;
-    const WorldWindow::cell_list& unrefreshed;
-    const Script* player;
+  // Clean up out-of-bounds scripts, add new in-bounds scripts, then clean up
+  // manually-destroyed scripts.
+  _scripts.get_unrefreshed(_world);
+  _scripts.clean_out_of_bounds(*_player, lower_bound, upper_bound);
+  _scripts.create_in_bounds(_bank, _map, _world, lower_bound, upper_bound);
+  _scripts.clean_destroyed();
 
-    local(bool all_unrefreshed, const WorldWindow::cell_list& unrefreshed,
-          const Script* player)
-      : all_unrefreshed(all_unrefreshed)
-      , unrefreshed(unrefreshed)
-      , player(player)
-    {
-    }
-
-    bool operator()(const y::unique<Script>& s)
-    {
-      if (s.get() == player) {
-        return false;
-      }
-      const y::wvec2& origin = s->get_origin();
-      const y::wvec2& region = s->get_region();
-
-      bool overlaps_unrefreshed = false;
-      for (const y::ivec2& cell : unrefreshed) {
-        if (origin + region / 2 >= y::wvec2(
-                cell * Tileset::tile_size * Cell::cell_size) &&
-            origin - region / 2 < y::wvec2(
-                (y::ivec2{1, 1} + cell) *
-                    Tileset::tile_size * Cell::cell_size)) {
-          overlaps_unrefreshed = true;
-          break;
-        }
-      }
-      if (all_unrefreshed) {
-        overlaps_unrefreshed = origin + region / 2 >= lower_bound &&
-                               origin - region / 2 < upper_bound;
-      }
-      return !overlaps_unrefreshed;
-    }
-
-    static bool is_destroyed(const y::unique<Script>& s)
-    {
-      return s->is_destroyed();
-    }
-  };
-
-  // Find unrefreshed cells. In the common case where all cells are unrefreshed
-  // we can optimise most of the things away.
-  bool all_unrefreshed = _world.get_refreshed_cells().empty();
-  WorldWindow::cell_list unrefreshed;
-  for (auto it = _world.get_cartesian(); !all_unrefreshed && it; ++it) {
-    bool refreshed = false;
-    for (const y::ivec2& cell : _world.get_refreshed_cells()) {
-      if (cell == *it) {
-        refreshed = true;
-        break;
-      }
-    }
-    if (!refreshed) {
-      unrefreshed.emplace_back(*it);
-    }
-  }
-  _world.clear_refreshed_cells();
-
-  // Clean up out-of-bounds scripts.
-  local is_out_of_bounds(all_unrefreshed, unrefreshed, _player);
-  _scripts.erase(
-      std::remove_if(_scripts.begin(), _scripts.end(), is_out_of_bounds),
-      _scripts.end());
-
-  // Add new in-bounds scripts.
-  for (const ScriptBlueprint& s : _map.get_scripts()) {
-    if (all_unrefreshed) {
-      // In this case overlaps_world == overlaps_unrefreshed, so this will never
-      // do anything.
-      continue;
-    }
-    WorldScript ws = _world.script_blueprint_to_world_script(s);
-
-    bool overlaps_unrefreshed = false;
-    for (const y::ivec2& cell : unrefreshed) {
-      if (ws.origin + ws.region / 2 >= y::wvec2(
-              cell * Tileset::tile_size * Cell::cell_size) &&
-          ws.origin - ws.region / 2 < y::wvec2(
-              (y::ivec2{1, 1} + cell) * Tileset::tile_size * Cell::cell_size)) {
-        overlaps_unrefreshed = true;
-        break;
-      }
-    }
-
-    bool overlaps_world = ws.origin + ws.region / 2 >= lower_bound &&
-                          ws.origin - ws.region / 2 < upper_bound;
-
-    if (overlaps_world && !overlaps_unrefreshed) {
-      const LuaFile& file = _bank.scripts.get(ws.path);
-      add_script(y::move_unique(
-          new Script(*this, file.path, file.contents, ws.origin, ws.region)));
-    }
-  }
-
-  // Clean up manually-destroyed scripts.
-  _scripts.erase(
-      std::remove_if(_scripts.begin(), _scripts.end(), local::is_destroyed),
-      _scripts.end());
+  // Clean up from the various ScriptMaps.
   script_maps_clean_up();
 
   // Update camera.
@@ -326,19 +414,6 @@ void GameStage::draw() const
   _util.add_translation(-translation);
 }
 
-Script& GameStage::create_script(const LuaFile& file, const y::wvec2& origin)
-{
-  return create_script(file, origin, y::wvec2(Tileset::tile_size));
-}
-
-Script& GameStage::create_script(const LuaFile& file,
-                                 const y::wvec2& origin, const y::wvec2& region)
-{
-  Script* s = new Script(*this, file.path, file.contents, origin, region);
-  add_script(y::move_unique(s));
-  return *s;
-}
-
 RenderBatch& GameStage::get_current_batch() const
 {
   return _current_batch;
@@ -391,12 +466,6 @@ void GameStage::set_camera_rotation(y::world rotation)
 y::world GameStage::get_camera_rotation() const
 {
   return _camera_rotation;
-}
-
-void GameStage::add_script(y::unique<Script> script)
-{
-  _scripts.emplace_back();
-  (_scripts.end() - 1)->swap(script);
 }
 
 void GameStage::script_maps_clean_up()
@@ -490,14 +559,7 @@ void GameStage::render_all(bool normal_buffer) const
 
   // Render all scripts which overlap the screen.
   _current_is_normal_buffer = normal_buffer;
-  for (const auto& script : _scripts) {
-    const y::wvec2 min = script->get_origin() - script->get_region() / 2;
-    const y::wvec2 max = script->get_origin() + script->get_region() / 2;
-    if (max > get_camera_min() && min < get_camera_max() &&
-        script->has_function("draw")) {
-      script->call("draw");
-    }
-  }
+  _scripts.render_all(get_camera_min(), get_camera_max());
 }
 
 void GameStage::render_scene(bool enable_blend) const

@@ -238,14 +238,14 @@ ylib_api(destroy)
 ylib_api(create)
     ylib_arg(const LuaFile*, file) ylib_refarg(const y::wvec2, origin)
 {
-  ylib_return(&stage.create_script(*file, origin));
+  ylib_return(&stage.get_scripts().create_script(*file, origin));
 }
 
 ylib_api(create_region)
     ylib_arg(const LuaFile*, file)
     ylib_refarg(const y::wvec2, origin) ylib_refarg(const y::wvec2, region)
 {
-  ylib_return(&stage.create_script(*file, origin, region));
+  ylib_return(&stage.get_scripts().create_script(*file, origin, region));
 }
 
 ylib_api(render_sprite)

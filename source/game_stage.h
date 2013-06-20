@@ -16,8 +16,45 @@ class CellMap;
 class RenderUtil;
 struct LuaFile;
 
-// TODO: this is getting monolithic. Split out... camera? Lua API stuff?
-// Rendering?
+// Stores all the scripts currently active.
+class ScriptBank : public y::no_copy {
+public:
+
+  ScriptBank(GameStage& stage);
+
+  Script& create_script(
+      const LuaFile& file, const y::wvec2& origin);
+  Script& create_script(
+      const LuaFile& file,
+      const y::wvec2& origin, const y::wvec2& region);
+
+private:
+
+  friend class GameStage;
+  void add_script(y::unique<Script> script);
+
+  void update_all() const;
+  void move_all(const y::wvec2& move) const;
+  void render_all(const y::wvec2& camera_min, const y::wvec2& camera_max) const;
+
+  void get_unrefreshed(WorldWindow& world);
+  void clean_out_of_bounds(const Script& player,
+                           const y::wvec2& lower, const y::wvec2& upper);
+  void clean_destroyed();
+  void create_in_bounds(const Databank& bank, const CellMap& map,
+                        const WorldWindow& window,
+                        const y::wvec2& lower, const y::wvec2& upper);
+
+  GameStage& _stage;
+
+  typedef y::vector<y::unique<Script>> script_list;
+  script_list _scripts;
+  bool _all_unrefreshed;
+  WorldWindow::cell_list _unrefreshed;
+
+};
+
+// TODO: this is getting monolithic. Split out... camera? Rendering?
 class GameStage : public Modal {
 public:
 
@@ -28,6 +65,9 @@ public:
 
   const Databank& get_bank() const;
   RenderUtil& get_util() const;
+
+  const ScriptBank& get_scripts() const;
+  /***/ ScriptBank& get_scripts();
 
   const Collision& get_collision() const;
   /***/ Collision& get_collision();
@@ -42,17 +82,10 @@ public:
   void update() override;
   void draw() const override;
 
-  // Lua API functions.
-  void destroy_script(const Script& script);
-  Script& create_script(
-      const LuaFile& file, const y::wvec2& origin);
-  Script& create_script(
-      const LuaFile& file,
-      const y::wvec2& origin, const y::wvec2& region);
-
   RenderBatch& get_current_batch() const;
   bool is_current_normal_buffer() const;
 
+  // Lua API functions.
   void set_player(Script* script);
   Script* get_player() const;
   bool is_key_down(y::int32 key) const;
@@ -63,7 +96,6 @@ public:
 
 private:
 
-  void add_script(y::unique<Script> script);
   void script_maps_clean_up();
 
   void update_camera(Script* focus);
@@ -84,6 +116,7 @@ private:
   GlUnique<GlProgram> _scene_program;
 
   WorldWindow _world;
+  ScriptBank _scripts;
   Collision _collision;
   Lighting _lighting;
   Environment _environment;
@@ -96,9 +129,6 @@ private:
 
   typedef y::map<y::int32, y::set<y::int32>> key_map;
   key_map _key_map;
-
-  typedef y::vector<y::unique<Script>> script_list;
-  script_list _scripts;
 
   mutable RenderBatch _current_batch;
   mutable bool _current_is_normal_buffer;

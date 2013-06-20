@@ -51,7 +51,7 @@ float cel_shade(float light)
   }
 
   float cel = light + 0.5 * cel_shade_clamp;
-  cel =  cel - mod(cel, cel_shade_clamp);
+  cel = cel - mod(cel, cel_shade_clamp);
   light = cel_shade_mix * cel + (1 - cel_shade_mix) * light;
 
   if (ambient_is_post_cel_shade) {
