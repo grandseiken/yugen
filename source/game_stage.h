@@ -66,6 +66,7 @@ public:
 
   const Databank& get_bank() const;
   RenderUtil& get_util() const;
+  const GlFramebuffer& get_framebuffer() const;
 
   const ScriptBank& get_scripts() const;
   /***/ ScriptBank& get_scripts();

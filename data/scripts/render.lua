@@ -9,7 +9,7 @@ local DRAW_OVERLAY1 = 4
 
 local function render_sprite_world(
     sprite, frame_size, frame, depth)
-  render_sprite(self, sprite, frame_size, frame,
-                DRAW_WORLD, depth, get_rotation(self),
+  render_sprite(self, DRAW_WORLD, sprite, frame_size, frame,
+                depth, get_rotation(self),
                 1, 1, 1, 1)
 end

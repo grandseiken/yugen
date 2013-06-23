@@ -308,9 +308,9 @@ ylib_api(get_camera_rotation)
 // Rendering API
 /******************************************************************************/
 ylib_api(render_sprite)
-    ylib_arg(const Script*, script) ylib_arg(const Sprite*, sprite)
+    ylib_arg(const Script*, script) ylib_arg(y::int32, layer)
+    ylib_arg(const Sprite*, sprite)
     ylib_refarg(const y::wvec2, frame_size) ylib_refarg(const y::wvec2, frame)
-    ylib_arg(y::int32, layer)
     ylib_arg(y::world, depth) ylib_arg(y::world, rotation)
     ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
     ylib_arg(y::world, a)
@@ -333,13 +333,12 @@ ylib_api(render_sprite)
 }
 
 ylib_api(render_fog)
-    ylib_refarg(const y::wvec2, origin) ylib_refarg(const y::wvec2, region)
     ylib_arg(y::int32, layer)
-    ylib_refarg(const y::wvec2, tex_offset)
-    ylib_arg(y::world, fog_min) ylib_arg(y::world, fog_max)
-    ylib_arg(y::world, frame)
+    ylib_refarg(const y::wvec2, origin) ylib_refarg(const y::wvec2, region)
+    ylib_refarg(const y::wvec2, tex_offset) ylib_arg(y::world, frame)
     ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
     ylib_arg(y::world, a)
+    ylib_arg(y::world, fog_min) ylib_arg(y::world, fog_max)
 {
   GameStage::draw_stage ds = stage.get_current_draw_stage();
 
@@ -353,6 +352,33 @@ ylib_api(render_fog)
       stage.get_environment().render_fog_colour(
           stage.get_util(), origin, region, tex_offset, fog_min, fog_max, frame,
           y::fvec4{float(r), float(g), float(b), float(a)});
+    }
+  }
+  ylib_void();
+}
+
+ylib_api(render_reflect)
+    ylib_arg(y::int32, layer)
+    ylib_refarg(const y::wvec2, origin) ylib_refarg(const y::wvec2, region)
+    ylib_refarg(const y::wvec2, tex_offset) ylib_arg(y::world, frame)
+    ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
+    ylib_arg(y::world, a)
+    ylib_arg(bool, flip_x) ylib_arg(bool, flip_y)
+    ylib_refarg(const y::wvec2, flip_axes)
+{
+  GameStage::draw_stage ds = stage.get_current_draw_stage();
+
+  if (stage.draw_stage_is_layer(ds, GameStage::draw_layer(layer))) {
+    stage.set_current_draw_any();
+    if (stage.draw_stage_is_normal(ds)) {
+      stage.get_environment().render_reflect_normal(
+          stage.get_util(), origin, region, tex_offset, frame);
+    }
+    else {
+      stage.get_environment().render_reflect_colour(
+          stage.get_util(), origin, region, tex_offset, frame,
+          y::fvec4{float(r), float(g), float(b), float(a)},
+          flip_x, flip_y, flip_axes, stage.get_framebuffer());
     }
   }
   ylib_void();

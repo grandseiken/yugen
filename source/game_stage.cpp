@@ -248,6 +248,11 @@ RenderUtil& GameStage::get_util() const
   return _util;
 }
 
+const GlFramebuffer& GameStage::get_framebuffer() const
+{
+  return _framebuffer;
+}
+
 const ScriptBank& GameStage::get_scripts() const
 {
   return _scripts;

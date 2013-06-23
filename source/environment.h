@@ -20,14 +20,30 @@ public:
   void render_fog_normal(RenderUtil& util,
                          const y::wvec2& origin, const y::wvec2& region) const;
 
+  void render_reflect_colour(
+      RenderUtil& util,
+      const y::wvec2& origin, const y::wvec2& region,
+      const y::wvec2& tex_offset,
+      y::world frame, const y::fvec4& colour,
+      bool flip_x, bool flip_y, const y::wvec2& flip_axes,
+      const GlFramebuffer& source) const;
+  void render_reflect_normal(
+      RenderUtil&,
+      const y::wvec2& origin, const y::wvec2& region,
+      const y::wvec2& tex_offset, y::world frame) const;
+
 private:
 
+  GlUnique<GlBuffer<float, 2>> make_rect_buffer(
+      RenderUtil& util, const y::wvec2& origin, const y::wvec2& region) const;
+
   GlUnique<GlProgram> _fog_program;
+  GlUnique<GlProgram> _reflect_program;
+  GlUnique<GlProgram> _reflect_normal_program;
+
   GlUnique<GlTexture2D> _f2d_256;
   GlUnique<GlTexture3D> _f3d_128;
-
-  // TODO: temp. Get rid of this.
-  mutable y::int32 _frame;
+  GlUnique<GlTexture3D> _fv23d_64;
 
 };
 
