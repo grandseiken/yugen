@@ -248,22 +248,6 @@ ylib_api(create_region)
   ylib_return(&stage.get_scripts().create_script(*file, origin, region));
 }
 
-ylib_api(render_sprite)
-    ylib_arg(const Script*, script) ylib_arg(const Sprite*, sprite)
-    ylib_refarg(const y::wvec2, frame_size) ylib_refarg(const y::wvec2, frame)
-    ylib_arg(y::world, rotation) ylib_arg(y::world, depth)
-{
-  RenderBatch& batch = stage.get_current_batch();
-  const GlTexture2D& texture = stage.is_current_normal_buffer() ?
-      sprite->normal : sprite->texture;
-
-  y::wvec2 origin = script->get_origin() - frame_size / 2;
-  batch.add_sprite(texture, y::ivec2(frame_size),
-                   y::fvec2(origin), y::ivec2(frame),
-                   depth, rotation, colour::white);
-  ylib_void();
-}
-
 /******************************************************************************/
 // Player API
 /******************************************************************************/
@@ -318,6 +302,34 @@ ylib_api(set_camera_rotation)
 ylib_api(get_camera_rotation)
 {
   ylib_return(stage.get_camera_rotation());
+}
+
+/******************************************************************************/
+// Rendering API
+/******************************************************************************/
+ylib_api(render_sprite)
+    ylib_arg(const Script*, script) ylib_arg(const Sprite*, sprite)
+    ylib_refarg(const y::wvec2, frame_size) ylib_refarg(const y::wvec2, frame)
+    ylib_arg(y::int32, layer)
+    ylib_arg(y::world, depth) ylib_arg(y::world, rotation)
+    ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
+    ylib_arg(y::world, a)
+{
+  GameStage::draw_stage ds = stage.get_current_draw_stage();
+
+  RenderBatch& batch = stage.get_current_batch();
+  const GlTexture2D& texture = stage.draw_stage_is_normal(ds) ?
+      sprite->normal : sprite->texture;
+  y::wvec2 origin = script->get_origin() - frame_size / 2;
+
+  if (stage.draw_stage_is_layer(ds, GameStage::draw_layer(layer))) {
+    stage.set_current_draw_any();
+    batch.add_sprite(texture, y::ivec2(frame_size),
+                     y::fvec2(origin), y::ivec2(frame),
+                     depth, rotation,
+                     y::fvec4{float(r), float(g), float(b), float(a)});
+  }
+  ylib_void();
 }
 
 /******************************************************************************/

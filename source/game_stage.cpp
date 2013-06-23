@@ -202,6 +202,7 @@ GameStage::GameStage(const Databank& bank,
   , _scene_program(util.get_gl().make_unique_program({
         "/shaders/scene.v.glsl",
         "/shaders/scene.f.glsl"}))
+  , _current_draw_stage(draw_stage(0))
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
   , _scripts(*this)
@@ -213,7 +214,7 @@ GameStage::GameStage(const Databank& bank,
   , _is_camera_moving_y(false)
   , _player(y::null)
 {
-  const LuaFile& file = _bank.scripts.get("/scripts/player.lua");
+  const LuaFile& file = _bank.scripts.get("/scripts/game/player.lua");
   y::wvec2 offset = y::wvec2(_world.get_active_coord() *
                              Cell::cell_size * Tileset::tile_size);
   Script& player = _scripts.create_script(file, coord - offset);
@@ -368,26 +369,33 @@ void GameStage::draw() const
   y::fvec2 translation = y::fvec2(world_to_camera(y::wvec2()));
   _util.add_translation(translation);
 
-  // Render colour buffer.
-  _current_batch.clear();
-  _colourbuffer->bind(true, true);
-  render_all(false);
-  _util.render_batch(_current_batch);
+  _framebuffer.bind(true, true);
 
-  // Render normal buffer.
-  _current_batch.clear();
-  _normalbuffer->bind(true, true);
-  render_all(true);
-  _util.render_batch(_current_batch);
+  // Loop through the draw stages.
+  for (_current_draw_stage = draw_stage(0);
+       _current_draw_stage < DRAW_STAGE_MAX;
+       _current_draw_stage = draw_stage(1 + _current_draw_stage)) {
+    // Render colour buffer or normal buffer as appropriate.
+    _current_batch.clear();
+    _current_draw_any = false;
+    (draw_stage_is_normal(_current_draw_stage) ?
+        _normalbuffer : _colourbuffer)->bind(true, true);
 
-  // Render the scene by the lighting.
-  _lightbuffer->bind(true, false);
-  _lighting.render_lightbuffer(_util, *_normalbuffer,
-                               get_camera_min(), get_camera_max());
+    if (draw_stage_is_layer(_current_draw_stage, DRAW_WORLD)) {
+      render_tiles();
+    }
+    _scripts.render_all(get_camera_min(), get_camera_max());
+    _util.render_batch(_current_batch);
 
-  // Draw scene with lighting.
-  _framebuffer.bind(false, false);
-  render_scene(false);
+    // If there's anything on this layer, render scene by the lighting.
+    if (draw_stage_is_normal(_current_draw_stage) && _current_draw_any) {
+      _lightbuffer->bind(true, false);
+      _lighting.render_lightbuffer(_util, *_normalbuffer,
+                                   get_camera_min(), get_camera_max());
+      _framebuffer.bind(false, false);
+      render_scene(true);
+    }
+  }
 
   // Re-render colour and normal buffer for the environment.
   _environment.render(_util, get_camera_min(), get_camera_max(),
@@ -419,9 +427,24 @@ RenderBatch& GameStage::get_current_batch() const
   return _current_batch;
 }
 
-bool GameStage::is_current_normal_buffer() const
+GameStage::draw_stage GameStage::get_current_draw_stage() const
 {
-  return _current_is_normal_buffer;
+  return _current_draw_stage;
+}
+
+void GameStage::set_current_draw_any() const
+{
+  _current_draw_any = true;
+}
+
+bool GameStage::draw_stage_is_normal(draw_stage stage) const
+{
+  return stage % 2;
+}
+
+bool GameStage::draw_stage_is_layer(draw_stage stage, draw_layer layer) const
+{
+  return stage / 2 == layer;
 }
 
 void GameStage::set_player(Script* player)
@@ -521,8 +544,10 @@ y::wvec2 GameStage::get_camera_max() const
   return camera_to_world(y::wvec2(_framebuffer.get_size()));
 }
 
-void GameStage::render_all(bool normal_buffer) const
+void GameStage::render_tiles() const
 {
+  _current_draw_any = true;
+
   // Render all the tiles in the world at once, batched by texture.
   for (auto it = _world.get_cartesian(); it; ++it) {
     Cell* cell = _world.get_active_window_cell(*it);
@@ -547,7 +572,7 @@ void GameStage::render_all(bool normal_buffer) const
         // Background: .6
         float d = .5f - layer * .1f;
 
-        const GlTexture2D texture = normal_buffer ?
+        const GlTexture2D texture = draw_stage_is_normal(_current_draw_stage) ?
             t.tileset->get_texture().normal : t.tileset->get_texture().texture;
 
         _current_batch.add_sprite(
@@ -556,10 +581,6 @@ void GameStage::render_all(bool normal_buffer) const
       }
     }
   }
-
-  // Render all scripts which overlap the screen.
-  _current_is_normal_buffer = normal_buffer;
-  _scripts.render_all(get_camera_min(), get_camera_max());
 }
 
 void GameStage::render_scene(bool enable_blend) const

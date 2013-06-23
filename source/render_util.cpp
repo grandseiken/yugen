@@ -355,7 +355,8 @@ void RenderUtil::batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
 void RenderUtil::render_batch() const
 {
   if (!(_native_size >= y::ivec2()) ||
-      !(_frame_size >= y::ivec2()) || !_sprite) {
+      !(_frame_size >= y::ivec2()) || !_sprite ||
+      _batched_sprites.empty()) {
     return;
   }
   _gl.enable_depth(true);

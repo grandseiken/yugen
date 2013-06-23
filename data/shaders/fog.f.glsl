@@ -8,6 +8,9 @@ const float fog_min = 0.4;
 const float fog_max = 0.7;
 const float fog_scale = 1.0 / (fog_max - fog_min);
 
+const bool flatten_fog = false;
+const float flatten_val = (fog_min + fog_max) / 2.0;
+
 void main()
 {
   // Offset z by some non-integral division of the x and y in order to cut an
@@ -17,10 +20,10 @@ void main()
   z += tex_coord.x / (2.0 + 1.0 / 3.0) + tex_coord.y / (3 + 2.0 / 3.0);
 
   float p = texture3D(perlin, vec3(tex_coord.x, tex_coord.y, z)).x;
-  if (p < fog_min) {
+  if (p < fog_min || (flatten_fog && p < flatten_val)) {
     discard;
   }
   vec4 c = colour;
-  c.a *= fog_scale * (p - fog_min);
+  c.a *= flatten_fog ? 1.0 : fog_scale * (p - fog_min);
   gl_FragColor = c;
 }

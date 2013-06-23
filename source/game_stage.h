@@ -47,6 +47,7 @@ private:
 
   GameStage& _stage;
 
+  // TODO: should consider using deque for this.
   typedef y::vector<y::unique<Script>> script_list;
   script_list _scripts;
   bool _all_unrefreshed;
@@ -78,12 +79,37 @@ public:
   y::wvec2 world_to_camera(const y::wvec2& v) const;
   y::wvec2 camera_to_world(const y::wvec2& v) const;
 
+  // Keep in sync with render.lua.
+  enum draw_stage {
+    DRAW_UNDERLAY0_COLOUR,
+    DRAW_UNDERLAY0_NORMAL,
+    DRAW_UNDERLAY1_COLOUR,
+    DRAW_UNDERLAY1_NORMAL,
+    DRAW_WORLD_COLOUR,
+    DRAW_WORLD_NORMAL,
+    DRAW_OVERLAY0_COLOUR,
+    DRAW_OVERLAY0_NORMAL,
+    DRAW_OVERLAY1_COLOUR,
+    DRAW_OVERLAY1_NORMAL,
+    DRAW_STAGE_MAX,
+  };
+  enum draw_layer {
+    DRAW_UNDERLAY0,
+    DRAW_UNDERLAY1,
+    DRAW_WORLD,
+    DRAW_OVERLAY0,
+    DRAW_OVERLAY1,
+  };
+
   void event(const sf::Event& e) override;
   void update() override;
   void draw() const override;
 
   RenderBatch& get_current_batch() const;
-  bool is_current_normal_buffer() const;
+  draw_stage get_current_draw_stage() const;
+  void set_current_draw_any() const;
+  bool draw_stage_is_normal(draw_stage stage) const;
+  bool draw_stage_is_layer(draw_stage stage, draw_layer layer) const;
 
   // Lua API functions.
   void set_player(Script* script);
@@ -102,7 +128,7 @@ private:
   y::wvec2 get_camera_min() const;
   y::wvec2 get_camera_max() const;
 
-  void render_all(bool normal_buffer) const;
+  void render_tiles() const;
   void render_scene(bool enable_blend) const;
 
   const Databank& _bank;
@@ -114,6 +140,9 @@ private:
   GlUnique<GlFramebuffer> _normalbuffer;
   GlUnique<GlFramebuffer> _lightbuffer;
   GlUnique<GlProgram> _scene_program;
+  mutable RenderBatch _current_batch;
+  mutable draw_stage _current_draw_stage;
+  mutable bool _current_draw_any;
 
   WorldWindow _world;
   ScriptBank _scripts;
@@ -129,9 +158,6 @@ private:
 
   typedef y::map<y::int32, y::set<y::int32>> key_map;
   key_map _key_map;
-
-  mutable RenderBatch _current_batch;
-  mutable bool _current_is_normal_buffer;
 
 };
 

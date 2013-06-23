@@ -1,5 +1,6 @@
 uniform sampler2D normalbuffer;
 
+// TODO: profile this and see if this is actually faster than using uniforms.
 varying vec2 pixels_coord;
 varying vec2 origin_coord;
 varying vec2 pos_coord;

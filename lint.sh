@@ -48,7 +48,7 @@ for file in data/shaders/*; do
   lint_cstyle
 done
 
-for file in data/scripts/*; do
+for file in data/scripts/* data/scripts/*/*; do
   echo Linting: $file
   lint_common
 done

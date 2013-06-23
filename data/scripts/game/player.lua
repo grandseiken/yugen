@@ -1,6 +1,7 @@
 -- Code for the player.
-#include "collide.lua"
-#include "keys.lua"
+#include "../collide.lua"
+#include "../keys.lua"
+#include "../render.lua"
 
 -- Collider body and check bodies.
 local body = create_body(self, vec(0, 8), vec(6, 16))
@@ -224,5 +225,5 @@ local frame_size = vec(32, 32)
 local frame = vec(3, 16)
 
 function draw()
-  render_sprite(self, sprite, frame_size, frame, get_rotation(self), 0.0)
+  render_sprite_world(sprite, frame_size, frame, 0.0)
 end

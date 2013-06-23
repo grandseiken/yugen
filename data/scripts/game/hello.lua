@@ -1,4 +1,5 @@
 -- A test thing that makes other things.
+#include "../render.lua"
 
 local sprite = get_sprite("/tiles/temple.png")
 local script = get_script("/scripts/hello2.lua")
@@ -13,5 +14,5 @@ function update()
   end
 end
 function draw()
-  render_sprite(self, sprite, vec(32, 32), vec(0, 0), 0.0, 0.0)
+  render_sprite_world(sprite, vec(32, 32), vec(0, 0), 0.0)
 end
