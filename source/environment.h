@@ -12,10 +12,11 @@ public:
 
   Environment(GlUtil& util);
 
-  void render(
-      RenderUtil& util, const y::wvec2& camera_min, const y::wvec2& camera_max,
-      const GlFramebuffer& colourbuffer,
-      const GlFramebuffer& normalbuffer) const;
+  void render_fog_colour(RenderUtil& util,
+                         const y::wvec2& origin, const y::wvec2& region,
+                         y::int32 frame, const y::fvec4& colour) const;
+  void render_fog_normal(RenderUtil& util,
+                         const y::wvec2& origin, const y::wvec2& region) const;
 
 private:
 

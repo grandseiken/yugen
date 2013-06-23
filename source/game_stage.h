@@ -76,6 +76,9 @@ public:
   const Lighting& get_lighting() const;
   /***/ Lighting& get_lighting();
 
+  const Environment& get_environment() const;
+  /***/ Environment& get_environment();
+
   y::wvec2 world_to_camera(const y::wvec2& v) const;
   y::wvec2 camera_to_world(const y::wvec2& v) const;
 

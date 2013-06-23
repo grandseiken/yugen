@@ -31,32 +31,36 @@ Environment::Environment(GlUtil& gl)
   (void)fv2p;
 }
 
-void Environment::render(
-    RenderUtil& util, const y::wvec2& camera_min, const y::wvec2& camera_max,
-    const GlFramebuffer& colourbuffer, const GlFramebuffer& normalbuffer) const
+void Environment::render_fog_colour(
+    RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
+    y::int32 frame, const y::fvec4& colour) const
 {
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(false);
 
   y::vector<float> pixel_data{
-      float(camera_min[xx]), float(camera_min[yy]),
-      float(camera_max[xx]), float(camera_min[yy]),
-      float(camera_min[xx]), float(camera_max[yy]),
-      float(camera_max[xx]), float(camera_max[yy])};
+      float((origin - region / 2)[xx]), float((origin - region / 2)[yy]),
+      float((origin + region / 2)[xx]), float((origin - region / 2)[yy]),
+      float((origin - region / 2)[xx]), float((origin + region / 2)[yy]),
+      float((origin + region / 2)[xx]), float((origin + region / 2)[yy])};
   auto pixel_buffer =
       util.get_gl().make_unique_buffer<float, 2>(
           GL_ARRAY_BUFFER, GL_STREAM_DRAW, pixel_data);
-
-  colourbuffer.bind(true, true);
+ 
   _fog_program->bind();
   _fog_program->bind_attribute("pixels", *pixel_buffer);
   _fog_program->bind_uniform("perlin_size", _f3d_128->get_size());
   _fog_program->bind_uniform("perlin", *_f3d_128);
-  _fog_program->bind_uniform("colour", y::fvec4{.5f, .5f, .5f, .25f});
-  _fog_program->bind_uniform("frame", _frame++);
+  _fog_program->bind_uniform("colour", colour);
+  _fog_program->bind_uniform("origin", y::fvec2(origin));
+  _fog_program->bind_uniform("frame", frame);
   util.bind_pixel_uniforms(*_fog_program);
   util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
+}
 
-  normalbuffer.bind(true, false);
-  util.clear({.5f, .5f, 0.f, 1.f});
+void Environment::render_fog_normal(
+    RenderUtil& util, const y::wvec2& origin, const y::wvec2& region) const
+{
+  util.render_fill(y::fvec2(origin - region / 2), y::fvec2(region),
+                   y::fvec4{.5f, .5f, 0.f, 1.f});
 }

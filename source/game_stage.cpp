@@ -278,6 +278,16 @@ Lighting& GameStage::get_lighting()
   return _lighting;
 }
 
+const Environment& GameStage::get_environment() const
+{
+  return _environment;
+}
+
+Environment& GameStage::get_environment()
+{
+  return _environment;
+}
+
 y::wvec2 GameStage::world_to_camera(const y::wvec2& v) const
 {
   return v - _camera + y::wvec2(_framebuffer.get_size()) / 2;
@@ -378,8 +388,12 @@ void GameStage::draw() const
     // Render colour buffer or normal buffer as appropriate.
     _current_batch.clear();
     _current_draw_any = false;
-    (draw_stage_is_normal(_current_draw_stage) ?
-        _normalbuffer : _colourbuffer)->bind(true, true);
+    if (draw_stage_is_normal(_current_draw_stage)) {
+      _normalbuffer->bind(false, true);
+    }
+    else {
+      _colourbuffer->bind(true, true);
+    }
 
     if (draw_stage_is_layer(_current_draw_stage, DRAW_WORLD)) {
       render_tiles();
@@ -396,18 +410,6 @@ void GameStage::draw() const
       render_scene(true);
     }
   }
-
-  // Re-render colour and normal buffer for the environment.
-  _environment.render(_util, get_camera_min(), get_camera_max(),
-                      *_colourbuffer, *_normalbuffer);
-  // Re-render the scene by the lighting.
-  _lightbuffer->bind(true, false);
-  _lighting.render_lightbuffer(_util, *_normalbuffer,
-                               get_camera_min(), get_camera_max());
-
-  // Draw environment overlay with lighting.
-  _framebuffer.bind(false, false);
-  render_scene(true);
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
