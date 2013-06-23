@@ -334,7 +334,10 @@ ylib_api(render_sprite)
 
 ylib_api(render_fog)
     ylib_refarg(const y::wvec2, origin) ylib_refarg(const y::wvec2, region)
-    ylib_arg(y::int32, layer) ylib_arg(y::int32, frame)
+    ylib_arg(y::int32, layer)
+    ylib_refarg(const y::wvec2, tex_offset)
+    ylib_arg(y::world, fog_min) ylib_arg(y::world, fog_max)
+    ylib_arg(y::world, frame)
     ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
     ylib_arg(y::world, a)
 {
@@ -348,7 +351,7 @@ ylib_api(render_fog)
     }
     else {
       stage.get_environment().render_fog_colour(
-          stage.get_util(), origin, region, frame,
+          stage.get_util(), origin, region, tex_offset, fog_min, fog_max, frame,
           y::fvec4{float(r), float(g), float(b), float(a)});
     }
   }

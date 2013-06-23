@@ -33,7 +33,8 @@ Environment::Environment(GlUtil& gl)
 
 void Environment::render_fog_colour(
     RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
-    y::int32 frame, const y::fvec4& colour) const
+    const y::wvec2& tex_offset, y::world fog_min, y::world fog_max,
+    y::world frame, const y::fvec4& colour) const
 {
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(false);
@@ -52,8 +53,10 @@ void Environment::render_fog_colour(
   _fog_program->bind_uniform("perlin_size", _f3d_128->get_size());
   _fog_program->bind_uniform("perlin", *_f3d_128);
   _fog_program->bind_uniform("colour", colour);
-  _fog_program->bind_uniform("origin", y::fvec2(origin));
-  _fog_program->bind_uniform("frame", frame);
+  _fog_program->bind_uniform("tex_offset", -y::fvec2(tex_offset + origin));
+  _fog_program->bind_uniform("fog_min", float(fog_min));
+  _fog_program->bind_uniform("fog_max", float(fog_max));
+  _fog_program->bind_uniform("frame", float(frame));
   util.bind_pixel_uniforms(*_fog_program);
   util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }

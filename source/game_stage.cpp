@@ -378,7 +378,6 @@ void GameStage::draw() const
 {
   y::fvec2 translation = y::fvec2(world_to_camera(y::wvec2()));
   _util.add_translation(translation);
-
   _framebuffer.bind(true, true);
 
   // Loop through the draw stages.
@@ -410,6 +409,7 @@ void GameStage::draw() const
       render_scene(true);
     }
   }
+  _framebuffer.bind(false, false);
 
   // Render geometry.
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {

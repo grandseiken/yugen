@@ -14,7 +14,9 @@ public:
 
   void render_fog_colour(RenderUtil& util,
                          const y::wvec2& origin, const y::wvec2& region,
-                         y::int32 frame, const y::fvec4& colour) const;
+                         const y::wvec2& tex_offset,
+                         y::world fog_min, y::world fog_max,
+                         y::world frame, const y::fvec4& colour) const;
   void render_fog_normal(RenderUtil& util,
                          const y::wvec2& origin, const y::wvec2& region) const;
 
