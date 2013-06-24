@@ -10,8 +10,6 @@
 class Filesystem;
 class Window;
 
-// TODO: unbind things after use? Might make errors more obvious.
-// TODO: vertex attrib divisor buffers would be nice, but can't in OpenGL 2.1.
 class GlUtil : public y::no_copy {
 public:
 

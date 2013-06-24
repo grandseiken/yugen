@@ -2,7 +2,6 @@ uniform sampler2D normalbuffer;
 
 // TODO: profile this and see if this is actually faster than using uniforms.
 varying vec2 pixels_coord;
-varying vec2 origin_coord;
 varying vec2 pos_coord;
 varying float range_coord;
 varying vec4 colour_coord;
@@ -21,7 +20,7 @@ const float indirect_coefficient = 1.0 - direct_coefficient;
 
 void main()
 {
-  vec2 dist_v = pixels_coord - origin_coord;
+  vec2 dist_v = pixels_coord;
   float dist_sq = dist_v.x * dist_v.x + dist_v.y * dist_v.y;
   float range_sq = range_coord * range_coord;
 

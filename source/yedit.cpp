@@ -281,6 +281,6 @@ y::int32 main(y::int32 argc, char** argv)
 
   ModalStack stack;
   stack.push(y::move_unique(new Yedit(filesystem, databank, util)));
-  stack.run(window);
+  stack.run(window, 0.f);
   return 0;
 }

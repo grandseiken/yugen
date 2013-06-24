@@ -2,6 +2,8 @@
 #include "render_util.h"
 #include "window.h"
 
+#include <chrono>
+#include <thread>
 #include <SFML/Window.hpp>
 
 bool UndoStack::can_undo() const
@@ -376,24 +378,53 @@ bool ModalStack::empty() const
   return _stack.empty();
 }
 
-void ModalStack::run(Window& window)
+void ModalStack::run(Window& window, float fps)
 {
+  typedef std::chrono::high_resolution_clock hrclock;
+  auto ticks_per_frame = std::chrono::duration_cast<hrclock::duration>(
+      std::chrono::nanoseconds(y::size(1000000000.f / fps + .5f)));
+
+  hrclock clock;
+  auto last(clock.now());
+  hrclock::duration accumulated_ticks(hrclock::duration::zero());
+
   while (!empty()) {
-    y::size top = _stack.size() - 1;
-    sf::Event e;
-    while (window.poll_event(e)) {
-      if (e.type == sf::Event::Closed) {
-        return;
+    y::size updates = 1;
+    // TODO: mess with this some more. In particular, it doesn't take into
+    // account the time spent drawing.
+    if (fps > 0.f) {
+      auto now(clock.now());
+      accumulated_ticks += (now - last);
+      last = now;
+
+      updates = 0;
+      while (accumulated_ticks >= ticks_per_frame) {
+        ++updates;
+        accumulated_ticks -= ticks_per_frame;
       }
-      event(e, top);
+      if (!updates) {
+        continue;
+      }
+    }
+
+    for (y::size i = 0; i < updates; ++i) {
+      y::size top = _stack.size() - 1;
+      sf::Event e;
+      while (window.poll_event(e)) {
+        if (e.type == sf::Event::Closed) {
+          return;
+        }
+        event(e, top);
+        if (clear_ended()) {
+          break;
+        }
+      }
+      update();
       if (clear_ended()) {
         break;
       }
     }
-    update();
-    if (clear_ended()) {
-      break;
-    }
+
     draw(0);
     window.display();
   }

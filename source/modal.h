@@ -191,8 +191,9 @@ public:
   void push(y::unique<Modal> modal);
   bool empty() const;
 
-  // Run until the stack is empty. Push a mode onto the stack first.
-  void run(Window& window);
+  // Run until the stack is empty. Push a mode onto the stack first. If fps
+  // is zero, no frame-compensation occurs.
+  void run(Window& window, float fps);
 
 private:
 
