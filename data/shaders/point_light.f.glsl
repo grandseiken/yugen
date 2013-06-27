@@ -1,7 +1,10 @@
 uniform sampler2D normalbuffer;
+uniform ivec2 resolution;
+uniform vec2 translation;
 
 // TODO: profile this and see if this is actually faster than using uniforms.
 varying vec2 pixels_coord;
+varying vec2 origin_coord;
 varying vec2 pos_coord;
 varying float range_coord;
 varying vec4 colour_coord;
@@ -20,14 +23,13 @@ const float indirect_coefficient = 1.0 - direct_coefficient;
 
 void main()
 {
-  vec2 dist_v = pixels_coord;
+  vec2 dist_v = pixels_coord - origin_coord;
   float dist_sq = dist_v.x * dist_v.x + dist_v.y * dist_v.y;
   float range_sq = range_coord * range_coord;
 
   if (dist_sq > range_sq) {
     discard;
   }
-  float range_inv = inversesqrt(range_sq);
   float dist_inv = inversesqrt(dist_sq);
 
   // The correct (mathematically) formula gives extreme results since the light
@@ -39,7 +41,7 @@ void main()
   // the screen plane gives the same circle as the direct lighting.
   vec2 direct_dir =
       dist_v == vec2(0.0) ? vec2(0.0) : dist_v * dist_inv;
-  vec2 indirect_dir = dist_v * range_inv;
+  vec2 indirect_dir = dist_v / range_coord;
 
   // Convert texture normal values to world normal values.
   // Normal has x, y in [0, 1], scale and transform to world normal.
@@ -53,14 +55,39 @@ void main()
   vec3 direct_world = circular_coords_to_world_normal(direct_dir);
   vec3 indirect_world = circular_coords_to_world_normal(indirect_dir);
 
+  // Camera position for specular highlights. Distance from render-plane is
+  // essentially made-up.
+  vec3 camera_pos = vec3(resolution.x / 2 - translation.x,
+                         resolution.y / 2 - translation.y, resolution.y / 4);
+
+  vec3 camera_to_pixel = vec3(pixels_coord.x, pixels_coord.y, 0.0) - camera_pos;
+  camera_to_pixel = normalize(camera_to_pixel);
+  vec3 indirect_light_to_pixel =
+      normalize(vec3(dist_v.x, dist_v.y, range_coord));
+  vec3 direct_light_to_pixel = normalize(vec3(dist_v.x, dist_v.y, 0.0));
+
   // Calculate light values.
   float direct_light = light_value(direct_world, normal_world);
   float indirect_light = light_value(indirect_world, normal_world);
   float total_light = direct_coefficient * max(0.0, direct_light) +
                       indirect_coefficient * max(0.0, indirect_light);
 
+  // Calculate specular values.
+  float direct_specular = specular_value(
+      direct_light_to_pixel, camera_to_pixel, normal_world);
+  float indirect_specular = specular_value(
+      indirect_light_to_pixel, camera_to_pixel, normal_world);
+  float total_specular = direct_coefficient * max(0.0, direct_specular) +
+                         indirect_coefficient * max(0.0, indirect_specular);
+  //total_specular *= normal_tex.b;
+
+  // TODO: this is totally wrong and approximate; specular should be another
+  // pass of white light. It can draw directly to main buffer, probably.
+  //total_light += total_specular;
+  total_light = indirect_specular;
   // Calculate intensity at this point.
   vec4 colour = colour_coord;
-  colour.a *= total_light * (1.0 - dist_sq / range_sq);
+  // colour.a *= total_light * (1.0 - dist_sq / range_sq);
+  colour.a *= total_light;
   gl_FragColor = colour;
 }

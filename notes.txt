@@ -2,9 +2,10 @@ MILESTONES
 
  + DONE: Collision tracing (full cells at first); with cell load / unload
  + DONE: Lighting using radial corner swoop / stencil buffer algorithm
+ + DONE: Scripting support
  + DONE: World rotations and gravity
  + Normal / bump mapping, specular mapping
- + Water, mirrors, procedural fog, weather, lightning, snow, etc i.e. PERLIN
+ + Water, mirrors, fog, space, weather, lightning, snow, etc i.e. PERLIN
  + Physics, hook shot, long shot, morph ball, etc
  + Terrain modification may be unecessary if scripts are cheap enough
 

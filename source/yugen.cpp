@@ -92,8 +92,7 @@ void Yugen::update()
 
 void Yugen::draw() const
 {
-  // TODO: window framerate limiting is untrustworthy. Lock to 60 somehow?
-  // And make this clock tick properly. Use std::chrono.
+  // TODO: make this clock tick properly. Use std::chrono.
   _measurements.emplace_back(_clock.restart().asMilliseconds());
   if (_measurements.size() > samples) {
     _measurements.erase(_measurements.begin());

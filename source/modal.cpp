@@ -391,7 +391,7 @@ void ModalStack::run(Window& window, float fps)
   while (!empty()) {
     y::size updates = 1;
     // TODO: mess with this some more. In particular, it doesn't take into
-    // account the time spent drawing.
+    // account the time spent drawing. Need sleeps.
     if (fps > 0.f) {
       auto now(clock.now());
       accumulated_ticks += (now - last);
