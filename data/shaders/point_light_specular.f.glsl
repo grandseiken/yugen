@@ -14,6 +14,8 @@ varying float range_coord;
 // B: in normal-map, store x-normal, y-normal and specular power.
 // In another coefficient map, store the coefficients of direct, indirect
 // and specular lighting.
+// More generally, possibly specular should be an explicit extra layer,
+// or something like that?
 
 #include "light_util.glsl"
 

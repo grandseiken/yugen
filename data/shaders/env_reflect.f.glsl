@@ -9,6 +9,8 @@ uniform float normal_scaling_reflect;
 uniform float normal_scaling_refract;
 uniform float reflect_fade_start;
 uniform float reflect_fade_end;
+uniform float wave_height;
+uniform float wave_scale;
 
 varying vec2 tex_coord;
 varying vec2 reflect_coord;
@@ -20,6 +22,13 @@ varying float reflect_dist;
 // TODO: water needs specular to look good?
 void main()
 {
+  // Skip to form waves.
+  vec2 wave = vec2(perlin_lookup(perlin, vec2(0, wave_scale * tex_coord.x),
+                                 frame / perlin_size.z));
+  if (reflect_dist < wave_height * wave.x) {
+    discard;
+  }
+
   // Calculate texture offset based on perlin noise.
   vec2 p = vec2(perlin_lookup(perlin, tex_coord, frame / perlin_size.z));
   p = 2.0 * (p - vec2(0.5, 0.5));

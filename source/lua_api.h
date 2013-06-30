@@ -366,8 +366,8 @@ ylib_api(render_reflect)
     ylib_arg(y::world, normal_scaling)
     ylib_arg(y::world, normal_scaling_reflect)
     ylib_arg(y::world, normal_scaling_refract)
-    ylib_arg(y::world, reflect_fade_start)
-    ylib_arg(y::world, reflect_fade_end)
+    ylib_arg(y::world, reflect_fade_start) ylib_arg(y::world, reflect_fade_end)
+    ylib_arg(y::world, wave_height) ylib_arg(y::world, wave_scale)
     ylib_arg(bool, flip_x) ylib_arg(bool, flip_y)
     ylib_refarg(const y::wvec2, flip_axes)
 {
@@ -384,7 +384,7 @@ ylib_api(render_reflect)
           stage.get_util(), origin, region, tex_offset, frame,
           y::fvec4{float(r), float(g), float(b), float(a)},
           reflect_mix, normal_scaling_reflect, normal_scaling_refract,
-          reflect_fade_start, reflect_fade_end,
+          reflect_fade_start, reflect_fade_end, wave_height, wave_scale,
           flip_x, flip_y, flip_axes, stage.get_framebuffer());
     }
   }

@@ -11,7 +11,7 @@ Environment::Environment(GlUtil& gl)
         "/shaders/env_reflect.v.glsl",
         "/shaders/env_reflect.f.glsl"}))
   , _reflect_normal_program(gl.make_unique_program({
-        "/shaders/env_reflect.v.glsl",
+        "/shaders/env_reflect_normal.v.glsl",
         "/shaders/env_reflect_normal.f.glsl"}))
 {
   typedef Perlin<float> fperlin;
@@ -78,6 +78,7 @@ void Environment::render_reflect_colour(
     float reflect_mix,
     float normal_scaling_reflect, float normal_scaling_refract,
     float reflect_fade_start, float reflect_fade_end,
+    float wave_height, float wave_scale,
     bool flip_x, bool flip_y, const y::wvec2& flip_axes,
     const GlFramebuffer& source) const
 {
@@ -101,10 +102,10 @@ void Environment::render_reflect_colour(
                                  normal_scaling_reflect);
   _reflect_program->bind_uniform("normal_scaling_refract",
                                  normal_scaling_refract);
-  _reflect_program->bind_uniform("reflect_fade_start",
-                                 reflect_fade_start);
-  _reflect_program->bind_uniform("reflect_fade_end",
-                                 reflect_fade_end);
+  _reflect_program->bind_uniform("reflect_fade_start", reflect_fade_start);
+  _reflect_program->bind_uniform("reflect_fade_end", reflect_fade_end);
+  _reflect_program->bind_uniform("wave_height", wave_height);
+  _reflect_program->bind_uniform("wave_scale", wave_scale);
   util.bind_pixel_uniforms(*_reflect_program);
   util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }

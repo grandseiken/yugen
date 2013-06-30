@@ -27,6 +27,7 @@ public:
       y::world frame, const y::fvec4& colour, float reflect_mix,
       float normal_scaling_reflect, float normal_scaling_refract,
       float reflect_fade_start, float reflect_fade_end,
+      float wave_height, float wave_scale,
       bool flip_x, bool flip_y, const y::wvec2& flip_axes,
       const GlFramebuffer& source) const;
   void render_reflect_normal(

@@ -388,6 +388,9 @@ void ModalStack::run(Window& window, float fps)
   auto last(clock.now());
   hrclock::duration accumulated_ticks(hrclock::duration::zero());
 
+  const y::size measurement_count = 16;
+  y::vector<y::size> measurements;
+
   while (!empty()) {
     y::size updates = 1;
     // TODO: mess with this some more. In particular, it doesn't take into
@@ -425,8 +428,22 @@ void ModalStack::run(Window& window, float fps)
       }
     }
 
+    auto draw_start(clock.now());
     draw(0);
     window.display();
+    auto draw_end(clock.now());
+    auto t(std::chrono::duration_cast<std::chrono::microseconds>(
+        draw_end - draw_start));
+    measurements.emplace_back(t.count());
+    if (measurements.size() >= measurement_count) {
+      y::size i = 0;
+      for (auto m : measurements) {
+        i += m;
+      }
+      i /= measurement_count;
+      std::cout << (i / 1000) << ", " << (measurements[0] / 1000) << std::endl;
+      measurements.clear();
+    }
   }
 }
 
