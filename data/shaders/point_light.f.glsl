@@ -18,6 +18,7 @@ varying vec4 colour_coord;
 // and specular lighting.
 const float direct_coefficient = 0.5;
 const float indirect_coefficient = 1.0 - direct_coefficient;
+const float camera_distance = 0.25;
 
 #include "light_util.glsl"
 
@@ -58,12 +59,13 @@ void main()
   // Camera position for specular highlights. Distance from render-plane is
   // essentially made-up.
   vec3 camera_pos = vec3(resolution.x / 2 - translation.x,
-                         resolution.y / 2 - translation.y, resolution.y / 4);
+                         resolution.y / 2 - translation.y,
+                         camera_distance * resolution.y);
 
   vec3 camera_to_pixel = vec3(pixels_coord.x, pixels_coord.y, 0.0) - camera_pos;
   camera_to_pixel = normalize(camera_to_pixel);
   vec3 indirect_light_to_pixel =
-      normalize(vec3(dist_v.x, dist_v.y, range_coord));
+      normalize(vec3(dist_v.x, dist_v.y, -range_coord));
   vec3 direct_light_to_pixel = normalize(vec3(dist_v.x, dist_v.y, 0.0));
 
   // Calculate light values.
@@ -77,17 +79,16 @@ void main()
       direct_light_to_pixel, camera_to_pixel, normal_world);
   float indirect_specular = specular_value(
       indirect_light_to_pixel, camera_to_pixel, normal_world);
-  float total_specular = direct_coefficient * max(0.0, direct_specular) +
-                         indirect_coefficient * max(0.0, indirect_specular);
-  //total_specular *= normal_tex.b;
+  float total_specular =
+      direct_coefficient * specular_intensity(direct_specular) +
+      indirect_coefficient * specular_intensity(indirect_specular);
+  total_specular *= normal_tex.b;
 
   // TODO: this is totally wrong and approximate; specular should be another
   // pass of white light. It can draw directly to main buffer, probably.
-  //total_light += total_specular;
-  total_light = indirect_specular;
+  total_light += total_specular;
   // Calculate intensity at this point.
   vec4 colour = colour_coord;
-  // colour.a *= total_light * (1.0 - dist_sq / range_sq);
-  colour.a *= total_light;
+  colour.a *= total_light * (1.0 - dist_sq / range_sq);
   gl_FragColor = colour;
 }

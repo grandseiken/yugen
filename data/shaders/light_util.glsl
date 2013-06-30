@@ -37,12 +37,17 @@ float light_value(vec3 light_normal, vec3 world_normal)
              vec3(-light_normal.x, -light_normal.y, light_normal.z));
 }
 
-// Calculates the specular value from normals from light to pixel, camera to
+// Calculates the specular value given normals from light to pixel, camera to
 // pixel, and surface.
 float specular_value(vec3 light_normal, vec3 camera_normal, vec3 world_normal)
 {
-  float d = dot(reflect(light_normal, world_normal), camera_normal);
-  return d * d * d * d;
+  return dot(reflect(light_normal, world_normal), -camera_normal);
+}
+
+float specular_intensity(float value)
+{
+  float d = max(value, 0);
+  return pow(d, 16);
 }
 
 const float cel_shade_clamp = 1.0 / 4;
