@@ -1,4 +1,5 @@
 const float cel_shade_clamp = 1.0 / 4;
+const float cel_shade_clamp_specular = 1.0 / 3;
 const float cel_shade_mix = 0.75;
 
 const float ambient_light = 0.05;
@@ -62,14 +63,15 @@ float specular_intensity(float value)
 }
 
 // Implements a kind of cel-shading based on the constants above.
-float cel_shade(float light, bool ambient)
+float cel_shade(float light, bool ambient, bool specular)
 {
   if (ambient && !ambient_is_post_cel_shade) {
     light = light + ambient_light;
   }
 
-  float cel = light + 0.5 * cel_shade_clamp;
-  cel = cel - mod(cel, cel_shade_clamp);
+  float clamp = specular ? cel_shade_clamp_specular : cel_shade_clamp;
+  float cel = light + 0.5 * clamp;
+  cel = cel - mod(cel, clamp);
   light = cel_shade_mix * cel + (1 - cel_shade_mix) * light;
 
   if (ambient && ambient_is_post_cel_shade) {
@@ -79,9 +81,9 @@ float cel_shade(float light, bool ambient)
   return min(light, 1.0);
 }
 
-vec3 cel_shade(vec3 light, bool ambient)
+vec3 cel_shade(vec3 light, bool ambient, bool specular)
 {
-  return vec3(cel_shade(light.r, ambient),
-              cel_shade(light.g, ambient),
-              cel_shade(light.b, ambient));
+  return vec3(cel_shade(light.r, ambient, specular),
+              cel_shade(light.g, ambient, specular),
+              cel_shade(light.b, ambient, specular));
 }

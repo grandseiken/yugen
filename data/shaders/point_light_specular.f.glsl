@@ -7,15 +7,8 @@ varying vec2 origin_coord;
 varying vec2 pos_coord;
 varying float range_coord;
 
-// TODO: specular lighting.
-// Possible strategies!
-// A: in normal-map, store x-normal, y-normal and specular coefficient.
-// Associate everything else with a tileset.
-// B: in normal-map, store x-normal, y-normal and specular power.
-// In another coefficient map, store the coefficients of direct, indirect
-// and specular lighting.
-// More generally, possibly specular should be an explicit extra layer,
-// or something like that?
+// TODO: specular lighting with colours; somehow allow custom specular
+// intensities / powers.
 
 #include "light_util.glsl"
 
