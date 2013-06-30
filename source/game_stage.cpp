@@ -385,6 +385,7 @@ void GameStage::draw() const
   _framebuffer.bind(true, true);
 
   // Loop through the draw stages.
+  bool has_normal = false;
   for (_current_draw_stage = draw_stage(0);
        _current_draw_stage < DRAW_STAGE_MAX;
        _current_draw_stage = draw_stage(1 + _current_draw_stage)) {
@@ -393,6 +394,7 @@ void GameStage::draw() const
     _current_draw_any = false;
     if (draw_stage_is_normal(_current_draw_stage)) {
       _normalbuffer->bind(false, true);
+      has_normal = true;
     }
     else {
       _colourbuffer->bind(true, true);
@@ -405,12 +407,24 @@ void GameStage::draw() const
     _util.render_batch(_current_batch);
 
     // If there's anything on this layer, render scene by the lighting.
-    if (draw_stage_is_normal(_current_draw_stage) && _current_draw_any) {
+    if (!draw_stage_is_normal(_current_draw_stage)) {
+      if (!_current_draw_any) {
+        has_normal = false;
+        continue;
+      }
+
       _lightbuffer->bind(true, false);
-      _lighting.render_lightbuffer(_util, *_normalbuffer,
-                                   get_camera_min(), get_camera_max());
+      if (has_normal) {
+        _lighting.render_lightbuffer(_util, *_normalbuffer,
+                                     get_camera_min(), get_camera_max());
+      }
+      else {
+        _util.clear({1.f, 1.f, 1.f, 1.f});
+      }
+
       _framebuffer.bind(false, false);
       render_scene(true);
+      has_normal = false;
     }
   }
   _framebuffer.bind(false, false);
@@ -445,12 +459,31 @@ void GameStage::set_current_draw_any() const
 
 bool GameStage::draw_stage_is_normal(draw_stage stage) const
 {
-  return stage % 2;
+  return stage == DRAW_UNDERLAY0_NORMAL ||
+         stage == DRAW_UNDERLAY1_NORMAL ||
+         stage == DRAW_WORLD_NORMAL ||
+         stage == DRAW_OVERLAY0_NORMAL ||
+         stage == DRAW_OVERLAY1_NORMAL;
 }
 
 bool GameStage::draw_stage_is_layer(draw_stage stage, draw_layer layer) const
 {
-  return stage / 2 == layer;
+  switch (layer) {
+    case DRAW_UNDERLAY0:
+      return stage == DRAW_UNDERLAY0_NORMAL || stage == DRAW_UNDERLAY0_COLOUR;
+    case DRAW_UNDERLAY1:
+      return stage == DRAW_UNDERLAY1_NORMAL || stage == DRAW_UNDERLAY1_COLOUR;
+    case DRAW_WORLD:
+      return stage == DRAW_WORLD_NORMAL || stage == DRAW_WORLD_COLOUR;
+    case DRAW_OVERLAY0:
+      return stage == DRAW_OVERLAY0_NORMAL || stage == DRAW_OVERLAY0_COLOUR;
+    case DRAW_OVERLAY1:
+      return stage == DRAW_OVERLAY1_NORMAL || stage == DRAW_OVERLAY1_COLOUR;
+    case DRAW_FULLBRIGHT0:
+      return stage == DRAW_FULLBRIGHT0_COLOUR;
+    default:
+      return false;
+  }
 }
 
 void GameStage::set_player(Script* player)

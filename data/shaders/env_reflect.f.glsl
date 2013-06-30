@@ -17,6 +17,7 @@ varying float reflect_dist;
 
 #include "perlin.glsl"
 
+// TODO: water needs specular to look good?
 void main()
 {
   // Calculate texture offset based on perlin noise.
@@ -25,11 +26,8 @@ void main()
   p /= vec2(resolution);
 
   // Mix reflected, refracted and colour.
-  // TODO: this is very naive, I wonder if more correct reflection would look
-  // nicer.
-  // TODO: water needs specular to look good?
   vec4 reflect = texture2D(
-      source, reflect_coord + normal_scaling_reflect * p);
+      source, reflect_coord + normal_scaling_reflect * reflect_dist * p);
   vec4 refract = texture2D(
       source, refract_coord - normal_scaling_refract * p);
 
@@ -39,7 +37,6 @@ void main()
       (reflect_fade_end - reflect_fade_start);
   reflect_dist_mix = 1.0 - max(0.0, min(1.0, reflect_dist_mix));
 
-  // TODO: reduce reflection the further we get from the "surface".
   vec4 c = mix(colour, reflect, reflect_mix * reflect_dist_mix);
   c = mix(refract, c, colour.a);
   gl_FragColor = vec4(c.r, c.g, c.b, 1.0);

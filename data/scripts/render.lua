@@ -6,6 +6,8 @@ local DRAW_UNDERLAY1 = 1
 local DRAW_WORLD = 2
 local DRAW_OVERLAY0 = 3
 local DRAW_OVERLAY1 = 4
+local DRAW_FULLBRIGHT0 = 5
+local DRAW_FULLBRIGHT1 = 5
 
 local function render_sprite_world(
     sprite, frame_size, frame, depth)

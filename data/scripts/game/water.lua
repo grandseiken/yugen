@@ -11,6 +11,6 @@ function draw()
   local r = get_region(self)
   render_reflect(DRAW_OVERLAY1, o, r,
                  vec(frame / 16, 0), frame / 16, .3, .6, .8, 0.4,
-                 0.5, 0.1, 5.0, 2.5, 128, 256,
+                 0.5, 0.1, 0.2, 2.5, 128, 384,
                  false, true, o - r / vec(2, 2))
 end
