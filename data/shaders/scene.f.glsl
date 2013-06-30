@@ -7,6 +7,6 @@ varying vec2 tex_coord;
 void main()
 {
   vec4 colour = texture2D(colourbuffer, tex_coord);
-  vec3 light = cel_shade(vec3(texture2D(lightbuffer, tex_coord)));
+  vec3 light = cel_shade(vec3(texture2D(lightbuffer, tex_coord)), true);
   gl_FragColor = colour * vec4(light.r, light.g, light.b, 1.0);
 }

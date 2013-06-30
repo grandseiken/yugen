@@ -1,3 +1,17 @@
+const float cel_shade_clamp = 1.0 / 4;
+const float cel_shade_mix = 0.75;
+
+const float ambient_light = 0.05;
+const bool ambient_is_post_cel_shade = true;
+
+const float direct_coefficient = 0.5;
+const float indirect_coefficient = 1.0 - direct_coefficient;
+
+const float specular_direct_coefficient = 0.0;
+const float specular_indirect_coefficient = 1.0 - specular_direct_coefficient;
+const float camera_distance = 0.1;
+const float specular_power = 2;
+
 // Given coords in [-1, 1] X [-1, 1], returns vector v such that v.x and v.y
 // are the coords scaled to the unit circle, v.z is positive, and v has
 // length 1.
@@ -47,19 +61,13 @@ float specular_value(vec3 light_normal, vec3 camera_normal, vec3 world_normal)
 float specular_intensity(float value)
 {
   float d = max(value, 0);
-  return pow(d, 16);
+  return pow(d, specular_power);
 }
 
-const float cel_shade_clamp = 1.0 / 4;
-const float cel_shade_mix = 0.75;
-
-const float ambient_light = 0.05;
-const bool ambient_is_post_cel_shade = true;
-
 // Implements a kind of cel-shading based on the constants above.
-float cel_shade(float light)
+float cel_shade(float light, bool ambient)
 {
-  if (!ambient_is_post_cel_shade) {
+  if (ambient && !ambient_is_post_cel_shade) {
     light = light + ambient_light;
   }
 
@@ -67,14 +75,16 @@ float cel_shade(float light)
   cel = cel - mod(cel, cel_shade_clamp);
   light = cel_shade_mix * cel + (1 - cel_shade_mix) * light;
 
-  if (ambient_is_post_cel_shade) {
+  if (ambient && ambient_is_post_cel_shade) {
     light = light + ambient_light;
   }
 
   return min(light, 1.0);
 }
 
-vec3 cel_shade(vec3 light)
+vec3 cel_shade(vec3 light, bool ambient)
 {
-  return vec3(cel_shade(light.r), cel_shade(light.g), cel_shade(light.b));
+  return vec3(cel_shade(light.r, ambient),
+              cel_shade(light.g, ambient),
+              cel_shade(light.b, ambient));
 }

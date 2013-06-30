@@ -23,6 +23,9 @@ Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
   , _point_light_program(gl.make_unique_program({
         "/shaders/point_light.v.glsl",
         "/shaders/point_light.f.glsl"}))
+  , _point_light_specular_program(gl.make_unique_program({
+        "/shaders/point_light_specular.v.glsl",
+        "/shaders/point_light_specular.f.glsl"}))
   , _tri_buffer(gl.make_unique_buffer<GLfloat, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _origin_buffer(gl.make_unique_buffer<GLfloat, 2>(
@@ -185,6 +188,21 @@ void Lighting::render_lightbuffer(
     RenderUtil& util, const GlFramebuffer& normalbuffer,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
+  render_internal(util, normalbuffer, camera_min, camera_max, false);
+}
+
+void Lighting::render_specular(
+    RenderUtil& util, const GlFramebuffer& normalbuffer,
+    const y::wvec2& camera_min, const y::wvec2& camera_max) const
+{
+  render_internal(util, normalbuffer, camera_min, camera_max, true);
+}
+
+void Lighting::render_internal(
+    RenderUtil& util, const GlFramebuffer& normalbuffer,
+    const y::wvec2& camera_min, const y::wvec2& camera_max,
+    bool specular) const
+{
   // TODO: respect camera bounds? Necessary?
   (void)camera_min;
   (void)camera_max;
@@ -233,10 +251,12 @@ void Lighting::render_lightbuffer(
       origin_data.emplace_back(origin[xx]);
       origin_data.emplace_back(origin[yy]);
       range_data.emplace_back(light->range);
-      colour_data.emplace_back(light->colour[rr]);
-      colour_data.emplace_back(light->colour[gg]);
-      colour_data.emplace_back(light->colour[bb]);
-      colour_data.emplace_back(light->colour[aa]);
+      if (!specular) {
+        colour_data.emplace_back(light->colour[rr]);
+        colour_data.emplace_back(light->colour[gg]);
+        colour_data.emplace_back(light->colour[bb]);
+        colour_data.emplace_back(light->colour[aa]);
+      }
 
       // Set up the vertices.
       for (y::size i = 0; i < trace.size(); ++i) {
@@ -246,10 +266,12 @@ void Lighting::render_lightbuffer(
         origin_data.emplace_back(origin[xx]);
         origin_data.emplace_back(origin[yy]);
         range_data.emplace_back(light->range);
-        colour_data.emplace_back(light->colour[rr]);
-        colour_data.emplace_back(light->colour[gg]);
-        colour_data.emplace_back(light->colour[bb]);
-        colour_data.emplace_back(light->colour[aa]);
+        if (!specular) {
+          colour_data.emplace_back(light->colour[rr]);
+          colour_data.emplace_back(light->colour[gg]);
+          colour_data.emplace_back(light->colour[bb]);
+          colour_data.emplace_back(light->colour[aa]);
+        }
       }
 
       // Set up the indices.
@@ -281,18 +303,25 @@ void Lighting::render_lightbuffer(
   _tri_buffer->reupload_data(tri_data);
   _origin_buffer->reupload_data(origin_data);
   _range_buffer->reupload_data(range_data);
-  _colour_buffer->reupload_data(colour_data);
+  if (!specular) {
+    _colour_buffer->reupload_data(colour_data);
+  }
   _element_buffer->reupload_data(element_data);
 
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
-  _point_light_program->bind();
-  _point_light_program->bind_uniform("normalbuffer", normalbuffer);
-  _point_light_program->bind_attribute("pixels", *_tri_buffer);
-  _point_light_program->bind_attribute("origin", *_origin_buffer);
-  _point_light_program->bind_attribute("range", *_range_buffer);
-  _point_light_program->bind_attribute("colour", *_colour_buffer);
-  util.bind_pixel_uniforms(*_point_light_program);
+  const GlProgram& program = specular ?
+    *_point_light_specular_program : *_point_light_program;
+
+  program.bind();
+  program.bind_uniform("normalbuffer", normalbuffer);
+  program.bind_attribute("pixels", *_tri_buffer);
+  program.bind_attribute("origin", *_origin_buffer);
+  program.bind_attribute("range", *_range_buffer);
+  if (!specular) {
+    program.bind_attribute("colour", *_colour_buffer);
+  }
+  util.bind_pixel_uniforms(program);
   _element_buffer->draw_elements(GL_TRIANGLES, element_data.size());
 }
 

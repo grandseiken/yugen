@@ -57,8 +57,16 @@ public:
   void render_lightbuffer(
       RenderUtil& util, const GlFramebuffer& normalbuffer,
       const y::wvec2& camera_min, const y::wvec2& camera_max) const;
+  void render_specular(
+      RenderUtil& util, const GlFramebuffer& normalbuffer,
+      const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
 private:
+
+  void render_internal(
+      RenderUtil& util, const GlFramebuffer& normalbuffer,
+      const y::wvec2& camera_min, const y::wvec2& camera_max,
+      bool specular) const;
 
   // Internal lighting functions.
   struct world_geometry {
@@ -91,6 +99,7 @@ private:
   const WorldWindow& _world;
   GlUtil& _gl;
   GlUnique<GlProgram> _point_light_program;
+  GlUnique<GlProgram> _point_light_specular_program;
 
   GlUnique<GlBuffer<float, 2>> _tri_buffer;
   GlUnique<GlBuffer<float, 2>> _origin_buffer;

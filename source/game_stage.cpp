@@ -87,7 +87,6 @@ void ScriptBank::clean_out_of_bounds(
 {
   struct local {
     bool all_unrefreshed;
-    // TODO: remove.
     const WorldWindow::cell_list& unrefreshed;
     const Script* player;
 
@@ -412,6 +411,8 @@ void GameStage::draw() const
                                    get_camera_min(), get_camera_max());
       _framebuffer.bind(false, false);
       render_scene(true);
+      _lighting.render_specular(_util, *_normalbuffer,
+                                get_camera_min(), get_camera_max());
     }
   }
   _framebuffer.bind(false, false);

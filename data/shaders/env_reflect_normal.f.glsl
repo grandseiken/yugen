@@ -7,7 +7,7 @@ varying vec2 tex_coord;
 #include "perlin.glsl"
 
 const float normal_scaling = 0.1;
-const float specular = 0.5;
+const float specular = 0.3;
 
 void main()
 {
