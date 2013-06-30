@@ -191,7 +191,7 @@ void Lighting::render_lightbuffer(
   render_internal(util, normalbuffer, camera_min, camera_max, false);
 }
 
-void Lighting::render_specular(
+void Lighting::render_specularbuffer(
     RenderUtil& util, const GlFramebuffer& normalbuffer,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {

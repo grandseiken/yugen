@@ -201,6 +201,9 @@ GameStage::GameStage(const Databank& bank,
   , _scene_program(util.get_gl().make_unique_program({
         "/shaders/scene.v.glsl",
         "/shaders/scene.f.glsl"}))
+  , _scene_specular_program(util.get_gl().make_unique_program({
+        "/shaders/scene_specular.v.glsl",
+        "/shaders/scene_specular.f.glsl"}))
   , _current_draw_stage(draw_stage(0))
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
@@ -385,7 +388,6 @@ void GameStage::draw() const
   _framebuffer.bind(true, true);
 
   // Loop through the draw stages.
-  bool has_normal = false;
   for (_current_draw_stage = draw_stage(0);
        _current_draw_stage < DRAW_STAGE_MAX;
        _current_draw_stage = draw_stage(1 + _current_draw_stage)) {
@@ -394,7 +396,6 @@ void GameStage::draw() const
     _current_draw_any = false;
     if (draw_stage_is_normal(_current_draw_stage)) {
       _normalbuffer->bind(false, true);
-      has_normal = true;
     }
     else {
       _colourbuffer->bind(true, true);
@@ -407,24 +408,23 @@ void GameStage::draw() const
     _util.render_batch(_current_batch);
 
     // If there's anything on this layer, render scene by the lighting.
-    if (!draw_stage_is_normal(_current_draw_stage)) {
-      if (!_current_draw_any) {
-        has_normal = false;
-        continue;
-      }
-
+    if (!draw_stage_is_normal(_current_draw_stage) && _current_draw_any) {
       _lightbuffer->bind(true, false);
-      if (has_normal) {
+      layer_light_type light_type(draw_stage_light_type(_current_draw_stage));
+      if (light_type == LIGHT_TYPE_NORMAL) {
         _lighting.render_lightbuffer(_util, *_normalbuffer,
                                      get_camera_min(), get_camera_max());
+      }
+      else if (light_type == LIGHT_TYPE_SPECULAR) {
+        _lighting.render_specularbuffer(_util, *_normalbuffer,
+                                        get_camera_min(), get_camera_max());
       }
       else {
         _util.clear({1.f, 1.f, 1.f, 1.f});
       }
 
       _framebuffer.bind(false, false);
-      render_scene(true);
-      has_normal = false;
+      render_scene(true, light_type == LIGHT_TYPE_SPECULAR);
     }
   }
   _framebuffer.bind(false, false);
@@ -463,7 +463,9 @@ bool GameStage::draw_stage_is_normal(draw_stage stage) const
          stage == DRAW_UNDERLAY1_NORMAL ||
          stage == DRAW_WORLD_NORMAL ||
          stage == DRAW_OVERLAY0_NORMAL ||
-         stage == DRAW_OVERLAY1_NORMAL;
+         stage == DRAW_SPECULAR0_NORMAL ||
+         stage == DRAW_OVERLAY1_NORMAL ||
+         stage == DRAW_SPECULAR1_NORMAL;
 }
 
 bool GameStage::draw_stage_is_layer(draw_stage stage, draw_layer layer) const
@@ -477,13 +479,32 @@ bool GameStage::draw_stage_is_layer(draw_stage stage, draw_layer layer) const
       return stage == DRAW_WORLD_NORMAL || stage == DRAW_WORLD_COLOUR;
     case DRAW_OVERLAY0:
       return stage == DRAW_OVERLAY0_NORMAL || stage == DRAW_OVERLAY0_COLOUR;
-    case DRAW_OVERLAY1:
-      return stage == DRAW_OVERLAY1_NORMAL || stage == DRAW_OVERLAY1_COLOUR;
+    case DRAW_SPECULAR0:
+      return stage == DRAW_SPECULAR0_NORMAL || stage == DRAW_SPECULAR0_COLOUR;
     case DRAW_FULLBRIGHT0:
       return stage == DRAW_FULLBRIGHT0_COLOUR;
+    case DRAW_OVERLAY1:
+      return stage == DRAW_OVERLAY1_NORMAL || stage == DRAW_OVERLAY1_COLOUR;
+    case DRAW_SPECULAR1:
+      return stage == DRAW_SPECULAR1_NORMAL || stage == DRAW_SPECULAR1_COLOUR;
+    case DRAW_FULLBRIGHT1:
+      return stage == DRAW_FULLBRIGHT1_COLOUR;
     default:
       return false;
   }
+}
+
+GameStage::layer_light_type GameStage::draw_stage_light_type(
+    draw_stage stage) const
+{
+  if (stage == DRAW_SPECULAR0_NORMAL || stage == DRAW_SPECULAR0_COLOUR ||
+      stage == DRAW_SPECULAR1_NORMAL || stage == DRAW_SPECULAR1_COLOUR) {
+    return LIGHT_TYPE_SPECULAR;
+  }
+  if (stage == DRAW_FULLBRIGHT0_COLOUR || stage == DRAW_FULLBRIGHT1_COLOUR) {
+    return LIGHT_TYPE_FULLBRIGHT;
+  }
+  return LIGHT_TYPE_NORMAL;
 }
 
 void GameStage::set_player(Script* player)
@@ -622,14 +643,16 @@ void GameStage::render_tiles() const
   }
 }
 
-void GameStage::render_scene(bool enable_blend) const
+void GameStage::render_scene(bool enable_blend, bool specular) const
 {
   _framebuffer.bind(false, false);
   _util.get_gl().enable_depth(false);
   _util.get_gl().enable_blend(enable_blend);
-  _scene_program->bind();
-  _scene_program->bind_attribute("position", _util.quad_vertex());
-  _scene_program->bind_uniform("colourbuffer", *_colourbuffer);
-  _scene_program->bind_uniform("lightbuffer", *_lightbuffer);
+  const GlProgram& program(specular ? *_scene_specular_program :
+                                      *_scene_program);
+  program.bind();
+  program.bind_attribute("position", _util.quad_vertex());
+  program.bind_uniform("colourbuffer", *_colourbuffer);
+  program.bind_uniform("lightbuffer", *_lightbuffer);
   _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }

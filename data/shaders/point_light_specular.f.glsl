@@ -54,10 +54,8 @@ void main()
   float total_specular = mix(specular_intensity(indirect_specular),
                              specular_intensity(direct_specular),
                              specular_direct_coefficient);
-  // TODO: where does the specular component come from?
-  total_specular *= 0.0;
 
   vec4 colour = vec4(1.0, 1.0, 1.0, 1.0);
-  colour.a *= cel_shade(total_specular * (1.0 - dist_sq / range_sq), false);
+  colour.a *= total_specular * (1.0 - dist_sq / range_sq);
   gl_FragColor = colour;
 }

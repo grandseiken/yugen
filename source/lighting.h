@@ -57,7 +57,7 @@ public:
   void render_lightbuffer(
       RenderUtil& util, const GlFramebuffer& normalbuffer,
       const y::wvec2& camera_min, const y::wvec2& camera_max) const;
-  void render_specular(
+  void render_specularbuffer(
       RenderUtil& util, const GlFramebuffer& normalbuffer,
       const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
