@@ -75,6 +75,9 @@ void Environment::render_reflect_colour(
     RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
     const y::wvec2& tex_offset,
     y::world frame, const y::fvec4& colour,
+    float reflect_mix,
+    float normal_scaling_reflect, float normal_scaling_refract,
+    float reflect_fade_start, float reflect_fade_end,
     bool flip_x, bool flip_y, const y::wvec2& flip_axes,
     const GlFramebuffer& source) const
 {
@@ -93,13 +96,22 @@ void Environment::render_reflect_colour(
   _reflect_program->bind_uniform("colour", colour);
   _reflect_program->bind_uniform("tex_offset", -y::fvec2(tex_offset + origin));
   _reflect_program->bind_uniform("frame", float(frame));
+  _reflect_program->bind_uniform("reflect_mix", reflect_mix);
+  _reflect_program->bind_uniform("normal_scaling_reflect",
+                                 normal_scaling_reflect);
+  _reflect_program->bind_uniform("normal_scaling_refract",
+                                 normal_scaling_refract);
+  _reflect_program->bind_uniform("reflect_fade_start",
+                                 reflect_fade_start);
+  _reflect_program->bind_uniform("reflect_fade_end",
+                                 reflect_fade_end);
   util.bind_pixel_uniforms(*_reflect_program);
   util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
 void Environment::render_reflect_normal(
     RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
-    const y::wvec2& tex_offset, y::world frame) const
+    const y::wvec2& tex_offset, y::world frame, float normal_scaling) const
 {
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(false);
@@ -111,6 +123,7 @@ void Environment::render_reflect_normal(
   _reflect_normal_program->bind_uniform("perlin", *_fv23d_64);
   _reflect_normal_program->bind_uniform("tex_offset", -y::fvec2(tex_offset + origin));
   _reflect_normal_program->bind_uniform("frame", float(frame));
+  _reflect_normal_program->bind_uniform("normal_scaling", normal_scaling);
   util.bind_pixel_uniforms(*_reflect_normal_program);
   util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }

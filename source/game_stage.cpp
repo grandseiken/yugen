@@ -411,8 +411,6 @@ void GameStage::draw() const
                                    get_camera_min(), get_camera_max());
       _framebuffer.bind(false, false);
       render_scene(true);
-      _lighting.render_specular(_util, *_normalbuffer,
-                                get_camera_min(), get_camera_max());
     }
   }
   _framebuffer.bind(false, false);

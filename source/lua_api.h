@@ -362,7 +362,12 @@ ylib_api(render_reflect)
     ylib_refarg(const y::wvec2, origin) ylib_refarg(const y::wvec2, region)
     ylib_refarg(const y::wvec2, tex_offset) ylib_arg(y::world, frame)
     ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
-    ylib_arg(y::world, a)
+    ylib_arg(y::world, a) ylib_arg(y::world, reflect_mix)
+    ylib_arg(y::world, normal_scaling)
+    ylib_arg(y::world, normal_scaling_reflect)
+    ylib_arg(y::world, normal_scaling_refract)
+    ylib_arg(y::world, reflect_fade_start)
+    ylib_arg(y::world, reflect_fade_end)
     ylib_arg(bool, flip_x) ylib_arg(bool, flip_y)
     ylib_refarg(const y::wvec2, flip_axes)
 {
@@ -372,12 +377,14 @@ ylib_api(render_reflect)
     stage.set_current_draw_any();
     if (stage.draw_stage_is_normal(ds)) {
       stage.get_environment().render_reflect_normal(
-          stage.get_util(), origin, region, tex_offset, frame);
+          stage.get_util(), origin, region, tex_offset, frame, normal_scaling);
     }
     else {
       stage.get_environment().render_reflect_colour(
           stage.get_util(), origin, region, tex_offset, frame,
           y::fvec4{float(r), float(g), float(b), float(a)},
+          reflect_mix, normal_scaling_reflect, normal_scaling_refract,
+          reflect_fade_start, reflect_fade_end,
           flip_x, flip_y, flip_axes, stage.get_framebuffer());
     }
   }

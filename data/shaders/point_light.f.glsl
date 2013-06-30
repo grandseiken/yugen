@@ -45,8 +45,8 @@ void main()
   // Calculate light values.
   float direct_light = light_value(direct_world, normal_world);
   float indirect_light = light_value(indirect_world, normal_world);
-  float total_light = direct_coefficient * max(0.0, direct_light) +
-                      indirect_coefficient * max(0.0, indirect_light);
+  float total_light = mix(max(0.0, indirect_light), max(0.0, direct_light),
+                          direct_coefficient);
 
   // Calculate intensity at this point.
   vec4 colour = colour_coord;

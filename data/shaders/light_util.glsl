@@ -5,10 +5,7 @@ const float ambient_light = 0.05;
 const bool ambient_is_post_cel_shade = true;
 
 const float direct_coefficient = 0.5;
-const float indirect_coefficient = 1.0 - direct_coefficient;
-
-const float specular_direct_coefficient = 0.0;
-const float specular_indirect_coefficient = 1.0 - specular_direct_coefficient;
+const float specular_direct_coefficient = 0.5;
 const float camera_distance = 0.1;
 const float specular_power = 2;
 

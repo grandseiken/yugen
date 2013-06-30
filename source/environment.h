@@ -24,13 +24,15 @@ public:
       RenderUtil& util,
       const y::wvec2& origin, const y::wvec2& region,
       const y::wvec2& tex_offset,
-      y::world frame, const y::fvec4& colour,
+      y::world frame, const y::fvec4& colour, float reflect_mix,
+      float normal_scaling_reflect, float normal_scaling_refract,
+      float reflect_fade_start, float reflect_fade_end,
       bool flip_x, bool flip_y, const y::wvec2& flip_axes,
       const GlFramebuffer& source) const;
   void render_reflect_normal(
       RenderUtil&,
       const y::wvec2& origin, const y::wvec2& region,
-      const y::wvec2& tex_offset, y::world frame) const;
+      const y::wvec2& tex_offset, y::world frame, float normal_scaling) const;
 
 private:
 
