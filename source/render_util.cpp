@@ -354,19 +354,19 @@ void RenderUtil::batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
       float(frame[xx]), float(frame[yy]), depth, rotation, colour});
 }
 
-void RenderUtil::render_batch() const
+void RenderUtil::render_batch(
+    const RenderBatch::batched_sprite_list& list) const
 {
   if (!(_native_size >= y::ivec2()) ||
-      !(_frame_size >= y::ivec2()) || !_sprite ||
-      _batched_sprites.empty()) {
+      !(_frame_size >= y::ivec2()) || !_sprite || list.empty()) {
     return;
   }
   _gl.enable_depth(true);
   _gl.enable_blend(true);
 
-  y::size length = _batched_sprites.size();
+  y::size length = list.size();
   for (y::size i = 0; i < length; ++i) {
-    const RenderBatch::batched_sprite& s = _batched_sprites[i];
+    const RenderBatch::batched_sprite& s = list[i];
     float left = s.left;
     float top = s.top;
 
@@ -422,7 +422,11 @@ void RenderUtil::render_batch() const
   _sprite_program->bind_uniform("frame_count", v);
   bind_pixel_uniforms(*_sprite_program);
   _element_buffer->draw_elements(GL_TRIANGLES, 6 * length);
+}
 
+void RenderUtil::render_batch() const
+{
+  render_batch(_batched_sprites);
   _batched_sprites.clear();
 }
 
@@ -430,9 +434,7 @@ void RenderUtil::render_batch(const RenderBatch& batch)
 {
   for (const auto& pair : batch.get_map()) {
     set_sprite(pair.first.sprite, pair.first.frame_size);
-    _batched_sprites.insert(_batched_sprites.begin(),
-                            pair.second.begin(), pair.second.end());
-    render_batch();
+    render_batch(pair.second);
   }
 }
 

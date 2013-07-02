@@ -141,9 +141,11 @@ public:
                        const y::fvec4& colour) const;
 
   // Batch and render sprites (at pixel coordinates).
+  // TODO: get rid of non-RenderBatch batching entirely.
   void set_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size);
   void batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
                     float depth, float rotation, const y::fvec4& colour) const;
+  void render_batch(const RenderBatch::batched_sprite_list& list) const;
   void render_batch() const;
 
   // Render an entire set of batches at once. Sprite set with set_sprite
@@ -204,7 +206,7 @@ private:
 
   GlTexture2D _sprite;
   y::ivec2 _frame_size;
-  mutable y::vector<RenderBatch::batched_sprite> _batched_sprites;
+  mutable RenderBatch::batched_sprite_list _batched_sprites;
   GlUnique<GlProgram> _sprite_program;
 
 };
