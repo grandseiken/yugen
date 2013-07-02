@@ -378,32 +378,35 @@ bool ModalStack::empty() const
   return _stack.empty();
 }
 
-void ModalStack::run(Window& window, float fps)
+void ModalStack::run(
+    Window& window, float updates_per_second, float draws_per_second)
 {
+  // TODO: mess with this some more. It's not very smart. Parallelise?
   typedef std::chrono::high_resolution_clock hrclock;
-  auto ticks_per_frame = std::chrono::duration_cast<hrclock::duration>(
-      std::chrono::nanoseconds(y::size(1000000000.f / fps + .5f)));
+  auto ticks_per_update = std::chrono::duration_cast<hrclock::duration>(
+      std::chrono::nanoseconds(
+          y::size(1000000000.f / updates_per_second + .5f)));
+  auto ticks_per_draw = std::chrono::duration_cast<hrclock::duration>(
+      std::chrono::nanoseconds(
+          y::size(1000000000.f / draws_per_second + .5f)));
 
   hrclock clock;
-  auto last(clock.now());
-  hrclock::duration accumulated_ticks(hrclock::duration::zero());
-
-  const y::size measurement_count = 16;
-  y::vector<y::size> measurements;
+  auto update_last(clock.now());
+  auto draw_last(clock.now());
+  hrclock::duration accumulated_update_ticks(hrclock::duration::zero());
+  hrclock::duration accumulated_draw_ticks(hrclock::duration::zero());
 
   while (!empty()) {
     y::size updates = 1;
-    // TODO: mess with this some more. In particular, it doesn't take into
-    // account the time spent drawing. Need sleeps.
-    if (fps > 0.f) {
+    if (updates_per_second > 0.f) {
       auto now(clock.now());
-      accumulated_ticks += (now - last);
-      last = now;
+      accumulated_update_ticks += (now - update_last);
+      update_last = now;
 
       updates = 0;
-      while (accumulated_ticks >= ticks_per_frame) {
+      while (accumulated_update_ticks >= ticks_per_update) {
         ++updates;
-        accumulated_ticks -= ticks_per_frame;
+        accumulated_update_ticks -= ticks_per_update;
       }
       if (!updates) {
         continue;
@@ -428,22 +431,23 @@ void ModalStack::run(Window& window, float fps)
       }
     }
 
-    auto draw_start(clock.now());
+    if (draws_per_second > 0.f) {
+      auto now(clock.now());
+      accumulated_draw_ticks += (now - draw_last);
+      draw_last = now;
+
+      bool draw = false;
+      while (accumulated_draw_ticks >= ticks_per_draw) {
+        draw = true;
+        accumulated_draw_ticks -= ticks_per_draw;
+      }
+      if (!draw) {
+        continue;
+      }
+    }
+
     draw(0);
     window.display();
-    auto draw_end(clock.now());
-    auto t(std::chrono::duration_cast<std::chrono::microseconds>(
-        draw_end - draw_start));
-    measurements.emplace_back(t.count());
-    if (measurements.size() >= measurement_count) {
-      y::size i = 0;
-      for (auto m : measurements) {
-        i += m;
-      }
-      i /= measurement_count;
-      std::cout << (i / 1000) << ", " << (measurements[0] / 1000) << std::endl;
-      measurements.clear();
-    }
   }
 }
 

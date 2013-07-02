@@ -193,7 +193,7 @@ public:
 
   // Run until the stack is empty. Push a mode onto the stack first. If fps
   // is zero, no frame-compensation occurs.
-  void run(Window& window, float fps);
+  void run(Window& window, float updates_per_second, float draws_per_second);
 
 private:
 

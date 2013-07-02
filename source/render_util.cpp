@@ -13,7 +13,7 @@ void RenderBatch::add_sprite(
   batched_sprite bs{origin[xx], origin[yy],
                     float(frame[xx]), float(frame[yy]),
                     depth, rotation, colour};
-  _map[bt].emplace_back(bs);
+  _map[bt].push_back(bs);
 }
 
 void RenderBatch::iadd_sprite(
@@ -49,7 +49,9 @@ const RenderBatch::batched_texture_map& RenderBatch::get_map() const
 
 void RenderBatch::clear()
 {
-  _map.clear();
+  for (auto& pair : _map) {
+    pair.second.clear();
+  }
 }
 
 static const GLushort quad_element_data[] = {0, 1, 2, 3};

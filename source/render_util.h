@@ -24,6 +24,7 @@ namespace colour {
 }
 
 // Helper class to automatically batch renders using the same texture.
+// TODO: this seems to be a huge performance hog.
 class RenderBatch : public y::no_copy {
 public:
 
