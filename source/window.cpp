@@ -125,7 +125,7 @@ Window::Window(const y::string& title, y::size default_bpp,
       title, default_fullscreen ? sf::Style::Fullscreen : sf::Style::Default,
       settings));
   _window->setFramerateLimit(0);
-  _window->setVerticalSyncEnabled(false);
+  _window->setVerticalSyncEnabled(true);
   _window->setActive();
 }
 

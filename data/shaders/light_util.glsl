@@ -18,14 +18,15 @@ vec3 sq_coords_to_world_normal(vec2 coords)
   vec2 sq = coords * coords;
   float m = max(sq.x, sq.y);
   float d = inversesqrt((sq.x + sq.y) / m);
-  return vec3(coords.x * d, coords.y * d, sqrt(1 - m));
+  return vec3(coords.x * d, coords.y * d, m >= 1 ? 0.0 : sqrt(1 - m));
 }
 
 // Same as above, but takes coords scaled to the unit circle already.
 vec3 circular_coords_to_world_normal(vec2 coords)
 {
   vec2 sq = coords * coords;
-  return vec3(coords.x, coords.y, sqrt(1 - sq.x - sq.y));
+  return vec3(coords.x, coords.y,
+              sq.x + sq.y >= 1 ? 0.0 : sqrt(1 - sq.x - sq.y));
 }
 
 // Returns the square cooords of a normal encoded in a texture value.

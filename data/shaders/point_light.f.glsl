@@ -17,7 +17,6 @@ void main()
   if (dist_sq > range_sq) {
     discard;
   }
-  float dist_inv = inversesqrt(dist_sq);
 
   // The correct (mathematically) formula gives extreme results since the light
   // source is in the same 2D plane as the geometry, but the normals are mostly
@@ -27,7 +26,7 @@ void main()
   // towards the screen; i.e., it is a spherical light whose intersection with
   // the screen plane gives the same circle as the direct lighting.
   vec2 direct_dir =
-      dist_v == vec2(0.0) ? vec2(0.0) : dist_v * dist_inv;
+      dist_v == vec2(0.0) ? vec2(0.0) : dist_v * inversesqrt(dist_sq);
   vec2 indirect_dir = dist_v / range_coord;
 
   // Convert texture normal values to world normal values.
@@ -39,7 +38,7 @@ void main()
 
   // Similarly, light directions have x, y in [-1, 1]; scale and treat as
   // spherical coordinates.
-  vec3 direct_world = circular_coords_to_world_normal(direct_dir);
+  vec3 direct_world = vec3(direct_dir.x, direct_dir.y, 0.0);
   vec3 indirect_world = circular_coords_to_world_normal(indirect_dir);
 
   // Calculate light values.

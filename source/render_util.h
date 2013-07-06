@@ -24,7 +24,6 @@ namespace colour {
 }
 
 // Helper class to automatically batch renders using the same texture.
-// TODO: this seems to be a huge performance hog.
 class RenderBatch : public y::no_copy {
 public:
 
@@ -140,25 +139,18 @@ public:
   void irender_outline(const y::ivec2& origin, const y::ivec2& size,
                        const y::fvec4& colour) const;
 
-  // Batch and render sprites (at pixel coordinates).
-  // TODO: get rid of non-RenderBatch batching entirely.
-  void set_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size);
-  void batch_sprite(const y::fvec2& origin, const y::ivec2& frame,
-                    float depth, float rotation, const y::fvec4& colour) const;
-  void render_batch(const RenderBatch::batched_sprite_list& list) const;
-  void render_batch() const;
-
-  // Render an entire set of batches at once. Sprite set with set_sprite
-  // is not preserved.
-  void render_batch(const RenderBatch& batch);
+  // Render an entire batch of sprites at once (at pixel coordinates).
+  void render_batch(const GlTexture2D& sprite, const y::ivec2& frame_size,
+                    const RenderBatch::batched_sprite_list& list) const;
+  void render_batch(const RenderBatch& batch) const;
 
   // Render a sprite immediately.
   void render_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size,
                      const y::fvec2& origin, const y::ivec2& frame,
-                     float depth, float rotation, const y::fvec4& colour);
+                     float depth, float rotation, const y::fvec4& colour) const;
   void irender_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size,
                       const y::ivec2& origin, const y::ivec2& frame,
-                      float depth, const y::fvec4& colour);
+                      float depth, const y::fvec4& colour) const;
 
   // Helpers for font-size grid coordinates.
   static y::ivec2 from_grid(const y::ivec2& grid = {1, 1});
@@ -185,6 +177,7 @@ private:
   GlUnique<GlTexture2D> _font;
   GlUnique<GlProgram> _text_program;
   GlUnique<GlProgram> _draw_program;
+  GlUnique<GlProgram> _sprite_program;
 
   // TODO: figure out if this is really worth it, and if so, come up with a
   // more easily-reusable way to do it (lighting.h too).
@@ -203,11 +196,6 @@ private:
   GlUnique<GlBuffer<float, 1>> _depth_buffer;
   GlUnique<GlBuffer<float, 4>> _colour_buffer;
   GlUnique<GlBuffer<GLushort, 1>> _element_buffer;
-
-  GlTexture2D _sprite;
-  y::ivec2 _frame_size;
-  mutable RenderBatch::batched_sprite_list _batched_sprites;
-  GlUnique<GlProgram> _sprite_program;
 
 };
 

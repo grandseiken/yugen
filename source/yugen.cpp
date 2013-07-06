@@ -260,6 +260,6 @@ y::int32 main(y::int32 argc, char** argv)
   ModalStack stack;
   stack.push(y::move_unique(yugen));
   stack.push(y::move_unique(stage));
-  stack.run(window, 0.f, 0.f);
+  stack.run(window, 60.f, 60.f);
   return 0;
 }

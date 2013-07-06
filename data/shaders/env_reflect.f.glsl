@@ -19,7 +19,6 @@ varying float reflect_dist;
 
 #include "perlin.glsl"
 
-// TODO: water needs specular to look good?
 void main()
 {
   // Skip to form waves.

@@ -381,7 +381,7 @@ bool ModalStack::empty() const
 void ModalStack::run(
     Window& window, float updates_per_second, float draws_per_second)
 {
-  // TODO: mess with this some more. It's not very smart. Parallelise?
+  // TODO: mess with this some more. It's not very smart.
   typedef std::chrono::high_resolution_clock hrclock;
   auto ticks_per_update = std::chrono::duration_cast<hrclock::duration>(
       std::chrono::nanoseconds(
