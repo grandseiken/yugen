@@ -47,8 +47,7 @@ private:
 
   GameStage& _stage;
 
-  // TODO: should consider using deque for this.
-  typedef y::vector<y::unique<Script>> script_list;
+  typedef y::list<y::unique<Script>> script_list;
   script_list _scripts;
   bool _all_unrefreshed;
   WorldWindow::cell_list _unrefreshed;

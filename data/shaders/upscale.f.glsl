@@ -46,8 +46,9 @@ vec4 fra_scale()
   return mix / d;
 }
 
-// 2xEPX. Doesn't work.
-// TODO: make work. Do 3xEPX, 4xEPX, other algorithms?
+// 2xEPX.
+// TODO: doesn't work. Make work. Do 3xEPX, 4xEPX, other algorithms? Use
+// algorithms only for their intended scale factors.
 vec4 epx_scale()
 {
   vec2 screen_size = 1.0 / vec2(screen_res);

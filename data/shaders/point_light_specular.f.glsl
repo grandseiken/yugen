@@ -7,10 +7,12 @@ varying vec2 origin_coord;
 varying vec2 pos_coord;
 varying float range_coord;
 
-// TODO: specular lighting with colours; somehow allow custom specular
-// intensities / powers.
-
 #include "light_util.glsl"
+
+// TODO: specular lighting with colours; somehow allow custom specular powers.
+// In particular we should allow metallic speculars (colour of material rather
+// than always white).
+const float specular_power = 2;
 
 void main()
 {
@@ -44,9 +46,10 @@ void main()
       direct_light_to_pixel, camera_to_pixel, normal_world);
   float indirect_specular = specular_value(
       indirect_light_to_pixel, camera_to_pixel, normal_world);
-  float total_specular = mix(specular_intensity(indirect_specular),
-                             specular_intensity(direct_specular),
-                             specular_direct_coefficient);
+  float total_specular = mix(
+      specular_intensity(indirect_specular, specular_power),
+      specular_intensity(direct_specular, specular_power),
+      specular_direct_coefficient);
 
   vec4 colour = vec4(1.0, 1.0, 1.0, 1.0);
   colour.a *= total_specular * (1.0 - dist_sq / range_sq);

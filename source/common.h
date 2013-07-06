@@ -4,6 +4,7 @@
 #include <boost/functional/hash.hpp>
 #include <boost/utility.hpp>
 #include <cstddef>
+#include <list>
 #include <map>
 #include <memory>
 #include <set>
@@ -99,6 +100,8 @@ namespace y {
 
   template<typename T>
   using vector = std::vector<T>;
+  template<typename T>
+  using list = std::list<T>;
   template<typename T, typename H = std::hash<T>>
   using set = std::unordered_set<T, H>;
   template<typename T, typename U, typename H = std::hash<T>>

@@ -3,7 +3,6 @@
 attribute vec2 pixels;
 attribute vec2 origin;
 attribute float range;
-// TODO: allow colour again for metallic speculars?
 
 varying vec2 pixels_coord;
 varying vec2 origin_coord;

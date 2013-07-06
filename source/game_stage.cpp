@@ -26,15 +26,15 @@ Script& ScriptBank::create_script(
 void ScriptBank::add_script(y::unique<Script> script)
 {
   _scripts.emplace_back();
-  (_scripts.end() - 1)->swap(script);
+  (_scripts.rbegin())->swap(script);
 }
 
 void ScriptBank::update_all() const
 {
-  // Can't use iterators, or they will be invalidated by new creations.
-  // Destructions won't happen here, though.
-  for (y::size i = 0; i < _scripts.size(); ++i) {
-    const auto& script = _scripts[i];
+  // Destructions won't happen here. Iteration is fine even though new
+  // scripts may be added in the loop, since we're using a doubly-linked
+  // list.
+  for (const auto& script : _scripts) {
     if (script->has_function("update") && !script->is_destroyed()) {
       script->call("update");
     }
@@ -131,9 +131,7 @@ void ScriptBank::clean_out_of_bounds(
   };
 
   local is_out_of_bounds(_all_unrefreshed, _unrefreshed, &player, lower, upper);
-  _scripts.erase(
-      std::remove_if(_scripts.begin(), _scripts.end(), is_out_of_bounds),
-      _scripts.end());
+  _scripts.remove_if(is_out_of_bounds);
 }
 
 void ScriptBank::clean_destroyed()
@@ -145,9 +143,7 @@ void ScriptBank::clean_destroyed()
     }
   };
 
-  _scripts.erase(
-      std::remove_if(_scripts.begin(), _scripts.end(), local::is_destroyed),
-      _scripts.end());
+  _scripts.remove_if(local::is_destroyed);
 }
 
 void ScriptBank::create_in_bounds(

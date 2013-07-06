@@ -32,7 +32,9 @@ void main()
   // Convert texture normal values to world normal values.
   // Normal has x, y in [0, 1], scale and transform to world normal.
   // TODO: is it possible to discard early if the normalbuffer was never written
-  // to, somehow?
+  // to, somehow? In fact, if we use green component for layering, as discussed
+  // below, it should definitely be possible by discaring when it's zero, for
+  // instance.
   vec4 normal_tex = texture2D(normalbuffer, pos_coord);
   vec3 normal_world = tex_to_world_normal(normal_tex);
 
@@ -48,6 +50,10 @@ void main()
                           direct_coefficient);
 
   // Calculate intensity at this point.
+  // TODO: need some layering mechanism for when lights work, stored in green
+  // component of normal, perhaps, for example so that lights inside water
+  // don't add specular. But - how do lights, individually, know what they
+  // affect?
   vec4 colour = colour_coord;
   colour.a *= total_light * (1.0 - dist_sq / range_sq);
   gl_FragColor = colour;

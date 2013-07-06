@@ -39,8 +39,6 @@ public:
     float frame_y;
     float depth;
     float rotation;
-    // TODO: get rid of colour for sprites. Need to handle transparency
-    // way different for lighting anyway, with explicit layers and everything.
     y::fvec4 colour;
   };
 

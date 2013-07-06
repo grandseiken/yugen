@@ -8,7 +8,6 @@ const bool ambient_is_post_cel_shade = true;
 const float direct_coefficient = 0.5;
 const float specular_direct_coefficient = 0.5;
 const float camera_distance = 0.1;
-const float specular_power = 2;
 
 // Given coords in [-1, 1] X [-1, 1], returns vector v such that v.x and v.y
 // are the coords scaled to the unit circle, v.z is positive, and v has
@@ -57,10 +56,10 @@ float specular_value(vec3 light_normal, vec3 camera_normal, vec3 world_normal)
   return dot(reflect(light_normal, world_normal), -camera_normal);
 }
 
-float specular_intensity(float value)
+float specular_intensity(float value, float power)
 {
   float d = max(value, 0);
-  return pow(d, specular_power);
+  return pow(d, power);
 }
 
 // Implements a kind of cel-shading based on the constants above.
