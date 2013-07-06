@@ -111,6 +111,9 @@ private:
 
   void make_default_map();
 
+  // Used to delete the textures when the Databank is destroyed.
+  y::vector<GlUnique<GlTexture2D>> _textures;
+
 };
 
 template<typename T>

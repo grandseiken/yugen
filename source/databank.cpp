@@ -26,7 +26,6 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
     scripts.insert(s, y::move_unique(lua_file));
   }
 
-  // TODO: clean up Textures on destroy. Use GlUnique?
   paths.clear();
   filesystem.list_pattern(paths, "/sprites/**.png");
   for (const y::string& s : paths) {
@@ -40,6 +39,11 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
     GlTexture2D texture = gl.make_texture(s);
     GlTexture2D normal_texture = filesystem.is_file(normal_path) ?
         gl.make_texture(normal_path) : _default_sprite.normal;
+
+    _textures.emplace_back(gl.make_unique(texture));
+    if (filesystem.is_file(normal_path)) {
+      _textures.emplace_back(gl.make_unique(normal_texture));
+    }
 
     sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
   }
@@ -59,6 +63,11 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
     GlTexture2D texture = gl.make_texture(s);
     GlTexture2D normal_texture = filesystem.is_file(normal_path) ?
         gl.make_texture(normal_path) : _default_sprite.normal;
+
+    _textures.emplace_back(gl.make_unique(texture));
+    if (filesystem.is_file(normal_path)) {
+      _textures.emplace_back(gl.make_unique(normal_texture));
+    }
 
     Tileset* tileset = new Tileset({texture, normal_texture});
     if (filesystem.exists(data_path)) {
