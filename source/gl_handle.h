@@ -61,7 +61,6 @@ private:
 };
 
 // Lightweight handle to an OpenGL buffer.
-// TODO: vertex attrib divisor buffers would be nice, but can't in OpenGL 2.1.
 template<typename T, y::size N>
 class GlBuffer : public GlHandle {
 public:

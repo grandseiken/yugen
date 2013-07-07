@@ -379,9 +379,10 @@ bool ModalStack::empty() const
 }
 
 void ModalStack::run(
-    Window& window, float updates_per_second, float draws_per_second)
+    Window& window, float updates_per_second, float draws_per_second,
+    RunTiming& run_timing)
 {
-  // TODO: mess with this some more. It's not very smart.
+  // TODO: mess with this some more? It's not very smart.
   typedef std::chrono::high_resolution_clock hrclock;
   auto ticks_per_update = std::chrono::duration_cast<hrclock::duration>(
       std::chrono::nanoseconds(
@@ -396,7 +397,16 @@ void ModalStack::run(
   hrclock::duration accumulated_update_ticks(hrclock::duration::zero());
   hrclock::duration accumulated_draw_ticks(hrclock::duration::zero());
 
+  const y::size measurements = 32;
+  y::list<y::size> update_measurements;
+  y::list<y::size> draw_measurements;
+  for (y::size i = 0; i < measurements; ++i) {
+    update_measurements.emplace_back(0);
+    draw_measurements.emplace_back(0);
+  }
+
   while (!empty()) {
+    // Calculate the number of updates to do.
     y::size updates = 1;
     if (updates_per_second > 0.f) {
       auto now(clock.now());
@@ -409,11 +419,17 @@ void ModalStack::run(
         accumulated_update_ticks -= ticks_per_update;
       }
       if (!updates) {
+        run_timing.updates_this_cycle = 0;
+        run_timing.draws_this_cycle = 0;
         continue;
       }
     }
+    run_timing.updates_this_cycle = updates;
 
+    // Do the updates.
     for (y::size i = 0; i < updates; ++i) {
+      auto time_start(clock.now());
+
       y::size top = _stack.size() - 1;
       sf::Event e;
       while (window.poll_event(e)) {
@@ -429,8 +445,14 @@ void ModalStack::run(
       if (clear_ended()) {
         break;
       }
+
+      update_measurements.emplace_back(
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              clock.now() - time_start).count());
+      update_measurements.pop_front();
     }
 
+    // Calculate whether to do a draw.
     if (draws_per_second > 0.f) {
       auto now(clock.now());
       accumulated_draw_ticks += (now - draw_last);
@@ -442,12 +464,38 @@ void ModalStack::run(
         accumulated_draw_ticks -= ticks_per_draw;
       }
       if (!draw) {
+        run_timing.draws_this_cycle = 0;
         continue;
       }
     }
+    run_timing.draws_this_cycle = 1;
 
+    // Do the draw.
+    auto time_start(clock.now());
     draw(0);
     window.display();
+    draw_measurements.emplace_back(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            clock.now() - time_start).count());
+    draw_measurements.pop_front();
+
+    // Update the data.
+    run_timing.us_per_update_inst = *update_measurements.rbegin();
+    run_timing.us_per_draw_inst = *draw_measurements.rbegin();
+    run_timing.us_per_update_avg = 0;
+    run_timing.us_per_draw_avg = 0;
+    for (y::size m : update_measurements) {
+      run_timing.us_per_update_avg += m;
+    }
+    for (y::size m : draw_measurements) {
+      run_timing.us_per_draw_avg += m;
+    }
+    run_timing.us_per_update_avg /= measurements;
+    run_timing.us_per_draw_avg /= measurements;
+    run_timing.us_per_frame_inst =
+        run_timing.us_per_update_inst + run_timing.us_per_draw_inst;
+    run_timing.us_per_frame_avg =
+        run_timing.us_per_update_avg + run_timing.us_per_draw_avg;
   }
 }
 

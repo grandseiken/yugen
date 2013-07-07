@@ -203,10 +203,6 @@ void Lighting::render_internal(
     const y::wvec2& camera_min, const y::wvec2& camera_max,
     bool specular) const
 {
-  // TODO: respect camera bounds? Necessary?
-  (void)camera_min;
-  (void)camera_max;
-
   if (!(util.get_resolution() >= y::ivec2())) {
     return;
   }
@@ -222,7 +218,14 @@ void Lighting::render_internal(
     if (get_list(*s).empty()) {
       continue;
     }
-    const y::wvec2 origin = s->get_origin();
+    const y::wvec2& origin = s->get_origin();
+
+    // TODO: respect camera bounds. Need to check equation of lines
+    // through camera square.
+    y::wvec2 min = camera_min - origin;
+    y::wvec2 max = camera_max - origin;
+    (void)min;
+    (void)max;
 
     y::world max_range = 0;
     for (const entry& light : get_list(*s)) {
@@ -276,9 +279,9 @@ void Lighting::render_internal(
 
       // Set up the indices.
       for (y::size i = 1; i < trace.size(); i += 2) {
+        y::size prev = i - 1;
         y::size a = i;
         y::size b = (1 + i) % trace.size();
-        y::size prev = i - 1;
         y::size next = (2 + i) % trace.size();
 
         y::size l = trace[a].length_squared() <=
@@ -391,7 +394,7 @@ void Lighting::get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
         continue;
       }
 
-      // Check equation.
+      // Check equation of line through square.
       if (g_s[xx] - g_e[xx] != 0) {
         y::world m = (g_e[yy] - g_s[yy]) / (g_e[xx] - g_s[xx]);
         y::world y_neg = g_e[yy] + m * (g_e[xx] - max_range);

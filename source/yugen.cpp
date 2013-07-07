@@ -33,9 +33,10 @@ const GLfloat bayer_matrix[] = {
     bayer_d * 43, bayer_d * 27, bayer_d * 39, bayer_d * 23,
     bayer_d * 42, bayer_d * 26, bayer_d * 38, bayer_d * 22};
 
-Yugen::Yugen(RenderUtil& util)
+Yugen::Yugen(RenderUtil& util, const RunTiming& run_timing)
   : _recording(false)
   , _util(util)
+  , _run_timing(run_timing)
   , _framebuffer(util.get_gl().make_unique_framebuffer(
         RenderUtil::native_overflow_size, false))
   , _post_buffer(util.get_gl().make_unique_framebuffer(
@@ -92,19 +93,6 @@ void Yugen::update()
 
 void Yugen::draw() const
 {
-  // TODO: make this clock tick properly. Use std::chrono.
-  _measurements.emplace_back(_clock.restart().asMilliseconds());
-  if (_measurements.size() > samples) {
-    _measurements.erase(_measurements.begin());
-  }
-  y::size total = 0;
-  if (!_measurements.empty()) {
-    for (y::size m : _measurements) {
-      total += m;
-    }
-    total /= samples;
-  }
-
   // Render the game.
   _util.set_resolution(_framebuffer->get_size());
   draw_next();
@@ -122,14 +110,19 @@ void Yugen::draw() const
 
   // Render debug status.
   _util.set_resolution(_crop_buffer->get_size());
-  if (total) {
-    y::sstream ss;
-    ss << total << " ticks (" << (1000.f / total) << " fps)";
-    if (_recording) {
-      ss << " [recording]";
-    }
-    _util.irender_text(ss.str(), {16, 16}, colour::white);
+  y::sstream ss;
+  ss << std::setw(6) << std::setprecision(1) << std::fixed <<
+      _run_timing.us_per_frame_avg << " ticks (" <<
+      (1000000.f / _run_timing.us_per_frame_avg) << " fps) " <<
+      " " << _run_timing.us_per_frame_inst << " inst; " <<
+      _run_timing.us_per_update_avg << " update";
+  if (_recording) {
+    ss << " [recording]";
   }
+  _util.irender_text(ss.str(), {16, 16}, colour::white);
+  // TODO: why is text not rendering?
+  _util.irender_text(ss.str(), {16, 16}, colour::white);
+  _util.irender_text(ss.str(), {16, 16}, colour::white);
 
   // Upscale the crop-buffer to the window.
   const Resolution& screen = _util.get_window().get_mode();
@@ -251,7 +244,8 @@ y::int32 main(y::int32 argc, char** argv)
              y::wvec2(Tileset::tile_size);
   }
 
-  Yugen* yugen = new Yugen(util);
+  RunTiming run_timing;
+  Yugen* yugen = new Yugen(util, run_timing);
   GameStage* stage = new GameStage(
       databank, util, yugen->get_framebuffer(),
       databank.maps.get(map), world);
@@ -260,6 +254,6 @@ y::int32 main(y::int32 argc, char** argv)
   ModalStack stack;
   stack.push(y::move_unique(yugen));
   stack.push(y::move_unique(stage));
-  stack.run(window, 60.f, 60.f);
+  stack.run(window, 60.f, 60.f, run_timing);
   return 0;
 }

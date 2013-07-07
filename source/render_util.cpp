@@ -353,6 +353,9 @@ void RenderUtil::render_batch(
     float left = s.left;
     float top = s.top;
 
+    // Vertex attribute divisor buffers would be nice for this kind of thing,
+    // but it's not available until around OpenGL 4.3 which is kind of recent
+    // to target.
     y::write_vector<float, y::vector<y::int32>>(_pixels_data, 8 * i, {
         -frame_size[xx] / 2, -frame_size[yy] / 2,
         frame_size[xx] / 2, -frame_size[yy] / 2,

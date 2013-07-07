@@ -183,6 +183,18 @@ private:
 
 };
 
+struct RunTiming {
+  y::size us_per_update_inst;
+  y::size us_per_update_avg;
+  y::size us_per_draw_inst;
+  y::size us_per_draw_avg;
+  y::size us_per_frame_inst;
+  y::size us_per_frame_avg;
+
+  y::size updates_this_cycle;
+  y::size draws_this_cycle;
+};
+
 // A stack of modes. The topmost mode receives all events and controls the
 // program flow. Modes are rendered from back to front.
 class ModalStack : public y::no_copy {
@@ -192,8 +204,10 @@ public:
   bool empty() const;
 
   // Run until the stack is empty. Push a mode onto the stack first. If fps
-  // is zero, no frame-compensation occurs.
-  void run(Window& window, float updates_per_second, float draws_per_second);
+  // is zero, no frame-compensation occurs. Stores timing information in the
+  // RunTiming structure.
+  void run(Window& window, float updates_per_second, float draws_per_second,
+           RunTiming& run_timing);
 
 private:
 

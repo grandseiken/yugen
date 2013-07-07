@@ -552,11 +552,11 @@ bool Collision::has_intersection(const world_geometry& a,
   return get_projection_ratio(a, b.start, b.end - b.start, false) <= 1;
 }
 
-// TODO: not having collide_mask here makes collision different?
-// Since this should just be an optimisation that's odd; investigate.
-// TODO: bounds checks in general seem to affect things!
-// Without bounds checks, check_body succeeds for things touching at a line,
-// for instance, where they otherwise wouldn't.
+// TODO: not having collide_mask here makes collision different? Since this
+// should just be an optimisation that's odd; investigate. Bounds checks in
+// general seem to affect things! Without bounds checks, check_body succeeds
+// for things touching at a line, for instance, where they otherwise wouldn't.
+// Should we add a small tolerance, maybe?
 y::wvec2 Collision::get_min(const entry_list& bodies,
                             y::int32 collide_mask,
                             const y::wvec2& origin, y::world rotation) const
