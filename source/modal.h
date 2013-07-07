@@ -184,6 +184,9 @@ private:
 };
 
 struct RunTiming {
+  float target_updates_per_second;
+  float target_draws_per_second;
+
   y::size us_per_update_inst;
   y::size us_per_update_avg;
   y::size us_per_draw_inst;
@@ -206,8 +209,7 @@ public:
   // Run until the stack is empty. Push a mode onto the stack first. If fps
   // is zero, no frame-compensation occurs. Stores timing information in the
   // RunTiming structure.
-  void run(Window& window, float updates_per_second, float draws_per_second,
-           RunTiming& run_timing);
+  void run(Window& window, RunTiming& run_timing);
 
 private:
 

@@ -18,7 +18,7 @@ namespace sf {
 class Yugen : public Modal {
 public:
 
-  Yugen(RenderUtil& util, const RunTiming& run_timing);
+  Yugen(RenderUtil& util, RunTiming& run_timing);
   ~Yugen() override;
 
   const GlFramebuffer& get_framebuffer() const;
@@ -41,7 +41,7 @@ private:
   mutable y::vector<unsigned char*> _save_file_frames;
 
   RenderUtil& _util;
-  const RunTiming& _run_timing;
+  RunTiming& _run_timing;
 
   GlUnique<GlFramebuffer> _framebuffer;
   GlUnique<GlFramebuffer> _post_buffer;

@@ -280,8 +280,10 @@ y::int32 main(y::int32 argc, char** argv)
   RenderUtil util(gl);
 
   ModalStack stack;
-  RunTiming ignore;
+  RunTiming run_timing;
+  run_timing.target_updates_per_second = 0.f;
+  run_timing.target_draws_per_second = 0.f;
   stack.push(y::move_unique(new Yedit(filesystem, databank, util)));
-  stack.run(window, 0.f, 0.f, ignore);
+  stack.run(window, run_timing);
   return 0;
 }

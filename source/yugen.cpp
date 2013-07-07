@@ -33,7 +33,7 @@ const GLfloat bayer_matrix[] = {
     bayer_d * 43, bayer_d * 27, bayer_d * 39, bayer_d * 23,
     bayer_d * 42, bayer_d * 26, bayer_d * 38, bayer_d * 22};
 
-Yugen::Yugen(RenderUtil& util, const RunTiming& run_timing)
+Yugen::Yugen(RenderUtil& util, RunTiming& run_timing)
   : _recording(false)
   , _util(util)
   , _run_timing(run_timing)
@@ -112,14 +112,18 @@ void Yugen::draw() const
   _util.set_resolution(_crop_buffer->get_size());
   y::sstream ss;
   float fps = 1000000.f / _run_timing.us_per_frame_avg;
+  float update_pct = 100.f *
+      float(_run_timing.us_per_update_avg) / _run_timing.us_per_frame_avg;
   ss << std::setw(5) <<
-      _run_timing.us_per_frame_avg << " ticks (" <<
+      _run_timing.us_per_frame_avg << " avg (" <<
       std::setw(5) << std::setprecision(1) << std::fixed <<
-      fps << " fps) " <<
+      fps << " fps); " <<
       std::setw(5) <<
       _run_timing.us_per_frame_inst << " inst; " <<
-      std::setw(5) <<
-      _run_timing.us_per_update_avg << " update";
+      std::setw(5) << std::setprecision(1) << std::fixed <<
+      update_pct << "% update; " <<
+      std::setw(1) <<
+      _run_timing.updates_this_cycle << " updates";
   if (_recording) {
     ss << " [recording]";
   }
@@ -180,6 +184,8 @@ void Yugen::recording_render(const GlFramebuffer& source) const
 {
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tilde)) {
     _recording = true;
+    _run_timing.target_updates_per_second = 0.f;
+    _run_timing.target_draws_per_second = 0.f;
   }
   if (_recording) {
     y::ivec2 size = source.get_size();
@@ -190,10 +196,14 @@ void Yugen::recording_render(const GlFramebuffer& source) const
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace)) {
     _recording = false;
+    _run_timing.target_updates_per_second = 60.f;
+    _run_timing.target_draws_per_second = 60.f;
     _save_file_frames.clear();
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::Return)) {
     _recording = false;
+    _run_timing.target_updates_per_second = 60.f;
+    _run_timing.target_draws_per_second = 60.f;
     y::size n = 0;
     for (unsigned char* data : _save_file_frames) {
       y::ivec2 size = source.get_size();
@@ -246,6 +256,8 @@ y::int32 main(y::int32 argc, char** argv)
   }
 
   RunTiming run_timing;
+  run_timing.target_updates_per_second = 60.f;
+  run_timing.target_draws_per_second = 60.f;
   Yugen* yugen = new Yugen(util, run_timing);
   GameStage* stage = new GameStage(
       databank, util, yugen->get_framebuffer(),
@@ -255,6 +267,6 @@ y::int32 main(y::int32 argc, char** argv)
   ModalStack stack;
   stack.push(y::move_unique(yugen));
   stack.push(y::move_unique(stage));
-  stack.run(window, 60.f, 60.f, run_timing);
+  stack.run(window, run_timing);
   return 0;
 }

@@ -378,18 +378,10 @@ bool ModalStack::empty() const
   return _stack.empty();
 }
 
-void ModalStack::run(
-    Window& window, float updates_per_second, float draws_per_second,
-    RunTiming& run_timing)
+void ModalStack::run(Window& window, RunTiming& run_timing)
 {
   // TODO: mess with this some more? It's not very smart.
   typedef std::chrono::high_resolution_clock hrclock;
-  auto ticks_per_update = std::chrono::duration_cast<hrclock::duration>(
-      std::chrono::nanoseconds(
-          y::size(1000000000.f / updates_per_second + .5f)));
-  auto ticks_per_draw = std::chrono::duration_cast<hrclock::duration>(
-      std::chrono::nanoseconds(
-          y::size(1000000000.f / draws_per_second + .5f)));
 
   hrclock clock;
   auto update_last(clock.now());
@@ -406,12 +398,18 @@ void ModalStack::run(
   }
 
   while (!empty()) {
+    auto ticks_per_update = std::chrono::duration_cast<hrclock::duration>(
+        std::chrono::nanoseconds(
+            y::size(1000000000.f / run_timing.target_updates_per_second + .5f)));
+    auto ticks_per_draw = std::chrono::duration_cast<hrclock::duration>(
+        std::chrono::nanoseconds(
+            y::size(1000000000.f / run_timing.target_draws_per_second + .5f)));
+
     // Calculate the number of updates to do.
     y::size updates = 1;
-    if (updates_per_second > 0.f) {
-      auto now(clock.now());
+    auto now(clock.now());
+    if (run_timing.target_updates_per_second > 0.f) {
       accumulated_update_ticks += (now - update_last);
-      update_last = now;
 
       updates = 0;
       while (accumulated_update_ticks >= ticks_per_update) {
@@ -419,12 +417,13 @@ void ModalStack::run(
         accumulated_update_ticks -= ticks_per_update;
       }
       if (!updates) {
-        run_timing.updates_this_cycle = 0;
         run_timing.draws_this_cycle = 0;
+        update_last = now;
         continue;
       }
     }
-    run_timing.updates_this_cycle = updates;
+    update_last = now;
+    run_timing.updates_this_cycle += updates;
 
     // Do the updates.
     for (y::size i = 0; i < updates; ++i) {
@@ -453,10 +452,9 @@ void ModalStack::run(
     }
 
     // Calculate whether to do a draw.
-    if (draws_per_second > 0.f) {
-      auto now(clock.now());
+    now = clock.now();
+    if (run_timing.target_draws_per_second > 0.f) {
       accumulated_draw_ticks += (now - draw_last);
-      draw_last = now;
 
       bool draw = false;
       while (accumulated_draw_ticks >= ticks_per_draw) {
@@ -464,11 +462,12 @@ void ModalStack::run(
         accumulated_draw_ticks -= ticks_per_draw;
       }
       if (!draw) {
-        run_timing.draws_this_cycle = 0;
+        draw_last = now;
         continue;
       }
     }
-    run_timing.draws_this_cycle = 1;
+    draw_last = now;
+    run_timing.draws_this_cycle += 1;
 
     // Do the draw.
     auto time_start(clock.now());
@@ -480,6 +479,8 @@ void ModalStack::run(
     draw_measurements.pop_front();
 
     // Update the data.
+    run_timing.updates_this_cycle = 0;
+    run_timing.draws_this_cycle = 0;
     run_timing.us_per_update_inst = *update_measurements.rbegin();
     run_timing.us_per_draw_inst = *draw_measurements.rbegin();
     run_timing.us_per_update_avg = 0;
