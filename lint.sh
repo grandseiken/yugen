@@ -42,13 +42,13 @@ for file in source/*.* source/proto/*.proto; do
   lint_highlight '[^A-Za-z_0-9](delete|int|short|long)[^A-Za-z_0-9]' 'Line \1 not allowed'
 done
 
-for file in data/shaders/*; do
+for file in data/shaders/*.glsl; do
   echo Linting: $file
   lint_common
   lint_cstyle
 done
 
-for file in data/scripts/* data/scripts/*/*; do
+for file in data/scripts/*.lua data/scripts/*/*.lua; do
   echo Linting: $file
   lint_common
 done
