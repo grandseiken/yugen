@@ -96,6 +96,9 @@ private:
                             const geometry_entry& geometry_buffer,
                             const geometry_map& map) const;
 
+  static bool line_intersects_rect(const y::wvec2& start, const y::wvec2& end,
+                                   const y::wvec2& min, const y::wvec2& max);
+
   const WorldWindow& _world;
   GlUtil& _gl;
   GlUnique<GlProgram> _point_light_program;

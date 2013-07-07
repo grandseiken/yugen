@@ -220,12 +220,8 @@ void Lighting::render_internal(
     }
     const y::wvec2& origin = s->get_origin();
 
-    // TODO: respect camera bounds. Need to check equation of lines
-    // through camera square.
     y::wvec2 min = camera_min - origin;
     y::wvec2 max = camera_max - origin;
-    (void)min;
-    (void)max;
 
     y::world max_range = 0;
     for (const entry& light : get_list(*s)) {
@@ -290,15 +286,27 @@ void Lighting::render_internal(
                     trace[next].length_squared() ? b : next;
 
         // Render the triangles: origin, l, r; l, r, b; a, b, l.
-        element_data.emplace_back(origin_index);
-        element_data.emplace_back(origin_index + 1 + l);
-        element_data.emplace_back(origin_index + 1 + r);
-        element_data.emplace_back(origin_index + 1 + l);
-        element_data.emplace_back(origin_index + 1 + r);
-        element_data.emplace_back(origin_index + 1 + b);
-        element_data.emplace_back(origin_index + 1 + a);
-        element_data.emplace_back(origin_index + 1 + b);
-        element_data.emplace_back(origin_index + 1 + l);
+        if (line_intersects_rect(y::wvec2(), trace[l], min, max) ||
+            line_intersects_rect(y::wvec2(), trace[r], min, max) ||
+            line_intersects_rect(trace[l], trace[r], min, max)) {
+          element_data.emplace_back(origin_index);
+          element_data.emplace_back(origin_index + 1 + l);
+          element_data.emplace_back(origin_index + 1 + r);
+        }
+        if (line_intersects_rect(trace[l], trace[b], min, max) ||
+            line_intersects_rect(trace[r], trace[b], min, max) ||
+            line_intersects_rect(trace[l], trace[r], min, max)) {
+          element_data.emplace_back(origin_index + 1 + l);
+          element_data.emplace_back(origin_index + 1 + r);
+          element_data.emplace_back(origin_index + 1 + b);
+        }
+        if (line_intersects_rect(trace[a], trace[l], min, max) ||
+            line_intersects_rect(trace[b], trace[l], min, max) ||
+            line_intersects_rect(trace[a], trace[b], min, max)) {
+          element_data.emplace_back(origin_index + 1 + a);
+          element_data.emplace_back(origin_index + 1 + b);
+          element_data.emplace_back(origin_index + 1 + l);
+        }
       }
     }
   }
@@ -381,29 +389,14 @@ void Lighting::get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
       const y::wvec2 g_s = y::wvec2(g.start) - origin;
       const y::wvec2 g_e = y::wvec2(g.end) - origin;
 
-      y::wvec2 g_min = y::min(g_s, g_e);
-      y::wvec2 g_max = y::max(g_s, g_e);
-
       // Break by ordering.
-      if (g_min[xx] >= max_bound[xx]) {
+      if (y::min(g_s[xx], g_e[xx]) >= max_bound[xx]) {
         break;
       }
 
-      // Check bounds.
-      if (!(g_min < max_bound && g_max > min_bound)) {
+      // Check intersection.
+      if (!line_intersects_rect(g_s, g_e, min_bound, max_bound)) {
         continue;
-      }
-
-      // Check equation of line through square.
-      if (g_s[xx] - g_e[xx] != 0) {
-        y::world m = (g_e[yy] - g_s[yy]) / (g_e[xx] - g_s[xx]);
-        y::world y_neg = g_e[yy] + m * (g_e[xx] - max_range);
-        y::world y_pos = g_e[yy] + m * (g_e[xx] + max_range);
-
-        if ((max_range < y_neg && max_range < y_pos) ||
-            (-max_range >= y_neg && -max_range >= y_pos)) {
-          continue;
-        }
       }
 
       // Exclude geometries which are defined in the wrong direction.
@@ -605,4 +598,31 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     // Store previous.
     prev_closest_geometry = new_closest_geometry;
   }
+}
+
+bool Lighting::line_intersects_rect(
+    const y::wvec2& start, const y::wvec2& end,
+    const y::wvec2& min, const y::wvec2& max)
+{
+  y::wvec2 line_min = y::min(start, end);
+  y::wvec2 line_max = y::max(start, end);
+
+  // Check bounds.
+  if (!(line_min < max && line_max > min)) {
+    return false;
+  }
+
+  // Check equation of line.
+  if (start[xx] - end[xx] != 0) {
+    y::world m = (end[yy] - start[yy]) / (end[xx] - start[xx]);
+    y::world y_neg = end[yy] + m * (end[xx] + min[xx]);
+    y::world y_pos = end[yy] + m * (end[xx] + max[xx]);
+
+    if ((max[yy] < y_neg && max[yy] < y_pos) ||
+        (min[yy] >= y_neg && min[yy] >= y_pos)) {
+      return false;
+    }
+  }
+
+  return true;
 }
