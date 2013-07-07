@@ -397,7 +397,7 @@ void ModalStack::run(
   hrclock::duration accumulated_update_ticks(hrclock::duration::zero());
   hrclock::duration accumulated_draw_ticks(hrclock::duration::zero());
 
-  const y::size measurements = 32;
+  const y::size measurements = 128;
   y::list<y::size> update_measurements;
   y::list<y::size> draw_measurements;
   for (y::size i = 0; i < measurements; ++i) {

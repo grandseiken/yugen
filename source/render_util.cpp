@@ -180,28 +180,39 @@ void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
   _gl.enable_blend(true);
 
   y::fvec2 font_size = y::fvec2(from_grid());
-  y::vector<float> text_data{
-      origin[xx], origin[yy],
-      (origin + y::fvec2(_native_size))[xx], origin[yy],
-      origin[xx], (origin + y::fvec2(font_size))[yy],
-      (origin + y::fvec2(_native_size))[xx],
-      (origin + y::fvec2(font_size))[yy]};
+  y::vector<float> pixels_data;
+  y::vector<float> character_data;
+  y::vector<GLushort> element_data;
 
-  auto text_buffer = _gl.make_unique_buffer<float, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, text_data);
+  for (y::size i = 0; i < text.length(); ++i) {
+    float fi = i;
+    y::write_vector(pixels_data, 8 * i, {
+        (origin + fi * font_size)[xx], origin[yy],
+        (origin + (fi + 1) * font_size)[xx], origin[yy],
+        (origin + fi * font_size)[xx], (origin + font_size)[yy],
+        (origin + (fi + 1) * font_size)[xx], (origin + font_size)[yy]});
+    y::write_vector<float, y::vector<char>>(character_data, 4 * i, {
+        text[i], text[i], text[i], text[i]});
+    y::write_vector<GLushort, y::vector<y::size>>(element_data, 6 * i, {
+        4 * i, 1 + 4 * i, 2 + 4 * i, 1 + 4 * i, 2 + 4 * i, 3 + 4 * i});
+  }
+
+  auto pixels_buffer = _gl.make_unique_buffer<float, 2>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, pixels_data);
+  auto character_buffer = _gl.make_unique_buffer<float, 1>(
+      GL_ARRAY_BUFFER, GL_STATIC_DRAW, character_data);
+  auto element_buffer = _gl.make_unique_buffer<GLushort, 1>(
+      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
 
   _text_program->bind();
-  _text_program->bind_attribute("pixels", *text_buffer);
+  _text_program->bind_attribute("pixels", *pixels_buffer);
+  _text_program->bind_attribute("character", *character_buffer);
   _text_program->bind_uniform("origin", origin);
-  for (y::size i = 0; i < 1024; ++i) {
-    _text_program->bind_uniform(i, "string",
-        GLint(i < text.length() ? text[i] : 0));
-  }
   _text_program->bind_uniform("font", *_font);
   _text_program->bind_uniform("font_size", font_size);
   _text_program->bind_uniform("colour", colour);
   bind_pixel_uniforms(*_text_program);
-  _quad_element->draw_elements(GL_TRIANGLE_STRIP, 4);
+  element_buffer->draw_elements(GL_TRIANGLES, element_data.size());
 }
 
 void RenderUtil::irender_text(const y::string& text, const y::ivec2& origin,

@@ -111,17 +111,18 @@ void Yugen::draw() const
   // Render debug status.
   _util.set_resolution(_crop_buffer->get_size());
   y::sstream ss;
-  ss << std::setw(6) << std::setprecision(1) << std::fixed <<
+  float fps = 1000000.f / _run_timing.us_per_frame_avg;
+  ss << std::setw(5) <<
       _run_timing.us_per_frame_avg << " ticks (" <<
-      (1000000.f / _run_timing.us_per_frame_avg) << " fps) " <<
-      " " << _run_timing.us_per_frame_inst << " inst; " <<
+      std::setw(5) << std::setprecision(1) << std::fixed <<
+      fps << " fps) " <<
+      std::setw(5) <<
+      _run_timing.us_per_frame_inst << " inst; " <<
+      std::setw(5) <<
       _run_timing.us_per_update_avg << " update";
   if (_recording) {
     ss << " [recording]";
   }
-  _util.irender_text(ss.str(), {16, 16}, colour::white);
-  // TODO: why is text not rendering?
-  _util.irender_text(ss.str(), {16, 16}, colour::white);
   _util.irender_text(ss.str(), {16, 16}, colour::white);
 
   // Upscale the crop-buffer to the window.
