@@ -316,15 +316,15 @@ ylib_api(render_sprite)
     ylib_arg(y::world, a)
 {
   GameStage::draw_stage ds = stage.get_current_draw_stage();
+  bool normal = stage.draw_stage_is_normal(ds);
 
   RenderBatch& batch = stage.get_current_batch();
-  const GlTexture2D& texture = stage.draw_stage_is_normal(ds) ?
-      sprite->normal : sprite->texture;
+  const GlTexture2D& texture = normal ? sprite->normal : sprite->texture;
   y::wvec2 origin = script->get_origin() - frame_size / 2;
 
   if (stage.draw_stage_is_layer(ds, GameStage::draw_layer(layer))) {
     stage.set_current_draw_any();
-    batch.add_sprite(texture, y::ivec2(frame_size),
+    batch.add_sprite(texture, y::ivec2(frame_size), normal,
                      y::fvec2(origin), y::ivec2(frame),
                      depth, rotation,
                      y::fvec4{float(r), float(g), float(b), float(a)});
@@ -333,7 +333,7 @@ ylib_api(render_sprite)
 }
 
 ylib_api(render_fog)
-    ylib_arg(y::int32, layer)
+    ylib_arg(y::int32, layer) ylib_arg(y::world, layering_value)
     ylib_refarg(const y::wvec2, origin) ylib_refarg(const y::wvec2, region)
     ylib_refarg(const y::wvec2, tex_offset) ylib_arg(y::world, frame)
     ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
@@ -346,7 +346,7 @@ ylib_api(render_fog)
     stage.set_current_draw_any();
     if (stage.draw_stage_is_normal(ds)) {
       stage.get_environment().render_fog_normal(
-          stage.get_util(), origin, region);
+          stage.get_util(), origin, region, layering_value);
     }
     else {
       stage.get_environment().render_fog_colour(
@@ -358,7 +358,7 @@ ylib_api(render_fog)
 }
 
 ylib_api(render_reflect)
-    ylib_arg(y::int32, layer)
+    ylib_arg(y::int32, layer) ylib_arg(y::world, layering_value)
     ylib_refarg(const y::wvec2, origin) ylib_refarg(const y::wvec2, region)
     ylib_refarg(const y::wvec2, tex_offset) ylib_arg(y::world, frame)
     ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
@@ -377,7 +377,8 @@ ylib_api(render_reflect)
     stage.set_current_draw_any();
     if (stage.draw_stage_is_normal(ds)) {
       stage.get_environment().render_reflect_normal(
-          stage.get_util(), origin, region, tex_offset, frame, normal_scaling);
+          stage.get_util(), origin, region, layering_value,
+          tex_offset, frame, normal_scaling);
     }
     else {
       stage.get_environment().render_reflect_colour(
@@ -486,6 +487,7 @@ ylib_api(create_light)
   Light* light = stage.get_lighting().create_obj(*script);
   light->full_range = full_range;
   light->falloff_range = falloff_range;
+  light->layer_value = 0.;
   ylib_return(light);
 }
 
@@ -526,6 +528,19 @@ ylib_api(set_light_falloff_range)
     ylib_arg(Light*, light) ylib_arg(y::world, falloff_range)
 {
   light->falloff_range = falloff_range;
+  ylib_void();
+}
+
+ylib_api(get_light_layer_value)
+    ylib_arg(const Light*, light)
+{
+  ylib_return(light->layer_value);
+}
+
+ylib_api(set_light_layer_value)
+    ylib_arg(Light*, light) ylib_arg(y::world, layer_value)
+{
+  light->layer_value = layer_value;
   ylib_void();
 }
 

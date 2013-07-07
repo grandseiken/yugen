@@ -9,6 +9,7 @@
 Light::Light()
   : full_range(1.)
   , falloff_range(1.)
+  , layer_value(0.)
   , colour{1.f, 1.f, 1.f, 1.f}
 {
 }
@@ -34,6 +35,8 @@ Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
   , _range_buffer(gl.make_unique_buffer<GLfloat, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _colour_buffer(gl.make_unique_buffer<GLfloat, 4>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _layering_buffer(gl.make_unique_buffer<GLfloat, 1>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _element_buffer(gl.make_unique_buffer<GLushort, 1>(
         GL_ELEMENT_ARRAY_BUFFER, GL_STREAM_DRAW))
@@ -211,6 +214,7 @@ void Lighting::render_internal(
   y::vector<GLfloat> origin_data;
   y::vector<GLfloat> range_data;
   y::vector<GLfloat> colour_data;
+  y::vector<GLfloat> layering_data;
   y::vector<GLushort> element_data;
 
   source_list sources;
@@ -252,6 +256,7 @@ void Lighting::render_internal(
       origin_data.emplace_back(origin[yy]);
       range_data.emplace_back(light->full_range);
       range_data.emplace_back(light->falloff_range);
+      layering_data.emplace_back(light->layer_value);
       if (!specular) {
         colour_data.emplace_back(light->colour[rr]);
         colour_data.emplace_back(light->colour[gg]);
@@ -268,6 +273,7 @@ void Lighting::render_internal(
         origin_data.emplace_back(origin[yy]);
         range_data.emplace_back(light->full_range);
         range_data.emplace_back(light->falloff_range);
+        layering_data.emplace_back(light->layer_value);
         if (!specular) {
           colour_data.emplace_back(light->colour[rr]);
           colour_data.emplace_back(light->colour[gg]);
@@ -320,6 +326,7 @@ void Lighting::render_internal(
   if (!specular) {
     _colour_buffer->reupload_data(colour_data);
   }
+  _layering_buffer->reupload_data(layering_data);
   _element_buffer->reupload_data(element_data);
 
   util.get_gl().enable_depth(false);
@@ -335,6 +342,7 @@ void Lighting::render_internal(
   if (!specular) {
     program.bind_attribute("colour", *_colour_buffer);
   }
+  program.bind_attribute("layer", *_layering_buffer);
   util.bind_pixel_uniforms(program);
   _element_buffer->draw_elements(GL_TRIANGLES, element_data.size());
 }

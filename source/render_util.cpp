@@ -4,12 +4,11 @@
 #include <boost/functional/hash.hpp>
 
 void RenderBatch::add_sprite(
-    const GlTexture2D& sprite, const y::ivec2& frame_size,
+    const GlTexture2D& sprite, const y::ivec2& frame_size, bool normal,
     const y::fvec2& origin, const y::ivec2& frame,
-    float depth, float rotation,
-    const y::fvec4& colour)
+    float depth, float rotation, const y::fvec4& colour)
 {
-  batched_texture bt{sprite, frame_size};
+  batched_texture bt{sprite, frame_size, normal};
   batched_sprite bs{origin[xx], origin[yy],
                     float(frame[xx]), float(frame[yy]),
                     depth, rotation, colour};
@@ -21,7 +20,8 @@ void RenderBatch::iadd_sprite(
     const y::ivec2& origin, const y::ivec2& frame,
     float depth, const y::fvec4& colour)
 {
-  add_sprite(sprite, frame_size, y::fvec2(origin), frame, depth, 0.f, colour);
+  add_sprite(sprite, frame_size, false,
+             y::fvec2(origin), frame, depth, 0.f, colour);
 }
 
 bool RenderBatch::batched_texture_order::operator()(
@@ -39,7 +39,13 @@ bool RenderBatch::batched_texture_order::operator()(
   if (l.frame_size[xx] > r.frame_size[xx]) {
     return false;
   }
-  return l.frame_size[yy] < r.frame_size[yy];
+  if (l.frame_size[yy] < r.frame_size[yy]) {
+    return true;
+  }
+  if (l.frame_size[yy] > r.frame_size[yy]) {
+    return false;
+  }
+  return (l.normal ? 1 : 0) < (r.normal ? 1 : 0);
 }
 
 const RenderBatch::batched_texture_map& RenderBatch::get_map() const
@@ -348,7 +354,7 @@ void RenderUtil::irender_outline(const y::ivec2& origin, const y::ivec2& size,
 }
 
 void RenderUtil::render_batch(
-    const GlTexture2D& sprite, const y::ivec2& frame_size,
+    const GlTexture2D& sprite, const y::ivec2& frame_size, bool normal,
     const RenderBatch::batched_sprite_list& list) const
 {
   if (!(_native_size >= y::ivec2()) ||
@@ -417,6 +423,7 @@ void RenderUtil::render_batch(
   _sprite_program->bind_uniform("sprite", sprite);
   _sprite_program->bind_uniform("frame_size", frame_size);
   _sprite_program->bind_uniform("frame_count", v);
+  _sprite_program->bind_uniform("normal", normal);
   bind_pixel_uniforms(*_sprite_program);
   _element_buffer->draw_elements(GL_TRIANGLES, 6 * length);
 }
@@ -424,17 +431,18 @@ void RenderUtil::render_batch(
 void RenderUtil::render_batch(const RenderBatch& batch) const
 {
   for (const auto& pair : batch.get_map()) {
-    render_batch(pair.first.sprite, pair.first.frame_size, pair.second);
+    render_batch(pair.first.sprite, pair.first.frame_size,
+                 pair.first.normal, pair.second);
   }
 }
 
 void RenderUtil::render_sprite(
-    const GlTexture2D& sprite, const y::ivec2& frame_size,
+    const GlTexture2D& sprite, const y::ivec2& frame_size, bool normal,
     const y::fvec2& origin, const y::ivec2& frame,
     float depth, float rotation, const y::fvec4& colour) const
 {
   RenderBatch batch;
-  batch.add_sprite(sprite, frame_size,
+  batch.add_sprite(sprite, frame_size, normal,
                    origin, frame, depth, rotation, colour);
   render_batch(batch);
 }
@@ -444,8 +452,8 @@ void RenderUtil::irender_sprite(
     const y::ivec2& origin, const y::ivec2& frame,
     float depth, const y::fvec4& colour) const
 {
-  render_sprite(sprite, frame_size, y::fvec2(origin),
-                frame, depth, 0.f, colour);
+  render_sprite(sprite, frame_size, false,
+                y::fvec2(origin), frame, depth, 0.f, colour);
 }
 
 y::ivec2 RenderUtil::from_grid(const y::ivec2& grid)

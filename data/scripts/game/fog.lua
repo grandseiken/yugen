@@ -7,6 +7,6 @@ function update()
 end
 
 function draw()
-  render_fog(DRAW_OVERLAY0, get_origin(self), get_region(self),
+  render_fog(DRAW_OVERLAY0, 0.7, get_origin(self), get_region(self),
              vec(frame / 4, -frame / 8), frame / 8, .5, .5, .5, .25, 0.4, 0.7)
 end

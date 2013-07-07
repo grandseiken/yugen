@@ -389,7 +389,7 @@ void ModalStack::run(Window& window, RunTiming& run_timing)
   hrclock::duration accumulated_update_ticks(hrclock::duration::zero());
   hrclock::duration accumulated_draw_ticks(hrclock::duration::zero());
 
-  const y::size measurements = 128;
+  const y::size measurements = 64;
   y::list<y::size> update_measurements;
   y::list<y::size> draw_measurements;
   for (y::size i = 0; i < measurements; ++i) {
@@ -400,10 +400,12 @@ void ModalStack::run(Window& window, RunTiming& run_timing)
   while (!empty()) {
     auto ticks_per_update = std::chrono::duration_cast<hrclock::duration>(
         std::chrono::nanoseconds(
-            y::size(1000000000.f / run_timing.target_updates_per_second + .5f)));
+            y::size(1000000000.f /
+                    run_timing.target_updates_per_second + .5f)));
     auto ticks_per_draw = std::chrono::duration_cast<hrclock::duration>(
         std::chrono::nanoseconds(
-            y::size(1000000000.f / run_timing.target_draws_per_second + .5f)));
+            y::size(1000000000.f /
+                    run_timing.target_draws_per_second + .5f)));
 
     // Calculate the number of updates to do.
     y::size updates = 1;

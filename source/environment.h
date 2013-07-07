@@ -12,13 +12,14 @@ public:
 
   Environment(GlUtil& util);
 
-  void render_fog_colour(RenderUtil& util,
-                         const y::wvec2& origin, const y::wvec2& region,
-                         const y::wvec2& tex_offset,
-                         y::world fog_min, y::world fog_max,
-                         y::world frame, const y::fvec4& colour) const;
-  void render_fog_normal(RenderUtil& util,
-                         const y::wvec2& origin, const y::wvec2& region) const;
+  void render_fog_colour(
+      RenderUtil& util,
+      const y::wvec2& origin, const y::wvec2& region,
+      const y::wvec2& tex_offset, y::world fog_min, y::world fog_max,
+      y::world frame, const y::fvec4& colour) const;
+  void render_fog_normal(
+      RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
+      float layering_value) const;
 
   void render_reflect_colour(
       RenderUtil& util,
@@ -32,7 +33,7 @@ public:
       const GlFramebuffer& source) const;
   void render_reflect_normal(
       RenderUtil&,
-      const y::wvec2& origin, const y::wvec2& region,
+      const y::wvec2& origin, const y::wvec2& region, float layering_value,
       const y::wvec2& tex_offset, y::world frame, float normal_scaling) const;
 
 private:

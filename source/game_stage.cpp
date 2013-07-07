@@ -627,13 +627,15 @@ void GameStage::render_tiles() const
         // Collision layer: .5
         // Background: .6
         float d = .5f - layer * .1f;
+        bool normal = draw_stage_is_normal(_current_draw_stage);
 
-        const GlTexture2D texture = draw_stage_is_normal(_current_draw_stage) ?
+        const GlTexture2D texture = normal ?
             t.tileset->get_texture().normal : t.tileset->get_texture().texture;
 
         _current_batch.add_sprite(
-            texture, Tileset::tile_size, y::fvec2(world),
-            t.tileset->from_index(t.index), d, 0.f, colour::white);
+            texture, Tileset::tile_size, normal,
+            y::fvec2(world), t.tileset->from_index(t.index),
+            d, 0.f, colour::white);
       }
     }
   }

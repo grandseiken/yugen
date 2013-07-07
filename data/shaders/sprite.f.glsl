@@ -1,6 +1,7 @@
 uniform sampler2D sprite;
 uniform ivec2 frame_size;
 uniform ivec2 frame_count;
+uniform bool normal;
 
 varying vec2 tex_coord;
 varying vec2 frame_coord;
@@ -17,7 +18,13 @@ void main()
   coord = coord - mod(coord, 1.0 / vec2(frame_size));
 
   // Base colour.
-  vec4 colour = texture2D(sprite, coord / frame_count) * colour_coord;
+  vec4 colour = texture2D(sprite, coord / frame_count);
+  if (normal) {
+    colour.b += depth_coord;
+  }
+  else {
+    colour *= colour_coord;
+  }
 
   // Don't write the depth buffer.
   if (colour.a == 0) {

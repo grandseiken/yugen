@@ -5,6 +5,7 @@ varying vec2 pixels_coord;
 varying vec2 pos_coord;
 varying vec2 range_coord;
 varying vec4 colour_coord;
+varying float layer_coord;
 
 #include "light_util.glsl"
 
@@ -20,6 +21,15 @@ void main()
     discard;
   }
 
+  // Convert texture normal values to world normal values./ Normal has x, y
+  // in [0, 1], scale and transform to world normal. Dicard early if the
+  // light doesn't affect the layering component (or it hasn't been written to).
+  vec4 normal_tex = texture2D(normalbuffer, pos_coord);
+  if (normal_tex.b <= 0.0 || normal_tex.b < layer_coord) {
+    discard;
+  }
+  vec3 normal_world = tex_to_world_normal(normal_tex);
+
   // The correct (mathematically) formula gives extreme results since the light
   // source is in the same 2D plane as the geometry, but the normals are mostly
   // pointing out of the screen. It does give nice contrasting shadows though.
@@ -27,18 +37,10 @@ void main()
   // pretending the light is some distance out of the screen plane, shining
   // towards the screen; i.e., it is a spherical light whose intersection with
   // the screen plane gives the same circle as the direct lighting.
+  float dist = sqrt(dist_sq);
   vec2 direct_dir =
-      dist_v == vec2(0.0) ? vec2(0.0) : dist_v * inversesqrt(dist_sq);
+      dist_v == vec2(0.0) ? vec2(0.0) : dist_v / dist;
   vec2 indirect_dir = dist_v / max_range;
-
-  // Convert texture normal values to world normal values.
-  // Normal has x, y in [0, 1], scale and transform to world normal.
-  // TODO: is it possible to discard early if the normalbuffer was never written
-  // to, somehow? In fact, if we use green component for layering, as discussed
-  // below, it should definitely be possible by discaring when it's zero, for
-  // instance.
-  vec4 normal_tex = texture2D(normalbuffer, pos_coord);
-  vec3 normal_world = tex_to_world_normal(normal_tex);
 
   // Similarly, light directions have x, y in [-1, 1]; scale and treat as
   // spherical coordinates.
@@ -52,11 +54,7 @@ void main()
                           direct_coefficient);
 
   // Calculate intensity at this point.
-  // TODO: need some layering mechanism for when lights work, stored in green
-  // component of normal, perhaps, for example so that lights inside water
-  // don't add specular. But - how do lights, individually, know what they
-  // affect?
   vec4 colour = colour_coord;
-  colour.a *= total_light * light_range_coefficient(dist_sq, range_coord);
+  colour.a *= total_light * light_range_coefficient(dist, range_coord);
   gl_FragColor = colour;
 }

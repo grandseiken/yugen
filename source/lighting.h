@@ -23,6 +23,11 @@ struct Light : y::no_copy {
   // The additional range through which the intensity falls off to zero.
   y::world falloff_range;
 
+  // Layering value. Similar in some ways to a depth value. Lights will only
+  // affect areas where the third component of the normalbuffer, the layerying
+  // component, is greater than the layering value of the light.
+  y::world layer_value;
+
   // Red, green, blue, and intensity.
   y::fvec4 colour;
 };
@@ -111,6 +116,7 @@ private:
   GlUnique<GlBuffer<float, 2>> _origin_buffer;
   GlUnique<GlBuffer<float, 2>> _range_buffer;
   GlUnique<GlBuffer<float, 4>> _colour_buffer;
+  GlUnique<GlBuffer<float, 1>> _layering_buffer;
   GlUnique<GlBuffer<GLushort, 1>> _element_buffer;
 
   trace_results _trace_results;

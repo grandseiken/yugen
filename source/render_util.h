@@ -30,6 +30,7 @@ public:
   struct batched_texture {
     GlTexture2D sprite;
     y::ivec2 frame_size;
+    bool normal;
   };
 
   struct batched_sprite {
@@ -42,9 +43,10 @@ public:
     y::fvec4 colour;
   };
 
-  void add_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size,
-                  const y::fvec2& origin, const y::ivec2& frame,
-                  float depth, float rotation, const y::fvec4& colour);
+  void add_sprite(
+      const GlTexture2D& sprite, const y::ivec2& frame_size, bool normal,
+      const y::fvec2& origin, const y::ivec2& frame,
+      float depth, float rotation, const y::fvec4& colour);
   void iadd_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size,
                    const y::ivec2& origin, const y::ivec2& frame,
                    float depth, const y::fvec4& colour);
@@ -138,14 +140,16 @@ public:
                        const y::fvec4& colour) const;
 
   // Render an entire batch of sprites at once (at pixel coordinates).
-  void render_batch(const GlTexture2D& sprite, const y::ivec2& frame_size,
-                    const RenderBatch::batched_sprite_list& list) const;
+  void render_batch(
+      const GlTexture2D& sprite, const y::ivec2& frame_size, bool normal,
+      const RenderBatch::batched_sprite_list& list) const;
   void render_batch(const RenderBatch& batch) const;
 
   // Render a sprite immediately.
-  void render_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size,
-                     const y::fvec2& origin, const y::ivec2& frame,
-                     float depth, float rotation, const y::fvec4& colour) const;
+  void render_sprite(
+      const GlTexture2D& sprite, const y::ivec2& frame_size, bool normal,
+      const y::fvec2& origin, const y::ivec2& frame,
+      float depth, float rotation, const y::fvec4& colour) const;
   void irender_sprite(const GlTexture2D& sprite, const y::ivec2& frame_size,
                       const y::ivec2& origin, const y::ivec2& frame,
                       float depth, const y::fvec4& colour) const;

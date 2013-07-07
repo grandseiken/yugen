@@ -50,7 +50,7 @@ void Environment::render_fog_colour(
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(false);
   auto pixel_buffer = make_rect_buffer(util, origin, region);
- 
+
   _fog_program->bind();
   _fog_program->bind_attribute("pixels", *pixel_buffer);
   _fog_program->bind_uniform("perlin_size", _f3d_128->get_size());
@@ -65,10 +65,11 @@ void Environment::render_fog_colour(
 }
 
 void Environment::render_fog_normal(
-    RenderUtil& util, const y::wvec2& origin, const y::wvec2& region) const
+    RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
+    float layering_value) const
 {
   util.render_fill(y::fvec2(origin - region / 2), y::fvec2(region),
-                   y::fvec4{.5f, .5f, 0.f, 1.f});
+                   y::fvec4{.5f, .5f, layering_value, 1.f});
 }
 
 void Environment::render_reflect_colour(
@@ -85,7 +86,7 @@ void Environment::render_reflect_colour(
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(false);
   auto pixel_buffer = make_rect_buffer(util, origin, region);
- 
+
   _reflect_program->bind();
   _reflect_program->bind_attribute("pixels", *pixel_buffer);
   _reflect_program->bind_uniform("flip_x", flip_x);
@@ -111,18 +112,21 @@ void Environment::render_reflect_colour(
 }
 
 void Environment::render_reflect_normal(
-    RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
+    RenderUtil& util,
+    const y::wvec2& origin, const y::wvec2& region, float layering_value,
     const y::wvec2& tex_offset, y::world frame, float normal_scaling) const
 {
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(false);
   auto pixel_buffer = make_rect_buffer(util, origin, region);
- 
+
   _reflect_normal_program->bind();
   _reflect_normal_program->bind_attribute("pixels", *pixel_buffer);
+  _reflect_normal_program->bind_uniform("layer", layering_value);
   _reflect_normal_program->bind_uniform("perlin_size", _fv23d_64->get_size());
   _reflect_normal_program->bind_uniform("perlin", *_fv23d_64);
-  _reflect_normal_program->bind_uniform("tex_offset", -y::fvec2(tex_offset + origin));
+  _reflect_normal_program->bind_uniform("tex_offset",
+                                        -y::fvec2(tex_offset + origin));
   _reflect_normal_program->bind_uniform("frame", float(frame));
   _reflect_normal_program->bind_uniform("normal_scaling", normal_scaling);
   util.bind_pixel_uniforms(*_reflect_normal_program);

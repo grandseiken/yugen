@@ -59,17 +59,17 @@ float specular_value(vec3 light_normal, vec3 camera_normal, vec3 world_normal)
 // Calculates the light intensity multiplier based on full range and fall-off
 // range. When full range is zero, reduces to 1 - dist_sq / falloff_range_sq.
 float light_range_coefficient(
-    float dist_sq, vec2 full_and_falloff_range)
+    float dist, vec2 full_and_falloff_range)
 {
+
   float full_range = full_and_falloff_range.x;
   float falloff_range = full_and_falloff_range.y;
-  float full_range_sq = full_range * full_range;
-  float max_range = full_range + falloff_range;
-  float max_range_sq = max_range * max_range;
 
-  float d = max(0.0, dist_sq - full_range_sq);
-  d /= max_range_sq - full_range_sq;
-  return 1.0 - d;
+  if (dist < full_range) {
+    return 1.0;
+  }
+  float d = dist - full_range;
+  return 1.0 - (d * d) / (falloff_range * falloff_range);
 }
 
 float specular_intensity(float value, float power)

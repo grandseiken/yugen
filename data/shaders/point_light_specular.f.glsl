@@ -6,6 +6,7 @@ varying vec2 pixels_coord;
 varying vec2 origin_coord;
 varying vec2 pos_coord;
 varying vec2 range_coord;
+varying float layer_coord;
 
 #include "light_util.glsl"
 
@@ -16,6 +17,7 @@ const float specular_power = 2;
 
 void main()
 {
+  // See point_light.f.glsl for more detailed comments.
   float max_range = range_coord.x + range_coord.y;
   vec2 dist_v = pixels_coord - origin_coord;
   float dist_sq = dist_v.x * dist_v.x + dist_v.y * dist_v.y;
@@ -26,8 +28,10 @@ void main()
   }
 
   // Convert texture normal values to world normal values.
-  // Normal has x, y in [0, 1], scale and transform to world normal.
   vec4 normal_tex = texture2D(normalbuffer, pos_coord);
+  if (normal_tex.b <= 0.0 || normal_tex.b < layer_coord) {
+    discard;
+  }
   vec3 normal_world = tex_to_world_normal(normal_tex);
 
   // Camera position for specular highlights. Distance from render-plane is
@@ -53,6 +57,7 @@ void main()
       specular_direct_coefficient);
 
   vec4 colour = vec4(1.0, 1.0, 1.0, 1.0);
-  colour.a *= total_specular * light_range_coefficient(dist_sq, range_coord);
+  colour.a *= total_specular *
+      light_range_coefficient(sqrt(dist_sq), range_coord);
   gl_FragColor = colour;
 }

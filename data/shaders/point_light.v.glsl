@@ -4,11 +4,13 @@ attribute vec2 pixels;
 attribute vec2 origin;
 attribute vec2 range;
 attribute vec4 colour;
+attribute float layer;
 
 varying vec2 pixels_coord;
 varying vec2 pos_coord;
 varying vec2 range_coord;
 varying vec4 colour_coord;
+varying float layer_coord;
 
 void main()
 {
@@ -20,4 +22,5 @@ void main()
 
   range_coord = range;
   colour_coord = colour;
+  layer_coord = layer;
 }
