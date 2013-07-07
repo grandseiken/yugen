@@ -45,10 +45,10 @@ public:
   void delete_buffer(const GlBuffer<T, N>& buffer);
 
   // Make an OpenGL framebuffer.
-  // TODO: allow making a framebuffer with no depth component? Does that work?
-  GlFramebuffer make_framebuffer(const y::ivec2& size, bool has_alpha);
+  GlFramebuffer make_framebuffer(const y::ivec2& size,
+                                 bool has_alpha, bool has_depth);
   GlUnique<GlFramebuffer> make_unique_framebuffer(
-      const y::ivec2& size, bool has_alpha);
+      const y::ivec2& size, bool has_alpha, bool has_depth);
   // Delete an existing framebuffer.
   void delete_framebuffer(const GlFramebuffer& framebuffer);
 

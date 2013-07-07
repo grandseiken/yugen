@@ -38,11 +38,11 @@ Yugen::Yugen(RenderUtil& util, const RunTiming& run_timing)
   , _util(util)
   , _run_timing(run_timing)
   , _framebuffer(util.get_gl().make_unique_framebuffer(
-        RenderUtil::native_overflow_size, false))
+        RenderUtil::native_overflow_size, false, false))
   , _post_buffer(util.get_gl().make_unique_framebuffer(
-        RenderUtil::native_overflow_size, false))
+        RenderUtil::native_overflow_size, false, false))
   , _crop_buffer(util.get_gl().make_unique_framebuffer(
-        RenderUtil::native_size, false))
+        RenderUtil::native_size, false, false))
   , _stage(y::null)
   , _post_program(util.get_gl().make_unique_program({
       "/shaders/post.v.glsl",

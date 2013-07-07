@@ -294,9 +294,9 @@ void MapEditor::draw() const
   // Set up buffers the same size as the area we're to draw.
   const y::ivec2& screen_size = _util.get_window().get_mode().size;
   GlUnique<GlFramebuffer> colourbuffer(
-      _util.get_gl().make_unique_framebuffer(screen_size, true));
+      _util.get_gl().make_unique_framebuffer(screen_size, true, false));
   GlUnique<GlFramebuffer> normalbuffer(
-      _util.get_gl().make_unique_framebuffer(screen_size, false));
+      _util.get_gl().make_unique_framebuffer(screen_size, false, false));
 
   // Draw cell contents.
   for (y::int32 layer = -Cell::background_layers;

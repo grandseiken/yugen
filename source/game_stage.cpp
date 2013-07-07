@@ -189,11 +189,11 @@ GameStage::GameStage(const Databank& bank,
   , _map(map)
   , _framebuffer(framebuffer)
   , _colourbuffer(util.get_gl().make_unique_framebuffer(
-        framebuffer.get_size(), true))
+        framebuffer.get_size(), true, true))
   , _normalbuffer(util.get_gl().make_unique_framebuffer(
-        framebuffer.get_size(), false))
+        framebuffer.get_size(), false, true))
   , _lightbuffer(util.get_gl().make_unique_framebuffer(
-        framebuffer.get_size(), false))
+        framebuffer.get_size(), false, false))
   , _scene_program(util.get_gl().make_unique_program({
         "/shaders/scene.v.glsl",
         "/shaders/scene.f.glsl"}))

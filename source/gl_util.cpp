@@ -73,7 +73,8 @@ const Window& GlUtil::get_window() const
   return _window;
 }
 
-GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size, bool has_alpha)
+GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size,
+                                       bool has_alpha, bool has_depth)
 {
   GLuint framebuffer;
   glGenFramebuffers(1, &framebuffer);
@@ -88,31 +89,37 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size, bool has_alpha)
   GLenum draw_buffers = GL_COLOR_ATTACHMENT0;
   glDrawBuffers(1, &draw_buffers);
 
-  GLuint depth;
-  glGenRenderbuffers(1, &depth);
-  glBindRenderbuffer(GL_RENDERBUFFER, depth);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
-                        size[xx], size[yy]);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                            GL_RENDERBUFFER, depth);
+  GLuint depth = 0;
+  if (has_depth) {
+    glGenRenderbuffers(1, &depth);
+    glBindRenderbuffer(GL_RENDERBUFFER, depth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
+                          size[xx], size[yy]);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                              GL_RENDERBUFFER, depth);
+  }
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     std::cerr << "Framebuffer isn't complete" << std::endl;
     delete_texture(texture);
     glDeleteFramebuffers(1, &framebuffer);
-    glDeleteRenderbuffers(1, &depth);
+    if (has_depth) {
+      glDeleteRenderbuffers(1, &depth);
+    }
     return GlFramebuffer();
   }
 
   _framebuffer_set.insert(framebuffer);
-  _framebuffer_depth_set.insert(depth);
+  if (has_depth) {
+    _framebuffer_depth_set.insert(depth);
+  }
   return GlFramebuffer(framebuffer, texture, depth);
 }
 
-GlUnique<GlFramebuffer> GlUtil::make_unique_framebuffer(const y::ivec2& size,
-                                                        bool has_alpha)
+GlUnique<GlFramebuffer> GlUtil::make_unique_framebuffer(
+    const y::ivec2& size, bool has_alpha, bool has_depth)
 {
-  return make_unique(make_framebuffer(size, has_alpha));
+  return make_unique(make_framebuffer(size, has_alpha, has_depth));
 }
 
 void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
@@ -126,7 +133,7 @@ void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
   delete_texture(framebuffer.get_texture());
 
   it = _framebuffer_depth_set.find(framebuffer.get_depth_handle());
-  if (it != _framebuffer_depth_set.end()) {
+  if (framebuffer.get_depth_handle() && it != _framebuffer_depth_set.end()) {
     glDeleteRenderbuffers(1, &*it);
     _framebuffer_depth_set.erase(it);
   }
