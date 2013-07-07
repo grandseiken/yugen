@@ -481,10 +481,11 @@ ylib_api(body_check)
 /******************************************************************************/
 ylib_api(create_light)
     ylib_arg(Script*, script)
-    ylib_arg(y::world, range)
+    ylib_arg(y::world, full_range) ylib_arg(y::world, falloff_range)
 {
   Light* light = stage.get_lighting().create_obj(*script);
-  light->range = range;
+  light->full_range = full_range;
+  light->falloff_range = falloff_range;
   ylib_return(light);
 }
 
@@ -502,16 +503,29 @@ ylib_api(destroy_lights)
   ylib_void();
 }
 
-ylib_api(get_light_range)
+ylib_api(get_light_full_range)
     ylib_arg(const Light*, light)
 {
-  ylib_return(light->range);
+  ylib_return(light->full_range);
 }
 
 ylib_api(set_light_range)
-    ylib_arg(Light*, light) ylib_arg(y::world, range)
+    ylib_arg(Light*, light) ylib_arg(y::world, full_range)
 {
-  light->range = range;
+  light->full_range = full_range;
+  ylib_void();
+}
+
+ylib_api(get_light_falloff_range)
+    ylib_arg(const Light*, light)
+{
+  ylib_return(light->falloff_range);
+}
+
+ylib_api(set_light_falloff_range)
+    ylib_arg(Light*, light) ylib_arg(y::world, falloff_range)
+{
+  light->falloff_range = falloff_range;
   ylib_void();
 }
 

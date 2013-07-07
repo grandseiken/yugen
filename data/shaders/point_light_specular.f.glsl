@@ -5,7 +5,7 @@ uniform vec2 translation;
 varying vec2 pixels_coord;
 varying vec2 origin_coord;
 varying vec2 pos_coord;
-varying float range_coord;
+varying vec2 range_coord;
 
 #include "light_util.glsl"
 
@@ -16,11 +16,12 @@ const float specular_power = 2;
 
 void main()
 {
+  float max_range = range_coord.x + range_coord.y;
   vec2 dist_v = pixels_coord - origin_coord;
   float dist_sq = dist_v.x * dist_v.x + dist_v.y * dist_v.y;
-  float range_sq = range_coord * range_coord;
+  float max_range_sq = max_range * max_range;
 
-  if (dist_sq > range_sq) {
+  if (dist_sq > max_range_sq) {
     discard;
   }
 
@@ -38,7 +39,7 @@ void main()
   vec3 camera_to_pixel = vec3(pixels_coord.x, pixels_coord.y, 0.0) - camera_pos;
   camera_to_pixel = normalize(camera_to_pixel);
   vec3 indirect_light_to_pixel =
-      normalize(vec3(dist_v.x, dist_v.y, -range_coord));
+      normalize(vec3(dist_v.x, dist_v.y, -max_range));
   vec3 direct_light_to_pixel = normalize(vec3(dist_v.x, dist_v.y, 0.0));
 
   // Calculate specular values.
@@ -52,6 +53,6 @@ void main()
       specular_direct_coefficient);
 
   vec4 colour = vec4(1.0, 1.0, 1.0, 1.0);
-  colour.a *= total_specular * (1.0 - dist_sq / range_sq);
+  colour.a *= total_specular * light_range_coefficient(dist_sq, range_coord);
   gl_FragColor = colour;
 }

@@ -2,12 +2,12 @@
 
 attribute vec2 pixels;
 attribute vec2 origin;
-attribute float range;
+attribute vec2 range;
 attribute vec4 colour;
 
 varying vec2 pixels_coord;
 varying vec2 pos_coord;
-varying float range_coord;
+varying vec2 range_coord;
 varying vec4 colour_coord;
 
 void main()

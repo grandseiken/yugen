@@ -7,14 +7,15 @@
 #include <boost/functional/hash.hpp>
 
 Light::Light()
-  : range(1.)
+  : full_range(1.)
+  , falloff_range(1.)
   , colour{1.f, 1.f, 1.f, 1.f}
 {
 }
 
 y::world Light::get_max_range() const
 {
-  return range;
+  return full_range + falloff_range;
 }
 
 Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
@@ -30,7 +31,7 @@ Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _origin_buffer(gl.make_unique_buffer<GLfloat, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _range_buffer(gl.make_unique_buffer<GLfloat, 1>(
+  , _range_buffer(gl.make_unique_buffer<GLfloat, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _colour_buffer(gl.make_unique_buffer<GLfloat, 4>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
@@ -249,7 +250,8 @@ void Lighting::render_internal(
       tri_data.emplace_back(origin[yy]);
       origin_data.emplace_back(origin[xx]);
       origin_data.emplace_back(origin[yy]);
-      range_data.emplace_back(light->range);
+      range_data.emplace_back(light->full_range);
+      range_data.emplace_back(light->falloff_range);
       if (!specular) {
         colour_data.emplace_back(light->colour[rr]);
         colour_data.emplace_back(light->colour[gg]);
@@ -264,7 +266,8 @@ void Lighting::render_internal(
         tri_data.emplace_back(p[yy]);
         origin_data.emplace_back(origin[xx]);
         origin_data.emplace_back(origin[yy]);
-        range_data.emplace_back(light->range);
+        range_data.emplace_back(light->full_range);
+        range_data.emplace_back(light->falloff_range);
         if (!specular) {
           colour_data.emplace_back(light->colour[rr]);
           colour_data.emplace_back(light->colour[gg]);

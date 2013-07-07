@@ -184,8 +184,6 @@ void Yugen::recording_render(const GlFramebuffer& source) const
 {
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::Tilde)) {
     _recording = true;
-    _run_timing.target_updates_per_second = 0.f;
-    _run_timing.target_draws_per_second = 0.f;
   }
   if (_recording) {
     y::ivec2 size = source.get_size();
@@ -196,14 +194,10 @@ void Yugen::recording_render(const GlFramebuffer& source) const
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace)) {
     _recording = false;
-    _run_timing.target_updates_per_second = 60.f;
-    _run_timing.target_draws_per_second = 60.f;
     _save_file_frames.clear();
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::Return)) {
     _recording = false;
-    _run_timing.target_updates_per_second = 60.f;
-    _run_timing.target_draws_per_second = 60.f;
     y::size n = 0;
     for (unsigned char* data : _save_file_frames) {
       y::ivec2 size = source.get_size();
@@ -220,6 +214,8 @@ void Yugen::recording_render(const GlFramebuffer& source) const
     }
     _save_file_frames.clear();
   }
+  _run_timing.target_updates_per_second =
+      _run_timing.target_draws_per_second = _recording ? 0.f : 60.f;
 }
 
 y::int32 main(y::int32 argc, char** argv)

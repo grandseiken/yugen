@@ -3,18 +3,20 @@ uniform sampler2D normalbuffer;
 // TODO: profile this and see if this is actually faster than using uniforms.
 varying vec2 pixels_coord;
 varying vec2 pos_coord;
-varying float range_coord;
+varying vec2 range_coord;
 varying vec4 colour_coord;
 
 #include "light_util.glsl"
 
 void main()
 {
+  // Add full range and fall-off range.
+  float max_range = range_coord.x + range_coord.y;
   vec2 dist_v = pixels_coord;
   float dist_sq = dist_v.x * dist_v.x + dist_v.y * dist_v.y;
-  float range_sq = range_coord * range_coord;
+  float max_range_sq = max_range * max_range;
 
-  if (dist_sq > range_sq) {
+  if (dist_sq > max_range_sq) {
     discard;
   }
 
@@ -27,7 +29,7 @@ void main()
   // the screen plane gives the same circle as the direct lighting.
   vec2 direct_dir =
       dist_v == vec2(0.0) ? vec2(0.0) : dist_v * inversesqrt(dist_sq);
-  vec2 indirect_dir = dist_v / range_coord;
+  vec2 indirect_dir = dist_v / max_range;
 
   // Convert texture normal values to world normal values.
   // Normal has x, y in [0, 1], scale and transform to world normal.
@@ -55,6 +57,6 @@ void main()
   // don't add specular. But - how do lights, individually, know what they
   // affect?
   vec4 colour = colour_coord;
-  colour.a *= total_light * (1.0 - dist_sq / range_sq);
+  colour.a *= total_light * light_range_coefficient(dist_sq, range_coord);
   gl_FragColor = colour;
 }

@@ -18,7 +18,10 @@ struct Light : y::no_copy {
   Light();
 
   y::world get_max_range() const;
-  y::world range;
+  // The range at which the light still has full intensity.
+  y::world full_range;
+  // The additional range through which the intensity falls off to zero.
+  y::world falloff_range;
 
   // Red, green, blue, and intensity.
   y::fvec4 colour;
@@ -106,7 +109,7 @@ private:
 
   GlUnique<GlBuffer<float, 2>> _tri_buffer;
   GlUnique<GlBuffer<float, 2>> _origin_buffer;
-  GlUnique<GlBuffer<float, 1>> _range_buffer;
+  GlUnique<GlBuffer<float, 2>> _range_buffer;
   GlUnique<GlBuffer<float, 4>> _colour_buffer;
   GlUnique<GlBuffer<GLushort, 1>> _element_buffer;
 
