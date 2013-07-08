@@ -283,25 +283,25 @@ ylib_api(is_key_down)
 ylib_api(set_camera)
     ylib_refarg(const y::wvec2, camera)
 {
-  stage.set_camera(camera);
+  stage.get_camera().set_origin(camera);
   ylib_void();
 }
 
 ylib_api(get_camera)
 {
-  ylib_return(stage.get_camera());
+  ylib_return(stage.get_camera().get_origin());
 }
 
 ylib_api(set_camera_rotation)
     ylib_arg(y::world, rotation)
 {
-  stage.set_camera_rotation(rotation);
+  stage.get_camera().set_rotation(rotation);
   ylib_void();
 }
 
 ylib_api(get_camera_rotation)
 {
-  ylib_return(stage.get_camera_rotation());
+  ylib_return(stage.get_camera().get_rotation());
 }
 
 /******************************************************************************/
@@ -315,15 +315,15 @@ ylib_api(render_sprite)
     ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
     ylib_arg(y::world, a)
 {
-  GameStage::draw_stage ds = stage.get_current_draw_stage();
-  bool normal = stage.draw_stage_is_normal(ds);
+  const GameRenderer& renderer = stage.get_renderer();
+  bool normal = renderer.draw_stage_is_normal();
 
-  RenderBatch& batch = stage.get_current_batch();
+  RenderBatch& batch = renderer.get_current_batch();
   const GlTexture2D& texture = normal ? sprite->normal : sprite->texture;
   y::wvec2 origin = script->get_origin() - frame_size / 2;
 
-  if (stage.draw_stage_is_layer(ds, GameStage::draw_layer(layer))) {
-    stage.set_current_draw_any();
+  if (renderer.draw_stage_is_layer(GameRenderer::draw_layer(layer))) {
+    renderer.set_current_draw_any();
     batch.add_sprite(texture, y::ivec2(frame_size), normal,
                      y::fvec2(origin), y::ivec2(frame),
                      depth, rotation,
@@ -340,17 +340,18 @@ ylib_api(render_fog)
     ylib_arg(y::world, a)
     ylib_arg(y::world, fog_min) ylib_arg(y::world, fog_max)
 {
-  GameStage::draw_stage ds = stage.get_current_draw_stage();
+  const GameRenderer& renderer = stage.get_renderer();
 
-  if (stage.draw_stage_is_layer(ds, GameStage::draw_layer(layer))) {
-    stage.set_current_draw_any();
-    if (stage.draw_stage_is_normal(ds)) {
+  if (renderer.draw_stage_is_layer(GameRenderer::draw_layer(layer))) {
+    renderer.set_current_draw_any();
+    if (renderer.draw_stage_is_normal()) {
       stage.get_environment().render_fog_normal(
-          stage.get_util(), origin, region, layering_value);
+          renderer.get_util(), origin, region, layering_value);
     }
     else {
       stage.get_environment().render_fog_colour(
-          stage.get_util(), origin, region, tex_offset, fog_min, fog_max, frame,
+          renderer.get_util(), origin, region,
+          tex_offset, fog_min, fog_max, frame,
           y::fvec4{float(r), float(g), float(b), float(a)});
     }
   }
@@ -371,22 +372,22 @@ ylib_api(render_reflect)
     ylib_arg(bool, flip_x) ylib_arg(bool, flip_y)
     ylib_refarg(const y::wvec2, flip_axes)
 {
-  GameStage::draw_stage ds = stage.get_current_draw_stage();
+  const GameRenderer& renderer = stage.get_renderer();
 
-  if (stage.draw_stage_is_layer(ds, GameStage::draw_layer(layer))) {
-    stage.set_current_draw_any();
-    if (stage.draw_stage_is_normal(ds)) {
+  if (renderer.draw_stage_is_layer(GameRenderer::draw_layer(layer))) {
+    renderer.set_current_draw_any();
+    if (renderer.draw_stage_is_normal()) {
       stage.get_environment().render_reflect_normal(
-          stage.get_util(), origin, region, layering_value,
+          renderer.get_util(), origin, region, layering_value,
           tex_offset, frame, normal_scaling);
     }
     else {
       stage.get_environment().render_reflect_colour(
-          stage.get_util(), origin, region, tex_offset, frame,
+          renderer.get_util(), origin, region, tex_offset, frame,
           y::fvec4{float(r), float(g), float(b), float(a)},
           reflect_mix, normal_scaling_reflect, normal_scaling_refract,
           reflect_fade_start, reflect_fade_end, wave_height, wave_scale,
-          flip_x, flip_y, flip_axes, stage.get_framebuffer());
+          flip_x, flip_y, flip_axes, renderer.get_framebuffer());
     }
   }
   ylib_void();

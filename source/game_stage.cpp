@@ -48,13 +48,12 @@ void ScriptBank::move_all(const y::wvec2& move) const
   }
 }
 
-void ScriptBank::render_all(const y::wvec2& camera_min,
-                            const y::wvec2& camera_max) const
+void ScriptBank::render_all(const Camera& camera) const
 {
   for (const auto& script : _scripts) {
     const y::wvec2 min = script->get_origin() - script->get_region() / 2;
     const y::wvec2 max = script->get_origin() + script->get_region() / 2;
-    if (max > camera_min && min < camera_max &&
+    if (max > camera.get_min() && min < camera.get_max() &&
         script->has_function("draw")) {
       script->call("draw");
     }
@@ -181,12 +180,8 @@ void ScriptBank::create_in_bounds(
   }
 }
 
-GameStage::GameStage(const Databank& bank,
-                     RenderUtil& util, const GlFramebuffer& framebuffer,
-                     const CellMap& map, const y::wvec2& coord)
-  : _bank(bank)
-  , _util(util)
-  , _map(map)
+GameRenderer::GameRenderer(RenderUtil& util, const GlFramebuffer& framebuffer)
+  : _util(util)
   , _framebuffer(framebuffer)
   , _colourbuffer(util.get_gl().make_unique_framebuffer(
         framebuffer.get_size(), true, true))
@@ -201,15 +196,311 @@ GameStage::GameStage(const Databank& bank,
         "/shaders/scene_specular.v.glsl",
         "/shaders/scene_specular.f.glsl"}))
   , _current_draw_stage(draw_stage(0))
+{
+}
+
+RenderUtil& GameRenderer::get_util() const
+{
+  return _util;
+}
+
+const GlFramebuffer& GameRenderer::get_framebuffer() const
+{
+  return _framebuffer;
+}
+
+RenderBatch& GameRenderer::get_current_batch() const
+{
+  return _current_batch;
+}
+
+void GameRenderer::set_current_draw_any() const
+{
+  _current_draw_any = true;
+}
+
+bool GameRenderer::draw_stage_is_normal() const
+{
+  const draw_stage& stage = _current_draw_stage;
+  return stage == DRAW_UNDERLAY0_NORMAL ||
+         stage == DRAW_UNDERLAY1_NORMAL ||
+         stage == DRAW_WORLD_NORMAL ||
+         stage == DRAW_OVERLAY0_NORMAL ||
+         stage == DRAW_SPECULAR0_NORMAL ||
+         stage == DRAW_OVERLAY1_NORMAL ||
+         stage == DRAW_SPECULAR1_NORMAL;
+}
+
+bool GameRenderer::draw_stage_is_layer(draw_layer layer) const
+{
+  const draw_stage& stage = _current_draw_stage;
+  switch (layer) {
+    case DRAW_PARALLAX0:
+      return stage == DRAW_PARALLAX0_COLOUR;
+    case DRAW_PARALLAX1:
+      return stage == DRAW_PARALLAX1_COLOUR;
+    case DRAW_UNDERLAY0:
+      return stage == DRAW_UNDERLAY0_NORMAL || stage == DRAW_UNDERLAY0_COLOUR;
+    case DRAW_UNDERLAY1:
+      return stage == DRAW_UNDERLAY1_NORMAL || stage == DRAW_UNDERLAY1_COLOUR;
+    case DRAW_WORLD:
+      return stage == DRAW_WORLD_NORMAL || stage == DRAW_WORLD_COLOUR;
+    case DRAW_OVERLAY0:
+      return stage == DRAW_OVERLAY0_NORMAL || stage == DRAW_OVERLAY0_COLOUR;
+    case DRAW_SPECULAR0:
+      return stage == DRAW_SPECULAR0_NORMAL || stage == DRAW_SPECULAR0_COLOUR;
+    case DRAW_FULLBRIGHT0:
+      return stage == DRAW_FULLBRIGHT0_COLOUR;
+    case DRAW_OVERLAY1:
+      return stage == DRAW_OVERLAY1_NORMAL || stage == DRAW_OVERLAY1_COLOUR;
+    case DRAW_SPECULAR1:
+      return stage == DRAW_SPECULAR1_NORMAL || stage == DRAW_SPECULAR1_COLOUR;
+    case DRAW_FULLBRIGHT1:
+      return stage == DRAW_FULLBRIGHT1_COLOUR;
+    default:
+      return false;
+  }
+}
+
+void GameRenderer::render(
+    const Camera& camera, const WorldWindow& world, const ScriptBank& scripts,
+    const Lighting& lighting, const Collision& collision) const
+{
+  y::fvec2 translation = y::fvec2(camera.world_to_camera(y::wvec2()));
+  _util.add_translation(translation);
+  _framebuffer.bind(true, true);
+
+  // Loop through the draw stages.
+  for (_current_draw_stage = draw_stage(0);
+       _current_draw_stage < DRAW_STAGE_MAX;
+       _current_draw_stage = draw_stage(1 + _current_draw_stage)) {
+    // Render colour buffer or normal buffer as appropriate.
+    _current_batch.clear();
+    _current_draw_any = false;
+    if (draw_stage_is_normal()) {
+      _normalbuffer->bind(false, true);
+    }
+    else {
+      _colourbuffer->bind(true, true);
+    }
+
+    if (draw_stage_is_layer(DRAW_WORLD)) {
+      render_tiles(camera, world);
+    }
+    scripts.render_all(camera);
+    _util.render_batch(_current_batch);
+
+    // If there's anything on this layer, render scene by the lighting.
+    if (!draw_stage_is_normal() && _current_draw_any) {
+      layer_light_type light_type(draw_stage_light_type(_current_draw_stage));
+      if (light_type == LIGHT_TYPE_NORMAL) {
+        _lightbuffer->bind(true, false);
+        lighting.render_lightbuffer(_util, *_normalbuffer,
+                                     camera.get_min(), camera.get_max());
+      }
+      else if (light_type == LIGHT_TYPE_SPECULAR) {
+        _lightbuffer->bind(true, false);
+        lighting.render_specularbuffer(_util, *_normalbuffer,
+                                        camera.get_min(), camera.get_max());
+      }
+      else {
+        _lightbuffer->bind(false, false);
+        _util.clear({1.f, 1.f, 1.f, 1.f});
+      }
+
+      _framebuffer.bind(false, false);
+      render_scene(true, light_type == LIGHT_TYPE_SPECULAR);
+    }
+  }
+  _framebuffer.bind(false, false);
+
+  // Render geometry.
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
+    collision.render(_util, camera.get_min(), camera.get_max());
+  }
+
+  // Render lighting.
+  if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+    lighting.render_traces(_util, camera.get_min(), camera.get_max());
+  }
+
+  _util.add_translation(-translation);
+}
+
+GameRenderer::layer_light_type GameRenderer::draw_stage_light_type(
+    draw_stage stage) const
+{
+  if (stage == DRAW_SPECULAR0_NORMAL || stage == DRAW_SPECULAR0_COLOUR ||
+      stage == DRAW_SPECULAR1_NORMAL || stage == DRAW_SPECULAR1_COLOUR) {
+    return LIGHT_TYPE_SPECULAR;
+  }
+  if (stage == DRAW_FULLBRIGHT0_COLOUR || stage == DRAW_FULLBRIGHT1_COLOUR ||
+      stage == DRAW_PARALLAX0_COLOUR || stage == DRAW_PARALLAX1_COLOUR) {
+    return LIGHT_TYPE_FULLBRIGHT;
+  }
+  return LIGHT_TYPE_NORMAL;
+}
+
+void GameRenderer::render_tiles(
+    const Camera& camera, const WorldWindow& world) const
+{
+  _current_draw_any = true;
+
+  // Render all the tiles in the world at once, batched by texture.
+  for (auto it = world.get_cartesian(); it; ++it) {
+    Cell* cell = world.get_active_window_cell(*it);
+    if (!cell) {
+      continue;
+    }
+    for (auto jt = y::cartesian(Cell::cell_size); jt; ++jt) {
+      y::ivec2 w = Tileset::tile_size * (*jt + *it * Cell::cell_size);
+      if (y::wvec2(w + Tileset::tile_size) <= camera.get_min() ||
+          y::wvec2(w) >= camera.get_max()) {
+        continue;
+      }
+
+      for (y::int32 layer = -Cell::background_layers;
+           layer <= Cell::foreground_layers; ++layer) {
+        const Tile& t = cell->get_tile(layer, *jt);
+        if (!t.tileset) {
+          continue;
+        }
+        // Foreground: .4
+        // Collision layer: .5
+        // Background: .6
+        float d = .5f - layer * .1f;
+        bool normal = draw_stage_is_normal();
+
+        const GlTexture2D texture = normal ?
+            t.tileset->get_texture().normal : t.tileset->get_texture().texture;
+
+        _current_batch.add_sprite(
+            texture, Tileset::tile_size, normal,
+            y::fvec2(w), t.tileset->from_index(t.index),
+            d, 0.f, colour::white);
+      }
+    }
+  }
+}
+
+void GameRenderer::render_scene(bool enable_blend, bool specular) const
+{
+  _framebuffer.bind(false, false);
+  _util.get_gl().enable_depth(false);
+  _util.get_gl().enable_blend(enable_blend);
+  const GlProgram& program(specular ? *_scene_specular_program :
+                                      *_scene_program);
+  program.bind();
+  program.bind_attribute("position", _util.quad_vertex());
+  program.bind_uniform("colourbuffer", *_colourbuffer);
+  program.bind_uniform("lightbuffer", *_lightbuffer);
+  _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
+}
+
+Camera::Camera(const y::ivec2& framebuffer_size)
+  : _framebuffer_size(framebuffer_size)
+  , _rotation(0)
+  , _is_moving_x(false)
+  , _is_moving_y(false)
+{
+}
+
+void Camera::update(Script* focus)
+{
+  // TODO: respect rotation (i.e., use coordinate system defined by the
+  // current camera rotation)?
+  static const y::world camera_deadzone_size =
+      y::world(y::min(RenderUtil::native_size[xx],
+                      RenderUtil::native_size[yy])) / 5;
+  static const y::wvec2 camera_deadzone{
+      camera_deadzone_size, camera_deadzone_size};
+  static const y::wvec2 camera_deadzone_buffer =
+      camera_deadzone + y::wvec2{128., 128.};
+  static const y::wvec2 camera_speed{2.5, 4.};
+
+  y::wvec2 target = focus->get_origin();
+
+  if (y::abs(target[xx] - _origin[xx]) < camera_deadzone[xx] / 2) {
+    _is_moving_x = false;
+  }
+  if (y::abs(target[yy] - _origin[yy]) < camera_deadzone[yy] / 2) {
+    _is_moving_y = false;
+  }
+
+  if (y::abs(target[xx] - _origin[xx]) > camera_deadzone_buffer[xx] / 2) {
+    _is_moving_x = true;
+  }
+  if (y::abs(target[yy] - _origin[yy]) > camera_deadzone_buffer[yy] / 2) {
+    _is_moving_y = true;
+  }
+
+  y::wvec2 dir = target - _origin;
+  if (_is_moving_x && dir[xx]) {
+    _origin[xx] += camera_speed[xx] * (dir[xx] / y::abs(dir[xx]));
+  }
+  if (_is_moving_y && dir[yy]) {
+    _origin[yy] += camera_speed[yy] * (dir[yy] / y::abs(dir[yy]));
+  }
+}
+
+void Camera::move(const y::wvec2& move)
+{
+  _origin += move;
+}
+
+void Camera::set_origin(const y::wvec2& origin)
+{
+  _origin = origin;
+}
+
+void Camera::set_rotation(y::world rotation)
+{
+  _rotation = rotation;
+}
+
+y::wvec2 Camera::world_to_camera(const y::wvec2& v) const
+{
+  return v - _origin + y::wvec2(_framebuffer_size) / 2;
+}
+
+y::wvec2 Camera::camera_to_world(const y::wvec2& v) const
+{
+  return v - y::wvec2(_framebuffer_size) / 2 + _origin;
+}
+
+y::wvec2 Camera::get_min() const
+{
+  return camera_to_world(y::wvec2());
+}
+
+y::wvec2 Camera::get_max() const
+{
+  return camera_to_world(y::wvec2(_framebuffer_size));
+}
+
+const y::wvec2& Camera::get_origin() const
+{
+  return _origin;
+}
+
+y::world Camera::get_rotation() const
+{
+  return _rotation;
+}
+
+GameStage::GameStage(const Databank& bank,
+                     RenderUtil& util, const GlFramebuffer& framebuffer,
+                     const CellMap& map, const y::wvec2& coord)
+  : _bank(bank)
+  , _map(map)
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
   , _scripts(*this)
+  , _renderer(util, framebuffer)
+  , _camera(framebuffer.get_size())
   , _collision(_world)
   , _lighting(_world, util.get_gl())
   , _environment(util.get_gl())
-  , _camera_rotation(0)
-  , _is_camera_moving_x(false)
-  , _is_camera_moving_y(false)
   , _player(y::null)
 {
   const LuaFile& file = _bank.scripts.get("/scripts/game/player.lua");
@@ -217,7 +508,7 @@ GameStage::GameStage(const Databank& bank,
                              Cell::cell_size * Tileset::tile_size);
   Script& player = _scripts.create_script(file, coord - offset);
   set_player(&player);
-  _camera = coord - offset;
+  _camera.move(coord - offset);
 
   // Must be kept consistent with keys.lua.
   enum key_codes {
@@ -241,16 +532,6 @@ const Databank& GameStage::get_bank() const
   return _bank;
 }
 
-RenderUtil& GameStage::get_util() const
-{
-  return _util;
-}
-
-const GlFramebuffer& GameStage::get_framebuffer() const
-{
-  return _framebuffer;
-}
-
 const ScriptBank& GameStage::get_scripts() const
 {
   return _scripts;
@@ -259,6 +540,26 @@ const ScriptBank& GameStage::get_scripts() const
 ScriptBank& GameStage::get_scripts()
 {
   return _scripts;
+}
+
+const GameRenderer& GameStage::get_renderer() const
+{
+  return _renderer;
+}
+
+GameRenderer& GameStage::get_renderer()
+{
+  return _renderer;
+}
+
+const Camera& GameStage::get_camera() const
+{
+  return _camera;
+}
+
+Camera& GameStage::get_camera()
+{
+  return _camera;
 }
 
 const Collision& GameStage::get_collision() const
@@ -289,16 +590,6 @@ const Environment& GameStage::get_environment() const
 Environment& GameStage::get_environment()
 {
   return _environment;
-}
-
-y::wvec2 GameStage::world_to_camera(const y::wvec2& v) const
-{
-  return v - _camera + y::wvec2(_framebuffer.get_size()) / 2;
-}
-
-y::wvec2 GameStage::camera_to_world(const y::wvec2& v) const
-{
-  return v - y::wvec2(_framebuffer.get_size()) / 2 + _camera;
 }
 
 void GameStage::event(const sf::Event& e)
@@ -354,7 +645,7 @@ void GameStage::update()
       y::wvec2 script_move = y::wvec2(
           move * Cell::cell_size * Tileset::tile_size);
       _scripts.move_all(-script_move);
-      _camera -= script_move;
+      _camera.move(-script_move);
     }
   }
 
@@ -370,144 +661,16 @@ void GameStage::update()
 
   // Update camera.
   if (get_player()) {
-    update_camera(get_player());
+    _camera.update(get_player());
   }
 
   // Recalculate lighting.
-  _lighting.recalculate_traces(get_camera_min(), get_camera_max());
+  _lighting.recalculate_traces(_camera.get_min(), _camera.get_max());
 }
 
 void GameStage::draw() const
 {
-  y::fvec2 translation = y::fvec2(world_to_camera(y::wvec2()));
-  _util.add_translation(translation);
-  _framebuffer.bind(true, true);
-
-  // Loop through the draw stages.
-  for (_current_draw_stage = draw_stage(0);
-       _current_draw_stage < DRAW_STAGE_MAX;
-       _current_draw_stage = draw_stage(1 + _current_draw_stage)) {
-    // Render colour buffer or normal buffer as appropriate.
-    _current_batch.clear();
-    _current_draw_any = false;
-    if (draw_stage_is_normal(_current_draw_stage)) {
-      _normalbuffer->bind(false, true);
-    }
-    else {
-      _colourbuffer->bind(true, true);
-    }
-
-    if (draw_stage_is_layer(_current_draw_stage, DRAW_WORLD)) {
-      render_tiles();
-    }
-    _scripts.render_all(get_camera_min(), get_camera_max());
-    _util.render_batch(_current_batch);
-
-    // If there's anything on this layer, render scene by the lighting.
-    if (!draw_stage_is_normal(_current_draw_stage) && _current_draw_any) {
-      layer_light_type light_type(draw_stage_light_type(_current_draw_stage));
-      if (light_type == LIGHT_TYPE_NORMAL) {
-        _lightbuffer->bind(true, false);
-        _lighting.render_lightbuffer(_util, *_normalbuffer,
-                                     get_camera_min(), get_camera_max());
-      }
-      else if (light_type == LIGHT_TYPE_SPECULAR) {
-        _lightbuffer->bind(true, false);
-        _lighting.render_specularbuffer(_util, *_normalbuffer,
-                                        get_camera_min(), get_camera_max());
-      }
-      else {
-        _lightbuffer->bind(false, false);
-        _util.clear({1.f, 1.f, 1.f, 1.f});
-      }
-
-      _framebuffer.bind(false, false);
-      render_scene(true, light_type == LIGHT_TYPE_SPECULAR);
-    }
-  }
-  _framebuffer.bind(false, false);
-
-  // Render geometry.
-  if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-    _collision.render(_util, get_camera_min(), get_camera_max());
-  }
-
-  // Render lighting.
-  if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
-    _lighting.render_traces(_util, get_camera_min(), get_camera_max());
-  }
-
-  _util.add_translation(-translation);
-}
-
-RenderBatch& GameStage::get_current_batch() const
-{
-  return _current_batch;
-}
-
-GameStage::draw_stage GameStage::get_current_draw_stage() const
-{
-  return _current_draw_stage;
-}
-
-void GameStage::set_current_draw_any() const
-{
-  _current_draw_any = true;
-}
-
-bool GameStage::draw_stage_is_normal(draw_stage stage) const
-{
-  return stage == DRAW_UNDERLAY0_NORMAL ||
-         stage == DRAW_UNDERLAY1_NORMAL ||
-         stage == DRAW_WORLD_NORMAL ||
-         stage == DRAW_OVERLAY0_NORMAL ||
-         stage == DRAW_SPECULAR0_NORMAL ||
-         stage == DRAW_OVERLAY1_NORMAL ||
-         stage == DRAW_SPECULAR1_NORMAL;
-}
-
-bool GameStage::draw_stage_is_layer(draw_stage stage, draw_layer layer) const
-{
-  switch (layer) {
-    case DRAW_PARALLAX0:
-      return stage == DRAW_PARALLAX0_COLOUR;
-    case DRAW_PARALLAX1:
-      return stage == DRAW_PARALLAX1_COLOUR;
-    case DRAW_UNDERLAY0:
-      return stage == DRAW_UNDERLAY0_NORMAL || stage == DRAW_UNDERLAY0_COLOUR;
-    case DRAW_UNDERLAY1:
-      return stage == DRAW_UNDERLAY1_NORMAL || stage == DRAW_UNDERLAY1_COLOUR;
-    case DRAW_WORLD:
-      return stage == DRAW_WORLD_NORMAL || stage == DRAW_WORLD_COLOUR;
-    case DRAW_OVERLAY0:
-      return stage == DRAW_OVERLAY0_NORMAL || stage == DRAW_OVERLAY0_COLOUR;
-    case DRAW_SPECULAR0:
-      return stage == DRAW_SPECULAR0_NORMAL || stage == DRAW_SPECULAR0_COLOUR;
-    case DRAW_FULLBRIGHT0:
-      return stage == DRAW_FULLBRIGHT0_COLOUR;
-    case DRAW_OVERLAY1:
-      return stage == DRAW_OVERLAY1_NORMAL || stage == DRAW_OVERLAY1_COLOUR;
-    case DRAW_SPECULAR1:
-      return stage == DRAW_SPECULAR1_NORMAL || stage == DRAW_SPECULAR1_COLOUR;
-    case DRAW_FULLBRIGHT1:
-      return stage == DRAW_FULLBRIGHT1_COLOUR;
-    default:
-      return false;
-  }
-}
-
-GameStage::layer_light_type GameStage::draw_stage_light_type(
-    draw_stage stage) const
-{
-  if (stage == DRAW_SPECULAR0_NORMAL || stage == DRAW_SPECULAR0_COLOUR ||
-      stage == DRAW_SPECULAR1_NORMAL || stage == DRAW_SPECULAR1_COLOUR) {
-    return LIGHT_TYPE_SPECULAR;
-  }
-  if (stage == DRAW_FULLBRIGHT0_COLOUR || stage == DRAW_FULLBRIGHT1_COLOUR ||
-      stage == DRAW_PARALLAX0_COLOUR || stage == DRAW_PARALLAX1_COLOUR) {
-    return LIGHT_TYPE_FULLBRIGHT;
-  }
-  return LIGHT_TYPE_NORMAL;
+  _renderer.render(_camera, _world, _scripts, _lighting, _collision);
 }
 
 void GameStage::set_player(Script* player)
@@ -534,130 +697,8 @@ bool GameStage::is_key_down(y::int32 key) const
   return false;
 }
 
-void GameStage::set_camera(const y::wvec2& camera)
-{
-  _camera = camera;
-}
-
-const y::wvec2& GameStage::get_camera() const
-{
-  return _camera;
-}
-
-void GameStage::set_camera_rotation(y::world rotation)
-{
-  _camera_rotation = rotation;
-}
-
-y::world GameStage::get_camera_rotation() const
-{
-  return _camera_rotation;
-}
-
 void GameStage::script_maps_clean_up()
 {
   _collision.clean_up();
-}
-
-void GameStage::update_camera(Script* focus)
-{
-  // TODO: respect rotation (i.e., use coordinate system defined by the
-  // current camera rotation)?
-  static const y::world camera_deadzone_size =
-      y::world(y::min(RenderUtil::native_size[xx],
-                      RenderUtil::native_size[yy])) / 5;
-  static const y::wvec2 camera_deadzone{
-      camera_deadzone_size, camera_deadzone_size};
-  static const y::wvec2 camera_deadzone_buffer =
-      camera_deadzone + y::wvec2{128., 128.};
-  static const y::wvec2 camera_speed{2.5, 4.};
-
-  y::wvec2 target = focus->get_origin();
-
-  if (y::abs(target[xx] - _camera[xx]) < camera_deadzone[xx] / 2) {
-    _is_camera_moving_x = false;
-  }
-  if (y::abs(target[yy] - _camera[yy]) < camera_deadzone[yy] / 2) {
-    _is_camera_moving_y = false;
-  }
-
-  if (y::abs(target[xx] - _camera[xx]) > camera_deadzone_buffer[xx] / 2) {
-    _is_camera_moving_x = true;
-  }
-  if (y::abs(target[yy] - _camera[yy]) > camera_deadzone_buffer[yy] / 2) {
-    _is_camera_moving_y = true;
-  }
-
-  y::wvec2 dir = target - _camera;
-  if (_is_camera_moving_x && dir[xx]) {
-    _camera[xx] += camera_speed[xx] * (dir[xx] / y::abs(dir[xx]));
-  }
-  if (_is_camera_moving_y && dir[yy]) {
-    _camera[yy] += camera_speed[yy] * (dir[yy] / y::abs(dir[yy]));
-  }
-}
-
-y::wvec2 GameStage::get_camera_min() const
-{
-  return camera_to_world(y::wvec2());
-}
-
-y::wvec2 GameStage::get_camera_max() const
-{
-  return camera_to_world(y::wvec2(_framebuffer.get_size()));
-}
-
-void GameStage::render_tiles() const
-{
-  _current_draw_any = true;
-
-  // Render all the tiles in the world at once, batched by texture.
-  for (auto it = _world.get_cartesian(); it; ++it) {
-    Cell* cell = _world.get_active_window_cell(*it);
-    if (!cell) {
-      continue;
-    }
-    for (auto jt = y::cartesian(Cell::cell_size); jt; ++jt) {
-      y::ivec2 world = Tileset::tile_size * (*jt + *it * Cell::cell_size);
-      if (y::wvec2(world + Tileset::tile_size) <= get_camera_min() ||
-          y::wvec2(world) >= get_camera_max()) {
-        continue;
-      }
-
-      for (y::int32 layer = -Cell::background_layers;
-           layer <= Cell::foreground_layers; ++layer) {
-        const Tile& t = cell->get_tile(layer, *jt);
-        if (!t.tileset) {
-          continue;
-        }
-        // Foreground: .4
-        // Collision layer: .5
-        // Background: .6
-        float d = .5f - layer * .1f;
-        bool normal = draw_stage_is_normal(_current_draw_stage);
-
-        const GlTexture2D texture = normal ?
-            t.tileset->get_texture().normal : t.tileset->get_texture().texture;
-
-        _current_batch.add_sprite(
-            texture, Tileset::tile_size, normal,
-            y::fvec2(world), t.tileset->from_index(t.index),
-            d, 0.f, colour::white);
-      }
-    }
-  }
-}
-
-void GameStage::render_scene(bool enable_blend, bool specular) const
-{
-  _framebuffer.bind(false, false);
-  _util.get_gl().enable_depth(false);
-  _util.get_gl().enable_blend(enable_blend);
-  const GlProgram& program(specular ? *_scene_specular_program :
-                                      *_scene_program);
-  program.bind();
-  program.bind_attribute("position", _util.quad_vertex());
-  program.bind_uniform("colourbuffer", *_colourbuffer);
-  program.bind_uniform("lightbuffer", *_lightbuffer);
-  _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
+  _lighting.clean_up();
 }

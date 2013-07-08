@@ -144,8 +144,9 @@ void Yugen::post_render(const GlFramebuffer& source) const
   _post_program->bind_uniform("bayer", *_bayer_texture);
   _post_program->bind_uniform("bayer_res", _bayer_texture->get_size());
   _post_program->bind_uniform(
-      "bayer_off", _stage ? y::fvec2(_stage->world_to_camera(y::wvec2())) :
-                            y::fvec2());
+      "bayer_off", _stage ?
+          y::fvec2(_stage->get_camera().world_to_camera(y::wvec2())) :
+          y::fvec2());
   _post_program->bind_uniform("bayer_frame", y::int32(++_bayer_frame));
   _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
@@ -161,7 +162,7 @@ void Yugen::crop_render(const GlFramebuffer& source,
   _crop_program->bind_uniform("native_res", target_size);
   _crop_program->bind_uniform("native_overflow_res", source.get_size());
   _crop_program->bind_uniform(
-      "rotation", _stage ? float(_stage->get_camera_rotation()) : 0.f);
+      "rotation", _stage ? float(_stage->get_camera().get_rotation()) : 0.f);
   _crop_program->bind_uniform("framebuffer", source);
   _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }

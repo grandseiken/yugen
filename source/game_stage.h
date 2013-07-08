@@ -12,6 +12,7 @@
 
 #include <SFML/Window.hpp>
 
+class Camera;
 class CellMap;
 class RenderUtil;
 struct LuaFile;
@@ -31,11 +32,12 @@ public:
 private:
 
   friend class GameStage;
+  friend class GameRenderer;
   void add_script(y::unique<Script> script);
 
   void update_all() const;
   void move_all(const y::wvec2& move) const;
-  void render_all(const y::wvec2& camera_min, const y::wvec2& camera_max) const;
+  void render_all(const Camera& camera) const;
 
   void get_unrefreshed(WorldWindow& world);
   void clean_out_of_bounds(const Script& player,
@@ -54,40 +56,41 @@ private:
 
 };
 
-// TODO: this is getting monolithic. Split out... camera? Rendering?
-// Definitely definitely split out rendering.
-class GameStage : public Modal {
+// Handles all rendering for the GameStage.
+class GameRenderer : public y::no_copy {
 public:
 
-  GameStage(const Databank& bank,
-            RenderUtil& util, const GlFramebuffer& framebuffer,
-            const CellMap& map, const y::wvec2& coord);
-  ~GameStage() override {};
+  // Keep in sync with render.lua.
+  enum draw_layer {
+    DRAW_PARALLAX0,
+    DRAW_PARALLAX1,
+    DRAW_UNDERLAY0,
+    DRAW_UNDERLAY1,
+    DRAW_WORLD,
+    DRAW_OVERLAY0,
+    DRAW_SPECULAR0,
+    DRAW_FULLBRIGHT0,
+    DRAW_OVERLAY1,
+    DRAW_SPECULAR1,
+    DRAW_FULLBRIGHT1,
+  };
 
-  const Databank& get_bank() const;
+  GameRenderer(RenderUtil& util, const GlFramebuffer& framebuffer);
+
   RenderUtil& get_util() const;
   const GlFramebuffer& get_framebuffer() const;
 
-  const ScriptBank& get_scripts() const;
-  /***/ ScriptBank& get_scripts();
+  RenderBatch& get_current_batch() const;
+  void set_current_draw_any() const;
+  bool draw_stage_is_normal() const;
+  bool draw_stage_is_layer(draw_layer layer) const;
 
-  const Collision& get_collision() const;
-  /***/ Collision& get_collision();
+  void render(
+      const Camera& camera, const WorldWindow& world, const ScriptBank& scripts,
+      const Lighting& lighting, const Collision& collision) const;
 
-  const Lighting& get_lighting() const;
-  /***/ Lighting& get_lighting();
+private:
 
-  const Environment& get_environment() const;
-  /***/ Environment& get_environment();
-
-  y::wvec2 world_to_camera(const y::wvec2& v) const;
-  y::wvec2 camera_to_world(const y::wvec2& v) const;
-
-  void event(const sf::Event& e) override;
-  void update() override;
-  void draw() const override;
-
-  // Keep in sync with render.lua.
   enum draw_stage {
     DRAW_PARALLAX0_COLOUR,
     DRAW_PARALLAX1_COLOUR,
@@ -109,58 +112,20 @@ public:
     DRAW_FULLBRIGHT1_COLOUR,
     DRAW_STAGE_MAX,
   };
-  enum draw_layer {
-    DRAW_PARALLAX0,
-    DRAW_PARALLAX1,
-    DRAW_UNDERLAY0,
-    DRAW_UNDERLAY1,
-    DRAW_WORLD,
-    DRAW_OVERLAY0,
-    DRAW_SPECULAR0,
-    DRAW_FULLBRIGHT0,
-    DRAW_OVERLAY1,
-    DRAW_SPECULAR1,
-    DRAW_FULLBRIGHT1,
-  };
   enum layer_light_type {
     LIGHT_TYPE_NORMAL,
     LIGHT_TYPE_SPECULAR,
     LIGHT_TYPE_FULLBRIGHT,
   };
-
-  // Rendering functions.
-  RenderBatch& get_current_batch() const;
-  draw_stage get_current_draw_stage() const;
-  void set_current_draw_any() const;
-  bool draw_stage_is_normal(draw_stage stage) const;
-  bool draw_stage_is_layer(draw_stage stage, draw_layer layer) const;
   layer_light_type draw_stage_light_type(draw_stage stage) const;
 
-  // Lua API functions.
-  void set_player(Script* script);
-  Script* get_player() const;
-  bool is_key_down(y::int32 key) const;
-  void set_camera(const y::wvec2& camera);
-  const y::wvec2& get_camera() const;
-  void set_camera_rotation(y::world rotation);
-  y::world get_camera_rotation() const;
-
-private:
-
-  void script_maps_clean_up();
-
-  void update_camera(Script* focus);
-  y::wvec2 get_camera_min() const;
-  y::wvec2 get_camera_max() const;
-
-  void render_tiles() const;
+  void render_tiles(
+      const Camera& camera, const WorldWindow& world) const;
   void render_scene(bool enable_blend, bool specular) const;
 
-  const Databank& _bank;
   RenderUtil& _util;
-  const CellMap& _map;
-
   const GlFramebuffer& _framebuffer;
+
   GlUnique<GlFramebuffer> _colourbuffer;
   GlUnique<GlFramebuffer> _normalbuffer;
   GlUnique<GlFramebuffer> _lightbuffer;
@@ -170,16 +135,89 @@ private:
   mutable draw_stage _current_draw_stage;
   mutable bool _current_draw_any;
 
+};
+
+class Camera : public y::no_copy {
+public:
+
+  Camera(const y::ivec2& framebuffer_size);
+
+  void update(Script* focus);
+  void move(const y::wvec2& move);
+  void set_origin(const y::wvec2& origin);
+  void set_rotation(y::world rotation);
+
+  y::wvec2 world_to_camera(const y::wvec2& v) const;
+  y::wvec2 camera_to_world(const y::wvec2& v) const;
+
+  y::wvec2 get_min() const;
+  y::wvec2 get_max() const;
+  const y::wvec2& get_origin() const;
+  y::world get_rotation() const;
+
+private:
+
+  y::ivec2 _framebuffer_size;
+  y::wvec2 _origin;
+  y::world _rotation;
+  bool _is_moving_x;
+  bool _is_moving_y;
+
+};
+
+class GameStage : public Modal {
+public:
+
+  GameStage(const Databank& bank,
+            RenderUtil& util, const GlFramebuffer& framebuffer,
+            const CellMap& map, const y::wvec2& coord);
+  ~GameStage() override {};
+
+  const Databank& get_bank() const;
+
+  const ScriptBank& get_scripts() const;
+  /***/ ScriptBank& get_scripts();
+
+  const GameRenderer& get_renderer() const;
+  /***/ GameRenderer& get_renderer();
+
+  const Camera& get_camera() const;
+  /***/ Camera& get_camera();
+
+  const Collision& get_collision() const;
+  /***/ Collision& get_collision();
+
+  const Lighting& get_lighting() const;
+  /***/ Lighting& get_lighting();
+
+  const Environment& get_environment() const;
+  /***/ Environment& get_environment();
+
+  // Modal functions.
+  void event(const sf::Event& e) override;
+  void update() override;
+  void draw() const override;
+
+  // Lua API functions.
+  void set_player(Script* script);
+  Script* get_player() const;
+  bool is_key_down(y::int32 key) const;
+
+private:
+
+  void script_maps_clean_up();
+
+  const Databank& _bank;
+  const CellMap& _map;
+
   WorldWindow _world;
   ScriptBank _scripts;
+  GameRenderer _renderer;
+  Camera _camera;
   Collision _collision;
   Lighting _lighting;
   Environment _environment;
 
-  y::wvec2 _camera;
-  y::world _camera_rotation;
-  bool _is_camera_moving_x;
-  bool _is_camera_moving_y;
   Script* _player;
 
   typedef y::map<y::int32, y::set<y::int32>> key_map;
