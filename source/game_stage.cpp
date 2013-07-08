@@ -405,17 +405,19 @@ void GameStage::draw() const
 
     // If there's anything on this layer, render scene by the lighting.
     if (!draw_stage_is_normal(_current_draw_stage) && _current_draw_any) {
-      _lightbuffer->bind(true, false);
       layer_light_type light_type(draw_stage_light_type(_current_draw_stage));
       if (light_type == LIGHT_TYPE_NORMAL) {
+        _lightbuffer->bind(true, false);
         _lighting.render_lightbuffer(_util, *_normalbuffer,
                                      get_camera_min(), get_camera_max());
       }
       else if (light_type == LIGHT_TYPE_SPECULAR) {
+        _lightbuffer->bind(true, false);
         _lighting.render_specularbuffer(_util, *_normalbuffer,
                                         get_camera_min(), get_camera_max());
       }
       else {
+        _lightbuffer->bind(false, false);
         _util.clear({1.f, 1.f, 1.f, 1.f});
       }
 
@@ -467,6 +469,10 @@ bool GameStage::draw_stage_is_normal(draw_stage stage) const
 bool GameStage::draw_stage_is_layer(draw_stage stage, draw_layer layer) const
 {
   switch (layer) {
+    case DRAW_PARALLAX0:
+      return stage == DRAW_PARALLAX0_COLOUR;
+    case DRAW_PARALLAX1:
+      return stage == DRAW_PARALLAX1_COLOUR;
     case DRAW_UNDERLAY0:
       return stage == DRAW_UNDERLAY0_NORMAL || stage == DRAW_UNDERLAY0_COLOUR;
     case DRAW_UNDERLAY1:
@@ -497,7 +503,8 @@ GameStage::layer_light_type GameStage::draw_stage_light_type(
       stage == DRAW_SPECULAR1_NORMAL || stage == DRAW_SPECULAR1_COLOUR) {
     return LIGHT_TYPE_SPECULAR;
   }
-  if (stage == DRAW_FULLBRIGHT0_COLOUR || stage == DRAW_FULLBRIGHT1_COLOUR) {
+  if (stage == DRAW_FULLBRIGHT0_COLOUR || stage == DRAW_FULLBRIGHT1_COLOUR ||
+      stage == DRAW_PARALLAX0_COLOUR || stage == DRAW_PARALLAX1_COLOUR) {
     return LIGHT_TYPE_FULLBRIGHT;
   }
   return LIGHT_TYPE_NORMAL;

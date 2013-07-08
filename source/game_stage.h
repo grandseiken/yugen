@@ -55,6 +55,7 @@ private:
 };
 
 // TODO: this is getting monolithic. Split out... camera? Rendering?
+// Definitely definitely split out rendering.
 class GameStage : public Modal {
 public:
 
@@ -88,6 +89,8 @@ public:
 
   // Keep in sync with render.lua.
   enum draw_stage {
+    DRAW_PARALLAX0_COLOUR,
+    DRAW_PARALLAX1_COLOUR,
     DRAW_UNDERLAY0_NORMAL,
     DRAW_UNDERLAY0_COLOUR,
     DRAW_UNDERLAY1_NORMAL,
@@ -107,6 +110,8 @@ public:
     DRAW_STAGE_MAX,
   };
   enum draw_layer {
+    DRAW_PARALLAX0,
+    DRAW_PARALLAX1,
     DRAW_UNDERLAY0,
     DRAW_UNDERLAY1,
     DRAW_WORLD,
