@@ -23,6 +23,35 @@ Script& ScriptBank::create_script(
   return *s;
 }
 
+void ScriptBank::get_in_region(
+    result& output,
+    const y::wvec2& origin, const y::wvec2& region) const
+{
+  // TODO: we should be able to accelerate this somehow. Looping through
+  // every time is bad. Not as easy as it seems, though, since to skip by x-axis
+  // we need to re-sort every time this function is called (as the scripts might
+  // move around between calls), which is at least O(n) even on an almost-sorted
+  // list anyway.
+  // We need to either accept up to one frame of staleness, or think up some
+  // cleverer acceleration structure.
+  for (const auto& script : _scripts) {
+    if (script->get_origin().in_region(origin, region)) {
+      output.emplace_back(script.get());
+    }
+  }
+}
+
+void ScriptBank::get_in_radius(result& output,
+                               const y::wvec2& origin, y::world radius) const
+{
+  const y::world radius_sq = radius * radius;
+  for (const auto& script : _scripts) {
+    if ((script->get_origin() - origin).length_squared() <= radius_sq) {
+      output.emplace_back(script.get());
+    }
+  }
+}
+
 void ScriptBank::add_script(y::unique<Script> script)
 {
   _scripts.emplace_back();
@@ -102,6 +131,9 @@ void ScriptBank::clean_out_of_bounds(
     {
     }
 
+    // If the script overlaps at all with any cell which is not being refreshed,
+    // then we need to keep it around. If it is entirely contained within cells
+    // we're replacing, out genuine out-of-bounds areas, then get rid of it.
     bool operator()(const y::unique<Script>& s)
     {
       if (s.get() == player) {
@@ -155,6 +187,7 @@ void ScriptBank::create_in_bounds(
     return;
   }
 
+  // Create scripts that overlap new cells (which were not already active).
   for (const ScriptBlueprint& s : map.get_scripts()) {
     WorldScript ws = world.script_blueprint_to_world_script(s);
 
@@ -270,7 +303,10 @@ void GameRenderer::render(
   _util.add_translation(translation);
   _framebuffer.bind(true, true);
 
-  // Loop through the draw stages.
+  // Loop through the draw stages. Each draw stage is a single pass of
+  // rendering, but we can combine several draw stages into one semantic
+  // layer. For example, most layers need both a colour pass and a normal or
+  // metadata pass to assemble the final result.
   for (_current_draw_stage = draw_stage(0);
        _current_draw_stage < DRAW_STAGE_MAX;
        _current_draw_stage = draw_stage(1 + _current_draw_stage)) {
@@ -290,9 +326,13 @@ void GameRenderer::render(
     scripts.render_all(camera);
     _util.render_batch(_current_batch);
 
-    // If there's anything on this layer, render scene by the lighting.
+    // If there's anything on this layer, render scene by the lighting. We know
+    // if it's the end of a layer by the (currently hacky) method of checking
+    // whether this stage is a normal stage, which are by design always the last
+    // stage.
     if (!draw_stage_is_normal() && _current_draw_any) {
       layer_light_type light_type(draw_stage_light_type(_current_draw_stage));
+      // Swap the rendering method based on the semantic type of the layer.
       if (light_type == LIGHT_TYPE_NORMAL) {
         _lightbuffer->bind(true, false);
         lighting.render_lightbuffer(_util, *_normalbuffer,
@@ -630,7 +670,8 @@ void GameStage::update()
   // Update scripts.
   _scripts.update_all();
 
-  // Update window.
+  // Update window. When we need to move the active window, make sure to
+  // compensate by moving all scripts and the camera to balance it out.
   const y::int32 cell_switch_buffer = 2;
   y::wvec2 origin = -y::wvec2(cell_switch_buffer * Tileset::tile_size);
   y::wvec2 size = y::wvec2(Tileset::tile_size *

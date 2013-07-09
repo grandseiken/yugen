@@ -18,6 +18,10 @@ class RenderUtil;
 struct LuaFile;
 
 // Stores all the scripts currently active.
+// TODO: this uses the odd convention of exposing public to external clients,
+// but requiring classes in the same file to access privates using friend.
+// Everything or nothing in thie file should work the same way. The root cause
+// is the distinction between C++ engine access and Lua script access.
 class ScriptBank : public y::no_copy {
 public:
 
@@ -28,6 +32,15 @@ public:
   Script& create_script(
       const LuaFile& file,
       const y::wvec2& origin, const y::wvec2& region);
+
+  typedef y::vector<Script*> result;
+  // Finds scripts whose origin lies in the given region. Ignores assigned
+  // region of the script itself.
+  void get_in_region(result& output,
+                     const y::wvec2& origin, const y::wvec2& region) const;
+  // Similar, but for scripts whose origin lies in the given circle.
+  void get_in_radius(result& output,
+                     const y::wvec2& origin, y::world radius) const;
 
 private:
 

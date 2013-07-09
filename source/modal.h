@@ -66,6 +66,8 @@ private:
 };
 
 // A panel in the UI.
+// TODO: I'm not entirely sure what reason there is for Panels and Modals to be
+// different things anymore. Fixing that would be clean.
 class Panel : public Draggable, public y::no_copy {
 public:
 
