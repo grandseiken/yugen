@@ -10,31 +10,53 @@ class RenderUtil;
 class Environment : public y::no_copy {
 public:
 
+  struct fog_params {
+    y::world layering_value;
+    y::wvec2 tex_offset;
+    y::world frame;
+
+    y::fvec4 colour;
+    y::world fog_min;
+    y::world fog_max;
+  };
+
+  struct reflect_params {
+    y::world layering_value;
+    y::wvec2 tex_offset;
+    y::world frame;
+
+    y::fvec4 colour;
+    y::world reflect_mix;
+
+    y::world normal_scaling;
+    y::world normal_scaling_reflect;
+    y::world normal_scaling_refract;
+
+    y::world reflect_fade_start;
+    y::world reflect_fade_end;
+    bool flip_x;
+    bool flip_y;
+    y::wvec2 flip_axes;
+
+    y::world wave_height;
+    y::world wave_scale;
+  };
+
   Environment(GlUtil& util);
 
   void render_fog_colour(
-      RenderUtil& util,
-      const y::wvec2& origin, const y::wvec2& region,
-      const y::wvec2& tex_offset, y::world fog_min, y::world fog_max,
-      y::world frame, const y::fvec4& colour) const;
+      RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
+      const fog_params& params) const;
   void render_fog_normal(
       RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
-      float layering_value) const;
+      const fog_params& params) const;
 
   void render_reflect_colour(
-      RenderUtil& util,
-      const y::wvec2& origin, const y::wvec2& region,
-      const y::wvec2& tex_offset,
-      y::world frame, const y::fvec4& colour, float reflect_mix,
-      float normal_scaling_reflect, float normal_scaling_refract,
-      float reflect_fade_start, float reflect_fade_end,
-      float wave_height, float wave_scale,
-      bool flip_x, bool flip_y, const y::wvec2& flip_axes,
-      const GlFramebuffer& source) const;
+      RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
+      const reflect_params& params, const GlFramebuffer& source) const;
   void render_reflect_normal(
-      RenderUtil&,
-      const y::wvec2& origin, const y::wvec2& region, float layering_value,
-      const y::wvec2& tex_offset, y::world frame, float normal_scaling) const;
+      RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
+      const reflect_params& params) const;
 
 private:
 

@@ -341,18 +341,23 @@ ylib_api(render_fog)
     ylib_arg(y::world, fog_min) ylib_arg(y::world, fog_max)
 {
   const GameRenderer& renderer = stage.get_renderer();
+  Environment::fog_params params;
+  params.layering_value = layering_value;
+  params.tex_offset = tex_offset;
+  params.frame = frame;
+  params.colour = y::fvec4{float(r), float(g), float(b), float(a)};
+  params.fog_min = fog_min;
+  params.fog_max = fog_max;
 
   if (renderer.draw_stage_is_layer(GameRenderer::draw_layer(layer))) {
     renderer.set_current_draw_any();
     if (renderer.draw_stage_is_normal()) {
       stage.get_environment().render_fog_normal(
-          renderer.get_util(), origin, region, layering_value);
+          renderer.get_util(), origin, region, params);
     }
     else {
       stage.get_environment().render_fog_colour(
-          renderer.get_util(), origin, region,
-          tex_offset, fog_min, fog_max, frame,
-          y::fvec4{float(r), float(g), float(b), float(a)});
+          renderer.get_util(), origin, region, params);
     }
   }
   ylib_void();
@@ -368,26 +373,38 @@ ylib_api(render_reflect)
     ylib_arg(y::world, normal_scaling_reflect)
     ylib_arg(y::world, normal_scaling_refract)
     ylib_arg(y::world, reflect_fade_start) ylib_arg(y::world, reflect_fade_end)
-    ylib_arg(y::world, wave_height) ylib_arg(y::world, wave_scale)
     ylib_arg(bool, flip_x) ylib_arg(bool, flip_y)
     ylib_refarg(const y::wvec2, flip_axes)
+    ylib_arg(y::world, wave_height) ylib_arg(y::world, wave_scale)
 {
   const GameRenderer& renderer = stage.get_renderer();
+  Environment::reflect_params params;
+  params.layering_value = layering_value;
+  params.tex_offset = tex_offset;
+  params.frame = frame;
+  params.colour = y::fvec4{float(r), float(g), float(b), float(a)};
+  params.reflect_mix = reflect_mix;
+  params.normal_scaling = normal_scaling;
+  params.normal_scaling_reflect = normal_scaling_reflect;
+  params.normal_scaling_refract = normal_scaling_refract;
+  params.reflect_fade_start = reflect_fade_start;
+  params.reflect_fade_end = reflect_fade_end;
+  params.flip_x = flip_x;
+  params.flip_y = flip_y;
+  params.flip_axes = flip_axes;
+  params.wave_height = wave_height;
+  params.wave_scale = wave_scale;
 
   if (renderer.draw_stage_is_layer(GameRenderer::draw_layer(layer))) {
     renderer.set_current_draw_any();
     if (renderer.draw_stage_is_normal()) {
       stage.get_environment().render_reflect_normal(
-          renderer.get_util(), origin, region, layering_value,
-          tex_offset, frame, normal_scaling);
+          renderer.get_util(), origin, region, params);
     }
     else {
       stage.get_environment().render_reflect_colour(
-          renderer.get_util(), origin, region, tex_offset, frame,
-          y::fvec4{float(r), float(g), float(b), float(a)},
-          reflect_mix, normal_scaling_reflect, normal_scaling_refract,
-          reflect_fade_start, reflect_fade_end, wave_height, wave_scale,
-          flip_x, flip_y, flip_axes, renderer.get_framebuffer());
+          renderer.get_util(), origin, region, params,
+          renderer.get_framebuffer());
     }
   }
   ylib_void();

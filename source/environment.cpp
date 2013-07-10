@@ -44,8 +44,7 @@ Environment::Environment(GlUtil& gl)
 
 void Environment::render_fog_colour(
     RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
-    const y::wvec2& tex_offset, y::world fog_min, y::world fog_max,
-    y::world frame, const y::fvec4& colour) const
+    const fog_params& params) const
 {
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(false);
@@ -55,33 +54,29 @@ void Environment::render_fog_colour(
   _fog_program->bind_attribute("pixels", *pixel_buffer);
   _fog_program->bind_uniform("perlin_size", _f3d_128->get_size());
   _fog_program->bind_uniform("perlin", *_f3d_128);
-  _fog_program->bind_uniform("colour", colour);
-  _fog_program->bind_uniform("tex_offset", -y::fvec2(tex_offset + origin));
-  _fog_program->bind_uniform("fog_min", float(fog_min));
-  _fog_program->bind_uniform("fog_max", float(fog_max));
-  _fog_program->bind_uniform("frame", float(frame));
+
+  _fog_program->bind_uniform(
+      "tex_offset", -y::fvec2(params.tex_offset + origin));
+  _fog_program->bind_uniform("frame", float(params.frame));
+  _fog_program->bind_uniform("colour", params.colour);
+  _fog_program->bind_uniform("fog_min", float(params.fog_min));
+  _fog_program->bind_uniform("fog_max", float(params.fog_max));
+
   util.bind_pixel_uniforms(*_fog_program);
   util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
 void Environment::render_fog_normal(
     RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
-    float layering_value) const
+    const fog_params& params) const
 {
   util.render_fill(y::fvec2(origin - region / 2), y::fvec2(region),
-                   y::fvec4{.5f, .5f, layering_value, 1.f});
+                   y::fvec4{.5f, .5f, float(params.layering_value), 1.f});
 }
 
 void Environment::render_reflect_colour(
     RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
-    const y::wvec2& tex_offset,
-    y::world frame, const y::fvec4& colour,
-    float reflect_mix,
-    float normal_scaling_reflect, float normal_scaling_refract,
-    float reflect_fade_start, float reflect_fade_end,
-    float wave_height, float wave_scale,
-    bool flip_x, bool flip_y, const y::wvec2& flip_axes,
-    const GlFramebuffer& source) const
+    const reflect_params& params, const GlFramebuffer& source) const
 {
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(false);
@@ -89,32 +84,40 @@ void Environment::render_reflect_colour(
 
   _reflect_program->bind();
   _reflect_program->bind_attribute("pixels", *pixel_buffer);
-  _reflect_program->bind_uniform("flip_x", flip_x);
-  _reflect_program->bind_uniform("flip_y", flip_y);
-  _reflect_program->bind_uniform("flip_axes", y::fvec2(flip_axes));
   _reflect_program->bind_uniform("perlin_size", _fv23d_64->get_size());
   _reflect_program->bind_uniform("perlin", *_fv23d_64);
   _reflect_program->bind_uniform("source", source);
-  _reflect_program->bind_uniform("colour", colour);
-  _reflect_program->bind_uniform("tex_offset", -y::fvec2(tex_offset + origin));
-  _reflect_program->bind_uniform("frame", float(frame));
-  _reflect_program->bind_uniform("reflect_mix", reflect_mix);
+
+  _reflect_program->bind_uniform("tex_offset",
+                                 -y::fvec2(params.tex_offset + origin));
+  _reflect_program->bind_uniform("frame", float(params.frame));
+  _reflect_program->bind_uniform("colour", params.colour);
+  _reflect_program->bind_uniform("reflect_mix", float(params.reflect_mix));
+
   _reflect_program->bind_uniform("normal_scaling_reflect",
-                                 normal_scaling_reflect);
+                                 float(params.normal_scaling_reflect));
   _reflect_program->bind_uniform("normal_scaling_refract",
-                                 normal_scaling_refract);
-  _reflect_program->bind_uniform("reflect_fade_start", reflect_fade_start);
-  _reflect_program->bind_uniform("reflect_fade_end", reflect_fade_end);
-  _reflect_program->bind_uniform("wave_height", wave_height);
-  _reflect_program->bind_uniform("wave_scale", wave_scale);
+                                 float(params.normal_scaling_refract));
+
+  _reflect_program->bind_uniform("reflect_fade_start",
+                                 float(params.reflect_fade_start));
+  _reflect_program->bind_uniform("reflect_fade_end",
+                                 float(params.reflect_fade_end));
+
+  _reflect_program->bind_uniform("flip_x", params.flip_x);
+  _reflect_program->bind_uniform("flip_y", params.flip_y);
+  _reflect_program->bind_uniform("flip_axes", y::fvec2(params.flip_axes));
+
+  _reflect_program->bind_uniform("wave_height", float(params.wave_height));
+  _reflect_program->bind_uniform("wave_scale", float(params.wave_scale));
+
   util.bind_pixel_uniforms(*_reflect_program);
   util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
 void Environment::render_reflect_normal(
-    RenderUtil& util,
-    const y::wvec2& origin, const y::wvec2& region, float layering_value,
-    const y::wvec2& tex_offset, y::world frame, float normal_scaling) const
+    RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
+    const reflect_params& params) const
 {
   util.get_gl().enable_depth(false);
   util.get_gl().enable_blend(false);
@@ -122,13 +125,16 @@ void Environment::render_reflect_normal(
 
   _reflect_normal_program->bind();
   _reflect_normal_program->bind_attribute("pixels", *pixel_buffer);
-  _reflect_normal_program->bind_uniform("layer", layering_value);
   _reflect_normal_program->bind_uniform("perlin_size", _fv23d_64->get_size());
   _reflect_normal_program->bind_uniform("perlin", *_fv23d_64);
+
+  _reflect_normal_program->bind_uniform("layer", float(params.layering_value));
   _reflect_normal_program->bind_uniform("tex_offset",
-                                        -y::fvec2(tex_offset + origin));
-  _reflect_normal_program->bind_uniform("frame", float(frame));
-  _reflect_normal_program->bind_uniform("normal_scaling", normal_scaling);
+                                        -y::fvec2(params.tex_offset + origin));
+  _reflect_normal_program->bind_uniform("frame", float(params.frame));
+  _reflect_normal_program->bind_uniform("normal_scaling",
+                                        float(params.normal_scaling));
+
   util.bind_pixel_uniforms(*_reflect_normal_program);
   util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }

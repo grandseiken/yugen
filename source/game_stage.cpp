@@ -133,7 +133,7 @@ void ScriptBank::clean_out_of_bounds(
 
     // If the script overlaps at all with any cell which is not being refreshed,
     // then we need to keep it around. If it is entirely contained within cells
-    // we're replacing, out genuine out-of-bounds areas, then get rid of it.
+    // we're replacing, or genuine out-of-bounds areas, then get rid of it.
     bool operator()(const y::unique<Script>& s)
     {
       if (s.get() == player) {
