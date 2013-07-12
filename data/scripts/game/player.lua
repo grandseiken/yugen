@@ -36,11 +36,20 @@ local jump_stage = JUMP_STAGE_NONE
 local wall_jump_timer = 0
 local wall_jump_left = false
 
+-- Events.
+function on_enter_water()
+  set_light_layer_value(light, .25)
+end
+
+function on_leave_water()
+  set_light_layer_value(light, 0)
+end
+
+-- Jump behaviour.
 local function jump_input()
   jump_input_buffer = JUMP_ALLOWANCE
 end
 
--- Jump behaviour.
 local function jump_logic(left_down, right_down, up_down,
                           left_check_now, right_check_now, up_check_now,
                           down_check_start, down_check_now)

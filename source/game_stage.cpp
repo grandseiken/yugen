@@ -55,12 +55,18 @@ void ScriptBank::get_in_radius(result& output,
 
 y::int32 ScriptBank::get_uid(const Script* script) const
 {
+  // TODO: this is really naive, but works for now.
   auto it = _uid_map.find(script);
   if (it != _uid_map.end()) {
     return it->second;
   }
   _uid_map.insert(y::make_pair(script, _uid_counter));
   return _uid_counter++;
+}
+
+void ScriptBank::send_message(Script* script, const y::string& function_name)
+{
+  _messages.emplace_back(script, function_name);
 }
 
 void ScriptBank::add_script(y::unique<Script> script)
@@ -79,6 +85,16 @@ void ScriptBank::update_all() const
       script->call("update");
     }
   }
+}
+
+void ScriptBank::handle_messages()
+{
+  for (const auto& m : _messages) {
+    if (m.first->has_function(m.second)) {
+      m.first->call(m.second);
+    }
+  }
+  _messages.clear();
 }
 
 void ScriptBank::move_all(const y::wvec2& move) const
@@ -680,6 +696,7 @@ void GameStage::update()
 
   // Update scripts.
   _scripts.update_all();
+  _scripts.handle_messages();
 
   // Update window. When we need to move the active window, make sure to
   // compensate by moving all scripts and the camera to balance it out.

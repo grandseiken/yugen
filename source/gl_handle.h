@@ -362,7 +362,7 @@ private:
 
   GlUtil* _gl;
   T _t;
-  
+
 };
 
 template<typename T, y::size N>

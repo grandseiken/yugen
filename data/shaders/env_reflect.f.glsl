@@ -19,6 +19,8 @@ varying float reflect_dist;
 
 #include "perlin.glsl"
 
+// TODO: need to treat reflections from outside source framebuffer as not
+// relevant somehow rather than locking to edge.
 void main()
 {
   // Skip to form waves.

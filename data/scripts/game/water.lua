@@ -2,16 +2,17 @@
 #include "../render.lua"
 #include "../script_set.lua"
 
-local scripts_in_water = {}
 local function add_function(script)
-  print "entered water"
+  send_message(script, "on_enter_water")
 end
 
 local function remove_function(script)
-  print "left water"
+  send_message(script, "on_leave_water")
 end
 
+local scripts_in_water = {}
 local frame = 0
+
 function update()
   new_in_water = get_scripts_in_region(get_origin(self),
                                        get_region(self))

@@ -42,7 +42,15 @@ public:
   void get_in_radius(result& output,
                      const y::wvec2& origin, y::world radius) const;
 
+  // Lua userdata can't be hashed, and since we make a new userdata each time
+  // we give a Script to Lua we need a way of indexing tables. Even if we gave
+  // the same userdata it would have to be modulo the calling Script; this
+  // ensures different Scripts can be uniquely identified across different
+  // client Scripts.
   y::int32 get_uid(const Script* script) const;
+
+  // Stash a message for calling at the end of the frame.
+  void send_message(Script* script, const y::string& function_name);
 
 private:
 
@@ -51,6 +59,7 @@ private:
   void add_script(y::unique<Script> script);
 
   void update_all() const;
+  void handle_messages();
   void move_all(const y::wvec2& move) const;
   void render_all(const Camera& camera) const;
 
@@ -69,6 +78,9 @@ private:
 
   mutable y::map<const Script*, y::size> _uid_map;
   mutable y::int32 _uid_counter;
+
+  typedef y::pair<Script*, y::string> message;
+  y::vector<message> _messages;
 
   bool _all_unrefreshed;
   WorldWindow::cell_list _unrefreshed;

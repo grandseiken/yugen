@@ -248,6 +248,13 @@ ylib_api(create_region)
   ylib_return(&stage.get_scripts().create_script(*file, origin, region));
 }
 
+ylib_api(send_message)
+    ylib_arg(Script*, script) ylib_arg(y::string, function_name)
+{
+  stage.get_scripts().send_message(script, function_name);
+  ylib_void();
+}
+
 /******************************************************************************/
 // Stage API
 /******************************************************************************/
