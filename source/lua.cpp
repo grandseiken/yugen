@@ -117,6 +117,30 @@ namespace ylib {
     lua_pushstring(state, arg.c_str());
   }
 
+  // Pointer values.
+  template<typename T>
+  struct check<T*> {
+    inline T* operator()(lua_State* state, ylib_int index) const
+    {
+#ifndef DEBUG
+      void* v = lua_touserdata(state, index);
+#else
+      void* v = luaL_checkudata(state, index, type_name<T>::name.c_str());
+#endif
+      T** t = reinterpret_cast<T**>(v);
+      return *t;
+    }
+  };
+
+  template<typename T>
+  inline void push(lua_State* state, T* arg)
+  {
+    T** t = reinterpret_cast<T**>(lua_newuserdata(state, sizeof(T*)));
+    luaL_getmetatable(state, type_name<T>::name.c_str());
+    lua_setmetatable(state, -2);
+    *t = arg;
+  }
+
   // Array values.
   template<typename T>
   struct check<y::vector<T>> {
@@ -146,30 +170,6 @@ namespace ylib {
       push(state, arg[i]);
       lua_rawseti(state, index, 1 + i);
     }
-  }
-
-  // Pointer values.
-  template<typename T>
-  struct check<T*> {
-    inline T* operator()(lua_State* state, ylib_int index) const
-    {
-#ifndef DEBUG
-      void* v = lua_touserdata(state, index);
-#else
-      void* v = luaL_checkudata(state, index, type_name<T>::name.c_str());
-#endif
-      T** t = reinterpret_cast<T**>(v);
-      return *t;
-    }
-  };
-
-  template<typename T>
-  inline void push(lua_State* state, T* arg)
-  {
-    T** t = reinterpret_cast<T**>(lua_newuserdata(state, sizeof(T*)));
-    luaL_getmetatable(state, type_name<T>::name.c_str());
-    lua_setmetatable(state, -2);
-    *t = arg;
   }
 
   // Vector values.

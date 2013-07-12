@@ -7,6 +7,7 @@
 
 ScriptBank::ScriptBank(GameStage& stage)
   : _stage(stage)
+  , _uid_counter(0)
 {
 }
 
@@ -35,7 +36,7 @@ void ScriptBank::get_in_region(
   // We need to either accept up to one frame of staleness, or think up some
   // cleverer acceleration structure.
   for (const auto& script : _scripts) {
-    if (script->get_origin().in_region(origin, region)) {
+    if (script->get_origin().in_region(origin - region / 2, region)) {
       output.emplace_back(script.get());
     }
   }
@@ -50,6 +51,16 @@ void ScriptBank::get_in_radius(result& output,
       output.emplace_back(script.get());
     }
   }
+}
+
+y::int32 ScriptBank::get_uid(const Script* script) const
+{
+  auto it = _uid_map.find(script);
+  if (it != _uid_map.end()) {
+    return it->second;
+  }
+  _uid_map.insert(y::make_pair(script, _uid_counter));
+  return _uid_counter++;
 }
 
 void ScriptBank::add_script(y::unique<Script> script)

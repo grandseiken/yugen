@@ -42,6 +42,8 @@ public:
   void get_in_radius(result& output,
                      const y::wvec2& origin, y::world radius) const;
 
+  y::int32 get_uid(const Script* script) const;
+
 private:
 
   friend class GameStage;
@@ -64,6 +66,10 @@ private:
 
   typedef y::list<y::unique<Script>> script_list;
   script_list _scripts;
+
+  mutable y::map<const Script*, y::size> _uid_map;
+  mutable y::int32 _uid_counter;
+
   bool _all_unrefreshed;
   WorldWindow::cell_list _unrefreshed;
 

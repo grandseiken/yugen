@@ -177,6 +177,12 @@ ylib_api(ref_get)
 /******************************************************************************/
 // Script API
 /******************************************************************************/
+ylib_api(get_uid)
+    ylib_arg(const Script*, script)
+{
+  ylib_return(stage.get_scripts().get_uid(script));
+}
+
 ylib_api(get_origin)
     ylib_arg(const Script*, script)
 {
@@ -216,12 +222,6 @@ ylib_api(set_rotation)
   ylib_void();
 }
 
-ylib_api(get_sprite)
-    ylib_arg(y::string, path)
-{
-  ylib_return(&stage.get_bank().sprites.get(path));
-}
-
 ylib_api(get_script)
     ylib_arg(y::string, path)
 {
@@ -246,6 +246,25 @@ ylib_api(create_region)
     ylib_refarg(const y::wvec2, origin) ylib_refarg(const y::wvec2, region)
 {
   ylib_return(&stage.get_scripts().create_script(*file, origin, region));
+}
+
+/******************************************************************************/
+// Stage API
+/******************************************************************************/
+ylib_api(get_scripts_in_region)
+    ylib_refarg(const y::wvec2, origin) ylib_refarg(const y::wvec2, region)
+{
+  ScriptBank::result result;
+  stage.get_scripts().get_in_region(result, origin, region);
+  ylib_return(result);
+}
+
+ylib_api(get_scripts_in_radius)
+    ylib_refarg(const y::wvec2, origin) ylib_arg(y::world, radius)
+{
+  ScriptBank::result result;
+  stage.get_scripts().get_in_radius(result, origin, radius);
+  ylib_return(result);
 }
 
 /******************************************************************************/
@@ -307,6 +326,12 @@ ylib_api(get_camera_rotation)
 /******************************************************************************/
 // Rendering API
 /******************************************************************************/
+ylib_api(get_sprite)
+    ylib_arg(y::string, path)
+{
+  ylib_return(&stage.get_bank().sprites.get(path));
+}
+
 ylib_api(render_sprite)
     ylib_arg(const Script*, script) ylib_arg(y::int32, layer)
     ylib_arg(const Sprite*, sprite)

@@ -1,8 +1,22 @@
 -- Test fog script.
 #include "../render.lua"
+#include "../script_set.lua"
+
+local scripts_in_water = {}
+local function add_function(script)
+  print "entered water"
+end
+
+local function remove_function(script)
+  print "left water"
+end
 
 local frame = 0
 function update()
+  new_in_water = get_scripts_in_region(get_origin(self),
+                                       get_region(self))
+  scripts_in_water = update_script_set(
+      scripts_in_water, new_in_water, add_function, remove_function)
   frame = 1 + frame
 end
 
