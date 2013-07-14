@@ -9,7 +9,7 @@ then
 fi
 
 # Defaults.
-gcc="g++-4.8 -O3 -std=c++11 -Werror -Wall -Wextra -Wpedantic"
+gcc="g++-4.8 -O3 -std=c++11 -Werror -Wall -Wextra -Wpedantic -DLUA_DEBUG"
 targets[0]="yugen"
 targets[1]="yedit"
 targets_size=2

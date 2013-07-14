@@ -163,7 +163,7 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
                             bool array, y::size index,
                             GLenum type, y::size length) const
 {
-#ifndef DEBUG
+#ifndef GL_DEBUG
   (void)attribute;
   (void)name;
   (void)array;
