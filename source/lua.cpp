@@ -45,7 +45,27 @@ static RegistryIndex stage_registry_index;
 /***/ ylib_api(T##_eq) ylib_arg(T*, a) ylib_arg(T*, b)                     /**/\
 /***/ {                                                                    /**/\
 /***/   ylib_return(a == b);                                               /**/\
-/***/ } void _ylib_typedef_##name_no_op()                                  /***/
+/***/ } void _ylib_typedef_##T##_no_op()                                   /***/
+/***/ #define ylib_valtypedef(T)                                           /**/\
+/***/ template<>                                                           /**/\
+/***/ const y::string LuaType<T>::type_name = "y." #T;                     /**/\
+/***/ template<>                                                           /**/\
+/***/ const y::string LuaType<const T>::type_name = "y." #T;               /**/\
+/***/ namespace _ylib_api_##T {                                            /**/\
+/***/   void _ylib_typedef(lua_State* _ylib_state)                         /**/\
+/***/   {                                                                  /**/\
+/***/     luaL_newmetatable(_ylib_state, LuaType<T>::type_name.c_str());   /**/\
+/***/     lua_pushstring(_ylib_state, "__index");                          /**/\
+/***/     lua_pushvalue(_ylib_state, -2);                                  /**/\
+/***/     lua_settable(_ylib_state, -3);                                   /***/
+/***/ #define ylib_method(name, function)                                  /**/\
+/***/     lua_pushstring(_ylib_state, name);                               /**/\
+/***/     lua_pushcfunction(_ylib_state,                                   /**/\
+/***/                       _ylib_api_##function::_ylib_ref);              /**/\
+/***/     lua_settable(_ylib_state, -3);                                   /***/
+/***/ #define ylib_endtypedef()                                            /**/\
+/***/   }                                                                  /**/\
+/***/ } void _ylib_typedef_##T##_no_op()                                   /***/
 /***/ #define ylib_api(name)                                               /**/\
 /***/ namespace _ylib_api_##name {                                         /**/\
 /***/   ylib_int _ylib_api(lua_State* _ylib_state);                        /**/\
@@ -81,6 +101,9 @@ static RegistryIndex stage_registry_index;
 /**** types and storing them in a Lua stack:                               ****/
 /******************************************************************************/
 /***/ #undef ylib_ptrtypedef                                               /***/
+/***/ #undef ylib_valtypedef                                               /***/
+/***/ #undef ylib_method                                                   /***/
+/***/ #undef ylib_endtypedef                                               /***/
 /***/ #undef ylib_api                                                      /***/
 /***/ #undef ylib_arg                                                      /***/
 /***/ #undef ylib_refarg                                                   /***/
@@ -94,6 +117,12 @@ static RegistryIndex stage_registry_index;
 /***/                     _ylib_api_##T##_eq::_ylib_ref);                  /**/\
 /***/   lua_settable(_ylib_state, -3);                                     /**/\
 /***/   lua_pop(_ylib_state, 1)                                            /***/
+/***/ #define ylib_valtypedef(T)                                           /**/\
+/***/   _ylib_api_##T::_ylib_typedef(_ylib_state);                         /**/\
+/***/   lua_pop(_ylib_state, 1);                                           /**/\
+/***/   (void)LuaType<T>::type_name                                        /***/
+/***/ #define ylib_method(name, function)                                  /***/
+/***/ #define ylib_endtypedef()                                            /***/
 /***/ #define ylib_api(name)                                               /**/\
 /***/   lua_register(_ylib_state,                                          /**/\
 /***/                _ylib_api_##name::_ylib_name,                         /**/\
@@ -119,63 +148,6 @@ static RegistryIndex stage_registry_index;
 /******************************************************************************/
 /**** End of proprocessor magic.                                           ****/
 /******************************************************************************/
-
-// TODO: make this stuff (typenames and metatables for more complicated types)
-// generic and reusable and put it in lua_api.h.
-template<>
-const y::string LuaType<y::wvec2>::type_name = "y.Vec";
-template<>
-const y::string LuaType<const y::wvec2>::type_name = "y.Vec";
-template<>
-const y::string LuaType<ScriptReference>::type_name = "y.ScriptReference";
-template<>
-const y::string LuaType<const ScriptReference>::type_name = "y.ScriptReference";
-
-#define ylib_new_metatable(name)\
-  luaL_newmetatable(_ylib_state, name.c_str());\
-  lua_pushstring(_ylib_state, "__index");\
-  lua_pushvalue(_ylib_state, -2);\
-  lua_settable(_ylib_state, -3);
-#define ylib_add_method(name, function)\
-  lua_pushstring(_ylib_state, name);\
-  lua_pushcfunction(_ylib_state,\
-                    _ylib_api_##function::_ylib_ref);\
-  lua_settable(_ylib_state, -3);
-
-void ylib_register_vectors(lua_State* _ylib_state)
-{
-  ylib_new_metatable(LuaType<y::wvec2>::type_name);
-  ylib_add_method("__add", vec_add);
-  ylib_add_method("__sub", vec_sub);
-  ylib_add_method("__mul", vec_mul);
-  ylib_add_method("__div", vec_div);
-  ylib_add_method("__mod", vec_mod);
-  ylib_add_method("__unm", vec_unm);
-  ylib_add_method("__eq", vec_eq);
-  ylib_add_method("x", vec_x);
-  ylib_add_method("y", vec_y);
-  ylib_add_method("normalised", vec_normalised);
-  ylib_add_method("normalise", vec_normalise);
-  ylib_add_method("dot", vec_dot);
-  ylib_add_method("length_squared", vec_length_squared);
-  ylib_add_method("length", vec_length);
-  ylib_add_method("angle", vec_angle);
-  ylib_add_method("in_region", vec_in_region);
-  ylib_add_method("abs", vec_abs);
-  ylib_add_method("max", vec_max);
-  ylib_add_method("min", vec_min);
-  lua_pop(_ylib_state, 1);
-}
-
-void ylib_register_references(lua_State* _ylib_state)
-{
-  ylib_new_metatable(LuaType<ScriptReference>::type_name);
-  ylib_add_method("__eq", ref_eq);
-  ylib_add_method("__gc", ref_gc);
-  ylib_add_method("valid", ref_valid);
-  ylib_add_method("get", ref_get);
-  lua_pop(_ylib_state, 1);
-}
 
 ScriptReference::ScriptReference(Script& script)
   : _script(&script)
@@ -358,8 +330,6 @@ Script::Script(GameStage& stage,
   luaL_openlibs(_state);
   // Register Lua API.
   ylib_register(_state);
-  ylib_register_vectors(_state);
-  ylib_register_references(_state);
 
   // Chunk reader function.
   struct local {

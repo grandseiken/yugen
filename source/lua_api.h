@@ -140,6 +140,29 @@ ylib_api(vec_min)
   ylib_return(y::min(a, b));
 }
 
+typedef y::wvec2 ylib_vec;
+ylib_valtypedef(ylib_vec)
+  ylib_method("__add", vec_add)
+  ylib_method("__sub", vec_sub)
+  ylib_method("__mul", vec_mul)
+  ylib_method("__div", vec_div)
+  ylib_method("__mod", vec_mod)
+  ylib_method("__unm", vec_unm)
+  ylib_method("__eq", vec_eq)
+  ylib_method("x", vec_x)
+  ylib_method("y", vec_y)
+  ylib_method("normalised", vec_normalised)
+  ylib_method("normalise", vec_normalise)
+  ylib_method("dot", vec_dot)
+  ylib_method("length_squared", vec_length_squared)
+  ylib_method("length", vec_length)
+  ylib_method("angle", vec_angle)
+  ylib_method("in_region", vec_in_region)
+  ylib_method("abs", vec_abs)
+  ylib_method("max", vec_max)
+  ylib_method("min", vec_min)
+ylib_endtypedef();
+
 /******************************************************************************/
 // Script reference API
 /******************************************************************************/
@@ -173,6 +196,13 @@ ylib_api(ref_get)
 {
   ylib_return(a.get());
 }
+
+ylib_valtypedef(ScriptReference)
+  ylib_method("__eq", ref_eq)
+  ylib_method("__gc", ref_gc)
+  ylib_method("valid", ref_valid)
+  ylib_method("get", ref_get)
+ylib_endtypedef();
 
 /******************************************************************************/
 // Script API
