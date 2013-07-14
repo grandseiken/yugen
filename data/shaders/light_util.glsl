@@ -9,6 +9,10 @@ const float direct_coefficient = 0.5;
 const float specular_direct_coefficient = 0.5;
 const float camera_distance = 0.1;
 
+// Distance over which to interpolate the disappearance of light due to layering
+// value.
+const float layering_fade_distance = 0.05;
+
 // Given coords in [-1, 1] X [-1, 1], returns vector v such that v.x and v.y
 // are the coords scaled to the unit circle, v.z is positive, and v has
 // length 1.
@@ -76,6 +80,22 @@ float specular_intensity(float value, float power)
 {
   float d = max(value, 0);
   return pow(d, power);
+}
+
+// Layering skip.
+bool layering_value_skip(float target_layer, float light_layer)
+{
+  return target_layer <= 0.0 ||
+      target_layer + layering_fade_distance < light_layer;
+}
+
+// Layering coefficient.
+float layering_value_coefficient(float target_layer, float light_layer)
+{
+  float d = (light_layer - target_layer) / layering_fade_distance;
+  // Don't need to take max(0.0, 1.0 - d) since skip function above ensures that
+  // d <= 1.0.
+  return min(1.0, 1.0 - d);
 }
 
 // Implements a kind of cel-shading based on the constants above.

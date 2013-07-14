@@ -25,7 +25,7 @@ void main()
   // in [0, 1], scale and transform to world normal. Dicard early if the
   // light doesn't affect the layering component (or it hasn't been written to).
   vec4 normal_tex = texture2D(normalbuffer, pos_coord);
-  if (normal_tex.b <= 0.0 || normal_tex.b < layer_coord) {
+  if (layering_value_skip(normal_tex.b, layer_coord)) {
     discard;
   }
   vec3 normal_world = tex_to_world_normal(normal_tex);
@@ -55,6 +55,8 @@ void main()
 
   // Calculate intensity at this point.
   vec4 colour = colour_coord;
-  colour.a *= total_light * light_range_coefficient(dist, range_coord);
+  colour.a *= total_light *
+      light_range_coefficient(dist, range_coord) *
+      layering_value_coefficient(normal_tex.b, layer_coord);
   gl_FragColor = colour;
 }

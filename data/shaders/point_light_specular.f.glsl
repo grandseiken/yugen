@@ -29,7 +29,7 @@ void main()
 
   // Convert texture normal values to world normal values.
   vec4 normal_tex = texture2D(normalbuffer, pos_coord);
-  if (normal_tex.b <= 0.0 || normal_tex.b < layer_coord) {
+  if (layering_value_skip(normal_tex.b, layer_coord)) {
     discard;
   }
   vec3 normal_world = tex_to_world_normal(normal_tex);
@@ -58,6 +58,7 @@ void main()
 
   vec4 colour = vec4(1.0, 1.0, 1.0, 1.0);
   colour.a *= total_specular *
-      light_range_coefficient(sqrt(dist_sq), range_coord);
+      light_range_coefficient(sqrt(dist_sq), range_coord) *
+      layering_value_coefficient(normal_tex.b, layer_coord);
   gl_FragColor = colour;
 }

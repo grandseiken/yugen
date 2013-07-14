@@ -14,7 +14,6 @@ class WorldWindow;
 
 // Point lights only, so far!
 // TODO: cone lights, plane lights.
-// TODO: layering value needs to be interpolated in output.
 struct Light : y::no_copy {
   Light();
 
