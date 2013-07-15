@@ -72,7 +72,7 @@ const y::ivec2 RenderUtil::native_size{RenderUtil::native_width,
 // The size of the buffer we draw in order to handle rotations and other
 // special effects which might depend on pixels outside the view frame.
 const y::int32 native_overflow_dimensions =
-   128 + RenderUtil::native_size.length();
+    128 + RenderUtil::native_size.length();
 const y::ivec2 RenderUtil::native_overflow_size{native_overflow_dimensions,
                                                 native_overflow_dimensions};
 

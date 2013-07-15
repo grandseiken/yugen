@@ -395,13 +395,13 @@ y_api(render_sprite)
     y_arg(y::world, a)
 {
   const GameRenderer& renderer = stage.get_renderer();
-  bool normal = renderer.draw_stage_is_normal();
+  bool normal = renderer.draw_pass_is_normal();
 
   RenderBatch& batch = renderer.get_current_batch();
   const GlTexture2D& texture = normal ? sprite->normal : sprite->texture;
   y::wvec2 origin = script->get_origin() - frame_size / 2;
 
-  if (renderer.draw_stage_is_layer(GameRenderer::draw_layer(layer))) {
+  if (renderer.draw_pass_is_layer(GameRenderer::draw_layer(layer))) {
     renderer.set_current_draw_any();
     batch.add_sprite(texture, y::ivec2(frame_size), normal,
                      y::fvec2(origin), y::ivec2(frame),
@@ -428,9 +428,9 @@ y_api(render_fog)
   params.fog_min = fog_min;
   params.fog_max = fog_max;
 
-  if (renderer.draw_stage_is_layer(GameRenderer::draw_layer(layer))) {
+  if (renderer.draw_pass_is_layer(GameRenderer::draw_layer(layer))) {
     renderer.set_current_draw_any();
-    if (renderer.draw_stage_is_normal()) {
+    if (renderer.draw_pass_is_normal()) {
       stage.get_environment().render_fog_normal(
           renderer.get_util(), origin, region, params);
     }
@@ -474,9 +474,9 @@ y_api(render_reflect)
   params.wave_height = wave_height;
   params.wave_scale = wave_scale;
 
-  if (renderer.draw_stage_is_layer(GameRenderer::draw_layer(layer))) {
+  if (renderer.draw_pass_is_layer(GameRenderer::draw_layer(layer))) {
     renderer.set_current_draw_any();
-    if (renderer.draw_stage_is_normal()) {
+    if (renderer.draw_pass_is_normal()) {
       stage.get_environment().render_reflect_normal(
           renderer.get_util(), origin, region, params);
     }

@@ -18,10 +18,6 @@ class RenderUtil;
 struct LuaFile;
 
 // Stores all the scripts currently active.
-// TODO: this uses the odd convention of exposing public to external clients,
-// but requiring classes in the same file to access privates using friend.
-// Everything or nothing in thie file should work the same way. The root cause
-// is the distinction between C++ engine access and Lua script access.
 class ScriptBank : public y::no_copy {
 public:
 
@@ -53,17 +49,17 @@ public:
   void send_message(Script* script, const y::string& function_name,
                     const y::vector<LuaValue>& args);
 
-private:
+  // Functions below here should only be called by GameStage or GameRenderer,
+  // not from the Lua API.
 
-  friend class GameStage;
-  friend class GameRenderer;
-  void add_script(y::unique<Script> script);
-
+  // Functions for updating/rendering all the Scripts.
   void update_all() const;
   void handle_messages();
   void move_all(const y::wvec2& move) const;
   void render_all(const Camera& camera) const;
 
+  // Functions for updating the active Scripts based on changes to the active
+  // window.
   void get_unrefreshed(WorldWindow& world);
   void clean_out_of_bounds(const Script& player,
                            const y::wvec2& lower, const y::wvec2& upper);
@@ -71,6 +67,10 @@ private:
   void create_in_bounds(const Databank& bank, const CellMap& map,
                         const WorldWindow& window,
                         const y::wvec2& lower, const y::wvec2& upper);
+
+private:
+
+  void add_script(y::unique<Script> script);
 
   GameStage& _stage;
 
@@ -92,11 +92,18 @@ private:
 
 };
 
-// Handles all rendering for the GameStage.
+// Architecture: rendering proceeds in a series of layers. Each layer consists
+// of a colour pass and a normal pass (if required), which are then combined
+// and rendered with one of several potential lighting algorithms.
+
+// On each layer we call the draw() function of every active script. Scripts
+// check the current layer, drawing if so desired. When we need a normal pass
+// the process is repeated and the Scripts draw the corresponding normal data.
+// For the world layer we also draw all the tiles.
 class GameRenderer : public y::no_copy {
 public:
 
-  // Keep in sync with render.lua.
+  // All the defined layers, in order. Keep in sync with render.lua.
   enum draw_layer {
     DRAW_PARALLAX0,
     DRAW_PARALLAX1,
@@ -116,18 +123,32 @@ public:
   RenderUtil& get_util() const;
   const GlFramebuffer& get_framebuffer() const;
 
+  // Batches up all the sprites for a particular draw pass and renders them all
+  // at once when the pass is done.
   RenderBatch& get_current_batch() const;
-  void set_current_draw_any() const;
-  bool draw_stage_is_normal() const;
-  bool draw_stage_is_layer(draw_layer layer) const;
 
+  // Must be called to indicated something has been drawn during this layer, and
+  // we shouldn't skip it.
+  void set_current_draw_any() const;
+
+  // Determines whether the current pass is a colour or normal pass.
+  bool draw_pass_is_normal() const;
+
+  // Determines whether the current pass is part of the given layer.
+  bool draw_pass_is_layer(draw_layer layer) const;
+
+  // Implements the complete rendering pipeline. Should only be called by
+  // GameStage.
   void render(
       const Camera& camera, const WorldWindow& world, const ScriptBank& scripts,
       const Lighting& lighting, const Collision& collision) const;
 
 private:
 
-  enum draw_stage {
+  // Enums for each pass of each layer. To add a new layer, also add enums for
+  // its passes here, and implement draw_pass_is_normal(), draw_pass_is_layer()
+  // and draw_pass_light_type() for those passes.
+  enum draw_pass {
     DRAW_PARALLAX0_COLOUR,
     DRAW_PARALLAX1_COLOUR,
     DRAW_UNDERLAY0_NORMAL,
@@ -146,17 +167,26 @@ private:
     DRAW_SPECULAR1_NORMAL,
     DRAW_SPECULAR1_COLOUR,
     DRAW_FULLBRIGHT1_COLOUR,
-    DRAW_STAGE_MAX,
+    DRAW_PASS_MAX,
   };
+
+  // Each draw layer combines the colour and normal passes with the lighting
+  // using either the regular lighting algorithm, the specular lighting
+  // algorithm, or no lighting, in which case the normal pass is not required.
   enum layer_light_type {
     LIGHT_TYPE_NORMAL,
     LIGHT_TYPE_SPECULAR,
     LIGHT_TYPE_FULLBRIGHT,
   };
-  layer_light_type draw_stage_light_type(draw_stage stage) const;
 
+  // Determines the lighting algorithm used for the current pass.
+  layer_light_type draw_pass_light_type() const;
+
+  // Render all the tiles in the world. Used in the DRAW_WORLD layer.
   void render_tiles(
       const Camera& camera, const WorldWindow& world) const;
+
+  // Combine the various buffers and render the output of a layer.
   void render_scene(bool enable_blend, bool specular) const;
 
   RenderUtil& _util;
@@ -168,7 +198,7 @@ private:
   GlUnique<GlProgram> _scene_program;
   GlUnique<GlProgram> _scene_specular_program;
   mutable RenderBatch _current_batch;
-  mutable draw_stage _current_draw_stage;
+  mutable draw_pass _current_draw_pass;
   mutable bool _current_draw_any;
 
 };
@@ -201,6 +231,8 @@ private:
 
 };
 
+// Super God object acts as the intermediary between Scripts and all game
+// subsystems.
 class GameStage : public Modal {
 public:
 

@@ -20,7 +20,7 @@ function lint_indentation
 function lint_common
 {
   lint '^.{81}.*$' 'Line \1 too long'
-  lint_highlight '\( | \)|\[ | \]|\{ |[^ ] \}|[^ ]  +[^ ]' 'Line \1 whitespace'
+  lint_highlight '\( .*[^\]$| \)|\[ .*[^\]$| \]|\{ .*[^\]$|[^ ] \}|[^ ]  +[^ ].*[^\]$' 'Line \1 whitespace'
   lint_highlight ' +$' 'Line \1 trailing whitespace'
   lint_highlight $'\t' 'Line \1 tab'
   lint_highlight ',[^ "].|;[^ }"].|:[^ :A-Za-z_*~"].' 'Line \1 separator format'

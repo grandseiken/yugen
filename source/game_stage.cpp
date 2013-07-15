@@ -256,7 +256,7 @@ GameRenderer::GameRenderer(RenderUtil& util, const GlFramebuffer& framebuffer)
   , _scene_specular_program(util.get_gl().make_unique_program({
         "/shaders/scene_specular.v.glsl",
         "/shaders/scene_specular.f.glsl"}))
-  , _current_draw_stage(draw_stage(0))
+  , _current_draw_pass(draw_pass(0))
 {
 }
 
@@ -280,44 +280,44 @@ void GameRenderer::set_current_draw_any() const
   _current_draw_any = true;
 }
 
-bool GameRenderer::draw_stage_is_normal() const
+bool GameRenderer::draw_pass_is_normal() const
 {
-  const draw_stage& stage = _current_draw_stage;
-  return stage == DRAW_UNDERLAY0_NORMAL ||
-         stage == DRAW_UNDERLAY1_NORMAL ||
-         stage == DRAW_WORLD_NORMAL ||
-         stage == DRAW_OVERLAY0_NORMAL ||
-         stage == DRAW_SPECULAR0_NORMAL ||
-         stage == DRAW_OVERLAY1_NORMAL ||
-         stage == DRAW_SPECULAR1_NORMAL;
+  const draw_pass& pass = _current_draw_pass;
+  return pass == DRAW_UNDERLAY0_NORMAL ||
+         pass == DRAW_UNDERLAY1_NORMAL ||
+         pass == DRAW_WORLD_NORMAL ||
+         pass == DRAW_OVERLAY0_NORMAL ||
+         pass == DRAW_SPECULAR0_NORMAL ||
+         pass == DRAW_OVERLAY1_NORMAL ||
+         pass == DRAW_SPECULAR1_NORMAL;
 }
 
-bool GameRenderer::draw_stage_is_layer(draw_layer layer) const
+bool GameRenderer::draw_pass_is_layer(draw_layer layer) const
 {
-  const draw_stage& stage = _current_draw_stage;
+  const draw_pass& pass = _current_draw_pass;
   switch (layer) {
     case DRAW_PARALLAX0:
-      return stage == DRAW_PARALLAX0_COLOUR;
+      return pass == DRAW_PARALLAX0_COLOUR;
     case DRAW_PARALLAX1:
-      return stage == DRAW_PARALLAX1_COLOUR;
+      return pass == DRAW_PARALLAX1_COLOUR;
     case DRAW_UNDERLAY0:
-      return stage == DRAW_UNDERLAY0_NORMAL || stage == DRAW_UNDERLAY0_COLOUR;
+      return pass == DRAW_UNDERLAY0_NORMAL || pass == DRAW_UNDERLAY0_COLOUR;
     case DRAW_UNDERLAY1:
-      return stage == DRAW_UNDERLAY1_NORMAL || stage == DRAW_UNDERLAY1_COLOUR;
+      return pass == DRAW_UNDERLAY1_NORMAL || pass == DRAW_UNDERLAY1_COLOUR;
     case DRAW_WORLD:
-      return stage == DRAW_WORLD_NORMAL || stage == DRAW_WORLD_COLOUR;
+      return pass == DRAW_WORLD_NORMAL || pass == DRAW_WORLD_COLOUR;
     case DRAW_OVERLAY0:
-      return stage == DRAW_OVERLAY0_NORMAL || stage == DRAW_OVERLAY0_COLOUR;
+      return pass == DRAW_OVERLAY0_NORMAL || pass == DRAW_OVERLAY0_COLOUR;
     case DRAW_SPECULAR0:
-      return stage == DRAW_SPECULAR0_NORMAL || stage == DRAW_SPECULAR0_COLOUR;
+      return pass == DRAW_SPECULAR0_NORMAL || pass == DRAW_SPECULAR0_COLOUR;
     case DRAW_FULLBRIGHT0:
-      return stage == DRAW_FULLBRIGHT0_COLOUR;
+      return pass == DRAW_FULLBRIGHT0_COLOUR;
     case DRAW_OVERLAY1:
-      return stage == DRAW_OVERLAY1_NORMAL || stage == DRAW_OVERLAY1_COLOUR;
+      return pass == DRAW_OVERLAY1_NORMAL || pass == DRAW_OVERLAY1_COLOUR;
     case DRAW_SPECULAR1:
-      return stage == DRAW_SPECULAR1_NORMAL || stage == DRAW_SPECULAR1_COLOUR;
+      return pass == DRAW_SPECULAR1_NORMAL || pass == DRAW_SPECULAR1_COLOUR;
     case DRAW_FULLBRIGHT1:
-      return stage == DRAW_FULLBRIGHT1_COLOUR;
+      return pass == DRAW_FULLBRIGHT1_COLOUR;
     default:
       return false;
   }
@@ -331,24 +331,24 @@ void GameRenderer::render(
   _util.add_translation(translation);
   _framebuffer.bind(true, true);
 
-  // Loop through the draw stages. Each draw stage is a single pass of
-  // rendering, but we can combine several draw stages into one semantic
+  // Loop through the draw passes. Each pass is one loop through everything
+  // that can be rendered, but we combine several passes into one semantic
   // layer. For example, most layers need both a colour pass and a normal or
   // metadata pass to assemble the final result.
-  for (_current_draw_stage = draw_stage(0);
-       _current_draw_stage < DRAW_STAGE_MAX;
-       _current_draw_stage = draw_stage(1 + _current_draw_stage)) {
+  for (_current_draw_pass = draw_pass(0);
+       _current_draw_pass < DRAW_PASS_MAX;
+       _current_draw_pass = draw_pass(1 + _current_draw_pass)) {
     // Render colour buffer or normal buffer as appropriate.
     _current_batch.clear();
     _current_draw_any = false;
-    if (draw_stage_is_normal()) {
+    if (draw_pass_is_normal()) {
       _normalbuffer->bind(false, true);
     }
     else {
       _colourbuffer->bind(true, true);
     }
 
-    if (draw_stage_is_layer(DRAW_WORLD)) {
+    if (draw_pass_is_layer(DRAW_WORLD)) {
       render_tiles(camera, world);
     }
     scripts.render_all(camera);
@@ -356,10 +356,10 @@ void GameRenderer::render(
 
     // If there's anything on this layer, render scene by the lighting. We know
     // if it's the end of a layer by the (currently hacky) method of checking
-    // whether this stage is a normal stage, which are by design always the last
-    // stage.
-    if (!draw_stage_is_normal() && _current_draw_any) {
-      layer_light_type light_type(draw_stage_light_type(_current_draw_stage));
+    // whether this pass is a colour pass, which are always present and last by
+    // design.
+    if (!draw_pass_is_normal() && _current_draw_any) {
+      layer_light_type light_type(draw_pass_light_type());
       // Swap the rendering method based on the semantic type of the layer.
       if (light_type == LIGHT_TYPE_NORMAL) {
         _lightbuffer->bind(true, false);
@@ -395,15 +395,15 @@ void GameRenderer::render(
   _util.add_translation(-translation);
 }
 
-GameRenderer::layer_light_type GameRenderer::draw_stage_light_type(
-    draw_stage stage) const
+GameRenderer::layer_light_type GameRenderer::draw_pass_light_type() const
 {
-  if (stage == DRAW_SPECULAR0_NORMAL || stage == DRAW_SPECULAR0_COLOUR ||
-      stage == DRAW_SPECULAR1_NORMAL || stage == DRAW_SPECULAR1_COLOUR) {
+  draw_pass pass = _current_draw_pass;
+  if (pass == DRAW_SPECULAR0_NORMAL || pass == DRAW_SPECULAR0_COLOUR ||
+      pass == DRAW_SPECULAR1_NORMAL || pass == DRAW_SPECULAR1_COLOUR) {
     return LIGHT_TYPE_SPECULAR;
   }
-  if (stage == DRAW_FULLBRIGHT0_COLOUR || stage == DRAW_FULLBRIGHT1_COLOUR ||
-      stage == DRAW_PARALLAX0_COLOUR || stage == DRAW_PARALLAX1_COLOUR) {
+  if (pass == DRAW_FULLBRIGHT0_COLOUR || pass == DRAW_FULLBRIGHT1_COLOUR ||
+      pass == DRAW_PARALLAX0_COLOUR || pass == DRAW_PARALLAX1_COLOUR) {
     return LIGHT_TYPE_FULLBRIGHT;
   }
   return LIGHT_TYPE_NORMAL;
@@ -437,7 +437,7 @@ void GameRenderer::render_tiles(
         // Collision layer: .5
         // Background: .6
         float d = .5f - layer * .1f;
-        bool normal = draw_stage_is_normal();
+        bool normal = draw_pass_is_normal();
 
         const GlTexture2D texture = normal ?
             t.tileset->get_texture().normal : t.tileset->get_texture().texture;
