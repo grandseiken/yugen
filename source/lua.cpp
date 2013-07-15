@@ -1,14 +1,14 @@
 #include "lua.h"
 
 // Variadic push.
-ylib_int push_all(lua_State* state)
+lua_int push_all(lua_State* state)
 {
   (void)state;
   return 0;
 }
 
 template<typename T, typename... U>
-ylib_int push_all(lua_State* state, const T& arg, const U&... args)
+lua_int push_all(lua_State* state, const T& arg, const U&... args)
 {
   LuaType<T> t;
   t.push(state, arg);
@@ -18,7 +18,7 @@ ylib_int push_all(lua_State* state, const T& arg, const U&... args)
 
 // Generic get.
 template<typename T>
-auto ylib_get(lua_State* state, ylib_int index) ->
+auto lua_get(lua_State* state, lua_int index) ->
     decltype(LuaType<T>().get(state, index))
 {
   LuaType<T> t;
@@ -36,114 +36,141 @@ static RegistryIndex stage_registry_index;
 /**** Preprocessor magic for defining types and functions useable by Lua   ****/
 /**** in a style that sort of approximates C functions:                    ****/
 /******************************************************************************/
-/***/ #define ylib_ptrtypedef(T)                                           /**/\
-/***/ template<>                                                           /**/\
-/***/ const y::string LuaType<T*>::type_name = "y." #T "*";                /**/\
-/***/ template<>                                                           /**/\
-/***/ const y::string LuaType<const T*>::type_name = "y." #T "*";          /**/\
-/***/ ylib_api(T##_eq) ylib_arg(T*, a) ylib_arg(T*, b)                     /**/\
-/***/ {                                                                    /**/\
-/***/   ylib_return(a == b);                                               /**/\
-/***/ } void _ylib_typedef_##T##_no_op()                                   /***/
-/***/ #define ylib_valtypedef(T)                                           /**/\
-/***/ template<>                                                           /**/\
-/***/ const y::string LuaType<T>::type_name = "y." #T;                     /**/\
-/***/ template<>                                                           /**/\
-/***/ const y::string LuaType<const T>::type_name = "y." #T;               /**/\
-/***/ namespace _ylib_api_##T {                                            /**/\
-/***/   void _ylib_typedef(lua_State* _ylib_state)                         /**/\
-/***/   {                                                                  /**/\
-/***/     luaL_newmetatable(_ylib_state, LuaType<T>::type_name.c_str());   /**/\
-/***/     lua_pushstring(_ylib_state, "__index");                          /**/\
-/***/     lua_pushvalue(_ylib_state, -2);                                  /**/\
-/***/     lua_settable(_ylib_state, -3);                                   /***/
-/***/ #define ylib_method(name, function)                                  /**/\
-/***/     lua_pushstring(_ylib_state, name);                               /**/\
-/***/     lua_pushcfunction(_ylib_state,                                   /**/\
-/***/                       _ylib_api_##function::_ylib_ref);              /**/\
-/***/     lua_settable(_ylib_state, -3);                                   /***/
-/***/ #define ylib_endtypedef()                                            /**/\
-/***/   }                                                                  /**/\
-/***/ } void _ylib_typedef_##T##_no_op()                                   /***/
-/***/ #define ylib_api(name)                                               /**/\
-/***/ namespace _ylib_api_##name {                                         /**/\
-/***/   ylib_int _ylib_api(lua_State* _ylib_state);                        /**/\
-/***/   typedef ylib_int _ylib_api_type(lua_State* _ylib_state);           /**/\
-/***/   static const char* const _ylib_name = #name;                       /**/\
-/***/   static _ylib_api_type* const _ylib_ref = _ylib_api;                /**/\
-/***/   ylib_int _ylib_api(lua_State* _ylib_state)                         /**/\
-/***/   {                                                                  /**/\
-/***/     ylib_int _ylib_stack = 0;                                        /**/\
-/***/     (void)_ylib_stack;                                               /**/\
-/***/     lua_pushlightuserdata(                                           /**/\
-/***/         _ylib_state,                                                 /**/\
-/***/         reinterpret_cast<void*>(&stage_registry_index));             /**/\
-/***/     lua_gettable(_ylib_state, LUA_REGISTRYINDEX);                    /**/\
-/***/     GameStage& stage = *ylib_get<GameStage*>(_ylib_state, -1);       /**/\
-/***/     lua_pop(_ylib_state, 1);                                         /**/\
-/***/     (void)stage;                                                     /***/
-/***/ #define ylib_arg(T, name)                                            /**/\
-/***/     decltype(ylib_get<T>(_ylib_state, _ylib_stack)) name =           /**/\
-/***/         ylib_get<T>(_ylib_state, ++_ylib_stack);                     /***/
-/***/ #define ylib_return(...)                                             /**/\
-/***/       return push_all(_ylib_state, __VA_ARGS__);                     /**/\
-/***/     }                                                                /**/\
-/***/   } void _ylib_no_op()                                               /***/
-/***/ #define ylib_void()                                                  /**/\
-/***/       return 0;                                                      /**/\
-/***/     }                                                                /**/\
-/***/   } void _ylib_no_op()                                               /***/
+/***/ #define y_ptrtypedef(T)                                                  \
+/***/ template<>                                                               \
+/***/ const y::string LuaType<T*>::type_name = "y." #T "*";                    \
+/***/ template<>                                                               \
+/***/ const y::string LuaType<const T*>::type_name = "y." #T "*";              \
+/***/ y_api(T##_eq) y_arg(T*, a) y_arg(T*, b)                                  \
+/***/ {                                                                        \
+/***/   y_return(a == b);                                                      \
+/***/ } void _y_typedef_##T##_no_op()
+/***/
+/***/ #define y_valtypedef(T)                                                  \
+/***/ template<>                                                               \
+/***/ const y::string LuaType<T>::type_name = "y." #T;                         \
+/***/ template<>                                                               \
+/***/ const y::string LuaType<const T>::type_name = "y." #T;                   \
+/***/ namespace _y_api_##T {                                                   \
+/***/   void _y_typedef(lua_State* _y_state)                                   \
+/***/   {                                                                      \
+/***/     luaL_newmetatable(_y_state, LuaType<T>::type_name.c_str());          \
+/***/     lua_pushstring(_y_state, "__index");                                 \
+/***/     lua_pushvalue(_y_state, -2);                                         \
+/***/     lua_settable(_y_state, -3);
+/***/
+/***/ #define y_method(name, function)                                         \
+/***/     lua_pushstring(_y_state, name);                                      \
+/***/     lua_pushcfunction(_y_state,                                          \
+/***/                       _y_api_##function::_y_ref);                        \
+/***/     lua_settable(_y_state, -3);
+/***/
+/***/ #define y_endtypedef()                                                   \
+/***/   }                                                                      \
+/***/ } void _y_typedef_##T##_no_op()
+/***/
+/***/ #define y_api(name)                                                      \
+/***/ namespace _y_api_##name {                                                \
+/***/   lua_int _y_api(lua_State* _y_state);                                   \
+/***/   typedef lua_int _y_api_type(lua_State* _y_state);                      \
+/***/   static const char* const _y_name = #name;                              \
+/***/   static _y_api_type* const _y_ref = _y_api;                             \
+/***/   lua_int _y_api(lua_State* _y_state)                                    \
+/***/   {                                                                      \
+/***/     lua_int _y_stack = 0;                                                \
+/***/     (void)_y_stack;                                                      \
+/***/     lua_pushlightuserdata(                                               \
+/***/         _y_state,                                                        \
+/***/         reinterpret_cast<void*>(&stage_registry_index));                 \
+/***/     lua_gettable(_y_state, LUA_REGISTRYINDEX);                           \
+/***/     GameStage& stage = *lua_get<GameStage*>(_y_state, -1);               \
+/***/     lua_pop(_y_state, 1);                                                \
+/***/     (void)stage;
+/***/
+/***/ #define y_arg(T, name)                                                   \
+/***/     decltype(lua_get<T>(_y_state, _y_stack)) name =                      \
+/***/         lua_get<T>(_y_state, ++_y_stack);
+/***/
+/***/ #define y_return(...)                                                    \
+/***/       return push_all(_y_state, __VA_ARGS__);                            \
+/***/     }                                                                    \
+/***/   } void _y_no_op()
+/***/
+/***/ #define y_void()                                                         \
+/***/       return 0;                                                          \
+/***/     }                                                                    \
+/***/   } void _y_no_op()
 /******************************************************************************/
 #include "lua_api.h"
 /******************************************************************************/
 /**** Preprocessor magic for enumerating the library of functions and      ****/
 /**** types and storing them in a Lua stack:                               ****/
 /******************************************************************************/
-/***/ #undef ylib_ptrtypedef                                               /***/
-/***/ #undef ylib_valtypedef                                               /***/
-/***/ #undef ylib_method                                                   /***/
-/***/ #undef ylib_endtypedef                                               /***/
-/***/ #undef ylib_api                                                      /***/
-/***/ #undef ylib_arg                                                      /***/
-/***/ #undef ylib_refarg                                                   /***/
-/***/ #undef ylib_checked_arg                                              /***/
-/***/ #undef ylib_return                                                   /***/
-/***/ #undef ylib_void                                                     /***/
-/***/ #define ylib_ptrtypedef(T)                                           /**/\
-/***/   luaL_newmetatable(_ylib_state, LuaType<T*>::type_name.c_str());    /**/\
-/***/   lua_pushstring(_ylib_state, "__eq");                               /**/\
-/***/   lua_pushcfunction(_ylib_state,                                     /**/\
-/***/                     _ylib_api_##T##_eq::_ylib_ref);                  /**/\
-/***/   lua_settable(_ylib_state, -3);                                     /**/\
-/***/   lua_pop(_ylib_state, 1)                                            /***/
-/***/ #define ylib_valtypedef(T)                                           /**/\
-/***/   _ylib_api_##T::_ylib_typedef(_ylib_state);                         /**/\
-/***/   lua_pop(_ylib_state, 1);                                           /**/\
-/***/   (void)LuaType<T>::type_name                                        /***/
-/***/ #define ylib_method(name, function)                                  /***/
-/***/ #define ylib_endtypedef()                                            /***/
-/***/ #define ylib_api(name)                                               /**/\
-/***/   lua_register(_ylib_state,                                          /**/\
-/***/                _ylib_api_##name::_ylib_name,                         /**/\
-/***/                _ylib_api_##name::_ylib_ref);                         /**/\
-/***/   struct _ylib_no_op_struct_##name {                                 /**/\
-/***/     static void no_op()                                              /**/\
-/***/     {                                                                /**/\
-/***/       GameStage& stage = *(GameStage*)y::null;                       /**/\
-/***/       (void)stage;                                                   /***/
-/***/ #define ylib_arg(T, name)                                            /**/\
-/***/       decltype(ylib_get<T>(y::null, 0)) name =                       /**/\
-/***/           ylib_get<T>(y::null, 0);                                   /**/\
-/***/       (void)name;                                                    /***/
-/***/ #define ylib_return(...)                                             /**/\
-/***/       }                                                              /**/\
-/***/     }                                                                /**/\
-/***/   }; while (false) {(void)0                                          /***/
-/***/ #define ylib_void() ylib_return()                                    /***/
-/***/ void ylib_register(lua_State* _ylib_state)                           /***/
-/***/ {                                                                    /***/
-/***/   #include "lua_api.h"                                               /***/
-/***/ }                                                                    /***/
+/***/ #undef y_ptrtypedef
+/***/ #undef y_valtypedef
+/***/ #undef y_method
+/***/ #undef y_endtypedef
+/***/ #undef y_api
+/***/ #undef y_arg
+/***/ #undef y_refarg
+/***/ #undef y_checked_arg
+/***/ #undef y_return
+/***/ #undef y_void
+/***/
+/***/ #define y_ptrtypedef(T)                                                  \
+/***/   luaL_newmetatable(_y_state, LuaType<T*>::type_name.c_str());           \
+/***/   lua_pushstring(_y_state, "__eq");                                      \
+/***/   lua_pushcfunction(_y_state,                                            \
+/***/                     _y_api_##T##_eq::_y_ref);                            \
+/***/   lua_settable(_y_state, -3);                                            \
+/***/   lua_pop(_y_state, 1)
+/***/
+/***/ #define y_valtypedef(T)                                                  \
+/***/   _y_api_##T::_y_typedef(_y_state);                                      \
+/***/   lua_pop(_y_state, 1);                                                  \
+/***/   (void)LuaType<T>::type_name
+/***/
+/***/ #define y_method(name, function)
+/***/
+/***/ #define y_endtypedef()
+/***/
+/***/ #define y_api(name)                                                      \
+/***/   lua_register(_y_state,                                                 \
+/***/                _y_api_##name::_y_name,                                   \
+/***/                _y_api_##name::_y_ref);                                   \
+/***/   struct _y_no_op_struct_##name {                                        \
+/***/     static void no_op()                                                  \
+/***/     {                                                                    \
+/***/       GameStage& stage = *(GameStage*)y::null;                           \
+/***/       (void)stage;
+/***/
+/***/ #define y_arg(T, name)                                                   \
+/***/       decltype(lua_get<T>(y::null, 0)) name =                            \
+/***/           lua_get<T>(y::null, 0);                                        \
+/***/       (void)name;
+/***/
+/***/ #define y_return(...)                                                    \
+/***/       }                                                                  \
+/***/     }                                                                    \
+/***/   }; while (false) {(void)0
+/***/
+/***/ #define y_void() y_return()
+/******************************************************************************/
+void y_register(lua_State* _y_state)
+{
+#include "lua_api.h"
+}
+/******************************************************************************/
+/***/ #undef y_ptrtypedef
+/***/ #undef y_valtypedef
+/***/ #undef y_method
+/***/ #undef y_endtypedef
+/***/ #undef y_api
+/***/ #undef y_arg
+/***/ #undef y_refarg
+/***/ #undef y_checked_arg
+/***/ #undef y_return
+/***/ #undef y_void
 /******************************************************************************/
 /**** End of proprocessor magic.                                           ****/
 /******************************************************************************/
@@ -328,7 +355,7 @@ Script::Script(GameStage& stage,
   // Load the Lua standard library.
   luaL_openlibs(_state);
   // Register Lua API.
-  ylib_register(_state);
+  y_register(_state);
 
   // Chunk reader function.
   struct local {

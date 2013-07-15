@@ -1,5 +1,5 @@
 // Magic include file doesn't need preprocessor guards. Types and functions
-// defined here with the ylib macros are automatically exposed to Lua.
+// defined here with the y macros are automatically exposed to Lua.
 #ifndef LUA_API_H
 #define LUA_API_H
 #include "collision.h"
@@ -8,375 +8,375 @@
 #include "render_util.h"
 #endif
 
-ylib_ptrtypedef(Body);
-ylib_ptrtypedef(GameStage);
-ylib_ptrtypedef(Sprite);
-ylib_ptrtypedef(Light);
-ylib_ptrtypedef(LuaFile);
-ylib_ptrtypedef(Script);
+y_ptrtypedef(Body);
+y_ptrtypedef(GameStage);
+y_ptrtypedef(Sprite);
+y_ptrtypedef(Light);
+y_ptrtypedef(LuaFile);
+y_ptrtypedef(Script);
 
 /******************************************************************************/
 // Vector API
 /******************************************************************************/
-ylib_api(vec)
-    ylib_arg(y::world, x) ylib_arg(y::world, y)
+y_api(vec)
+    y_arg(y::world, x) y_arg(y::world, y)
 {
-  ylib_return(y::wvec2{x, y});
+  y_return(y::wvec2{x, y});
 }
 
-ylib_api(vec_add)
-    ylib_arg(const y::wvec2, a) ylib_arg(const y::wvec2, b)
+y_api(vec_add)
+    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  ylib_return(a + b);
+  y_return(a + b);
 }
 
-ylib_api(vec_sub)
-    ylib_arg(const y::wvec2, a) ylib_arg(const y::wvec2, b)
+y_api(vec_sub)
+    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  ylib_return(a - b);
+  y_return(a - b);
 }
 
-ylib_api(vec_mul)
-    ylib_arg(const y::wvec2, a) ylib_arg(const y::wvec2, b)
+y_api(vec_mul)
+    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  ylib_return(a * b);
+  y_return(a * b);
 }
 
-ylib_api(vec_div)
-    ylib_arg(const y::wvec2, a) ylib_arg(const y::wvec2, b)
+y_api(vec_div)
+    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  ylib_return(a.euclidean_div(b));
+  y_return(a.euclidean_div(b));
 }
 
-ylib_api(vec_mod)
-    ylib_arg(const y::wvec2, a) ylib_arg(const y::wvec2, b)
+y_api(vec_mod)
+    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  ylib_return(y::wvec2{fmod(a[xx], b[xx]), fmod(a[yy], b[yy])});
+  y_return(y::wvec2{fmod(a[xx], b[xx]), fmod(a[yy], b[yy])});
 }
 
-ylib_api(vec_unm)
-    ylib_arg(const y::wvec2, v)
+y_api(vec_unm)
+    y_arg(const y::wvec2, v)
 {
-  ylib_return(-v);
+  y_return(-v);
 }
 
-ylib_api(vec_eq)
-    ylib_arg(const y::wvec2, a) ylib_arg(const y::wvec2, b)
+y_api(vec_eq)
+    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  ylib_return(a == b);
+  y_return(a == b);
 }
 
-ylib_api(vec_x)
-    ylib_arg(const y::wvec2, v)
+y_api(vec_x)
+    y_arg(const y::wvec2, v)
 {
-  ylib_return(v[xx]);
+  y_return(v[xx]);
 }
 
-ylib_api(vec_y)
-    ylib_arg(const y::wvec2, v)
+y_api(vec_y)
+    y_arg(const y::wvec2, v)
 {
-  ylib_return(v[yy]);
+  y_return(v[yy]);
 }
 
-ylib_api(vec_normalised)
-    ylib_arg(const y::wvec2, v)
+y_api(vec_normalised)
+    y_arg(const y::wvec2, v)
 {
-  ylib_return(v.normalised());
+  y_return(v.normalised());
 }
 
-ylib_api(vec_normalise)
-    ylib_arg(y::wvec2, v)
+y_api(vec_normalise)
+    y_arg(y::wvec2, v)
 {
   v.normalise();
-  ylib_void();
+  y_void();
 }
 
-ylib_api(vec_dot)
-    ylib_arg(const y::wvec2, a) ylib_arg(const y::wvec2, b)
+y_api(vec_dot)
+    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  ylib_return(a.dot(b));
+  y_return(a.dot(b));
 }
 
-ylib_api(vec_length_squared)
-    ylib_arg(const y::wvec2, v)
+y_api(vec_length_squared)
+    y_arg(const y::wvec2, v)
 {
-  ylib_return(v.length_squared());
+  y_return(v.length_squared());
 }
 
-ylib_api(vec_length)
-    ylib_arg(const y::wvec2, v)
+y_api(vec_length)
+    y_arg(const y::wvec2, v)
 {
-  ylib_return(v.length());
+  y_return(v.length());
 }
 
-ylib_api(vec_angle)
-    ylib_arg(const y::wvec2, a) ylib_arg(const y::wvec2, b)
+y_api(vec_angle)
+    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  ylib_return(a.angle(b));
+  y_return(a.angle(b));
 }
 
-ylib_api(vec_in_region)
-    ylib_arg(const y::wvec2, v)
-    ylib_arg(const y::wvec2, origin) ylib_arg(const y::wvec2, size)
+y_api(vec_in_region)
+    y_arg(const y::wvec2, v)
+    y_arg(const y::wvec2, origin) y_arg(const y::wvec2, size)
 {
-  ylib_return(v.in_region(origin - size / 2, size));
+  y_return(v.in_region(origin - size / 2, size));
 }
 
-ylib_api(vec_abs)
-    ylib_arg(const y::wvec2, v)
+y_api(vec_abs)
+    y_arg(const y::wvec2, v)
 {
-  ylib_return(y::abs(v));
+  y_return(y::abs(v));
 }
 
-ylib_api(vec_max)
-    ylib_arg(const y::wvec2, a) ylib_arg(const y::wvec2, b)
+y_api(vec_max)
+    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  ylib_return(y::max(a, b));
+  y_return(y::max(a, b));
 }
 
-ylib_api(vec_min)
-    ylib_arg(const y::wvec2, a) ylib_arg(const y::wvec2, b)
+y_api(vec_min)
+    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  ylib_return(y::min(a, b));
+  y_return(y::min(a, b));
 }
 
 typedef y::wvec2 Vec;
-ylib_valtypedef(Vec)
-  ylib_method("__add", vec_add)
-  ylib_method("__sub", vec_sub)
-  ylib_method("__mul", vec_mul)
-  ylib_method("__div", vec_div)
-  ylib_method("__mod", vec_mod)
-  ylib_method("__unm", vec_unm)
-  ylib_method("__eq", vec_eq)
-  ylib_method("x", vec_x)
-  ylib_method("y", vec_y)
-  ylib_method("normalised", vec_normalised)
-  ylib_method("normalise", vec_normalise)
-  ylib_method("dot", vec_dot)
-  ylib_method("length_squared", vec_length_squared)
-  ylib_method("length", vec_length)
-  ylib_method("angle", vec_angle)
-  ylib_method("in_region", vec_in_region)
-  ylib_method("abs", vec_abs)
-  ylib_method("max", vec_max)
-  ylib_method("min", vec_min)
-ylib_endtypedef();
+y_valtypedef(Vec)
+  y_method("__add", vec_add)
+  y_method("__sub", vec_sub)
+  y_method("__mul", vec_mul)
+  y_method("__div", vec_div)
+  y_method("__mod", vec_mod)
+  y_method("__unm", vec_unm)
+  y_method("__eq", vec_eq)
+  y_method("x", vec_x)
+  y_method("y", vec_y)
+  y_method("normalised", vec_normalised)
+  y_method("normalise", vec_normalise)
+  y_method("dot", vec_dot)
+  y_method("length_squared", vec_length_squared)
+  y_method("length", vec_length)
+  y_method("angle", vec_angle)
+  y_method("in_region", vec_in_region)
+  y_method("abs", vec_abs)
+  y_method("max", vec_max)
+  y_method("min", vec_min)
+y_endtypedef();
 
 /******************************************************************************/
 // Script reference API
 /******************************************************************************/
-ylib_api(ref)
-    ylib_arg(Script*, script)
+y_api(ref)
+    y_arg(Script*, script)
 {
-  ylib_return(ScriptReference(*script));
+  y_return(ScriptReference(*script));
 }
 
-ylib_api(ref_eq)
-    ylib_arg(const ScriptReference, a) ylib_arg(const ScriptReference, b)
+y_api(ref_eq)
+    y_arg(const ScriptReference, a) y_arg(const ScriptReference, b)
 {
-  ylib_return(a.get() == b.get());
+  y_return(a.get() == b.get());
 }
 
-ylib_api(ref_gc)
-    ylib_arg(const ScriptReference, a)
+y_api(ref_gc)
+    y_arg(const ScriptReference, a)
 {
   a.~ScriptReference();
-  ylib_void();
+  y_void();
 }
 
-ylib_api(ref_valid)
-    ylib_arg(const ScriptReference, a)
+y_api(ref_valid)
+    y_arg(const ScriptReference, a)
 {
-  ylib_return(a.is_valid());
+  y_return(a.is_valid());
 }
 
-ylib_api(ref_get)
-    ylib_arg(ScriptReference, a)
+y_api(ref_get)
+    y_arg(ScriptReference, a)
 {
-  ylib_return(a.get());
+  y_return(a.get());
 }
 
-ylib_valtypedef(ScriptReference)
-  ylib_method("__eq", ref_eq)
-  ylib_method("__gc", ref_gc)
-  ylib_method("valid", ref_valid)
-  ylib_method("get", ref_get)
-ylib_endtypedef();
+y_valtypedef(ScriptReference)
+  y_method("__eq", ref_eq)
+  y_method("__gc", ref_gc)
+  y_method("valid", ref_valid)
+  y_method("get", ref_get)
+y_endtypedef();
 
 /******************************************************************************/
 // Script API
 /******************************************************************************/
-ylib_api(get_uid)
-    ylib_arg(const Script*, script)
+y_api(get_uid)
+    y_arg(const Script*, script)
 {
-  ylib_return(stage.get_scripts().get_uid(script));
+  y_return(stage.get_scripts().get_uid(script));
 }
 
-ylib_api(get_origin)
-    ylib_arg(const Script*, script)
+y_api(get_origin)
+    y_arg(const Script*, script)
 {
-  ylib_return(script->get_origin());
+  y_return(script->get_origin());
 }
 
-ylib_api(get_region)
-    ylib_arg(const Script*, script)
+y_api(get_region)
+    y_arg(const Script*, script)
 {
-  ylib_return(script->get_region());
+  y_return(script->get_region());
 }
 
-ylib_api(get_rotation)
-    ylib_arg(const Script*, script)
+y_api(get_rotation)
+    y_arg(const Script*, script)
 {
-  ylib_return(script->get_rotation());
+  y_return(script->get_rotation());
 }
 
-ylib_api(set_origin)
-    ylib_arg(Script*, script) ylib_arg(const y::wvec2, origin)
+y_api(set_origin)
+    y_arg(Script*, script) y_arg(const y::wvec2, origin)
 {
   script->set_origin(origin);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(set_region)
-    ylib_arg(Script*, script) ylib_arg(const y::wvec2, region)
+y_api(set_region)
+    y_arg(Script*, script) y_arg(const y::wvec2, region)
 {
   script->set_region(region);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(set_rotation)
-    ylib_arg(Script*, script) ylib_arg(y::world, rotation)
+y_api(set_rotation)
+    y_arg(Script*, script) y_arg(y::world, rotation)
 {
   script->set_rotation(rotation);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(get_script)
-    ylib_arg(y::string, path)
+y_api(get_script)
+    y_arg(y::string, path)
 {
-  ylib_return(&stage.get_bank().scripts.get(path));
+  y_return(&stage.get_bank().scripts.get(path));
 }
 
-ylib_api(destroy)
-    ylib_arg(Script*, script)
+y_api(destroy)
+    y_arg(Script*, script)
 {
   script->destroy();
-  ylib_void();
+  y_void();
 }
 
-ylib_api(create)
-    ylib_arg(const LuaFile*, file) ylib_arg(const y::wvec2, origin)
+y_api(create)
+    y_arg(const LuaFile*, file) y_arg(const y::wvec2, origin)
 {
-  ylib_return(&stage.get_scripts().create_script(*file, origin));
+  y_return(&stage.get_scripts().create_script(*file, origin));
 }
 
-ylib_api(create_region)
-    ylib_arg(const LuaFile*, file)
-    ylib_arg(const y::wvec2, origin) ylib_arg(const y::wvec2, region)
+y_api(create_region)
+    y_arg(const LuaFile*, file)
+    y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
 {
-  ylib_return(&stage.get_scripts().create_script(*file, origin, region));
+  y_return(&stage.get_scripts().create_script(*file, origin, region));
 }
 
-ylib_api(send_message)
-    ylib_arg(Script*, script) ylib_arg(y::string, function_name)
-    ylib_arg(y::vector<LuaValue>, args)
+y_api(send_message)
+    y_arg(Script*, script) y_arg(y::string, function_name)
+    y_arg(y::vector<LuaValue>, args)
 {
   stage.get_scripts().send_message(script, function_name, args);
-  ylib_void();
+  y_void();
 }
 
 /******************************************************************************/
 // Stage API
 /******************************************************************************/
-ylib_api(get_scripts_in_region)
-    ylib_arg(const y::wvec2, origin) ylib_arg(const y::wvec2, region)
+y_api(get_scripts_in_region)
+    y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
 {
   ScriptBank::result result;
   stage.get_scripts().get_in_region(result, origin, region);
-  ylib_return(result);
+  y_return(result);
 }
 
-ylib_api(get_scripts_in_radius)
-    ylib_arg(const y::wvec2, origin) ylib_arg(y::world, radius)
+y_api(get_scripts_in_radius)
+    y_arg(const y::wvec2, origin) y_arg(y::world, radius)
 {
   ScriptBank::result result;
   stage.get_scripts().get_in_radius(result, origin, radius);
-  ylib_return(result);
+  y_return(result);
 }
 
 /******************************************************************************/
 // Player API
 /******************************************************************************/
-ylib_api(set_player)
-    ylib_arg(Script*, script)
+y_api(set_player)
+    y_arg(Script*, script)
 {
   stage.set_player(script);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(clear_player)
+y_api(clear_player)
 {
   stage.set_player(y::null);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(has_player)
+y_api(has_player)
 {
-  ylib_return(stage.get_player() != y::null);
+  y_return(stage.get_player() != y::null);
 }
 
-ylib_api(get_player)
+y_api(get_player)
 {
-  ylib_return(stage.get_player());
+  y_return(stage.get_player());
 }
 
-ylib_api(is_key_down)
-    ylib_arg(y::int32, key)
+y_api(is_key_down)
+    y_arg(y::int32, key)
 {
-  ylib_return(stage.is_key_down(key));
+  y_return(stage.is_key_down(key));
 }
 
-ylib_api(set_camera)
-    ylib_arg(const y::wvec2, camera)
+y_api(set_camera)
+    y_arg(const y::wvec2, camera)
 {
   stage.get_camera().set_origin(camera);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(get_camera)
+y_api(get_camera)
 {
-  ylib_return(stage.get_camera().get_origin());
+  y_return(stage.get_camera().get_origin());
 }
 
-ylib_api(set_camera_rotation)
-    ylib_arg(y::world, rotation)
+y_api(set_camera_rotation)
+    y_arg(y::world, rotation)
 {
   stage.get_camera().set_rotation(rotation);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(get_camera_rotation)
+y_api(get_camera_rotation)
 {
-  ylib_return(stage.get_camera().get_rotation());
+  y_return(stage.get_camera().get_rotation());
 }
 
 /******************************************************************************/
 // Rendering API
 /******************************************************************************/
-ylib_api(get_sprite)
-    ylib_arg(y::string, path)
+y_api(get_sprite)
+    y_arg(y::string, path)
 {
-  ylib_return(&stage.get_bank().sprites.get(path));
+  y_return(&stage.get_bank().sprites.get(path));
 }
 
-ylib_api(render_sprite)
-    ylib_arg(const Script*, script) ylib_arg(y::int32, layer)
-    ylib_arg(const Sprite*, sprite)
-    ylib_arg(const y::wvec2, frame_size) ylib_arg(const y::wvec2, frame)
-    ylib_arg(y::world, depth) ylib_arg(y::world, rotation)
-    ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
-    ylib_arg(y::world, a)
+y_api(render_sprite)
+    y_arg(const Script*, script) y_arg(y::int32, layer)
+    y_arg(const Sprite*, sprite)
+    y_arg(const y::wvec2, frame_size) y_arg(const y::wvec2, frame)
+    y_arg(y::world, depth) y_arg(y::world, rotation)
+    y_arg(y::world, r) y_arg(y::world, g) y_arg(y::world, b)
+    y_arg(y::world, a)
 {
   const GameRenderer& renderer = stage.get_renderer();
   bool normal = renderer.draw_stage_is_normal();
@@ -392,16 +392,16 @@ ylib_api(render_sprite)
                      depth, rotation,
                      y::fvec4{float(r), float(g), float(b), float(a)});
   }
-  ylib_void();
+  y_void();
 }
 
-ylib_api(render_fog)
-    ylib_arg(y::int32, layer) ylib_arg(y::world, layering_value)
-    ylib_arg(const y::wvec2, origin) ylib_arg(const y::wvec2, region)
-    ylib_arg(const y::wvec2, tex_offset) ylib_arg(y::world, frame)
-    ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
-    ylib_arg(y::world, a)
-    ylib_arg(y::world, fog_min) ylib_arg(y::world, fog_max)
+y_api(render_fog)
+    y_arg(y::int32, layer) y_arg(y::world, layering_value)
+    y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
+    y_arg(const y::wvec2, tex_offset) y_arg(y::world, frame)
+    y_arg(y::world, r) y_arg(y::world, g) y_arg(y::world, b)
+    y_arg(y::world, a)
+    y_arg(y::world, fog_min) y_arg(y::world, fog_max)
 {
   const GameRenderer& renderer = stage.get_renderer();
   Environment::fog_params params;
@@ -423,22 +423,22 @@ ylib_api(render_fog)
           renderer.get_util(), origin, region, params);
     }
   }
-  ylib_void();
+  y_void();
 }
 
-ylib_api(render_reflect)
-    ylib_arg(y::int32, layer) ylib_arg(y::world, layering_value)
-    ylib_arg(const y::wvec2, origin) ylib_arg(const y::wvec2, region)
-    ylib_arg(const y::wvec2, tex_offset) ylib_arg(y::world, frame)
-    ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
-    ylib_arg(y::world, a) ylib_arg(y::world, reflect_mix)
-    ylib_arg(y::world, normal_scaling)
-    ylib_arg(y::world, normal_scaling_reflect)
-    ylib_arg(y::world, normal_scaling_refract)
-    ylib_arg(y::world, reflect_fade_start) ylib_arg(y::world, reflect_fade_end)
-    ylib_arg(bool, flip_x) ylib_arg(bool, flip_y)
-    ylib_arg(const y::wvec2, flip_axes)
-    ylib_arg(y::world, wave_height) ylib_arg(y::world, wave_scale)
+y_api(render_reflect)
+    y_arg(y::int32, layer) y_arg(y::world, layering_value)
+    y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
+    y_arg(const y::wvec2, tex_offset) y_arg(y::world, frame)
+    y_arg(y::world, r) y_arg(y::world, g) y_arg(y::world, b)
+    y_arg(y::world, a) y_arg(y::world, reflect_mix)
+    y_arg(y::world, normal_scaling)
+    y_arg(y::world, normal_scaling_reflect)
+    y_arg(y::world, normal_scaling_refract)
+    y_arg(y::world, reflect_fade_start) y_arg(y::world, reflect_fade_end)
+    y_arg(bool, flip_x) y_arg(bool, flip_y)
+    y_arg(const y::wvec2, flip_axes)
+    y_arg(y::world, wave_height) y_arg(y::world, wave_scale)
 {
   const GameRenderer& renderer = stage.get_renderer();
   Environment::reflect_params params;
@@ -470,198 +470,198 @@ ylib_api(render_reflect)
           renderer.get_framebuffer());
     }
   }
-  ylib_void();
+  y_void();
 }
 
 /******************************************************************************/
 // Collision API
 /******************************************************************************/
-ylib_api(create_body)
-    ylib_arg(Script*, script)
-    ylib_arg(const y::wvec2, offset) ylib_arg(const y::wvec2, size)
+y_api(create_body)
+    y_arg(Script*, script)
+    y_arg(const y::wvec2, offset) y_arg(const y::wvec2, size)
 {
   Body* body = stage.get_collision().create_obj(*script);
   body->offset = offset;
   body->size = size;
-  ylib_return(body);
+  y_return(body);
 }
 
-ylib_api(destroy_body)
-    ylib_arg(const Script*, script) ylib_arg(Body*, body)
+y_api(destroy_body)
+    y_arg(const Script*, script) y_arg(Body*, body)
 {
   stage.get_collision().destroy_obj(*script, body);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(destroy_bodies)
-    ylib_arg(const Script*, script)
+y_api(destroy_bodies)
+    y_arg(const Script*, script)
 {
   stage.get_collision().destroy_all(*script);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(get_body_offset)
-    ylib_arg(const Body*, body)
+y_api(get_body_offset)
+    y_arg(const Body*, body)
 {
-  ylib_return(body->offset);
+  y_return(body->offset);
 }
 
-ylib_api(get_body_size)
-    ylib_arg(const Body*, body)
+y_api(get_body_size)
+    y_arg(const Body*, body)
 {
-  ylib_return(body->size);
+  y_return(body->size);
 }
 
-ylib_api(get_collide_mask)
-    ylib_arg(const Body*, body)
+y_api(get_collide_mask)
+    y_arg(const Body*, body)
 {
-  ylib_return(body->collide_mask);
+  y_return(body->collide_mask);
 }
 
-ylib_api(set_body_offset)
-    ylib_arg(Body*, body) ylib_arg(const y::wvec2, offset)
+y_api(set_body_offset)
+    y_arg(Body*, body) y_arg(const y::wvec2, offset)
 {
   body->offset = offset;
-  ylib_void();
+  y_void();
 }
 
-ylib_api(set_body_size)
-    ylib_arg(Body*, body) ylib_arg(const y::wvec2, size)
+y_api(set_body_size)
+    y_arg(Body*, body) y_arg(const y::wvec2, size)
 {
   body->size = size;
-  ylib_void();
+  y_void();
 }
 
-ylib_api(set_collide_mask)
-    ylib_arg(Body*, body) ylib_arg(y::int32, collide_mask)
+y_api(set_collide_mask)
+    y_arg(Body*, body) y_arg(y::int32, collide_mask)
 {
   body->collide_mask = collide_mask;
-  ylib_void();
+  y_void();
 }
 
-ylib_api(collider_move)
-    ylib_arg(Script*, script) ylib_arg(const y::wvec2, move)
+y_api(collider_move)
+    y_arg(Script*, script) y_arg(const y::wvec2, move)
 {
-  ylib_return(stage.get_collision().collider_move(*script, move));
+  y_return(stage.get_collision().collider_move(*script, move));
 }
 
-ylib_api(collider_rotate)
-   ylib_arg(Script*, script) ylib_arg(y::world, rotate)
+y_api(collider_rotate)
+   y_arg(Script*, script) y_arg(y::world, rotate)
 {
-  ylib_return(stage.get_collision().collider_rotate(*script, rotate));
+  y_return(stage.get_collision().collider_rotate(*script, rotate));
 }
 
-ylib_api(body_check)
-    ylib_arg(const Script*, script) ylib_arg(const Body*, body)
-    ylib_arg(y::int32, collide_mask)
+y_api(body_check)
+    y_arg(const Script*, script) y_arg(const Body*, body)
+    y_arg(y::int32, collide_mask)
 {
-  ylib_return(stage.get_collision().body_check(*script, *body, collide_mask));
+  y_return(stage.get_collision().body_check(*script, *body, collide_mask));
 }
 
 /******************************************************************************/
 // Lighting API
 /******************************************************************************/
-ylib_api(create_light)
-    ylib_arg(Script*, script)
-    ylib_arg(y::world, full_range) ylib_arg(y::world, falloff_range)
+y_api(create_light)
+    y_arg(Script*, script)
+    y_arg(y::world, full_range) y_arg(y::world, falloff_range)
 {
   Light* light = stage.get_lighting().create_obj(*script);
   light->full_range = full_range;
   light->falloff_range = falloff_range;
   light->layer_value = 0.;
-  ylib_return(light);
+  y_return(light);
 }
 
-ylib_api(destroy_light)
-    ylib_arg(const Script*, script) ylib_arg(Light*, light)
+y_api(destroy_light)
+    y_arg(const Script*, script) y_arg(Light*, light)
 {
   stage.get_lighting().destroy_obj(*script, light);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(destroy_lights)
-    ylib_arg(const Script*, script)
+y_api(destroy_lights)
+    y_arg(const Script*, script)
 {
   stage.get_lighting().destroy_all(*script);
-  ylib_void();
+  y_void();
 }
 
-ylib_api(get_light_full_range)
-    ylib_arg(const Light*, light)
+y_api(get_light_full_range)
+    y_arg(const Light*, light)
 {
-  ylib_return(light->full_range);
+  y_return(light->full_range);
 }
 
-ylib_api(set_light_range)
-    ylib_arg(Light*, light) ylib_arg(y::world, full_range)
+y_api(set_light_range)
+    y_arg(Light*, light) y_arg(y::world, full_range)
 {
   light->full_range = full_range;
-  ylib_void();
+  y_void();
 }
 
-ylib_api(get_light_falloff_range)
-    ylib_arg(const Light*, light)
+y_api(get_light_falloff_range)
+    y_arg(const Light*, light)
 {
-  ylib_return(light->falloff_range);
+  y_return(light->falloff_range);
 }
 
-ylib_api(set_light_falloff_range)
-    ylib_arg(Light*, light) ylib_arg(y::world, falloff_range)
+y_api(set_light_falloff_range)
+    y_arg(Light*, light) y_arg(y::world, falloff_range)
 {
   light->falloff_range = falloff_range;
-  ylib_void();
+  y_void();
 }
 
-ylib_api(get_light_layer_value)
-    ylib_arg(const Light*, light)
+y_api(get_light_layer_value)
+    y_arg(const Light*, light)
 {
-  ylib_return(light->layer_value);
+  y_return(light->layer_value);
 }
 
-ylib_api(set_light_layer_value)
-    ylib_arg(Light*, light) ylib_arg(y::world, layer_value)
+y_api(set_light_layer_value)
+    y_arg(Light*, light) y_arg(y::world, layer_value)
 {
   light->layer_value = layer_value;
-  ylib_void();
+  y_void();
 }
 
-ylib_api(get_light_r)
-    ylib_arg(const Light*, light)
+y_api(get_light_r)
+    y_arg(const Light*, light)
 {
-  ylib_return(y::world(light->colour[rr]));
+  y_return(y::world(light->colour[rr]));
 }
 
-ylib_api(get_light_g)
-    ylib_arg(const Light*, light)
+y_api(get_light_g)
+    y_arg(const Light*, light)
 {
-  ylib_return(y::world(light->colour[gg]));
+  y_return(y::world(light->colour[gg]));
 }
 
-ylib_api(get_light_b)
-    ylib_arg(const Light*, light)
+y_api(get_light_b)
+    y_arg(const Light*, light)
 {
-  ylib_return(y::world(light->colour[bb]));
+  y_return(y::world(light->colour[bb]));
 }
 
-ylib_api(get_light_intensity)
-    ylib_arg(const Light*, light)
+y_api(get_light_intensity)
+    y_arg(const Light*, light)
 {
-  ylib_return(y::world(light->colour[aa]));
+  y_return(y::world(light->colour[aa]));
 }
 
-ylib_api(set_light_colour)
-    ylib_arg(Light*, light)
-    ylib_arg(y::world, r) ylib_arg(y::world, g) ylib_arg(y::world, b)
+y_api(set_light_colour)
+    y_arg(Light*, light)
+    y_arg(y::world, r) y_arg(y::world, g) y_arg(y::world, b)
 {
   light->colour[rr] = r;
   light->colour[gg] = g;
   light->colour[bb] = b;
-  ylib_void();
+  y_void();
 }
 
-ylib_api(set_light_intensity)
-    ylib_arg(Light*, light) ylib_arg(y::world, intensity)
+y_api(set_light_intensity)
+    y_arg(Light*, light) y_arg(y::world, intensity)
 {
   light->colour[aa] = intensity;
-  ylib_void();
+  y_void();
 }

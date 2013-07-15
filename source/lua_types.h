@@ -6,7 +6,7 @@
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
 
-typedef y::int32 ylib_int;
+typedef y::int32 lua_int;
 
 // Can hold a variety of different Lua types.
 // TODO: make this work with more types. Userdata types are tricky, because we
@@ -34,11 +34,11 @@ struct LuaValue {
 template<typename T>
 struct LuaType {
   // For generic types, this can't be defined automatically here. Should be
-  // defined by a ylib_*typedef macro in lua_api.h.
+  // defined by a y_*typedef macro in lua_api.h.
   static const y::string type_name;
 
-  inline T& get(lua_State* state, ylib_int index) const;
-  inline bool is(lua_State* state, ylib_int index) const;
+  inline T& get(lua_State* state, lua_int index) const;
+  inline bool is(lua_State* state, lua_int index) const;
   inline void push(lua_State* state, const T& arg) const;
 };
 
@@ -47,8 +47,8 @@ template<>
 struct LuaType<y::world> {
   static const y::string type_name;
 
-  inline y::world get(lua_State* state, ylib_int index) const;
-  inline bool is(lua_State* state, ylib_int index) const;
+  inline y::world get(lua_State* state, lua_int index) const;
+  inline bool is(lua_State* state, lua_int index) const;
   inline void push(lua_State* state, y::world arg) const;
 };
 
@@ -57,8 +57,8 @@ template<>
 struct LuaType<y::int32> {
   static const y::string type_name;
 
-  inline y::int32 get(lua_State* state, ylib_int index) const;
-  inline bool is(lua_State* state, ylib_int index) const;
+  inline y::int32 get(lua_State* state, lua_int index) const;
+  inline bool is(lua_State* state, lua_int index) const;
   inline void push(lua_State* state, y::int32 arg) const;
 };
 
@@ -67,8 +67,8 @@ template<>
 struct LuaType<bool> {
   static const y::string type_name;
 
-  inline bool get(lua_State* state, ylib_int index) const;
-  inline bool is(lua_State* state, ylib_int index) const;
+  inline bool get(lua_State* state, lua_int index) const;
+  inline bool is(lua_State* state, lua_int index) const;
   inline void push(lua_State* state, bool arg) const;
 };
 
@@ -77,8 +77,8 @@ template<>
 struct LuaType<y::string> {
   static const y::string type_name;
 
-  inline y::string get(lua_State* state, ylib_int index) const;
-  inline bool is(lua_State* state, ylib_int index) const;
+  inline y::string get(lua_State* state, lua_int index) const;
+  inline bool is(lua_State* state, lua_int index) const;
   inline void push(lua_State* state, const y::string& arg) const;
 };
 
@@ -87,8 +87,8 @@ template<typename T>
 struct LuaType<y::vector<T>> {
   static const y::string type_name;
 
-  inline y::vector<T> get(lua_State* state, ylib_int index) const;
-  inline bool is(lua_State* state, ylib_int index) const;
+  inline y::vector<T> get(lua_State* state, lua_int index) const;
+  inline bool is(lua_State* state, lua_int index) const;
   inline void push(lua_State* state, const y::vector<T>& arg) const;
 };
 
@@ -97,8 +97,8 @@ template<>
 struct LuaType<LuaValue> {
   static const y::string type_name;
 
-  inline LuaValue get(lua_State* state, ylib_int index) const;
-  inline bool is(lua_State* state, ylib_int index) const;
+  inline LuaValue get(lua_State* state, lua_int index) const;
+  inline bool is(lua_State* state, lua_int index) const;
   inline void push(lua_State* state, const LuaValue& arg) const;
 };
 
@@ -109,7 +109,7 @@ const y::string LuaType<y::vector<T>>::type_name =
 
 // Generic Lua-allocated and copied implementation.
 template<typename T>
-T& LuaType<T>::get(lua_State* state, ylib_int index) const
+T& LuaType<T>::get(lua_State* state, lua_int index) const
 {
   void* v = lua_touserdata(state, index);
   T* t = reinterpret_cast<T*>(v);
@@ -117,7 +117,7 @@ T& LuaType<T>::get(lua_State* state, ylib_int index) const
 }
 
 template<typename T>
-bool LuaType<T>::is(lua_State* state, ylib_int index) const
+bool LuaType<T>::is(lua_State* state, lua_int index) const
 {
   return luaL_testudata(state, index, type_name.c_str());
 }
@@ -133,12 +133,12 @@ void LuaType<T>::push(lua_State* state, const T& arg) const
 }
 
 // World scalar implementation.
-y::world LuaType<y::world>::get(lua_State* state, ylib_int index) const
+y::world LuaType<y::world>::get(lua_State* state, lua_int index) const
 {
   return lua_tonumber(state, index);
 }
 
-bool LuaType<y::world>::is(lua_State* state, ylib_int index) const
+bool LuaType<y::world>::is(lua_State* state, lua_int index) const
 {
   return lua_isnumber(state, index);
 }
@@ -149,12 +149,12 @@ void LuaType<y::world>::push(lua_State* state, y::world arg) const
 }
 
 // Integer implementation.
-y::int32 LuaType<y::int32>::get(lua_State* state, ylib_int index) const
+y::int32 LuaType<y::int32>::get(lua_State* state, lua_int index) const
 {
   return lua_tointeger(state, index);
 }
 
-bool LuaType<y::int32>::is(lua_State* state, ylib_int index) const
+bool LuaType<y::int32>::is(lua_State* state, lua_int index) const
 {
   return lua_isnumber(state, index);
 }
@@ -165,12 +165,12 @@ void LuaType<y::int32>::push(lua_State* state, y::int32 arg) const
 }
 
 // Boolean implementation.
-bool LuaType<bool>::get(lua_State* state, ylib_int index) const
+bool LuaType<bool>::get(lua_State* state, lua_int index) const
 {
   return lua_toboolean(state, index);
 }
 
-bool LuaType<bool>::is(lua_State* state, ylib_int index) const
+bool LuaType<bool>::is(lua_State* state, lua_int index) const
 {
    return lua_isboolean(state, index);
 }
@@ -181,12 +181,12 @@ void LuaType<bool>::push(lua_State* state, bool arg) const
 }
 
 // String implementation.
-y::string LuaType<y::string>::get(lua_State* state, ylib_int index) const
+y::string LuaType<y::string>::get(lua_State* state, lua_int index) const
 {
   return y::string(lua_tostring(state, index));
 }
 
-bool LuaType<y::string>::is(lua_State* state, ylib_int index) const
+bool LuaType<y::string>::is(lua_State* state, lua_int index) const
 {
   return lua_isstring(state, index);
 }
@@ -198,13 +198,13 @@ void LuaType<y::string>::push(lua_State* state, const y::string& arg) const
 
 // Array implementation.
 template<typename T>
-y::vector<T> LuaType<y::vector<T>>::get(lua_State* state, ylib_int index) const
+y::vector<T> LuaType<y::vector<T>>::get(lua_State* state, lua_int index) const
 {
   y::vector<T> t;
   LuaType<T> element_type;
 
-  ylib_int size = luaL_len(state, index);
-  for (ylib_int i = 1; i <= size; ++i) {
+  lua_int size = luaL_len(state, index);
+  for (lua_int i = 1; i <= size; ++i) {
     lua_rawgeti(state, index, i);
     t.emplace_back(element_type.get(state, lua_gettop(state)));
   }
@@ -213,7 +213,7 @@ y::vector<T> LuaType<y::vector<T>>::get(lua_State* state, ylib_int index) const
 }
 
 template<typename T>
-bool LuaType<y::vector<T>>::is(lua_State* state, ylib_int index) const
+bool LuaType<y::vector<T>>::is(lua_State* state, lua_int index) const
 {
   if (!lua_istable(state, index)) {
     return false;
@@ -221,8 +221,8 @@ bool LuaType<y::vector<T>>::is(lua_State* state, ylib_int index) const
   LuaType<T> element_type;
 
   bool b = true;
-  ylib_int size = luaL_len(state, index);
-  for (ylib_int i = 1; i <= size; ++i) {
+  lua_int size = luaL_len(state, index);
+  for (lua_int i = 1; i <= size; ++i) {
     lua_rawgeti(state, index, i);
     b &= element_type.is(state, lua_gettop(state));
   }
@@ -237,7 +237,7 @@ void LuaType<y::vector<T>>::push(
   lua_createtable(state, arg.size(), 0);
   LuaType<T> element_type;
 
-  ylib_int index = lua_gettop(state);
+  lua_int index = lua_gettop(state);
   for (y::size i = 0; i < arg.size(); ++i) {
     element_type.push(state, arg[i]);
     lua_rawseti(state, index, 1 + i);
@@ -245,7 +245,7 @@ void LuaType<y::vector<T>>::push(
 }
 
 // Generic LuaValue union implementation.
-LuaValue LuaType<LuaValue>::get(lua_State* state, ylib_int index) const
+LuaValue LuaType<LuaValue>::get(lua_State* state, lua_int index) const
 {
   LuaType<y::world> world;
   if (world.is(state, index)) {
@@ -270,7 +270,7 @@ LuaValue LuaType<LuaValue>::get(lua_State* state, ylib_int index) const
   return LuaValue(0.);
 }
 
-bool LuaType<LuaValue>::is(lua_State* state, ylib_int index) const
+bool LuaType<LuaValue>::is(lua_State* state, lua_int index) const
 {
   LuaType<y::world> world;
   LuaType<bool> boolean;
