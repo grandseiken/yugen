@@ -4,12 +4,12 @@
 
 local function submerge(amount)
   return function(script)
-    send_message(script, "on_submerge", {amount})
+    send_message(script, "on_submerge", amount)
   end
 end
 
 local function emerge(script)
-  send_message(script, "on_emerge", {})
+  send_message(script, "on_emerge")
 end
 
 local scripts_submerging = {}

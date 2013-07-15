@@ -1,5 +1,5 @@
 // Magic include file doesn't need preprocessor guards. Types and functions
-// defined here with the y macros are automatically exposed to Lua.
+// defined here with the y_* macros are automatically exposed to Lua.
 #ifndef LUA_API_H
 #define LUA_API_H
 #include "collision.h"
@@ -280,7 +280,7 @@ y_api(create_region)
 
 y_api(send_message)
     y_arg(Script*, script) y_arg(y::string, function_name)
-    y_arg(y::vector<LuaValue>, args)
+    y_varargs(LuaValue, args)
 {
   stage.get_scripts().send_message(script, function_name, args);
   y_void();

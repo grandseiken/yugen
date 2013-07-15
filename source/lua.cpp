@@ -91,6 +91,12 @@ static RegistryIndex stage_registry_index;
 /***/     decltype(lua_get<T>(_y_state, _y_stack)) name =                      \
 /***/         lua_get<T>(_y_state, ++_y_stack);
 /***/
+/***/ #define y_varargs(T, name)                                               \
+/***/     y::vector<T> name;                                                   \
+/***/     while (++_y_stack <= lua_gettop(_y_state)) {                         \
+/***/       name.emplace_back(lua_get<T>(_y_state, _y_stack));                 \
+/***/     }
+/***/
 /***/ #define y_return(...)                                                    \
 /***/       return push_all(_y_state, __VA_ARGS__);                            \
 /***/     }                                                                    \
@@ -112,8 +118,7 @@ static RegistryIndex stage_registry_index;
 /***/ #undef y_endtypedef
 /***/ #undef y_api
 /***/ #undef y_arg
-/***/ #undef y_refarg
-/***/ #undef y_checked_arg
+/***/ #undef y_varargs
 /***/ #undef y_return
 /***/ #undef y_void
 /***/
@@ -149,6 +154,10 @@ static RegistryIndex stage_registry_index;
 /***/           lua_get<T>(y::null, 0);                                        \
 /***/       (void)name;
 /***/
+/***/ #define y_varargs(T, name)                                               \
+/***/       y::vector<T> name;                                                 \
+/***/       (void)name;
+/***/
 /***/ #define y_return(...)                                                    \
 /***/       }                                                                  \
 /***/     }                                                                    \
@@ -167,8 +176,7 @@ void y_register(lua_State* _y_state)
 /***/ #undef y_endtypedef
 /***/ #undef y_api
 /***/ #undef y_arg
-/***/ #undef y_refarg
-/***/ #undef y_checked_arg
+/***/ #undef y_varargs
 /***/ #undef y_return
 /***/ #undef y_void
 /******************************************************************************/
@@ -459,16 +467,7 @@ bool Script::has_function(const y::string& function_name) const
 
 void Script::call(const y::string& function_name)
 {
-  lua_getglobal(_state, function_name.c_str());
-  if (lua_pcall(_state, 0, 0, 1)) {
-    const char* error = lua_tostring(_state, -1);
-    std::cerr << "Calling function " << _path << ":" <<
-        function_name << " failed";
-    if (error) {
-      std::cerr << ": " << error;
-    }
-    std::cerr << std::endl;
-  }
+  call(function_name, {});
 }
 
 void Script::call(const y::string& function_name,
