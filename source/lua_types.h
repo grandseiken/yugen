@@ -1,22 +1,42 @@
 #ifndef LUA_TYPES
 #define LUA_TYPES
 
+#include "common.h"
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
 
 typedef y::int32 ylib_int;
 
-// Generic type.
+// Can hold a variety of different Lua types.
+// TODO: make this work with more types. Userdata types are tricky, because we
+// need to be able to determine arbitrary types from Lua userdatums.
+struct LuaValue {
+  LuaValue(y::world world);
+  LuaValue(bool boolean);
+  LuaValue(const y::string& string);
+
+  enum {
+    WORLD,
+    BOOLEAN,
+    STRING,
+  } type;
+
+  y::world world;
+  bool boolean;
+  y::string string;
+};
+
+// Generic Lua-allocated and copied type.
 template<typename T>
 struct LuaType {
   // For generic types, this can't be defined automatically here. Should be
   // defined by a ylib_typedef macro in lua_api.h.
   static const y::string type_name;
 
-  T& get(lua_State* state, ylib_int index) const;
-  bool is(lua_State* state, ylib_int index) const;
-  void push(lua_State* state, const T& arg) const;
+  inline T& get(lua_State* state, ylib_int index) const;
+  inline bool is(lua_State* state, ylib_int index) const;
+  inline void push(lua_State* state, const T& arg) const;
 };
 
 // World scalar type.
@@ -24,9 +44,9 @@ template<>
 struct LuaType<y::world> {
   static const y::string type_name;
 
-  y::world get(lua_State* state, ylib_int index) const;
-  bool is(lua_State* state, ylib_int index) const;
-  void push(lua_State* state, y::world arg) const;
+  inline y::world get(lua_State* state, ylib_int index) const;
+  inline bool is(lua_State* state, ylib_int index) const;
+  inline void push(lua_State* state, y::world arg) const;
 };
 
 // Integer type.
@@ -34,9 +54,9 @@ template<>
 struct LuaType<y::int32> {
   static const y::string type_name;
 
-  y::int32 get(lua_State* state, ylib_int index) const;
-  bool is(lua_State* state, ylib_int index) const;
-  void push(lua_State* state, y::int32 arg) const;
+  inline y::int32 get(lua_State* state, ylib_int index) const;
+  inline bool is(lua_State* state, ylib_int index) const;
+  inline void push(lua_State* state, y::int32 arg) const;
 };
 
 // Boolean type.
@@ -44,9 +64,9 @@ template<>
 struct LuaType<bool> {
   static const y::string type_name;
 
-  bool get(lua_State* state, ylib_int index) const;
-  bool is(lua_State* state, ylib_int index) const;
-  void push(lua_State* state, bool arg) const;
+  inline bool get(lua_State* state, ylib_int index) const;
+  inline bool is(lua_State* state, ylib_int index) const;
+  inline void push(lua_State* state, bool arg) const;
 };
 
 // String type.
@@ -54,9 +74,9 @@ template<>
 struct LuaType<y::string> {
   static const y::string type_name;
 
-  y::string get(lua_State* state, ylib_int index) const;
-  bool is(lua_State* state, ylib_int index) const;
-  void push(lua_State* state, const y::string& arg) const;
+  inline y::string get(lua_State* state, ylib_int index) const;
+  inline bool is(lua_State* state, ylib_int index) const;
+  inline void push(lua_State* state, const y::string& arg) const;
 };
 
 // Array type.
@@ -64,22 +84,27 @@ template<typename T>
 struct LuaType<y::vector<T>> {
   static const y::string type_name;
 
-  y::vector<T> get(lua_State* state, ylib_int index) const;
-  bool is(lua_State* state, ylib_int index) const;
-  void push(lua_State* state, const y::vector<T>& arg) const;
+  inline y::vector<T> get(lua_State* state, ylib_int index) const;
+  inline bool is(lua_State* state, ylib_int index) const;
+  inline void push(lua_State* state, const y::vector<T>& arg) const;
+};
+
+// Generic LuaValue union type.
+template<>
+struct LuaType<LuaValue> {
+  static const y::string type_name;
+
+  inline LuaValue get(lua_State* state, ylib_int index) const;
+  inline bool is(lua_State* state, ylib_int index) const;
+  inline void push(lua_State* state, const LuaValue& arg) const;
 };
 
 // Standard type names.
-const y::string LuaType<y::world>::type_name = "world";
-const y::string LuaType<y::int32>::type_name = "int";
-const y::string LuaType<bool>::type_name = "bool";
-const y::string LuaType<y::string>::type_name = "string";
-
 template<typename T>
 const y::string LuaType<y::vector<T>>::type_name =
     "vector<" + LuaType<T>::type_name + ">";
 
-// Generic type implementation.
+// Generic Lua-allocated and copied implementation.
 template<typename T>
 T& LuaType<T>::get(lua_State* state, ylib_int index) const
 {
@@ -213,6 +238,55 @@ void LuaType<y::vector<T>>::push(
   for (y::size i = 0; i < arg.size(); ++i) {
     element_type.push(state, arg[i]);
     lua_rawseti(state, index, 1 + i);
+  }
+}
+
+// Generic LuaValue union implementation.
+LuaValue LuaType<LuaValue>::get(lua_State* state, ylib_int index) const
+{
+  LuaType<y::world> world;
+  if (world.is(state, index)) {
+    return LuaValue(world.get(state, index));
+  }
+
+  LuaType<bool> boolean;
+  if (boolean.is(state, index)) {
+    return LuaValue(boolean.get(state, index));
+  }
+
+  LuaType<y::string> string;
+  if (string.is(state, index)) {
+    return LuaValue(string.get(state, index));
+  }
+
+  return LuaValue(0.);
+}
+
+bool LuaType<LuaValue>::is(lua_State* state, ylib_int index) const
+{
+  LuaType<y::world> world;
+  LuaType<bool> boolean;
+  LuaType<y::string> string;
+
+  return
+      world.is(state, index) ||
+      boolean.is(state, index) ||
+      string.is(state, index);
+}
+
+void LuaType<LuaValue>::push(lua_State* state, const LuaValue& arg) const
+{
+  switch (arg.type) {
+    case LuaValue::WORLD:
+      LuaType<y::world>().push(state, arg.world);
+      break;
+    case LuaValue::BOOLEAN:
+      LuaType<bool>().push(state, arg.boolean);
+      break;
+    case LuaValue::STRING:
+      LuaType<y::string>().push(state, arg.string);
+      break;
+    default: {}
   }
 }
 

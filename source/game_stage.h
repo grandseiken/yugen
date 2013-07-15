@@ -6,6 +6,7 @@
 #include "environment.h"
 #include "lighting.h"
 #include "lua.h"
+#include "lua_types.h"
 #include "modal.h"
 #include "render_util.h"
 #include "world.h"
@@ -50,7 +51,8 @@ public:
   y::int32 get_uid(const Script* script) const;
 
   // Stash a message for calling at the end of the frame.
-  void send_message(Script* script, const y::string& function_name);
+  void send_message(Script* script, const y::string& function_name,
+                    const y::vector<LuaValue>& args);
 
 private:
 
@@ -79,7 +81,11 @@ private:
   mutable y::map<const Script*, y::size> _uid_map;
   mutable y::int32 _uid_counter;
 
-  typedef y::pair<Script*, y::string> message;
+  struct message {
+    Script* script;
+    y::string function_name;
+    y::vector<LuaValue> args;
+  };
   y::vector<message> _messages;
 
   bool _all_unrefreshed;

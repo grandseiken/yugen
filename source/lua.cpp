@@ -1,5 +1,4 @@
 #include "lua.h"
-#include "lua_types.h"
 
 // Variadic push.
 ylib_int push_all(lua_State* state)
@@ -445,11 +444,15 @@ void Script::call(const y::string& function_name)
   }
 }
 
-void Script::call(const y::string& function_name, y::int32 arg)
+void Script::call(const y::string& function_name,
+                  const y::vector<LuaValue>& args)
 {
   lua_getglobal(_state, function_name.c_str());
-  push_all(_state, arg);
-  if (lua_pcall(_state, 1, 0, 1)) {
+  LuaType<LuaValue> t;
+  for (const LuaValue& arg : args) {
+    t.push(_state, arg);
+  }
+  if (lua_pcall(_state, args.size(), 0, 1)) {
     const char* error = lua_tostring(_state, -1);
     std::cerr << "Calling function " << _path << ":" <<
         function_name << " failed";

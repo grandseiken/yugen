@@ -280,8 +280,9 @@ ylib_api(create_region)
 
 ylib_api(send_message)
     ylib_arg(Script*, script) ylib_arg(y::string, function_name)
+    ylib_arg(y::vector<LuaValue>, args)
 {
-  stage.get_scripts().send_message(script, function_name);
+  stage.get_scripts().send_message(script, function_name, args);
   ylib_void();
 }
 

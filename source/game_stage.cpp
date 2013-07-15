@@ -64,9 +64,10 @@ y::int32 ScriptBank::get_uid(const Script* script) const
   return _uid_counter++;
 }
 
-void ScriptBank::send_message(Script* script, const y::string& function_name)
+void ScriptBank::send_message(Script* script, const y::string& function_name,
+                              const y::vector<LuaValue>& args)
 {
-  _messages.emplace_back(script, function_name);
+  _messages.push_back({script, function_name, args});
 }
 
 void ScriptBank::add_script(y::unique<Script> script)
@@ -90,8 +91,8 @@ void ScriptBank::update_all() const
 void ScriptBank::handle_messages()
 {
   for (const auto& m : _messages) {
-    if (m.first->has_function(m.second)) {
-      m.first->call(m.second);
+    if (m.script->has_function(m.function_name)) {
+      m.script->call(m.function_name, m.args);
     }
   }
   _messages.clear();
@@ -674,7 +675,9 @@ void GameStage::event(const sf::Event& e)
       }
     }
     if (b && get_player()->has_function("key")) {
-      get_player()->call("key", pair.first);
+      y::vector<LuaValue> args;
+      args.emplace_back(y::world(pair.first));
+      get_player()->call("key", args);
     }
   }
 

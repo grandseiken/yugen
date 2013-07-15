@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "vector.h"
+#include "lua_types.h"
 
 class Filesystem;
 class GameStage;
@@ -88,7 +89,7 @@ public:
 
   bool has_function(const y::string& function_name) const;
   void call(const y::string& function_name);
-  void call(const y::string& function_name, y::int32 arg);
+  void call(const y::string& function_name, const y::vector<LuaValue>& args);
 
   void destroy();
   bool is_destroyed() const;
