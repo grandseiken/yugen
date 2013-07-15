@@ -24,10 +24,10 @@ function update()
   local new_submerged = {}
 
   local v = vec(submerge_dist, submerge_dist)
-  local left = (origin - region / vec(2, 2)):x()
-  local right = (origin + region / vec(2, 2)):x()
-  local top = (origin - region / vec(2, 2)):y()
-  local bottom = (origin + region / vec(2, 2)):y()
+  local left = (origin - region / 2):x()
+  local right = (origin + region / 2):x()
+  local top = (origin - region / 2):y()
+  local bottom = (origin + region / 2):y()
 
   for i, script in ipairs(new_submerging) do
     local o = get_origin(script)
@@ -56,9 +56,9 @@ function draw()
   render_reflect(DRAW_SPECULAR1, 0.2, o, r,
                  vec(frame / 16, 0), frame / 16, 1, 1, 1, .2,
                  0, .75, 0, 0, 128, 384,
-                 false, true, o - r / vec(2, 2), 4, .5)
+                 false, true, o - r / 2, 4, .5)
   render_reflect(DRAW_OVERLAY1, 0.3, o, r,
                  vec(frame / 16, 0), frame / 16, .3, .6, .8, .4,
                  .5, .1, .2, 2.5, 128, 384,
-                 false, true, o - r / vec(2, 2), 4, .5)
+                 false, true, o - r / 2, 4, .5)
 end

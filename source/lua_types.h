@@ -36,6 +36,7 @@ struct LuaType {
   // For generic types, this can't be defined automatically here. Should be
   // defined by a y_*typedef macro in lua_api.h.
   static const y::string type_name;
+  static T default_value;
 
   inline T& get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
@@ -46,6 +47,7 @@ struct LuaType {
 template<>
 struct LuaType<y::world> {
   static const y::string type_name;
+  static y::world default_value;
 
   inline y::world get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
@@ -56,6 +58,7 @@ struct LuaType<y::world> {
 template<>
 struct LuaType<y::int32> {
   static const y::string type_name;
+  static y::int32 default_value;
 
   inline y::int32 get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
@@ -66,6 +69,7 @@ struct LuaType<y::int32> {
 template<>
 struct LuaType<bool> {
   static const y::string type_name;
+  static bool default_value;
 
   inline bool get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
@@ -76,6 +80,7 @@ struct LuaType<bool> {
 template<>
 struct LuaType<y::string> {
   static const y::string type_name;
+  static y::string default_value;
 
   inline y::string get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
@@ -86,6 +91,7 @@ struct LuaType<y::string> {
 template<typename T>
 struct LuaType<y::vector<T>> {
   static const y::string type_name;
+  static y::vector<T> default_value;
 
   inline y::vector<T> get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
@@ -96,16 +102,22 @@ struct LuaType<y::vector<T>> {
 template<>
 struct LuaType<LuaValue> {
   static const y::string type_name;
+  static LuaValue default_value;
 
   inline LuaValue get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
   inline void push(lua_State* state, const LuaValue& arg) const;
 };
 
-// Standard type names.
+// Standard type names and values.
 template<typename T>
 const y::string LuaType<y::vector<T>>::type_name =
     "array<" + LuaType<T>::type_name + ">";
+
+template<typename T>
+T LuaType<T>::default_value;
+template<typename T>
+y::vector<T> LuaType<y::vector<T>>::default_value;
 
 // Generic Lua-allocated and copied implementation.
 template<typename T>

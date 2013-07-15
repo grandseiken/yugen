@@ -16,17 +16,35 @@ lua_int push_all(lua_State* state, const T& arg, const U&... args)
   return 1 + sizeof...(U);
 }
 
-// Generic get.
+// Generic is and get functions.
+template<typename T>
+bool lua_is(lua_State* state, lua_int index)
+{
+  return LuaType<T>().is(state, index);
+}
+
 template<typename T>
 auto lua_get(lua_State* state, lua_int index) ->
     decltype(LuaType<T>().get(state, index))
 {
-  LuaType<T> t;
 #ifdef LUA_DEBUG
-  luaL_argcheck(state, t.is(state, index), index,
+  luaL_argcheck(state, lua_is<T>(state, index), index,
                 (LuaType<T>::type_name + " expected").c_str());
 #endif
-  return t.get(state, index);
+  return LuaType<T>().get(state, index);
+}
+
+// Lua assert.
+void lua_argassert(lua_State* state,
+                   bool condition, lua_int index, const y::string& message)
+{
+#ifdef LUA_DEBUG
+  luaL_argcheck(state, condition, index, message.c_str());
+#else
+  (void)state;
+  (void)condition;
+  (void)message;
+#endif
 }
 
 struct RegistryIndex {};
@@ -97,6 +115,17 @@ static RegistryIndex stage_registry_index;
 /***/       name.emplace_back(lua_get<T>(_y_state, _y_stack));                 \
 /***/     }
 /***/
+/***/ #define y_optarg(T, name)                                                \
+/***/     bool name##_defined = _y_stack < lua_gettop(_y_state) &&             \
+/***/         lua_is<T>(_y_state, 1 + _y_stack);                               \
+/***/     (void)name##_defined;                                                \
+/***/     decltype(lua_get<T>(_y_state, _y_stack)) name =                      \
+/***/         name##_defined ? lua_get<T>(_y_state, ++_y_stack)                \
+/***/                        : LuaType<T>::default_value;
+/***/
+/***/ #define y_assert(condition, index, message)                              \
+/***/     lua_argassert((_y_state), (condition), (index), (message))
+/***/
 /***/ #define y_return(...)                                                    \
 /***/       return push_all(_y_state, __VA_ARGS__);                            \
 /***/     }                                                                    \
@@ -119,6 +148,8 @@ static RegistryIndex stage_registry_index;
 /***/ #undef y_api
 /***/ #undef y_arg
 /***/ #undef y_varargs
+/***/ #undef y_optarg
+/***/ #undef y_assert
 /***/ #undef y_return
 /***/ #undef y_void
 /***/
@@ -150,13 +181,20 @@ static RegistryIndex stage_registry_index;
 /***/       (void)stage;
 /***/
 /***/ #define y_arg(T, name)                                                   \
-/***/       decltype(lua_get<T>(y::null, 0)) name =                            \
-/***/           lua_get<T>(y::null, 0);                                        \
+/***/       decltype(lua_get<T>(y::null, 0)) name = lua_get<T>(y::null, 0);    \
 /***/       (void)name;
 /***/
 /***/ #define y_varargs(T, name)                                               \
 /***/       y::vector<T> name;                                                 \
 /***/       (void)name;
+/***/
+/***/ #define y_optarg(T, name)                                                \
+/***/       bool name##_defined = false;                                       \
+/***/       decltype(lua_get<T>(y::null, 0)) name = lua_get<T>(y::null, 0);    \
+/***/       (void)name##_defined;                                              \
+/***/       (void)name;
+/***/
+/***/ #define y_assert(condition, index, message)
 /***/
 /***/ #define y_return(...)                                                    \
 /***/       }                                                                  \
@@ -177,6 +215,8 @@ void y_register(lua_State* _y_state)
 /***/ #undef y_api
 /***/ #undef y_arg
 /***/ #undef y_varargs
+/***/ #undef y_optarg
+/***/ #undef y_assert
 /***/ #undef y_return
 /***/ #undef y_void
 /******************************************************************************/

@@ -37,15 +37,31 @@ y_api(vec_sub)
 }
 
 y_api(vec_mul)
-    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
+    y_optarg(const y::wvec2, a_vec) y_optarg(y::world, scalar)
+    y_optarg(const y::wvec2, b_vec)
 {
-  y_return(a * b);
+  static const y::string error =
+           LuaType<y::wvec2>::type_name + " or " +
+           LuaType<y::world>::type_name + " expected";
+  y_assert(a_vec_defined || b_vec_defined, 0, error);
+  y_assert(scalar_defined || (a_vec_defined && b_vec_defined), 1, error);
+
+  y_return((a_vec_defined ? a_vec : y::wvec2(scalar, scalar)) *
+           (b_vec_defined ? b_vec : y::wvec2(scalar, scalar)));
 }
 
 y_api(vec_div)
-    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
+    y_optarg(const y::wvec2, a_vec) y_optarg(y::world, scalar)
+    y_optarg(const y::wvec2, b_vec)
 {
-  y_return(a.euclidean_div(b));
+  static const y::string error =
+           LuaType<y::wvec2>::type_name + " or " +
+           LuaType<y::world>::type_name + " expected";
+  y_assert(a_vec_defined || b_vec_defined, 0, error);
+  y_assert(scalar_defined || (a_vec_defined && b_vec_defined), 1, error);
+
+  y_return((a_vec_defined ? a_vec : y::wvec2(scalar, scalar)) /
+           (b_vec_defined ? b_vec : y::wvec2(scalar, scalar)));
 }
 
 y_api(vec_mod)
