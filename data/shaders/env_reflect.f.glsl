@@ -19,8 +19,15 @@ varying float reflect_dist;
 
 #include "perlin.glsl"
 
-// TODO: need to treat reflections from outside source framebuffer as not
-// relevant somehow rather than locking to edge.
+
+// Sampling outside the source framebuffer produces stretched column artefacts
+// in the reflection. Increasing the source framebuffer size helps, but in
+// general the reflect fade can always been lengthened such that we start
+// sampling outside.
+// We solve this by interpolating away the reflection as we start sampling
+// towards the edge of the source framebuffer.
+const float source_edge_fade_dist = 0.2;
+
 void main()
 {
   // Skip to form waves.
@@ -35,11 +42,13 @@ void main()
   p = 2.0 * (p - vec2(0.5, 0.5));
   p /= vec2(resolution);
 
+  // Calculate reflect and refract coordinates.
+  vec2 reflect_v = reflect_coord + normal_scaling_reflect * reflect_dist * p;
+  vec2 refract_v = refract_coord - normal_scaling_refract * p;
+
   // Mix reflected, refracted and colour.
-  vec4 reflect = texture2D(
-      source, reflect_coord + normal_scaling_reflect * reflect_dist * p);
-  vec4 refract = texture2D(
-      source, refract_coord - normal_scaling_refract * p);
+  vec4 reflect = texture2D(source, reflect_v);
+  vec4 refract = texture2D(source, refract_v);
 
   // Calculate reflection coefficient based on distance.
   float reflect_dist_mix =
@@ -47,7 +56,12 @@ void main()
       (reflect_fade_end - reflect_fade_start);
   reflect_dist_mix = 1.0 - max(0.0, min(1.0, reflect_dist_mix));
 
-  vec4 c = mix(colour, reflect, reflect_mix * reflect_dist_mix);
+  // Interpolate near the edge of source framebuffer.
+  float edge_dist = min(min(reflect_v.x, reflect_v.y),
+                        min(1.0 - reflect_v.x, 1.0 - reflect_v.y));
+  float edge_fade = max(0.0, min(1.0, edge_dist / source_edge_fade_dist));
+
+  vec4 c = mix(colour, reflect, reflect_mix * reflect_dist_mix * edge_fade);
   c = mix(refract, c, colour.a);
   gl_FragColor = vec4(c.r, c.g, c.b, 1.0);
 }

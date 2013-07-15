@@ -20,24 +20,23 @@ local submerge_dist = 128
 function update()
   local origin = get_origin(self)
   local region = get_region(self)
-  local new_submerging = get_scripts_in_region(origin, region)
+  local v = vec(submerge_dist, submerge_dist)
+
+  local new_submerging = get_scripts_in_region(origin, region + v / 2)
   local new_submerged = {}
 
-  local v = vec(submerge_dist, submerge_dist)
-  local left = (origin - region / 2):x()
-  local right = (origin + region / 2):x()
-  local top = (origin - region / 2):y()
-  local bottom = (origin + region / 2):y()
+  local min = origin - region / 2 - v / 4
+  local max = origin + region / 2 + v / 4
 
   for i, script in ipairs(new_submerging) do
     local o = get_origin(script)
-    if o:in_region(origin, region - v) then
+    if o:in_region(origin, region - v / 2) then
       new_submerged[1 + #new_submerged] = script
     else
-      dist = math.min(math.abs(o:x() - left),
-                      math.abs(o:x() - right),
-                      math.abs(o:y() - top),
-                      math.abs(o:y() - bottom))
+      dist = math.min(math.abs(o:x() - min:x()),
+                      math.abs(o:x() - max:x()),
+                      math.abs(o:y() - min:y()),
+                      math.abs(o:y() - max:y()))
       submerge(2 * dist / submerge_dist)(script)
     end
   end
