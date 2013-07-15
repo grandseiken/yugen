@@ -37,11 +37,11 @@ local wall_jump_timer = 0
 local wall_jump_left = false
 
 -- Events.
-function on_enter_water()
-  set_light_layer_value(light, .25)
+function on_submerge(amount)
+  set_light_layer_value(light, .2 + .05 * amount)
 end
 
-function on_leave_water()
+function on_emerge()
   set_light_layer_value(light, 0)
 end
 

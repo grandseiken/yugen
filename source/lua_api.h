@@ -119,7 +119,7 @@ ylib_api(vec_in_region)
     ylib_arg(const y::wvec2, v)
     ylib_arg(const y::wvec2, origin) ylib_arg(const y::wvec2, size)
 {
-  ylib_return(v.in_region(origin, size));
+  ylib_return(v.in_region(origin - size / 2, size));
 }
 
 ylib_api(vec_abs)
@@ -140,8 +140,8 @@ ylib_api(vec_min)
   ylib_return(y::min(a, b));
 }
 
-typedef y::wvec2 ylib_vec;
-ylib_valtypedef(ylib_vec)
+typedef y::wvec2 Vec;
+ylib_valtypedef(Vec)
   ylib_method("__add", vec_add)
   ylib_method("__sub", vec_sub)
   ylib_method("__mul", vec_mul)

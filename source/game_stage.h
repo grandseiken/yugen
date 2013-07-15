@@ -6,7 +6,6 @@
 #include "environment.h"
 #include "lighting.h"
 #include "lua.h"
-#include "lua_types.h"
 #include "modal.h"
 #include "render_util.h"
 #include "world.h"

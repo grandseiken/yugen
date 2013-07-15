@@ -20,9 +20,9 @@ local function update_script_set(
     end
   end
   -- Handle old values.
-  for uid, reference in pairs(previous_set) do
-    if new_set[uid] == nil and reference:valid() then
-      remove_function(reference:get())
+  for uid, ref in pairs(previous_set) do
+    if new_set[uid] == nil and ref:valid() then
+      remove_function(ref:get())
     end
   end
   return new_set

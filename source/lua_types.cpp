@@ -18,9 +18,15 @@ LuaValue::LuaValue(const y::string& string)
 {
 }
 
+LuaValue::LuaValue(const y::vector<LuaValue>& array)
+  : type(ARRAY)
+  , array(array)
+{
+}
+
 // Standard type names.
 const y::string LuaType<y::world>::type_name = "world";
 const y::string LuaType<y::int32>::type_name = "int";
 const y::string LuaType<bool>::type_name = "bool";
 const y::string LuaType<y::string>::type_name = "string";
-const y::string LuaType<LuaValue>::type_name = "LuaValue";
+const y::string LuaType<LuaValue>::type_name = "[value]";

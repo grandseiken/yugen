@@ -7,10 +7,10 @@ local body = create_body(self, vec(0, 0), vec(32, 32))
 set_collide_mask(body, COLLIDE_WORLD)
 local test = create_light(self, 50, 50)
 
-function on_enter_water()
-  set_light_layer_value(test, .25)
+function on_submerge(amount)
+  set_light_layer_value(test, .2 + .05 * amount)
 end
-function on_leave_water()
+function on_emerge()
   set_light_layer_value(test, 0)
 end
 

@@ -15,23 +15,26 @@ struct LuaValue {
   LuaValue(y::world world);
   LuaValue(bool boolean);
   LuaValue(const y::string& string);
+  LuaValue(const y::vector<LuaValue>& array);
 
   enum {
     WORLD,
     BOOLEAN,
     STRING,
+    ARRAY,
   } type;
 
   y::world world;
   bool boolean;
   y::string string;
+  y::vector<LuaValue> array;
 };
 
 // Generic Lua-allocated and copied type.
 template<typename T>
 struct LuaType {
   // For generic types, this can't be defined automatically here. Should be
-  // defined by a ylib_typedef macro in lua_api.h.
+  // defined by a ylib_*typedef macro in lua_api.h.
   static const y::string type_name;
 
   inline T& get(lua_State* state, ylib_int index) const;
@@ -102,7 +105,7 @@ struct LuaType<LuaValue> {
 // Standard type names.
 template<typename T>
 const y::string LuaType<y::vector<T>>::type_name =
-    "vector<" + LuaType<T>::type_name + ">";
+    "array<" + LuaType<T>::type_name + ">";
 
 // Generic Lua-allocated and copied implementation.
 template<typename T>
@@ -259,6 +262,11 @@ LuaValue LuaType<LuaValue>::get(lua_State* state, ylib_int index) const
     return LuaValue(string.get(state, index));
   }
 
+  LuaType<y::vector<LuaValue>> array;
+  if (array.is(state, index)) {
+    return LuaValue(array.get(state, index));
+  }
+
   return LuaValue(0.);
 }
 
@@ -267,11 +275,13 @@ bool LuaType<LuaValue>::is(lua_State* state, ylib_int index) const
   LuaType<y::world> world;
   LuaType<bool> boolean;
   LuaType<y::string> string;
+  LuaType<y::vector<LuaValue>> array;
 
   return
       world.is(state, index) ||
       boolean.is(state, index) ||
-      string.is(state, index);
+      string.is(state, index) ||
+      array.is(state, index);
 }
 
 void LuaType<LuaValue>::push(lua_State* state, const LuaValue& arg) const
@@ -285,6 +295,9 @@ void LuaType<LuaValue>::push(lua_State* state, const LuaValue& arg) const
       break;
     case LuaValue::STRING:
       LuaType<y::string>().push(state, arg.string);
+      break;
+    case LuaValue::ARRAY:
+      LuaType<y::vector<LuaValue>>().push(state, arg.array);
       break;
     default: {}
   }
