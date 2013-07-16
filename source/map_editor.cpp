@@ -5,6 +5,7 @@
 #include "proto/cell.pb.h"
 #include "window.h"
 
+#include <chrono>
 #include <SFML/Window.hpp>
 
 MapEditor::MapEditor(
@@ -26,6 +27,8 @@ MapEditor::MapEditor(
   , _script_panel(bank)
   , _layer_panel(_layer_status)
   , _minimap_panel(map, _camera, _zoom)
+  , _generator(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now().time_since_epoch()).count())
 {
   get_panel_ui().add(_brush_panel);
   get_panel_ui().add(_tile_panel);
@@ -150,11 +153,18 @@ void MapEditor::event(const sf::Event& e)
       break;
 
     // New cell.
-    // TODO: generate new cell names as random strings.
     case sf::Keyboard::N:
       if (is_mouse_on_screen() && !cell) {
+        static const y::string hex = "0123456789abcdef";
+        y::string random_name;
+        y::size r = std::uniform_int_distribution<y::size>()(_generator);
+        for (y::size i = 0; i < 8; ++i) {
+          random_name += hex[r % hex.length()];
+          r /= hex.length();
+        }
         push(y::move_unique(new TextInputModal(
-            _util, "/world/new.cell", _input_result, "Add cell using name:")));
+            _util, "/world/" + random_name +  ".cell",
+            _input_result, "Add cell using name:")));
       }
       break;
 

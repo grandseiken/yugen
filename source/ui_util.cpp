@@ -128,6 +128,12 @@ void TextInputModal::event(const sf::Event& e)
         ++_cursor;
       }
       break;
+    case sf::Keyboard::Home:
+      _cursor = 0;
+      break;
+    case sf::Keyboard::End:
+      _cursor = _output.result.size();
+      break;
     case sf::Keyboard::BackSpace:
       if (_cursor) {
         _output.result = _output.result.substr(0, _cursor - 1) +
@@ -202,10 +208,12 @@ void ConfirmationModal::event(const sf::Event& e)
   switch (e.key.code) {
     case sf::Keyboard::A:
     case sf::Keyboard::Left:
+    case sf::Keyboard::Home:
       _output.confirm = true;
       break;
     case sf::Keyboard::D:
     case sf::Keyboard::Right:
+    case sf::Keyboard::End:
       _output.confirm = false;
       break;
     case sf::Keyboard::Tab:

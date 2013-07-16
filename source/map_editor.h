@@ -6,6 +6,7 @@
 #include "map_editor_util.h"
 #include "modal.h"
 #include "vector.h"
+#include <random>
 
 class CellMap;
 class Databank;
@@ -73,6 +74,8 @@ private:
   y::unique<ScriptAddAction> _script_add_action;
   TextInputResult _input_result;
   ConfirmationResult _confirm_result;
+
+  std::default_random_engine _generator;
 
 };
 
