@@ -182,6 +182,9 @@ void Lighting::render_traces(
       const y::wvec2 min = y::min(a, b);
       if (max >= camera_min && min < camera_max) {
         lines.emplace_back(RenderUtil::line{y::fvec2(a), y::fvec2(b)});
+        util.render_fill(
+            y::fvec2(pair.first.origin + pair.second[i]) - y::fvec2{2.f, 2.f},
+            y::fvec2{4.f, 4.f}, y::fvec4{.5f, .5f, .5f, .5f});
       }
     }
   }
@@ -599,6 +602,7 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     if (new_closest_geometry == prev_closest_geometry && !add_first) {
       continue;
     }
+    add_first = false;
 
     // Add the two new points.
     y::wvec2 prev_closest_point =
