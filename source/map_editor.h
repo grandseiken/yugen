@@ -16,7 +16,7 @@ class RenderUtil;
 class MapEditor: public Modal {
 public:
 
-  MapEditor(Databank& bank, RenderUtil& util, CellMap& map);
+  MapEditor(Filesystem& output, Databank& bank, RenderUtil& util, CellMap& map);
   ~MapEditor() override {}
 
   void event(const sf::Event& e) override;
@@ -47,6 +47,7 @@ private:
   y::ivec2 get_hover_tile() const;
   y::ivec2 get_hover_cell() const;
 
+  Filesystem& _output;
   Databank& _bank;
   RenderUtil& _util;
   CellMap& _map;
@@ -71,6 +72,7 @@ private:
   y::unique<TileEditAction> _tile_edit_action;
   y::unique<ScriptAddAction> _script_add_action;
   TextInputResult _input_result;
+  ConfirmationResult _confirm_result;
 
 };
 

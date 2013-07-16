@@ -21,10 +21,11 @@ public:
 
   Dataset(T& default_resource);
 
+  // Save specific resource to filesystem.
+  void save(Filesystem& filesystem, const Databank& bank,
+            const y::string& name, bool human_readable = false) const;
+
   // Save all resources to filesystem.
-  template<typename P,
-           typename std::enable_if<
-               std::is_base_of<y::io<P>, T>::value, bool>::type = 0>
   void save_all(Filesystem& filesystem, const Databank& bank,
                 bool human_readable = false) const;
 
@@ -55,6 +56,9 @@ public:
 
   // Rename resource.
   void rename(const T& resource, const y::string& new_name);
+
+  // Clear everything.
+  void clear();
 
 private:
 
@@ -89,6 +93,7 @@ class Databank : public y::no_copy {
 public:
 
   Databank(const Filesystem& filesystem, GlUtil& gl);
+  void reload_cells_and_maps(const Filesystem& filesystem);
 
   // Get the dataset for a generic type.
   template<typename T>
@@ -96,9 +101,13 @@ public:
   template<typename T>
   /***/ Dataset<T>& get_set();
 
-  // Save all the resources of a certain type. Pass the protobuf type as the
-  // second parameter.
-  template<typename T, typename P>
+  // Save resource of a given type.
+  template<typename T>
+  void save_name(Filesystem& filesystem, const y::string& name) const;
+  template<typename T>
+  void save(Filesystem& filesystem, const T& t) const;
+  // Save all the resources of a certain type.
+  template<typename T>
   void save_all(Filesystem& filesystem) const;
 
   Dataset<LuaFile> scripts;
@@ -123,18 +132,22 @@ Dataset<T>::Dataset(T& default_resource)
 }
 
 template<typename T>
-template<typename P,
-         typename std::enable_if<
-             std::is_base_of<y::io<P>, T>::value, bool>::type>
+void Dataset<T>::save(Filesystem& filesystem, const Databank& bank,
+                      const y::string& name, bool human_readable) const
+{
+  auto it = _map.find(name);
+  if (it != _map.end()) {
+    it->second->y::template io<typename T::io_protobuf_type>::save(
+        filesystem, bank, name, human_readable);
+  }
+}
+
+template<typename T>
 void Dataset<T>::save_all(Filesystem& filesystem, const Databank& bank,
                           bool human_readable) const
 {
-  for (const y::string& s : _list) {
-    auto it = _map.find(s);
-    if (it == _map.end()) {
-      continue;
-    }
-    it->second->y::template io<P>::save(filesystem, bank, s, human_readable);
+  for (const y::string& name : _list) {
+    save(filesystem, bank, name, human_readable);
   }
 }
 
@@ -287,6 +300,13 @@ void Dataset<T>::rename(const T& resource, const y::string& new_name)
   jt.first->second.swap(temp);
 }
 
+template<typename T>
+void Dataset<T>::clear()
+{
+  _list.clear();
+  _map.clear();
+}
+
 template<>
 inline const Dataset<LuaFile>& Databank::get_set<LuaFile>() const
 {
@@ -347,10 +367,22 @@ inline Dataset<CellMap>& Databank::get_set<CellMap>()
   return maps;
 }
 
-template<typename T, typename P>
+template<typename T>
+void Databank::save_name(Filesystem& filesystem, const y::string& name) const
+{
+  get_set<T>().template save(filesystem, *this, name);
+}
+
+template<typename T>
+void Databank::save(Filesystem& filesystem, const T& t) const
+{
+  save_name<T>(filesystem, get_set<T>().get_name(t));
+}
+
+template<typename T>
 void Databank::save_all(Filesystem& filesystem) const
 {
-  get_set<T>().template save_all<P>(filesystem, *this);
+  get_set<T>().template save_all(filesystem, *this);
 }
 
 #endif

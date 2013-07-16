@@ -68,4 +68,29 @@ private:
 
 };
 
+struct ConfirmationResult {
+  ConfirmationResult();
+
+  bool confirm;
+};
+
+class ConfirmationModal : public Modal {
+public:
+
+  ConfirmationModal(RenderUtil& util, ConfirmationResult& output,
+                    const y::string& message);
+  ~ConfirmationModal() override {}
+
+  void event(const sf::Event& e) override;
+  void update() override;
+  void draw() const override;
+
+private:
+
+  RenderUtil& _util;
+  ConfirmationResult& _output;
+  y::string _message;
+
+};
+
 #endif

@@ -4,7 +4,6 @@
 #include "gl_util.h"
 #include "map_editor.h"
 #include "physical_filesystem.h"
-#include "proto/cell.pb.h"
 #include "render_util.h"
 #include "tileset_editor.h"
 #include "window.h"
@@ -71,7 +70,7 @@ void Yedit::event(const sf::Event& e)
     case sf::Keyboard::Return:
       if (_list_select == 0) {
         push(y::move_unique(new TilesetEditor(
-            _bank, _util, _bank.tilesets.get(_tileset_select))));
+            _output, _bank, _util, _bank.tilesets.get(_tileset_select))));
       }
       else if (_list_select == 1) {
         if (shift) {
@@ -80,15 +79,11 @@ void Yedit::event(const sf::Event& e)
         }
         else {
           push(y::move_unique(new MapEditor(
-              _bank, _util, _bank.maps.get(_map_select))));
+              _output, _bank, _util, _bank.maps.get(_map_select))));
         }
       }
       break;
     case sf::Keyboard::Escape:
-      // TODO: work out where saving should happen.
-      _bank.save_all<CellBlueprint, proto::CellBlueprint>(_output);
-      _bank.save_all<CellMap, proto::CellMap>(_output);
-      _bank.save_all<Tileset, proto::Tileset>(_output);
       end();
       break;
     default: {}

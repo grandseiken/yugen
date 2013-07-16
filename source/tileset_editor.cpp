@@ -1,6 +1,7 @@
 #include "tileset_editor.h"
 
 #include "databank.h"
+#include "proto/cell.pb.h"
 #include "render_util.h"
 #include "tileset.h"
 #include "window.h"
@@ -269,8 +270,10 @@ void CollidePanel::draw(RenderUtil& util) const
   }
 }
 
-TilesetEditor::TilesetEditor(Databank& bank, RenderUtil& util, Tileset& tileset)
-  : _bank(bank)
+TilesetEditor::TilesetEditor(
+    Filesystem& output, Databank& bank, RenderUtil& util, Tileset& tileset)
+  : _output(output)
+  , _bank(bank)
   , _util(util)
   , _tileset(tileset)
   , _collide_select(0)
@@ -289,6 +292,7 @@ void TilesetEditor::event(const sf::Event& e)
 
   switch (e.key.code) {
     case sf::Keyboard::Escape:
+      _bank.save(_output, _tileset);
       end();
       break;
     default: {}

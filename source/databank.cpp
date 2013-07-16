@@ -77,7 +77,12 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
     sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
   }
 
-  paths.clear();
+  reload_cells_and_maps(filesystem);
+}
+
+void Databank::reload_cells_and_maps(const Filesystem& filesystem)
+{
+  y::string_vector paths;
   filesystem.list_pattern(paths, "/world/**.cell");
   for (const y::string& s : paths) {
     CellBlueprint* cell = new CellBlueprint();

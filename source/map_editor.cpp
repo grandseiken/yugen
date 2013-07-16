@@ -2,12 +2,15 @@
 
 #include "databank.h"
 #include "gl_util.h"
+#include "proto/cell.pb.h"
 #include "window.h"
 
 #include <SFML/Window.hpp>
 
-MapEditor::MapEditor(Databank& bank, RenderUtil& util, CellMap& map)
-  : _bank(bank)
+MapEditor::MapEditor(
+    Filesystem& output, Databank& bank, RenderUtil& util, CellMap& map)
+  : _output(output)
+  , _bank(bank)
   , _util(util)
   , _map(map)
   , _yedit_scene_program(util.get_gl().make_unique_program({
@@ -116,7 +119,13 @@ void MapEditor::event(const sf::Event& e)
   switch (e.key.code) {
     // Quit!
     case sf::Keyboard::Escape:
-      end();
+      if (get_undo_stack().is_position_saved()) {
+        end();
+      }
+      else {
+        push(y::move_unique(new ConfirmationModal(
+            _util, _confirm_result, "Unsaved changes. Are you sure?")));
+      }
       break;
 
     // Kick off game.
@@ -141,6 +150,7 @@ void MapEditor::event(const sf::Event& e)
       break;
 
     // New cell.
+    // TODO: generate new cell names as random strings.
     case sf::Keyboard::N:
       if (is_mouse_on_screen() && !cell) {
         push(y::move_unique(new TextInputModal(
@@ -178,7 +188,14 @@ void MapEditor::event(const sf::Event& e)
 
     case sf::Keyboard::S:
       if (control) {
-        // TODO: make this actually save the map and cells in question.
+        _bank.save(_output, _map);
+        for (auto it = y::cartesian(_map.get_boundary_min(),
+                                    _map.get_boundary_max()); it; ++it) {
+          CellBlueprint* c = _map.get_coord(*it);
+          if (c) {
+            _bank.save(_output, *c);
+          }
+        }
         get_undo_stack().save_position();
       }
       break;
@@ -246,7 +263,7 @@ void MapEditor::update()
         _bank.cells.get_name(*_map.get_coord(get_hover_cell())));
   }
   if (!get_undo_stack().is_position_saved()) {
-    _layer_status.emplace_back("*unsaved*");
+    _layer_status.emplace_back("*Unsaved*");
   }
 
   // Drag camera.
@@ -281,6 +298,12 @@ void MapEditor::update()
       }
     }
     _input_result.success = false;
+  }
+
+  // Quit without saving.
+  if (_confirm_result.confirm) {
+    _bank.reload_cells_and_maps(_output);
+    end();
   }
 
   if (!is_dragging()) {

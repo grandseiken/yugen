@@ -5,6 +5,7 @@
 #include "modal.h"
 
 class Databank;
+class Filesystem;
 class Tileset;
 
 // Action that sets the collision of a tile.
@@ -66,7 +67,8 @@ private:
 class TilesetEditor : public Modal {
 public:
 
-  TilesetEditor(Databank& bank, RenderUtil& util, Tileset& tileset);
+  TilesetEditor(
+      Filesystem& output, Databank& bank, RenderUtil& util, Tileset& tileset);
   ~TilesetEditor() override {}
 
   void event(const sf::Event& e) override;
@@ -75,6 +77,7 @@ public:
 
 private:
 
+  Filesystem& _output;
   Databank& _bank;
   RenderUtil& _util;
   Tileset& _tileset;

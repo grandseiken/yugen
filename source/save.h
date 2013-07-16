@@ -14,6 +14,9 @@ namespace y {
   class io : public y::no_copy {
   public:
 
+    // Allows derived classes to determine the protobuf type.
+    typedef P io_protobuf_type;
+
     // Save this object to the filesystem, under the given path.
     // If human_readable is true, use the ASCII protobuf format.
     void save(Filesystem& filesystem, const Databank& bank,

@@ -178,3 +178,70 @@ void TextInputModal::draw() const
                        colour::black);
   }
 }
+
+ConfirmationResult::ConfirmationResult()
+  : confirm(false)
+{
+}
+
+ConfirmationModal::ConfirmationModal(RenderUtil& util, ConfirmationResult& output,
+                                     const y::string& message)
+  : _util(util)
+  , _output(output)
+  , _message(message)
+{
+  _output.confirm = false;
+}
+
+void ConfirmationModal::event(const sf::Event& e)
+{
+  if (e.type != sf::Event::KeyPressed) {
+    return;
+  }
+
+  switch (e.key.code) {
+    case sf::Keyboard::A:
+    case sf::Keyboard::Left:
+      _output.confirm = true;
+      break;
+    case sf::Keyboard::D:
+    case sf::Keyboard::Right:
+      _output.confirm = false;
+      break;
+    case sf::Keyboard::Tab:
+      _output.confirm = !_output.confirm;
+      break;
+    case sf::Keyboard::Return:
+      end();
+      break;
+    case sf::Keyboard::Escape:
+      _output.confirm = false;
+      end();
+      break;
+    default: {}
+  }
+}
+
+void ConfirmationModal::update()
+{
+}
+
+void ConfirmationModal::draw() const
+{
+  const Resolution& r = _util.get_window().get_mode();
+  y::ivec2 size = RenderUtil::from_grid({
+      y::int32(y::max(_message.length(), y::size(10))), 2});
+  y::ivec2 origin = r.size / 2 - size / 2;
+  _util.irender_fill(origin, {size[xx], RenderUtil::from_grid()[yy]},
+                     colour::panel);
+  _util.irender_outline(origin - y::ivec2{1, 1},
+                        y::ivec2{2, 2} + size, colour::outline);
+  _util.irender_text(_message, origin, colour::item);
+  _util.irender_text(_output.confirm ? "[Yes]" : " Yes ",
+                     origin + RenderUtil::from_grid({0, 1}),
+                     _output.confirm ? colour::select : colour::item);
+  _util.irender_text(!_output.confirm ? "[No]" : " No ",
+                     origin + y::ivec2{size[xx], 0} +
+                         RenderUtil::from_grid({-4, 1}),
+                     !_output.confirm ? colour::select : colour::item);
+}
