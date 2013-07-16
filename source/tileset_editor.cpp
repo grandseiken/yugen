@@ -291,6 +291,12 @@ void TilesetEditor::event(const sf::Event& e)
   }
 
   switch (e.key.code) {
+    case sf::Keyboard::S:
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) ||
+          sf::Keyboard::isKeyPressed(sf::Keyboard::RControl)) {
+        _bank.save(_output, _tileset);
+      }
+      break;
     case sf::Keyboard::Escape:
       _bank.save(_output, _tileset);
       end();

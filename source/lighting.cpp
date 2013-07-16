@@ -172,19 +172,26 @@ void Lighting::render_traces(
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
   y::vector<RenderUtil::line> lines;
+
   for (const auto& pair : get_traces()) {
     for (y::size i = 0; i < pair.second.size(); ++i) {
       y::wvec2 a = pair.first.origin + pair.second[i];
       y::wvec2 b = pair.first.origin + pair.second[(1 + i) %
                                                    pair.second.size()];
+      y::wvec2 c = pair.first.origin + pair.second[
+          (pair.second.size() + i - 1) % pair.second.size()];
 
       const y::wvec2 max = y::max(a, b);
       const y::wvec2 min = y::min(a, b);
       if (max >= camera_min && min < camera_max) {
         lines.emplace_back(RenderUtil::line{y::fvec2(a), y::fvec2(b)});
-        util.render_fill(
-            y::fvec2(pair.first.origin + pair.second[i]) - y::fvec2{2.f, 2.f},
-            y::fvec2{4.f, 4.f}, y::fvec4{.5f, .5f, .5f, .5f});
+        if (a != c) {
+          util.render_fill(
+              y::fvec2(a) - y::fvec2{2.f, 2.f},
+              y::fvec2{4.f, 4.f}, a == b ? y::fvec4{0.f, 0.f, 1.f, .5f} :
+                                   i % 2 ? y::fvec4{1.f, 0.f, 0.f, .5f} :
+                                           y::fvec4{0.f, 1.f, 0.f, .5f});
+        }
       }
     }
   }
@@ -292,12 +299,15 @@ void Lighting::render_internal(
         y::size b = (1 + i) % trace.size();
         y::size next = (2 + i) % trace.size();
 
-        y::size l = trace[a].length_squared() <=
-                    trace[prev].length_squared() ? a : prev;
-        y::size r = trace[b].length_squared() <=
-                    trace[next].length_squared() ? b : next;
+        bool l_concave = trace[a].length_squared() <=
+                         trace[prev].length_squared();
+        bool r_concave = trace[b].length_squared() <=
+                         trace[next].length_squared();
+        y::size l = l_concave ? a : prev;
+        y::size r = r_concave ? b : next;
 
-        // Render the triangles: origin, l, r; l, r, b; a, b, l.
+        // Render the triangles: origin, l, r; l, r, b; a, b, l. Skip the
+        // triangles which have no area (avoids artefacts).
         if (line_intersects_rect(y::wvec2(), trace[l], min, max) ||
             line_intersects_rect(y::wvec2(), trace[r], min, max) ||
             line_intersects_rect(trace[l], trace[r], min, max)) {
@@ -305,16 +315,18 @@ void Lighting::render_internal(
           element_data.emplace_back(origin_index + 1 + l);
           element_data.emplace_back(origin_index + 1 + r);
         }
-        if (line_intersects_rect(trace[l], trace[b], min, max) ||
-            line_intersects_rect(trace[r], trace[b], min, max) ||
-            line_intersects_rect(trace[l], trace[r], min, max)) {
+        if (!r_concave &&
+            (line_intersects_rect(trace[l], trace[b], min, max) ||
+             line_intersects_rect(trace[r], trace[b], min, max) ||
+             line_intersects_rect(trace[l], trace[r], min, max))) {
           element_data.emplace_back(origin_index + 1 + l);
           element_data.emplace_back(origin_index + 1 + r);
           element_data.emplace_back(origin_index + 1 + b);
         }
-        if (line_intersects_rect(trace[a], trace[l], min, max) ||
-            line_intersects_rect(trace[b], trace[l], min, max) ||
-            line_intersects_rect(trace[a], trace[b], min, max)) {
+        if (!l_concave &&
+            (line_intersects_rect(trace[a], trace[l], min, max) ||
+             line_intersects_rect(trace[b], trace[l], min, max) ||
+             line_intersects_rect(trace[a], trace[b], min, max))) {
           element_data.emplace_back(origin_index + 1 + a);
           element_data.emplace_back(origin_index + 1 + b);
           element_data.emplace_back(origin_index + 1 + l);
