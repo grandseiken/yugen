@@ -7,6 +7,14 @@ function update()
 end
 
 function draw()
-  render_fog(DRAW_OVERLAY0, 0.7, get_origin(self), get_region(self),
-             vec(frame / 4, -frame / 8), frame / 8, .5, .5, .5, .25, 0.4, 0.7)
+  render_fog_table({
+      layer = DRAW_OVERLAY0,
+      layering_value = 0.7,
+      origin = get_origin(self),
+      region = get_region(self),
+      tex_offset = vec(frame / 4, -frame / 8),
+      frame = frame / 8,
+      colour = colour(.5, .5, .5, .25),
+      fog_min = 0.4,
+      fog_max = 0.7})
 end

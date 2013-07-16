@@ -6,6 +6,12 @@
 #include <thread>
 #include <SFML/Window.hpp>
 
+UndoStack::UndoStack()
+  : _save_offset(0)
+  , _save_position_exists(true)
+{
+}
+
 bool UndoStack::can_undo() const
 {
   return !_undo_stack.empty();
@@ -20,8 +26,15 @@ void UndoStack::new_action(y::unique<StackAction> action)
 {
   action->redo();
   _undo_stack.emplace_back();
-  (_undo_stack.end() - 1)->swap(action);
+  _undo_stack.rbegin()->swap(action);
   _redo_stack.clear();
+
+  if (_save_offset >= 0) {
+    ++_save_offset;
+  }
+  else {
+    _save_position_exists = false;
+  }
 }
 
 void UndoStack::undo()
@@ -30,10 +43,11 @@ void UndoStack::undo()
     return;
   }
 
-  (*(_undo_stack.end() - 1))->undo();
+  (*_undo_stack.rbegin())->undo();
   _redo_stack.emplace_back();
-  (_undo_stack.end() - 1)->swap(*(_redo_stack.end() - 1));
+  _undo_stack.rbegin()->swap(*_redo_stack.rbegin());
   _undo_stack.erase(_undo_stack.end() - 1);
+  --_save_offset;
 }
 
 void UndoStack::redo()
@@ -42,10 +56,22 @@ void UndoStack::redo()
     return;
   }
 
-  (*(_redo_stack.end() - 1))->redo();
+  (*_redo_stack.rbegin())->redo();
   _undo_stack.emplace_back();
-  (_redo_stack.end() - 1)->swap(*(_undo_stack.end() - 1));
+  _redo_stack.rbegin()->swap(*_undo_stack.rbegin());
   _redo_stack.erase(_redo_stack.end() - 1);
+  ++_save_offset;
+}
+
+void UndoStack::save_position()
+{
+  _save_offset = 0;
+  _save_position_exists = true;
+}
+
+bool UndoStack::is_position_saved() const
+{
+  return _save_position_exists && !_save_offset;
 }
 
 Draggable::Draggable()

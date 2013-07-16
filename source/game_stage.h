@@ -231,7 +231,7 @@ private:
 
 };
 
-// Super God object acts as the intermediary between Scripts and all game
+// Super God Object acts as the intermediary between Scripts and all game
 // subsystems.
 class GameStage : public Modal {
 public:

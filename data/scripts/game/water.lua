@@ -52,12 +52,36 @@ end
 function draw()
   local o = get_origin(self)
   local r = get_region(self)
-  render_reflect(DRAW_SPECULAR1, 0.2, o, r,
-                 vec(frame / 16, 0), frame / 16, 1, 1, 1, .2,
-                 0, .75, 0, 0, 128, 384,
-                 false, true, o - r / 2, 4, .5)
-  render_reflect(DRAW_OVERLAY1, 0.3, o, r,
-                 vec(frame / 16, 0), frame / 16, .3, .6, .8, .4,
-                 .5, .1, .2, 2.5, 128, 384,
-                 false, true, o - r / 2, 4, .5)
+
+  table = {
+      layer = DRAW_OVERLAY1,
+      layering_value = 0.3,
+      origin = o,
+      region = r,
+      tex_offset = vec(frame / 16, 0),
+      frame = frame / 16,
+      colour = colour(.3, .6, .8, .4),
+      reflect_mix = .5,
+      normal_scaling = .1,
+      normal_scaling_reflect = .2,
+      normal_scaling_refract = 2.5,
+      reflect_fade_start = 128,
+      reflect_fade_end = 384,
+      flip_x = false,
+      flip_y = true,
+      flip_axes = o - r / 2,
+      wave_height = 4,
+      wave_scale = .5}
+
+  render_reflect_table(table)
+
+  table.layer = DRAW_SPECULAR1
+  table.layering_value = 0.2
+  table.colour = colour(1, 1, 1, .2)
+  table.reflect_mix = 0
+  table.normal_scaling = .75
+  table.normal_scaling_reflect = 0
+  table.normal_scaling_refract = 0
+
+  render_reflect_table(table)
 end

@@ -18,5 +18,5 @@ function update()
   collider_move(self, vec(0, 3))
 end
 function draw()
-  render_sprite_world(sprite, vec(32, 32), vec(4, 3), 0.3)
+  render_sprite_self(sprite, vec(32, 32), vec(4, 3), 0.3)
 end

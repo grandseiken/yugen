@@ -27,6 +27,8 @@ public:
 class UndoStack : public y::no_copy {
 public:
 
+  UndoStack();
+
   bool can_undo() const;
   bool can_redo() const;
 
@@ -37,12 +39,20 @@ public:
   void undo();
   void redo();
 
+  // Saves the current position in the stack, so we know if anything has changed
+  // since the last save.
+  void save_position();
+  bool is_position_saved() const;
+
 private:
 
   typedef y::unique<StackAction> element;
   typedef y::vector<element> stack;
   stack _undo_stack;
   stack _redo_stack;
+
+  y::int32 _save_offset;
+  bool _save_position_exists;
 
 };
 

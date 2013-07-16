@@ -18,5 +18,5 @@ function update()
   end
 end
 function draw()
-  render_sprite_world(sprite, vec(32, 32), vec(1, 0), 0.0)
+  render_sprite_self(sprite, vec(32, 32), vec(1, 0), 0.0)
 end

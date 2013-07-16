@@ -234,5 +234,5 @@ local frame_size = vec(32, 32)
 local frame = vec(3, 16)
 
 function draw()
-  render_sprite_world(sprite, frame_size, frame, 0.3)
+  render_sprite_self(sprite, frame_size, frame, 0.3)
 end

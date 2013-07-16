@@ -176,6 +176,13 @@ void MapEditor::event(const sf::Event& e)
                         Zoom::array[old_zoom] / Zoom::array[_zoom]);
       break;
 
+    case sf::Keyboard::S:
+      if (control) {
+        // TODO: make this actually save the map and cells in question.
+        get_undo_stack().save_position();
+      }
+      break;
+
     // Unused key.
     default: {}
   }
@@ -237,6 +244,9 @@ void MapEditor::update()
   if (_map.is_coord_used(get_hover_cell())) {
     _layer_status.emplace_back(
         _bank.cells.get_name(*_map.get_coord(get_hover_cell())));
+  }
+  if (!get_undo_stack().is_position_saved()) {
+    _layer_status.emplace_back("*unsaved*");
   }
 
   // Drag camera.

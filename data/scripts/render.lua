@@ -13,9 +13,54 @@ local DRAW_OVERLAY1 = 8
 local DRAW_SPECULAR1 = 9
 local DRAW_FULLBRIGHT1 = 10
 
-local function render_sprite_world(
+-- Convenience functions to call the rendering API functions with keyword
+-- arguments stored in a table.
+
+local function colour(r, g, b, a)
+  return {r = r, g = g, b = b, a = a}
+end
+
+local function render_sprite_table(table)
+  render_sprite(
+      table.script, table.layer, table.sprite,
+      table.frame_size, table.frame,
+      table.depth, table.rotation,
+      table.colour.r, table.colour.g, table.colour.b, table.colour.a)
+end
+
+local function render_fog_table(table)
+  render_fog(
+      table.layer, table.layering_value,
+      table.origin, table.region,
+      table.tex_offset, table.frame,
+      table.colour.r, table.colour.g, table.colour.b, table.colour.a,
+      table.fog_min, table.fog_max)
+end
+
+local function render_reflect_table(table)
+  render_reflect(
+      table.layer, table.layering_value,
+      table.origin, table.region,
+      table.tex_offset, table.frame,
+      table.colour.r, table.colour.g, table.colour.b, table.colour.a,
+      table.reflect_mix, table.normal_scaling,
+      table.normal_scaling_reflect, table.normal_scaling_refract,
+      table.reflect_fade_start, table.reflect_fade_end,
+      table.flip_x, table.flip_y, table.flip_axes,
+      table.wave_height, table.wave_scale)
+end
+
+-- Convenience functions for common operations.
+
+local function render_sprite_self(
     sprite, frame_size, frame, depth)
-  render_sprite(self, DRAW_WORLD, sprite, frame_size, frame,
-                depth, get_rotation(self),
-                1, 1, 1, 1)
+  render_sprite_table({
+      script = self,
+      layer = DRAW_WORLD,
+      sprite = sprite,
+      frame_size = frame_size,
+      frame = frame,
+      depth = depth,
+      rotation = get_rotation(self),
+      colour = colour(1, 1, 1, 1)})
 end

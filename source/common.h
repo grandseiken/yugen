@@ -14,9 +14,10 @@
 #include <unordered_set>
 #include <vector>
 
-// TODO: profile whether putting this stuff into separate headers in a common
-// directory makes compiles faster. I'm pretty sure it's mostly *recompilation*
-// due to headers being changed which actually matters though.
+// The reason for this is std:: is way too many characters when using it
+// everywhere, so commonly-used stuff is renamed to y:: here.
+// I'm fairly sure it's mostly *recompilation* due to headers being changed
+// which actually matters for compile speed, so having this all here is OK.
 namespace y {
 
   typedef int8_t int8;

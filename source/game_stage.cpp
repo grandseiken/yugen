@@ -70,12 +70,6 @@ void ScriptBank::send_message(Script* script, const y::string& function_name,
   _messages.push_back({script, function_name, args});
 }
 
-void ScriptBank::add_script(y::unique<Script> script)
-{
-  _scripts.emplace_back();
-  (_scripts.rbegin())->swap(script);
-}
-
 void ScriptBank::update_all() const
 {
   // Destructions won't happen here. Iteration is fine even though new
@@ -239,6 +233,12 @@ void ScriptBank::create_in_bounds(
           new Script(_stage, file.path, file.contents, ws.origin, ws.region)));
     }
   }
+}
+
+void ScriptBank::add_script(y::unique<Script> script)
+{
+  _scripts.emplace_back();
+  (_scripts.rbegin())->swap(script);
 }
 
 GameRenderer::GameRenderer(RenderUtil& util, const GlFramebuffer& framebuffer)
