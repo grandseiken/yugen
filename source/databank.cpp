@@ -82,6 +82,9 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
 
 void Databank::reload_cells_and_maps(const Filesystem& filesystem)
 {
+  cells.clear();
+  maps.clear();
+
   y::string_vector paths;
   filesystem.list_pattern(paths, "/world/**.cell");
   for (const y::string& s : paths) {
