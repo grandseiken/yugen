@@ -1,4 +1,5 @@
 uniform sampler2D normalbuffer;
+uniform float depth;
 uniform ivec2 resolution;
 uniform vec2 translation;
 
@@ -63,5 +64,5 @@ void main()
   gl_FragColor = colour;
 
   // Set the depth to avoid overlapping triangles.
-  gl_FragDepth = 0.5;
+  gl_FragDepth = depth;
 }

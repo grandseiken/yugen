@@ -362,12 +362,12 @@ void GameRenderer::render(
       layer_light_type light_type(draw_pass_light_type());
       // Swap the rendering method based on the semantic type of the layer.
       if (light_type == LIGHT_TYPE_NORMAL) {
-        _lightbuffer->bind(true, false);
+        _lightbuffer->bind(true, true);
         lighting.render_lightbuffer(_util, *_normalbuffer,
                                      camera.get_min(), camera.get_max());
       }
       else if (light_type == LIGHT_TYPE_SPECULAR) {
-        _lightbuffer->bind(true, false);
+        _lightbuffer->bind(true, true);
         lighting.render_specularbuffer(_util, *_normalbuffer,
                                         camera.get_min(), camera.get_max());
       }

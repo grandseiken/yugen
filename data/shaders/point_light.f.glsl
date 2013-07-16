@@ -1,4 +1,5 @@
 uniform sampler2D normalbuffer;
+uniform float depth;
 
 // TODO: profile this and see if this is actually faster than using uniforms.
 varying vec2 pixels_coord;
@@ -61,5 +62,5 @@ void main()
   gl_FragColor = colour;
 
   // Set the depth to avoid overlapping triangles.
-  gl_FragDepth = 0.5;
+  gl_FragDepth = depth;
 }

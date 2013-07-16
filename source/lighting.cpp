@@ -361,13 +361,14 @@ void Lighting::render_internal(
   program.bind_attribute("layer", *_layering_buffer);
   util.bind_pixel_uniforms(program);
 
-  // It really shouldn't be necessary to use depth and clear the depth-buffer
-  // in between each light. We should be able to draw them all at once. But
-  // for the life of me I can't stop the light triangles from very occassionally
-  // overlapping and producing artefacts, even though the triangles are formed
-  // with *exactly* the same edges.
+  // It really shouldn't be necessary to use depth and draw lights one by one.
+  // We should be able to draw them all at once. But for the life of me I can't
+  // stop the light triangles from very occassionally overlapping and producing
+  // artefacts, even though the triangles are formed with *exactly* the same
+  // edges. I don't know what's going wrong.
+  y::size n = element_data.size();
   for (const auto& data : element_data) {
-    glClear(GL_DEPTH_BUFFER_BIT);
+    program.bind_uniform("depth", float(n--) / (1 + element_data.size()));
     _element_buffer->reupload_data(data);
     _element_buffer->draw_elements(GL_TRIANGLES, data.size());
   }
