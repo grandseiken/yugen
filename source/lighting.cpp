@@ -225,7 +225,7 @@ void Lighting::render_internal(
   y::vector<GLfloat> range_data;
   y::vector<GLfloat> colour_data;
   y::vector<GLfloat> layering_data;
-  y::vector<GLushort> element_data;
+  y::vector<y::vector<GLushort>> element_data;
 
   source_list sources;
   get_sources(sources);
@@ -257,7 +257,6 @@ void Lighting::render_internal(
       // Arranging in a triangle fan causes tears in the triangles due to slight
       // inaccuracies, so we use a fan with three triangles per actual triangle
       // to make sure the edges line up exactly.
-      // TODO: there is still occassional tearing.
       y::size origin_index = tri_data.size() / 2;
 
       tri_data.emplace_back(origin[xx]);
@@ -293,6 +292,8 @@ void Lighting::render_internal(
       }
 
       // Set up the indices.
+      element_data.emplace_back();
+      auto& light_element_data = *element_data.rbegin();
       for (y::size i = 1; i < trace.size(); i += 2) {
         y::size prev = i - 1;
         y::size a = i;
@@ -306,30 +307,31 @@ void Lighting::render_internal(
         y::size l = l_concave ? a : prev;
         y::size r = r_concave ? b : next;
 
-        // Render the triangles: origin, l, r; l, r, b; a, b, l. Skip the
-        // triangles which have no area (avoids artefacts).
+        // Render the triangles, using the configuration:
+        //   origin, l, r; l, r, b; a, b, l.
+        // Skip the triangles which have no area.
         if (line_intersects_rect(y::wvec2(), trace[l], min, max) ||
             line_intersects_rect(y::wvec2(), trace[r], min, max) ||
             line_intersects_rect(trace[l], trace[r], min, max)) {
-          element_data.emplace_back(origin_index);
-          element_data.emplace_back(origin_index + 1 + l);
-          element_data.emplace_back(origin_index + 1 + r);
+          light_element_data.emplace_back(origin_index);
+          light_element_data.emplace_back(origin_index + 1 + l);
+          light_element_data.emplace_back(origin_index + 1 + r);
         }
         if (!r_concave &&
             (line_intersects_rect(trace[l], trace[b], min, max) ||
              line_intersects_rect(trace[r], trace[b], min, max) ||
              line_intersects_rect(trace[l], trace[r], min, max))) {
-          element_data.emplace_back(origin_index + 1 + l);
-          element_data.emplace_back(origin_index + 1 + r);
-          element_data.emplace_back(origin_index + 1 + b);
+          light_element_data.emplace_back(origin_index + 1 + l);
+          light_element_data.emplace_back(origin_index + 1 + r);
+          light_element_data.emplace_back(origin_index + 1 + b);
         }
         if (!l_concave &&
             (line_intersects_rect(trace[a], trace[l], min, max) ||
              line_intersects_rect(trace[b], trace[l], min, max) ||
              line_intersects_rect(trace[a], trace[b], min, max))) {
-          element_data.emplace_back(origin_index + 1 + a);
-          element_data.emplace_back(origin_index + 1 + b);
-          element_data.emplace_back(origin_index + 1 + l);
+          light_element_data.emplace_back(origin_index + 1 + a);
+          light_element_data.emplace_back(origin_index + 1 + b);
+          light_element_data.emplace_back(origin_index + 1 + l);
         }
       }
     }
@@ -342,9 +344,8 @@ void Lighting::render_internal(
     _colour_buffer->reupload_data(colour_data);
   }
   _layering_buffer->reupload_data(layering_data);
-  _element_buffer->reupload_data(element_data);
 
-  util.get_gl().enable_depth(false);
+  util.get_gl().enable_depth(true, GL_LESS);
   util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
   const GlProgram& program = specular ?
     *_point_light_specular_program : *_point_light_program;
@@ -359,7 +360,17 @@ void Lighting::render_internal(
   }
   program.bind_attribute("layer", *_layering_buffer);
   util.bind_pixel_uniforms(program);
-  _element_buffer->draw_elements(GL_TRIANGLES, element_data.size());
+
+  // It really shouldn't be necessary to use depth and clear the depth-buffer
+  // in between each light. We should be able to draw them all at once. But
+  // for the life of me I can't stop the light triangles from very occassionally
+  // overlapping and producing artefacts, even though the triangles are formed
+  // with *exactly* the same edges.
+  for (const auto& data : element_data) {
+    glClear(GL_DEPTH_BUFFER_BIT);
+    _element_buffer->reupload_data(data);
+    _element_buffer->draw_elements(GL_TRIANGLES, data.size());
+  }
 }
 
 Lighting::world_geometry::world_geometry()

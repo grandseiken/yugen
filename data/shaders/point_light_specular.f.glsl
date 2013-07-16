@@ -61,4 +61,7 @@ void main()
       light_range_coefficient(sqrt(dist_sq), range_coord) *
       layering_value_coefficient(normal_tex.b, layer_coord);
   gl_FragColor = colour;
+
+  // Set the depth to avoid overlapping triangles.
+  gl_FragDepth = 0.5;
 }

@@ -249,7 +249,7 @@ GameRenderer::GameRenderer(RenderUtil& util, const GlFramebuffer& framebuffer)
   , _normalbuffer(util.get_gl().make_unique_framebuffer(
         framebuffer.get_size(), false, true))
   , _lightbuffer(util.get_gl().make_unique_framebuffer(
-        framebuffer.get_size(), false, false))
+        framebuffer.get_size(), false, true))
   , _scene_program(util.get_gl().make_unique_program({
         "/shaders/scene.v.glsl",
         "/shaders/scene.f.glsl"}))
