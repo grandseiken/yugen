@@ -236,6 +236,73 @@ void Lighting::render_internal(
   y::vector<GLfloat> layering_data;
   y::vector<y::vector<GLushort>> element_data;
 
+  struct local {
+    y::vector<GLfloat>& tri_data;
+    y::vector<GLfloat>& origin_data;
+    y::vector<GLfloat>& range_data;
+    y::vector<GLfloat>& colour_data;
+    y::vector<GLfloat>& layering_data;
+    bool specular;
+
+    local(y::vector<GLfloat>& tri_data, y::vector<GLfloat>& origin_data,
+          y::vector<GLfloat>& range_data, y::vector<GLfloat>& colour_data,
+          y::vector<GLfloat>& layering_data, bool specular)
+      : tri_data(tri_data)
+      , origin_data(origin_data)
+      , range_data(range_data)
+      , colour_data(colour_data)
+      , layering_data(layering_data)
+      , specular(specular)
+    {
+    }
+
+    // Add all the data for a vertex of a lit shape.
+    void add_vertex(const y::wvec2& origin, const y::wvec2& trace,
+                    const Light& light) const
+    {
+      tri_data.emplace_back((trace + origin)[xx]);
+      tri_data.emplace_back((trace + origin)[yy]);
+      origin_data.emplace_back(origin[xx]);
+      origin_data.emplace_back(origin[yy]);
+      range_data.emplace_back(light.full_range);
+      range_data.emplace_back(light.falloff_range);
+      layering_data.emplace_back(light.layer_value);
+      if (!specular) {
+        colour_data.emplace_back(light.colour[rr]);
+        colour_data.emplace_back(light.colour[gg]);
+        colour_data.emplace_back(light.colour[bb]);
+        colour_data.emplace_back(light.colour[aa]);
+      }
+    }
+
+    // Add a triangle by element indices if it's necessary.
+    static void add_triangle(
+        y::vector<GLushort>& element_data, const light_trace& trace,
+        const y::wvec2& min, const y::wvec2& max,
+        y::size origin_index, y::size a, y::size b, y::size c)
+    {
+      const static y::wvec2 o;
+      // Check has area.
+      if (a == b || a == c || a == b) {
+        return;
+      }
+      const y::wvec2& aa = a ? trace[a - 1] : o;
+      const y::wvec2& bb = b ? trace[b - 1] : o;
+      const y::wvec2& cc = c ? trace[c - 1] : o;
+      // Check overlaps camera.
+      if (!line_intersects_rect(aa, bb, min, max) &&
+          !line_intersects_rect(aa, cc, min, max) &&
+          !line_intersects_rect(bb, cc, min, max)) {
+        return;
+      }
+      element_data.emplace_back(origin_index + a);
+      element_data.emplace_back(origin_index + b);
+      element_data.emplace_back(origin_index + c);
+    }
+  };
+  local loc(tri_data, origin_data, range_data,
+            colour_data, layering_data, specular);
+
   source_list sources;
   get_sources(sources);
   for (const Script* s : sources) {
@@ -268,36 +335,10 @@ void Lighting::render_internal(
       // to make sure the edges line up exactly.
       y::size origin_index = tri_data.size() / 2;
 
-      tri_data.emplace_back(origin[xx]);
-      tri_data.emplace_back(origin[yy]);
-      origin_data.emplace_back(origin[xx]);
-      origin_data.emplace_back(origin[yy]);
-      range_data.emplace_back(light->full_range);
-      range_data.emplace_back(light->falloff_range);
-      layering_data.emplace_back(light->layer_value);
-      if (!specular) {
-        colour_data.emplace_back(light->colour[rr]);
-        colour_data.emplace_back(light->colour[gg]);
-        colour_data.emplace_back(light->colour[bb]);
-        colour_data.emplace_back(light->colour[aa]);
-      }
-
       // Set up the vertices.
+      loc.add_vertex(origin, y::wvec2(), *light);
       for (y::size i = 0; i < trace.size(); ++i) {
-        const y::wvec2 p = origin + trace[i];
-        tri_data.emplace_back(p[xx]);
-        tri_data.emplace_back(p[yy]);
-        origin_data.emplace_back(origin[xx]);
-        origin_data.emplace_back(origin[yy]);
-        range_data.emplace_back(light->full_range);
-        range_data.emplace_back(light->falloff_range);
-        layering_data.emplace_back(light->layer_value);
-        if (!specular) {
-          colour_data.emplace_back(light->colour[rr]);
-          colour_data.emplace_back(light->colour[gg]);
-          colour_data.emplace_back(light->colour[bb]);
-          colour_data.emplace_back(light->colour[aa]);
-        }
+        loc.add_vertex(origin, trace[i], *light);
       }
 
       // Set up the indices.
@@ -309,39 +350,23 @@ void Lighting::render_internal(
         y::size b = (1 + i) % trace.size();
         y::size next = (2 + i) % trace.size();
 
-        bool l_concave = trace[a].length_squared() <=
-                         trace[prev].length_squared();
-        bool r_concave = trace[b].length_squared() <=
-                         trace[next].length_squared();
-        y::size l = l_concave ? a : prev;
-        y::size r = r_concave ? b : next;
+        // Find the closer of the two possible vertices for left and right
+        // (depending on whether each corner is a concave or convex one).
+        y::size l = trace[a].length_squared() <=
+                    trace[prev].length_squared() ? a : prev;
+        y::size r = trace[b].length_squared() <=
+                    trace[next].length_squared() ? b : next;
 
         // Render the triangles, using the configuration:
         //   origin, l, r; l, r, b; a, b, l.
-        // Skip the triangles which have no area.
-        if (line_intersects_rect(y::wvec2(), trace[l], min, max) ||
-            line_intersects_rect(y::wvec2(), trace[r], min, max) ||
-            line_intersects_rect(trace[l], trace[r], min, max)) {
-          light_element_data.emplace_back(origin_index);
-          light_element_data.emplace_back(origin_index + 1 + l);
-          light_element_data.emplace_back(origin_index + 1 + r);
-        }
-        if (!r_concave &&
-            (line_intersects_rect(trace[l], trace[b], min, max) ||
-             line_intersects_rect(trace[r], trace[b], min, max) ||
-             line_intersects_rect(trace[l], trace[r], min, max))) {
-          light_element_data.emplace_back(origin_index + 1 + l);
-          light_element_data.emplace_back(origin_index + 1 + r);
-          light_element_data.emplace_back(origin_index + 1 + b);
-        }
-        if (!l_concave &&
-            (line_intersects_rect(trace[a], trace[l], min, max) ||
-             line_intersects_rect(trace[b], trace[l], min, max) ||
-             line_intersects_rect(trace[a], trace[b], min, max))) {
-          light_element_data.emplace_back(origin_index + 1 + a);
-          light_element_data.emplace_back(origin_index + 1 + b);
-          light_element_data.emplace_back(origin_index + 1 + l);
-        }
+        // Triangles which have no area or do not overlap the camera are
+        // skipped in the add_triangle function.
+        local::add_triangle(light_element_data, trace, min, max,
+                            origin_index, 0, 1 + l, 1 + r);
+        local::add_triangle(light_element_data, trace, min, max,
+                            origin_index, 1 + l, 1 + r, 1 + b);
+        local::add_triangle(light_element_data, trace, min, max,
+                            origin_index, 1 + a, 1 + b, 1 + l);
       }
     }
   }
