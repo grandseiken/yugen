@@ -9,28 +9,28 @@ then
 fi
 
 # Defaults.
-gcc="g++-4.8 -O3 -std=c++11 -Werror -Wall -Wextra -Wpedantic -DLUA_DEBUG -DGL_DEBUG"
+gpp="g++-4.8 -O3 -std=c++11 -Werror -Wall -Wextra -Wpedantic -DLUA_DEBUG -DGL_DEBUG"
 targets[0]="yugen"
 targets[1]="yedit"
 targets_size=2
 
-cflag="-I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/lua_5_2_2/src -I./depend/protobuf_2_5_0/include"
-lflag="-L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib -L./depend/lua_5_2_2/lib -L./depend/protobuf_2_5_0/lib"
-libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lprotobuf -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
+cflag="-I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/luajit_2_0_2/include -I./depend/protobuf_2_5_0/include"
+lflag="-L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib -L./depend/luajit_2_0_2/lib -L./depend/protobuf_2_5_0/lib"
+libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lprotobuf -lluajit-5.1 -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
 
 # Grab compiler options.
 first=0
 if [ $# -gt 0 ] && [ $1 == "-c" ]; then
-  gcc=$2
+  gpp=$2
   first=2
 fi
 
 # Save compiler options so we can recompile if they change.
-if [ ! -f bin/.cmd ] || [ "`cat bin/.cmd`" != "$gcc" ]; then
+if [ ! -f bin/.cmd ] || [ "`cat bin/.cmd`" != "$gpp" ]; then
   rm -rf bin
   mkdir bin
 fi
-echo "$gcc" > bin/.cmd
+echo "$gpp" > bin/.cmd
 
 # Figure out compile targets.
 compile_targets_size=$targets_size
@@ -65,7 +65,7 @@ else
   for pb in source/proto/*.pb.cc; do
     echo "Compiling $pb..."
     base=$(basename $pb)
-    $gcc -c $cflag -o bin/$base.o $pb
+    $gpp -c $cflag -o bin/$base.o $pb
     let success=$success+$?
   done
   if [ $success -eq 0 ]; then
@@ -73,33 +73,6 @@ else
   else
     if [ -f bin/.proto.md5 ]; then
       rm bin/.proto.md5
-    fi
-    error=1
-  fi
-  change=1
-fi
-
-# Recompile lua if necessary.
-error=0
-change=0
-old=$(cat bin/.lua.md5 2> /dev/null)
-new=$(md5sum depend/lua_5_2_2/src/lua/* 2> /dev/null)
-if [ -f bin/.lua.md5 ] && [ "$old" == "$new" ]; then
-  echo "Up to date: lua"
-else
-  echo "Compiling lua..."
-  success=0
-  for c in depend/lua_5_2_2/src/lua/*.c; do
-    echo "Compiling $c..."
-    base=$(basename $c)
-    $gcc -c $cflag -o bin/$base.o $c
-    let success=$success+$?
-  done
-  if [ $success -eq 0 ]; then
-    md5sum depend/lua_5_2_2/src/lua/* > bin/.lua.md5 2> /dev/null
-  else
-    if [ -f bin/.lua.md5 ]; then
-      rm bin/.lua.md5
     fi
     error=1
   fi
@@ -158,7 +131,7 @@ for cpp in source/*.cpp; do
     echo "Up to date: $cpp"
   else
     echo "Compiling $cpp..."
-    $gcc -c $cflag -o bin/$base.o $cpp
+    $gpp -c $cflag -o bin/$base.o $cpp
     if [ $? -eq 0 ]; then
       md5sum $list > bin/$base.md5 2> /dev/null
     else
@@ -195,7 +168,7 @@ while [ $i -lt $compile_targets_size ]; do
   done
   if [ $change -eq 1 ] || [ ! -f bin/$target.md5 ]; then
     echo "Linking $target..."
-    $gcc $lflag -o bin/$target $objects $libs
+    $gpp $lflag -o bin/$target $objects $libs
     if [ $? -eq 0 ]; then
       md5sum bin/$target > bin/$target.md5
     elif [ -f bin/$target.md5 ]; then

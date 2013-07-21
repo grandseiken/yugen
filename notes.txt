@@ -16,7 +16,7 @@ DEPENDENCIES
  - Boost
  - C++
  - GLSL
- - Lua
+ - LuaJIT
  - Protobuf
  - SFML
  - OpenGL

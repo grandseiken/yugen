@@ -111,23 +111,42 @@ void Yugen::draw() const
   // Render debug status.
   _util.set_resolution(_crop_buffer->get_size());
   y::sstream ss;
-  float fps = 1000000.f / _run_timing.us_per_frame_avg;
+  float fps_avg = 1000000.f / _run_timing.us_per_frame_avg;
+  float fps_inst = 1000000.f / _run_timing.us_per_frame_inst;
   float update_pct = 100.f *
       float(_run_timing.us_per_update_avg) / _run_timing.us_per_frame_avg;
   ss << std::setw(5) <<
+      _run_timing.us_per_update_avg << " / " <<
+      std::setw(5) <<
+      _run_timing.us_per_draw_avg << " / " <<
+      std::setw(5) <<
       _run_timing.us_per_frame_avg << " avg (" <<
       std::setw(5) << std::setprecision(1) << std::fixed <<
-      fps << " fps); " <<
+      fps_avg << " fps)";
+  _util.irender_text(ss.str(), {16, 16}, colour::white);
+
+  ss.str(y::string());
+  ss.clear();
+  ss << std::setw(5) <<
+      _run_timing.us_per_update_inst << " / " <<
       std::setw(5) <<
-      _run_timing.us_per_frame_inst << " inst; " <<
+      _run_timing.us_per_draw_inst << " / " <<
+      std::setw(5) <<
+      _run_timing.us_per_frame_inst << " inst (" <<
       std::setw(5) << std::setprecision(1) << std::fixed <<
+      fps_inst << " fps)";
+  _util.irender_text(ss.str(), {16, 24}, colour::white);
+
+  ss.str(y::string());
+  ss.clear();
+  ss << std::setw(5) << std::setprecision(1) << std::fixed <<
       update_pct << "% update; " <<
       std::setw(1) <<
       _run_timing.updates_this_cycle << " updates";
   if (_recording) {
     ss << " [recording]";
   }
-  _util.irender_text(ss.str(), {16, 16}, colour::white);
+  _util.irender_text(ss.str(), {16, 32}, colour::white);
 
   // Upscale the crop-buffer to the window.
   const Resolution& screen = _util.get_window().get_mode();

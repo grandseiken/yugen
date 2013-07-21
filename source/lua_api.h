@@ -336,8 +336,6 @@ y_api(script__destroy_light)
 
 // TODO: allow calling destroy_body, body_check, destroy_light and so directly
 // on the objects.
-// TODO: hash lookups for every method call make things pretty slow. Switch to
-// LuaJIT?
 y_ptrtypedef(Script) {
   y_method("get_uid", script__get_uid);
   y_method("get_origin", script__get_origin);

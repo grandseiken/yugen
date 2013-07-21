@@ -451,7 +451,7 @@ Script::Script(GameStage& stage,
   lua_setglobal(_state, "self");
 
   local data_struct{contents, false};
-  if (lua_load(_state, local::read, &data_struct, _path.c_str(), y::null) ||
+  if (lua_load(_state, local::read, &data_struct, _path.c_str()) ||
       lua_pcall(_state, 0, 0, 1)) {
     const char* error = lua_tostring(_state, -1);
     std::cerr << "Loading script " << _path << " failed";

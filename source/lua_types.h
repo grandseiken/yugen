@@ -2,9 +2,7 @@
 #define LUA_TYPES
 
 #include "common.h"
-#include <lua/lua.h>
-#include <lua/lauxlib.h>
-#include <lua/lualib.h>
+#include <lua/lua.hpp>
 
 typedef y::int32 lua_int;
 
@@ -131,7 +129,17 @@ T& LuaType<T>::get(lua_State* state, lua_int index) const
 template<typename T>
 bool LuaType<T>::is(lua_State* state, lua_int index) const
 {
-  return luaL_testudata(state, index, type_name.c_str());
+  void *v = lua_touserdata(state, index);
+  if (!v || !lua_getmetatable(state, index)) {
+    return false;
+  }
+
+  luaL_getmetatable(state, type_name.c_str());
+  if (!lua_rawequal(state, -1, -2)) {
+    v = y::null;
+  }
+  lua_pop(state, 2);
+  return v;
 }
 
 template<typename T>
@@ -215,9 +223,12 @@ y::vector<T> LuaType<y::vector<T>>::get(lua_State* state, lua_int index) const
   y::vector<T> t;
   LuaType<T> element_type;
 
-  lua_int size = luaL_len(state, index);
-  for (lua_int i = 1; i <= size; ++i) {
-    lua_rawgeti(state, index, i);
+  lua_int size = 1;
+  for (; true; ++size) {
+    lua_rawgeti(state, index, size);
+    if (lua_isnil(state, lua_gettop(state))) {
+      break;
+    }
     t.emplace_back(element_type.get(state, lua_gettop(state)));
   }
   lua_pop(state, size);
@@ -233,9 +244,12 @@ bool LuaType<y::vector<T>>::is(lua_State* state, lua_int index) const
   LuaType<T> element_type;
 
   bool b = true;
-  lua_int size = luaL_len(state, index);
-  for (lua_int i = 1; i <= size; ++i) {
-    lua_rawgeti(state, index, i);
+  lua_int size = 1;
+  for (; true; ++size) {
+    lua_rawgeti(state, index, size);
+    if (lua_isnil(state, lua_gettop(state))) {
+      break;
+    }
     b &= element_type.is(state, lua_gettop(state));
   }
   lua_pop(state, size);
