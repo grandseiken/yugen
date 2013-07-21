@@ -4,14 +4,14 @@
 #include "../render.lua"
 
 -- Collider body and check bodies.
-local body = create_body(self, vec(0, 8), vec(6, 16))
-set_collide_mask(body, COLLIDE_WORLD)
+local body = self:create_body(vec(0, 8), vec(6, 16))
+body:set_collide_mask(COLLIDE_WORLD)
 local up_check, down_check, left_check, right_check =
     create_all_checks(self, vec(0, 8), vec(6, 16))
 
 -- Test light.
-local light = create_light(self, 128, 128)
-set_light_colour(light, 1, 1, 1)
+local light = self:create_light(128, 128)
+light:set_colour(1, 1, 1)
 
 -- Jump constants.
 local JUMP_STAGE_NONE = 0
@@ -38,11 +38,11 @@ local wall_jump_left = false
 
 -- Events.
 function on_submerge(amount)
-  set_light_layer_value(light, .2 + .05 * amount)
+  light__set_layer_value(light, .2 + .05 * amount)
 end
 
 function on_emerge()
-  set_light_layer_value(light, 0)
+  light__set_layer_value(light, 0)
 end
 
 -- Jump behaviour.
@@ -180,45 +180,45 @@ function update()
   -- Need to know the down check before the x-axis move for applying
   -- acceleration when we go off a cliff, and being able to jump when
   -- running down a slope.
-  local down_check_start = body_check(self, down_check, COLLIDE_WORLD)
+  local down_check_start = self:body_check(down_check, COLLIDE_WORLD)
   local down_check_now = false
 
   -- Handle x-axis movement with stepping up slopes (or down overhangs when
   -- in the air).
-  local original_y = get_origin(self):y()
+  local original_y = self:get_origin():y()
   local step_amount = MOVE_SPEED * step_multiplier()
   if step_amount ~= 0 then
-    collider_move(self, vec(0, step_amount))
+    self:collider_move(vec(0, step_amount))
   end
-  collider_move(self, vec(v, 0))
+  self:collider_move(vec(v, 0))
   if step_amount ~= 0 then
-    collider_move(self, vec(0, original_y - get_origin(self):y()))
+    self:collider_move(vec(0, original_y - self:get_origin():y()))
   end
 
   -- Step down if we're not jumping to stick to down ramps; if this doesn't
   -- end up with us touching the ground then reverse it (since it's not a
   -- slope or is too steep).
   if not is_jumping() then
-    original_y = get_origin(self):y()
-    collider_move(self, vec(0, MOVE_SPEED))
-    down_check_now = body_check(self, down_check, COLLIDE_WORLD)
+    original_y = self:get_origin():y()
+    self:collider_move(vec(0, MOVE_SPEED))
+    down_check_now = self:body_check(down_check, COLLIDE_WORLD)
     if not down_check_now then
-      collider_move(self, vec(0, original_y - get_origin(self):y()))
-      down_check_now = body_check(self, down_check, COLLIDE_WORLD)
+      self:collider_move(vec(0, original_y - self:get_origin():y()))
+      down_check_now = self:body_check(down_check, COLLIDE_WORLD)
     end
   else
-    down_check_now = body_check(self, down_check, COLLIDE_WORLD)
+    down_check_now = self:body_check(down_check, COLLIDE_WORLD)
   end
 
-  local up_check_now = body_check(self, up_check, COLLIDE_WORLD)
-  local left_check_now = body_check(self, left_check, COLLIDE_WORLD)
-  local right_check_now = body_check(self, right_check, COLLIDE_WORLD)
+  local up_check_now = self:body_check(up_check, COLLIDE_WORLD)
+  local left_check_now = self:body_check(left_check, COLLIDE_WORLD)
+  local right_check_now = self:body_check(right_check, COLLIDE_WORLD)
 
   -- Handle y-axis movement.
   jump_logic(left_down, right_down, up_down,
              left_check_now, right_check_now, up_check_now,
              down_check_start, down_check_now)
-  collider_move(self, vec(0, GRAVITY * y_multiplier()))
+  self:collider_move(vec(0, GRAVITY * y_multiplier()))
   jump_timer_logic(down_check_now)
 end
 

@@ -15,23 +15,23 @@ local CHECK_OVERLAP = 0.1
 
 -- Create standard check bodies.
 local function create_up_check(script, offset, size)
-  return create_body(script, offset - vec(0, size:y() / 2),
-                     vec(size:x(), CHECK_OVERLAP))
+  return script:create_body(offset - vec(0, size:y() / 2),
+                            vec(size:x(), CHECK_OVERLAP))
 end
 
 local function create_down_check(script, offset, size)
-  return create_body(script, offset + vec(0, size:y() / 2),
-                     vec(size:x(), CHECK_OVERLAP))
+  return script:create_body(offset + vec(0, size:y() / 2),
+                            vec(size:x(), CHECK_OVERLAP))
 end
 
 local function create_left_check(script, offset, size)
-  return create_body(script, offset - vec(size:x() / 2, 0),
-                     vec(CHECK_OVERLAP, size:y()))
+  return script:create_body(offset - vec(size:x() / 2, 0),
+                            vec(CHECK_OVERLAP, size:y()))
 end
 
 local function create_right_check(script, offset, size)
-  return create_body(script, offset + vec(size:x() / 2, 0),
-                     vec(CHECK_OVERLAP, size:y()))
+  return script:create_body(offset + vec(size:x() / 2, 0),
+                            vec(CHECK_OVERLAP, size:y()))
 end
 
 local function create_all_checks(script, offset, size)

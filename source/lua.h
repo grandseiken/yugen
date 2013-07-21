@@ -20,8 +20,8 @@ public:
   ~ScriptReference();
 
   ScriptReference& operator=(const ScriptReference& arg);
-  bool operator==(const ScriptReference& arg);
-  bool operator!=(const ScriptReference& arg);
+  bool operator==(const ScriptReference& arg) const;
+  bool operator!=(const ScriptReference& arg) const;
 
   bool is_valid() const;
   void invalidate();
@@ -51,8 +51,8 @@ public:
   ~ConstScriptReference();
 
   ConstScriptReference& operator=(const ConstScriptReference& arg);
-  bool operator==(const ConstScriptReference& arg);
-  bool operator!=(const ConstScriptReference& arg);
+  bool operator==(const ConstScriptReference& arg) const;
+  bool operator!=(const ConstScriptReference& arg) const;
 
   bool is_valid() const;
   void invalidate();

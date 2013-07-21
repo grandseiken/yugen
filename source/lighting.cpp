@@ -11,6 +11,8 @@ Light::Light()
   , falloff_range(1.)
   , layer_value(0.)
   , colour{1.f, 1.f, 1.f, 1.f}
+  , aperture(y::pi)
+  , angle(0.)
 {
 }
 
@@ -90,11 +92,18 @@ void Lighting::recalculate_traces(
     }
   };
 
-  // TODO: we could also limit max_range to camera bounds. However, this blows
-  // the cache so it's not necessarily a good idea. In fact, it's certainly
-  // only worth it for lights which are moving a lot (and also have a large
-  // max-range), and so won't be cached anyway. Perhaps we can set this as a
-  // hint somehow.
+  // We could also limit max_range to camera bounds. However, this blows the
+  // cache so it's not necessarily a good idea. In fact, it's certainly only
+  // worth it for lights which are moving a lot (and also have a large max-
+  // range), and so won't be cached anyway. Perhaps we can set this as a hint
+  // somehow.
+  //
+  // Similarly, we key cone lights by position and max-range only, so they can
+  // be rotated without needing recomputation. This means we have to compute
+  // the entire 360-degree trace, so a hint could be added for cone lights which
+  // move a lot and don't rotate.
+  //
+  // Only bother with this if performance actually becomes an issue.
   y::set<trace_key, trace_key_hash> trace_preserve;
 
   y::vector<y::wvec2> vertex_buffer;

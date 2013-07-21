@@ -59,29 +59,42 @@ static RegistryIndex stage_registry_index;
 /***/ const y::string LuaType<T*>::type_name = "y." #T "*";                    \
 /***/ template<>                                                               \
 /***/ const y::string LuaType<const T*>::type_name = "y." #T "*";              \
-/***/ y_api(T##_eq) y_arg(T*, a) y_arg(T*, b)                                  \
+/***/ y_api(T##__eq) y_arg(const T*, a) y_arg(const T*, b)                     \
 /***/ {                                                                        \
 /***/   y_return(a == b);                                                      \
-/***/ } void _y_typedef_##T##_no_op()
+/***/ }                                                                        \
+/***/ namespace _y_api_##T {                                                   \
+/***/   void _y_typedef(lua_State* _y_state)                                   \
+/***/   {                                                                      \
+/***/     luaL_newmetatable(_y_state, LuaType<T*>::type_name.c_str());         \
+/***/     lua_pushstring(_y_state, "__index");                                 \
+/***/     lua_pushvalue(_y_state, -2);                                         \
+/***/     lua_settable(_y_state, -3);                                          \
+/***/     y_method("__eq", T##__eq);
 /***/
 /***/ #define y_valtypedef(T)                                                  \
 /***/ template<>                                                               \
 /***/ const y::string LuaType<T>::type_name = "y." #T;                         \
 /***/ template<>                                                               \
 /***/ const y::string LuaType<const T>::type_name = "y." #T;                   \
+/***/ y_api(T##__eq) y_arg(const T, a) y_arg(const T, b)                       \
+/***/ {                                                                        \
+/***/   y_return(a == b);                                                      \
+/***/ }                                                                        \
 /***/ namespace _y_api_##T {                                                   \
 /***/   void _y_typedef(lua_State* _y_state)                                   \
 /***/   {                                                                      \
 /***/     luaL_newmetatable(_y_state, LuaType<T>::type_name.c_str());          \
 /***/     lua_pushstring(_y_state, "__index");                                 \
 /***/     lua_pushvalue(_y_state, -2);                                         \
-/***/     lua_settable(_y_state, -3);
+/***/     lua_settable(_y_state, -3);                                          \
+/***/     y_method("__eq", T##__eq);
 /***/
 /***/ #define y_method(name, function)                                         \
 /***/     lua_pushstring(_y_state, name);                                      \
 /***/     lua_pushcfunction(_y_state,                                          \
 /***/                       _y_api_##function::_y_ref);                        \
-/***/     lua_settable(_y_state, -3);
+/***/     lua_settable(_y_state, -3)
 /***/
 /***/ #define y_endtypedef()                                                   \
 /***/   }                                                                      \
@@ -154,17 +167,14 @@ static RegistryIndex stage_registry_index;
 /***/ #undef y_void
 /***/
 /***/ #define y_ptrtypedef(T)                                                  \
-/***/   luaL_newmetatable(_y_state, LuaType<T*>::type_name.c_str());           \
-/***/   lua_pushstring(_y_state, "__eq");                                      \
-/***/   lua_pushcfunction(_y_state,                                            \
-/***/                     _y_api_##T##_eq::_y_ref);                            \
-/***/   lua_settable(_y_state, -3);                                            \
-/***/   lua_pop(_y_state, 1)
+/***/   _y_api_##T::_y_typedef(_y_state);                                      \
+/***/   lua_pop(_y_state, 1);                                                  \
+/***/   (void)LuaType<T*>::type_name;
 /***/
 /***/ #define y_valtypedef(T)                                                  \
 /***/   _y_api_##T::_y_typedef(_y_state);                                      \
 /***/   lua_pop(_y_state, 1);                                                  \
-/***/   (void)LuaType<T>::type_name
+/***/   (void)LuaType<T>::type_name;
 /***/
 /***/ #define y_method(name, function)
 /***/
@@ -208,6 +218,7 @@ void y_register(lua_State* _y_state)
 #include "lua_api.h"
 }
 /******************************************************************************/
+/***/ #undef y_opqptrtypedef
 /***/ #undef y_ptrtypedef
 /***/ #undef y_valtypedef
 /***/ #undef y_method
@@ -259,12 +270,12 @@ ScriptReference& ScriptReference::operator=(const ScriptReference& arg)
   return *this;
 }
 
-bool ScriptReference::operator==(const ScriptReference& arg)
+bool ScriptReference::operator==(const ScriptReference& arg) const
 {
   return _script == arg._script;
 }
 
-bool ScriptReference::operator!=(const ScriptReference& arg)
+bool ScriptReference::operator!=(const ScriptReference& arg) const
 {
   return !operator==(arg);
 }
@@ -354,12 +365,12 @@ ConstScriptReference& ConstScriptReference::operator=(
   return *this;
 }
 
-bool ConstScriptReference::operator==(const ConstScriptReference& arg)
+bool ConstScriptReference::operator==(const ConstScriptReference& arg) const
 {
   return _script == arg._script;
 }
 
-bool ConstScriptReference::operator!=(const ConstScriptReference& arg)
+bool ConstScriptReference::operator!=(const ConstScriptReference& arg) const
 {
   return !operator==(arg);
 }

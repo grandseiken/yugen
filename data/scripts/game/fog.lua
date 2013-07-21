@@ -10,8 +10,8 @@ function draw()
   render_fog_table({
       layer = DRAW_OVERLAY0,
       layering_value = 0.7,
-      origin = get_origin(self),
-      region = get_region(self),
+      origin = self:get_origin(),
+      region = self:get_region(),
       tex_offset = vec(frame / 4, -frame / 8),
       frame = frame / 8,
       colour = colour(.5, .5, .5, .25),

@@ -11,7 +11,7 @@ local function update_script_set(
     previous_set, new_list, add_function, remove_function)
   new_set = {}
   for _, script in ipairs(new_list) do
-    uid = get_uid(script)
+    uid = script:get_uid()
     if previous_set[uid] ~= nil then
       new_set[uid] = previous_set[uid]
     else

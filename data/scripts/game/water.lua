@@ -4,12 +4,12 @@
 
 local function submerge(amount)
   return function(script)
-    send_message(script, "on_submerge", amount)
+    script:send_message("on_submerge", amount)
   end
 end
 
 local function emerge(script)
-  send_message(script, "on_emerge")
+  script:send_message("on_emerge")
 end
 
 local scripts_submerging = {}
@@ -18,8 +18,8 @@ local frame = 0
 local submerge_dist = 128
 
 function update()
-  local origin = get_origin(self)
-  local region = get_region(self)
+  local origin = self:get_origin()
+  local region = self:get_region()
   local v = vec(submerge_dist, submerge_dist)
 
   local new_submerging = get_scripts_in_region(origin, region + v / 2)
@@ -29,7 +29,7 @@ function update()
   local max = origin + region / 2 + v / 4
 
   for i, script in ipairs(new_submerging) do
-    local o = get_origin(script)
+    local o = script:get_origin()
     if o:in_region(origin, region - v / 2) then
       new_submerged[1 + #new_submerged] = script
     else
@@ -50,8 +50,8 @@ function update()
 end
 
 function draw()
-  local o = get_origin(self)
-  local r = get_region(self)
+  local o = self:get_origin()
+  local r = self:get_region()
 
   table = {
       layer = DRAW_OVERLAY1,

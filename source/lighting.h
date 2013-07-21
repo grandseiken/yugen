@@ -30,6 +30,12 @@ struct Light : y::no_copy {
 
   // Red, green, blue, and intensity.
   y::fvec4 colour;
+
+  // Half-angle between 0 and pi through which a conical light shines. Default
+  // (pi) gives a regular point light.
+  y::world aperture;
+  // Angle in which a conical light is pointing.
+  y::world angle;
 };
 
 // Keeps a record of Lights and handles fancy lighting algorithms.

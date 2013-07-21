@@ -22,9 +22,9 @@ end
 
 local function render_sprite_table(table)
   render_sprite(
-      table.script, table.layer, table.sprite,
-      table.frame_size, table.frame,
-      table.depth, table.rotation,
+      table.layer, table.depth,
+      table.origin, table.rotation,
+      table.sprite, table.frame_size, table.frame,
       table.colour.r, table.colour.g, table.colour.b, table.colour.a)
 end
 
@@ -55,12 +55,12 @@ end
 local function render_sprite_self(
     sprite, frame_size, frame, depth)
   render_sprite_table({
-      script = self,
       layer = DRAW_WORLD,
+      depth = depth,
+      origin = self:get_origin(),
+      rotation = self:get_rotation(),
       sprite = sprite,
       frame_size = frame_size,
       frame = frame,
-      depth = depth,
-      rotation = get_rotation(self),
       colour = colour(1, 1, 1, 1)})
 end

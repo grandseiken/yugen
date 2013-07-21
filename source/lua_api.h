@@ -8,12 +8,9 @@
 #include "render_util.h"
 #endif
 
-y_ptrtypedef(Body);
-y_ptrtypedef(GameStage);
-y_ptrtypedef(Sprite);
-y_ptrtypedef(Light);
-y_ptrtypedef(LuaFile);
-y_ptrtypedef(Script);
+y_ptrtypedef(GameStage) {} y_endtypedef();
+y_ptrtypedef(Sprite) {} y_endtypedef();
+y_ptrtypedef(LuaFile) {} y_endtypedef();
 
 /******************************************************************************/
 // Vector API
@@ -24,19 +21,19 @@ y_api(vec)
   y_return(y::wvec2{x, y});
 }
 
-y_api(vec_add)
+y_api(vec__add)
     y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
   y_return(a + b);
 }
 
-y_api(vec_sub)
+y_api(vec__sub)
     y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
   y_return(a - b);
 }
 
-y_api(vec_mul)
+y_api(vec__mul)
     y_optarg(const y::wvec2, a_vec) y_optarg(y::world, scalar)
     y_optarg(const y::wvec2, b_vec)
 {
@@ -50,7 +47,7 @@ y_api(vec_mul)
            (b_vec_defined ? b_vec : y::wvec2(scalar, scalar)));
 }
 
-y_api(vec_div)
+y_api(vec__div)
     y_optarg(const y::wvec2, a_vec) y_optarg(y::world, scalar)
     y_optarg(const y::wvec2, b_vec)
 {
@@ -64,120 +61,113 @@ y_api(vec_div)
            (b_vec_defined ? b_vec : y::wvec2(scalar, scalar)));
 }
 
-y_api(vec_mod)
+y_api(vec__mod)
     y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
   y_return(y::wvec2{fmod(a[xx], b[xx]), fmod(a[yy], b[yy])});
 }
 
-y_api(vec_unm)
+y_api(vec__unm)
     y_arg(const y::wvec2, v)
 {
   y_return(-v);
 }
 
-y_api(vec_eq)
-    y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
-{
-  y_return(a == b);
-}
-
-y_api(vec_x)
+y_api(vec__x)
     y_arg(const y::wvec2, v)
 {
   y_return(v[xx]);
 }
 
-y_api(vec_y)
+y_api(vec__y)
     y_arg(const y::wvec2, v)
 {
   y_return(v[yy]);
 }
 
-y_api(vec_normalised)
+y_api(vec__normalised)
     y_arg(const y::wvec2, v)
 {
   y_return(v.normalised());
 }
 
-y_api(vec_normalise)
+y_api(vec__normalise)
     y_arg(y::wvec2, v)
 {
   v.normalise();
   y_void();
 }
 
-y_api(vec_dot)
+y_api(vec__dot)
     y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
   y_return(a.dot(b));
 }
 
-y_api(vec_length_squared)
+y_api(vec__length_squared)
     y_arg(const y::wvec2, v)
 {
   y_return(v.length_squared());
 }
 
-y_api(vec_length)
+y_api(vec__length)
     y_arg(const y::wvec2, v)
 {
   y_return(v.length());
 }
 
-y_api(vec_angle)
+y_api(vec__angle)
     y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
   y_return(a.angle(b));
 }
 
-y_api(vec_in_region)
+y_api(vec__in_region)
     y_arg(const y::wvec2, v)
     y_arg(const y::wvec2, origin) y_arg(const y::wvec2, size)
 {
   y_return(v.in_region(origin - size / 2, size));
 }
 
-y_api(vec_abs)
+y_api(vec__abs)
     y_arg(const y::wvec2, v)
 {
   y_return(y::abs(v));
 }
 
-y_api(vec_max)
+y_api(vec__max)
     y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
   y_return(y::max(a, b));
 }
 
-y_api(vec_min)
+y_api(vec__min)
     y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
   y_return(y::min(a, b));
 }
 
 typedef y::wvec2 Vec;
-y_valtypedef(Vec)
-  y_method("__add", vec_add)
-  y_method("__sub", vec_sub)
-  y_method("__mul", vec_mul)
-  y_method("__div", vec_div)
-  y_method("__mod", vec_mod)
-  y_method("__unm", vec_unm)
-  y_method("__eq", vec_eq)
-  y_method("x", vec_x)
-  y_method("y", vec_y)
-  y_method("normalised", vec_normalised)
-  y_method("normalise", vec_normalise)
-  y_method("dot", vec_dot)
-  y_method("length_squared", vec_length_squared)
-  y_method("length", vec_length)
-  y_method("angle", vec_angle)
-  y_method("in_region", vec_in_region)
-  y_method("abs", vec_abs)
-  y_method("max", vec_max)
-  y_method("min", vec_min)
-y_endtypedef();
+y_valtypedef(Vec) {
+  y_method("__add", vec__add);
+  y_method("__sub", vec__sub);
+  y_method("__mul", vec__mul);
+  y_method("__div", vec__div);
+  y_method("__mod", vec__mod);
+  y_method("__unm", vec__unm);
+  y_method("x", vec__x);
+  y_method("y", vec__y);
+  y_method("normalised", vec__normalised);
+  y_method("normalise", vec__normalise);
+  y_method("dot", vec__dot);
+  y_method("length_squared", vec__length_squared);
+  y_method("length", vec__length);
+  y_method("angle", vec__angle);
+  y_method("in_region", vec__in_region);
+  y_method("abs", vec__abs);
+  y_method("max", vec__max);
+  y_method("min", vec__min);
+} y_endtypedef();
 
 /******************************************************************************/
 // Script reference API
@@ -188,113 +178,87 @@ y_api(ref)
   y_return(ScriptReference(*script));
 }
 
-y_api(ref_eq)
-    y_arg(const ScriptReference, a) y_arg(const ScriptReference, b)
-{
-  y_return(a.get() == b.get());
-}
-
-y_api(ref_gc)
+y_api(ref__gc)
     y_arg(const ScriptReference, a)
 {
   a.~ScriptReference();
   y_void();
 }
 
-y_api(ref_valid)
+y_api(ref__valid)
     y_arg(const ScriptReference, a)
 {
   y_return(a.is_valid());
 }
 
-y_api(ref_get)
+y_api(ref__get)
     y_arg(ScriptReference, a)
 {
   y_return(a.get());
 }
 
-y_valtypedef(ScriptReference)
-  y_method("__eq", ref_eq)
-  y_method("__gc", ref_gc)
-  y_method("valid", ref_valid)
-  y_method("get", ref_get)
-y_endtypedef();
+y_valtypedef(ScriptReference) {
+  y_method("__gc", ref__gc);
+  y_method("valid", ref__valid);
+  y_method("get", ref__get);
+} y_endtypedef();
 
 /******************************************************************************/
 // Script API
 /******************************************************************************/
-y_api(get_uid)
+y_api(script__get_uid)
     y_arg(const Script*, script)
 {
   y_return(stage.get_scripts().get_uid(script));
 }
 
-y_api(get_origin)
+y_api(script__get_origin)
     y_arg(const Script*, script)
 {
   y_return(script->get_origin());
 }
 
-y_api(get_region)
+y_api(script__get_region)
     y_arg(const Script*, script)
 {
   y_return(script->get_region());
 }
 
-y_api(get_rotation)
+y_api(script__get_rotation)
     y_arg(const Script*, script)
 {
   y_return(script->get_rotation());
 }
 
-y_api(set_origin)
+y_api(script__set_origin)
     y_arg(Script*, script) y_arg(const y::wvec2, origin)
 {
   script->set_origin(origin);
   y_void();
 }
 
-y_api(set_region)
+y_api(script__set_region)
     y_arg(Script*, script) y_arg(const y::wvec2, region)
 {
   script->set_region(region);
   y_void();
 }
 
-y_api(set_rotation)
+y_api(script__set_rotation)
     y_arg(Script*, script) y_arg(y::world, rotation)
 {
   script->set_rotation(rotation);
   y_void();
 }
 
-y_api(get_script)
-    y_arg(y::string, path)
-{
-  y_return(&stage.get_bank().scripts.get(path));
-}
-
-y_api(destroy)
+y_api(script__destroy)
     y_arg(Script*, script)
 {
   script->destroy();
   y_void();
 }
 
-y_api(create)
-    y_arg(const LuaFile*, file) y_arg(const y::wvec2, origin)
-{
-  y_return(&stage.get_scripts().create_script(*file, origin));
-}
-
-y_api(create_region)
-    y_arg(const LuaFile*, file)
-    y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
-{
-  y_return(&stage.get_scripts().create_script(*file, origin, region));
-}
-
-y_api(send_message)
+y_api(script__send_message)
     y_arg(Script*, script) y_arg(y::string, function_name)
     y_varargs(LuaValue, args)
 {
@@ -302,9 +266,121 @@ y_api(send_message)
   y_void();
 }
 
+y_api(script__create_body)
+    y_arg(Script*, script)
+    y_arg(const y::wvec2, offset) y_arg(const y::wvec2, size)
+{
+  Body* body = stage.get_collision().create_obj(*script);
+  body->offset = offset;
+  body->size = size;
+  y_return(body);
+}
+
+y_api(script__destroy_bodies)
+    y_arg(const Script*, script)
+{
+  stage.get_collision().destroy_all(*script);
+  y_void();
+}
+
+y_api(script__destroy_body)
+    y_arg(const Script*, script) y_arg(Body*, body)
+{
+  stage.get_collision().destroy_obj(*script, body);
+  y_void();
+}
+
+y_api(script__collider_move)
+    y_arg(Script*, script) y_arg(const y::wvec2, move)
+{
+  y_return(stage.get_collision().collider_move(*script, move));
+}
+
+y_api(script__collider_rotate)
+   y_arg(Script*, script) y_arg(y::world, rotate)
+{
+  y_return(stage.get_collision().collider_rotate(*script, rotate));
+}
+
+y_api(script__body_check)
+    y_arg(const Script*, script) y_arg(const Body*, body)
+    y_arg(y::int32, collide_mask)
+{
+  y_return(stage.get_collision().body_check(*script, *body, collide_mask));
+}
+
+y_api(script__create_light)
+    y_arg(Script*, script)
+    y_arg(y::world, full_range) y_arg(y::world, falloff_range)
+{
+  Light* light = stage.get_lighting().create_obj(*script);
+  light->full_range = full_range;
+  light->falloff_range = falloff_range;
+  light->layer_value = 0.;
+  y_return(light);
+}
+
+y_api(script__destroy_lights)
+    y_arg(const Script*, script)
+{
+  stage.get_lighting().destroy_all(*script);
+  y_void();
+}
+
+y_api(script__destroy_light)
+    y_arg(const Script*, script) y_arg(Light*, light)
+{
+  stage.get_lighting().destroy_obj(*script, light);
+  y_void();
+}
+
+// TODO: allow calling destroy_body, body_check, destroy_light and so directly
+// on the objects.
+// TODO: hash lookups for every method call make things pretty slow. Switch to
+// LuaJIT?
+y_ptrtypedef(Script) {
+  y_method("get_uid", script__get_uid);
+  y_method("get_origin", script__get_origin);
+  y_method("get_region", script__get_region);
+  y_method("get_rotation", script__get_rotation);
+  y_method("set_origin", script__set_origin);
+  y_method("set_region", script__set_region);
+  y_method("set_rotation", script__set_rotation);
+  y_method("destroy", script__destroy);
+  y_method("send_message", script__send_message);
+  y_method("create_body", script__create_body);
+  y_method("destroy_bodies", script__destroy_bodies);
+  y_method("destroy_bodies", script__destroy_body);
+  y_method("collider_move", script__collider_move);
+  y_method("collider_rotate", script__collider_rotate);
+  y_method("body_check", script__body_check);
+  y_method("create_light", script__create_light);
+  y_method("destroy_lights", script__destroy_lights);
+  y_method("destroy_light", script__destroy_light);
+} y_endtypedef();
+
 /******************************************************************************/
-// Stage API
+// Game stage API
 /******************************************************************************/
+y_api(get_script)
+    y_arg(y::string, path)
+{
+  y_return(&stage.get_bank().scripts.get(path));
+}
+
+y_api(create_script)
+    y_arg(const LuaFile*, file) y_arg(const y::wvec2, origin)
+{
+  y_return(&stage.get_scripts().create_script(*file, origin));
+}
+
+y_api(create_script_region)
+    y_arg(const LuaFile*, file)
+    y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
+{
+  y_return(&stage.get_scripts().create_script(*file, origin, region));
+}
+
 y_api(get_scripts_in_region)
     y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
 {
@@ -321,9 +397,6 @@ y_api(get_scripts_in_radius)
   y_return(result);
 }
 
-/******************************************************************************/
-// Player API
-/******************************************************************************/
 y_api(set_player)
     y_arg(Script*, script)
 {
@@ -387,10 +460,10 @@ y_api(get_sprite)
 }
 
 y_api(render_sprite)
-    y_arg(const Script*, script) y_arg(y::int32, layer)
+    y_arg(y::int32, layer) y_arg(y::world, depth)
+    y_arg(const y::wvec2, origin) y_arg(y::world, rotation)
     y_arg(const Sprite*, sprite)
     y_arg(const y::wvec2, frame_size) y_arg(const y::wvec2, frame)
-    y_arg(y::world, depth) y_arg(y::world, rotation)
     y_arg(y::world, r) y_arg(y::world, g) y_arg(y::world, b)
     y_arg(y::world, a)
 {
@@ -399,12 +472,11 @@ y_api(render_sprite)
 
   RenderBatch& batch = renderer.get_current_batch();
   const GlTexture2D& texture = normal ? sprite->normal : sprite->texture;
-  y::wvec2 origin = script->get_origin() - frame_size / 2;
 
   if (renderer.draw_pass_is_layer(GameRenderer::draw_layer(layer))) {
     renderer.set_current_draw_any();
     batch.add_sprite(texture, y::ivec2(frame_size), normal,
-                     y::fvec2(origin), y::ivec2(frame),
+                     y::fvec2(origin - frame_size / 2), y::ivec2(frame),
                      depth, rotation,
                      y::fvec4{float(r), float(g), float(b), float(a)});
   }
@@ -492,180 +564,105 @@ y_api(render_reflect)
 /******************************************************************************/
 // Collision API
 /******************************************************************************/
-y_api(create_body)
-    y_arg(Script*, script)
-    y_arg(const y::wvec2, offset) y_arg(const y::wvec2, size)
-{
-  Body* body = stage.get_collision().create_obj(*script);
-  body->offset = offset;
-  body->size = size;
-  y_return(body);
-}
-
-y_api(destroy_body)
-    y_arg(const Script*, script) y_arg(Body*, body)
-{
-  stage.get_collision().destroy_obj(*script, body);
-  y_void();
-}
-
-y_api(destroy_bodies)
-    y_arg(const Script*, script)
-{
-  stage.get_collision().destroy_all(*script);
-  y_void();
-}
-
-y_api(get_body_offset)
+y_api(body__get_offset)
     y_arg(const Body*, body)
 {
   y_return(body->offset);
 }
 
-y_api(get_body_size)
+y_api(body__get_size)
     y_arg(const Body*, body)
 {
   y_return(body->size);
 }
 
-y_api(get_collide_mask)
+y_api(body__get_collide_mask)
     y_arg(const Body*, body)
 {
   y_return(body->collide_mask);
 }
 
-y_api(set_body_offset)
+y_api(body__set_offset)
     y_arg(Body*, body) y_arg(const y::wvec2, offset)
 {
   body->offset = offset;
   y_void();
 }
 
-y_api(set_body_size)
+y_api(body__set_size)
     y_arg(Body*, body) y_arg(const y::wvec2, size)
 {
   body->size = size;
   y_void();
 }
 
-y_api(set_collide_mask)
+y_api(body__set_collide_mask)
     y_arg(Body*, body) y_arg(y::int32, collide_mask)
 {
   body->collide_mask = collide_mask;
   y_void();
 }
 
-y_api(collider_move)
-    y_arg(Script*, script) y_arg(const y::wvec2, move)
-{
-  y_return(stage.get_collision().collider_move(*script, move));
-}
-
-y_api(collider_rotate)
-   y_arg(Script*, script) y_arg(y::world, rotate)
-{
-  y_return(stage.get_collision().collider_rotate(*script, rotate));
-}
-
-y_api(body_check)
-    y_arg(const Script*, script) y_arg(const Body*, body)
-    y_arg(y::int32, collide_mask)
-{
-  y_return(stage.get_collision().body_check(*script, *body, collide_mask));
-}
+y_ptrtypedef(Body) {
+  y_method("get_offset", body__get_offset);
+  y_method("get_size", body__get_size);
+  y_method("get_collide_mask", body__get_collide_mask);
+  y_method("set_offset", body__set_offset);
+  y_method("set_size", body__set_size);
+  y_method("set_collide_mask", body__set_collide_mask);
+} y_endtypedef();
 
 /******************************************************************************/
 // Lighting API
 /******************************************************************************/
-y_api(create_light)
-    y_arg(Script*, script)
-    y_arg(y::world, full_range) y_arg(y::world, falloff_range)
-{
-  Light* light = stage.get_lighting().create_obj(*script);
-  light->full_range = full_range;
-  light->falloff_range = falloff_range;
-  light->layer_value = 0.;
-  y_return(light);
-}
-
-y_api(destroy_light)
-    y_arg(const Script*, script) y_arg(Light*, light)
-{
-  stage.get_lighting().destroy_obj(*script, light);
-  y_void();
-}
-
-y_api(destroy_lights)
-    y_arg(const Script*, script)
-{
-  stage.get_lighting().destroy_all(*script);
-  y_void();
-}
-
-y_api(get_light_full_range)
+y_api(light__get_full_range)
     y_arg(const Light*, light)
 {
   y_return(light->full_range);
 }
 
-y_api(set_light_range)
+y_api(light__set_full_range)
     y_arg(Light*, light) y_arg(y::world, full_range)
 {
   light->full_range = full_range;
   y_void();
 }
 
-y_api(get_light_falloff_range)
+y_api(light__get_falloff_range)
     y_arg(const Light*, light)
 {
   y_return(light->falloff_range);
 }
 
-y_api(set_light_falloff_range)
+y_api(light__set_falloff_range)
     y_arg(Light*, light) y_arg(y::world, falloff_range)
 {
   light->falloff_range = falloff_range;
   y_void();
 }
 
-y_api(get_light_layer_value)
+y_api(light__get_layer_value)
     y_arg(const Light*, light)
 {
   y_return(light->layer_value);
 }
 
-y_api(set_light_layer_value)
+y_api(light__set_layer_value)
     y_arg(Light*, light) y_arg(y::world, layer_value)
 {
   light->layer_value = layer_value;
   y_void();
 }
 
-y_api(get_light_r)
+y_api(light__get_colour)
     y_arg(const Light*, light)
 {
-  y_return(y::world(light->colour[rr]));
+  y_return(y::world(light->colour[rr]),
+           y::world(light->colour[gg]),
+           y::world(light->colour[bb]));
 }
 
-y_api(get_light_g)
-    y_arg(const Light*, light)
-{
-  y_return(y::world(light->colour[gg]));
-}
-
-y_api(get_light_b)
-    y_arg(const Light*, light)
-{
-  y_return(y::world(light->colour[bb]));
-}
-
-y_api(get_light_intensity)
-    y_arg(const Light*, light)
-{
-  y_return(y::world(light->colour[aa]));
-}
-
-y_api(set_light_colour)
+y_api(light__set_colour)
     y_arg(Light*, light)
     y_arg(y::world, r) y_arg(y::world, g) y_arg(y::world, b)
 {
@@ -675,9 +672,58 @@ y_api(set_light_colour)
   y_void();
 }
 
-y_api(set_light_intensity)
+y_api(light__get_intensity)
+    y_arg(const Light*, light)
+{
+  y_return(y::world(light->colour[aa]));
+}
+
+y_api(light__set_intensity)
     y_arg(Light*, light) y_arg(y::world, intensity)
 {
   light->colour[aa] = intensity;
   y_void();
 }
+
+y_api(light__get_aperture)
+    y_arg(const Light*, light)
+{
+  y_return(light->aperture);
+}
+
+y_api(light__set_aperture)
+    y_arg(Light*, light) y_arg(y::world, aperture)
+{
+  light->aperture = aperture;
+  y_void();
+}
+
+y_api(light__get_angle)
+    y_arg(const Light*, light)
+{
+  y_return(light->angle);
+}
+
+y_api(light__set_angle)
+    y_arg(Light*, light) y_arg(y::world, angle)
+{
+  light->angle = angle;
+  y_void();
+}
+
+y_ptrtypedef(Light) {
+  y_method("get_full_range", light__get_full_range);
+  y_method("set_full_range", light__set_full_range);
+  y_method("get_falloff_range", light__get_falloff_range);
+  y_method("set_falloff_range", light__set_falloff_range);
+  y_method("get_layer_value", light__get_layer_value);
+  y_method("set_layer_value", light__set_layer_value);
+  y_method("get_colour", light__get_colour);
+  y_method("set_colour", light__set_colour);
+  y_method("get_intensity", light__get_intensity);
+  y_method("set_intensity", light__set_intensity);
+  y_method("get_aperture", light__get_aperture);
+  y_method("set_aperture", light__set_aperture);
+  y_method("get_angle", light__get_angle);
+  y_method("set_angle", light__set_angle);
+} y_endtypedef();
