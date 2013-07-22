@@ -163,7 +163,7 @@ void MapEditor::event(const sf::Event& e)
           r /= hex.length();
         }
         push(y::move_unique(new TextInputModal(
-            _util, "/world/" + random_name +  ".cell",
+            _util, "/world/" + random_name + ".cell",
             _input_result, "Add cell using name:")));
       }
       break;

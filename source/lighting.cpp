@@ -45,25 +45,6 @@ Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
 {
 }
 
-bool Lighting::trace_key::operator==(const trace_key& key) const
-{
-  return origin == key.origin && max_range == key.max_range;
-}
-
-bool Lighting::trace_key::operator!=(const trace_key& key) const
-{
-  return !operator==(key);
-}
-
-y::size Lighting::trace_key_hash::operator()(const trace_key& key) const
-{
-  y::size seed = 0;
-  boost::hash_combine(seed, key.origin[xx]);
-  boost::hash_combine(seed, key.origin[yy]);
-  boost::hash_combine(seed, key.max_range);
-  return seed;
-}
-
 void Lighting::recalculate_traces(
     const y::wvec2& camera_min, const y::wvec2& camera_max)
 {
@@ -171,18 +152,13 @@ void Lighting::clear_results_and_cache()
   _trace_results.clear();
 }
 
-const Lighting::trace_results& Lighting::get_traces() const
-{
-  return _trace_results;
-}
-
 void Lighting::render_traces(
     RenderUtil& util,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
   y::vector<RenderUtil::line> lines;
 
-  for (const auto& pair : get_traces()) {
+  for (const auto& pair : _trace_results) {
     for (y::size i = 0; i < pair.second.size(); ++i) {
       y::wvec2 a = pair.first.origin + pair.second[i];
       y::wvec2 b = pair.first.origin + pair.second[(1 + i) %
@@ -232,26 +208,26 @@ void Lighting::render_internal(
   y::vector<GLfloat> tri_data;
   y::vector<GLfloat> origin_data;
   y::vector<GLfloat> range_data;
-  y::vector<GLfloat> colour_data;
   y::vector<GLfloat> layering_data;
+  y::vector<GLfloat> colour_data;
   y::vector<y::vector<GLushort>> element_data;
 
   struct local {
     y::vector<GLfloat>& tri_data;
     y::vector<GLfloat>& origin_data;
     y::vector<GLfloat>& range_data;
-    y::vector<GLfloat>& colour_data;
     y::vector<GLfloat>& layering_data;
+    y::vector<GLfloat>& colour_data;
     bool specular;
 
     local(y::vector<GLfloat>& tri_data, y::vector<GLfloat>& origin_data,
-          y::vector<GLfloat>& range_data, y::vector<GLfloat>& colour_data,
-          y::vector<GLfloat>& layering_data, bool specular)
+          y::vector<GLfloat>& range_data, y::vector<GLfloat>& layering_data,
+          y::vector<GLfloat>& colour_data, bool specular)
       : tri_data(tri_data)
       , origin_data(origin_data)
       , range_data(range_data)
-      , colour_data(colour_data)
       , layering_data(layering_data)
+      , colour_data(colour_data)
       , specular(specular)
     {
     }
@@ -281,7 +257,7 @@ void Lighting::render_internal(
         const y::wvec2& min, const y::wvec2& max,
         y::size origin_index, y::size a, y::size b, y::size c)
     {
-      const static y::wvec2 o;
+      static const y::wvec2 o;
       // Check has area.
       if (a == b || a == c || a == b) {
         return;
@@ -301,7 +277,7 @@ void Lighting::render_internal(
     }
   };
   local loc(tri_data, origin_data, range_data,
-            colour_data, layering_data, specular);
+            layering_data, colour_data, specular);
 
   source_list sources;
   get_sources(sources);
@@ -321,15 +297,19 @@ void Lighting::render_internal(
 
     trace_key key{origin, max_range};
     auto it = _trace_results.find(key);
-    if (it == _trace_results.end()) {
-      continue;
-    }
-    const light_trace& trace = it->second;
-    if (!trace.size()) {
+    if (it == _trace_results.end() || !it->second.size()) {
       continue;
     }
 
     for (const entry& light : get_list(*s)) {
+      // If the light is conical, slice out the correct section.
+      light_trace cone_trace;
+      const light_trace& trace =
+          light->aperture < y::pi ? cone_trace : it->second;
+      if (light->aperture < y::pi) {
+        make_cone_trace(cone_trace, it->second, light->aperture, light->angle);
+      }
+
       // Arranging in a triangle fan causes tears in the triangles due to slight
       // inaccuracies, so we use a fan with three triangles per actual triangle
       // to make sure the edges line up exactly.
@@ -358,7 +338,7 @@ void Lighting::render_internal(
                     trace[next].length_squared() ? b : next;
 
         // Render the triangles, using the configuration:
-        //   origin, l, r; l, r, b; a, b, l.
+        // origin, l, r; l, r, b; a, b, l.
         // Triangles which have no area or do not overlap the camera are
         // skipped in the add_triangle function.
         local::add_triangle(light_element_data, trace, min, max,
@@ -374,10 +354,10 @@ void Lighting::render_internal(
   _tri_buffer->reupload_data(tri_data);
   _origin_buffer->reupload_data(origin_data);
   _range_buffer->reupload_data(range_data);
+  _layering_buffer->reupload_data(layering_data);
   if (!specular) {
     _colour_buffer->reupload_data(colour_data);
   }
-  _layering_buffer->reupload_data(layering_data);
 
   util.get_gl().enable_depth(true, GL_LESS);
   util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
@@ -389,10 +369,10 @@ void Lighting::render_internal(
   program.bind_attribute("pixels", *_tri_buffer);
   program.bind_attribute("origin", *_origin_buffer);
   program.bind_attribute("range", *_range_buffer);
+  program.bind_attribute("layer", *_layering_buffer);
   if (!specular) {
     program.bind_attribute("colour", *_colour_buffer);
   }
-  program.bind_attribute("layer", *_layering_buffer);
   util.bind_pixel_uniforms(program);
 
   // It really shouldn't be necessary to use depth and draw lights one by one.
@@ -406,6 +386,25 @@ void Lighting::render_internal(
     _element_buffer->reupload_data(data);
     _element_buffer->draw_elements(GL_TRIANGLES, data.size());
   }
+}
+
+bool Lighting::trace_key::operator==(const trace_key& key) const
+{
+  return origin == key.origin && max_range == key.max_range;
+}
+
+bool Lighting::trace_key::operator!=(const trace_key& key) const
+{
+  return !operator==(key);
+}
+
+y::size Lighting::trace_key_hash::operator()(const trace_key& key) const
+{
+  y::size seed = 0;
+  boost::hash_combine(seed, key.origin[xx]);
+  boost::hash_combine(seed, key.origin[yy]);
+  boost::hash_combine(seed, key.max_range);
+  return seed;
 }
 
 Lighting::world_geometry::world_geometry()
@@ -495,8 +494,24 @@ void Lighting::get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
   vertex_output.emplace_back(y::wvec2{max_range, max_range});
 }
 
-void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
-                                    y::world max_range,
+y::wvec2 Lighting::get_point_on_geometry(
+    const y::wvec2& v, const world_geometry& geometry) const
+{
+  // Calculates point on geometry at the given angle vector. Finds t such that
+  // g(t) = g.start + t * (g.end - g.start) has g(t) cross v == 0.
+  y::wvec2 g_vec = geometry.end - geometry.start;
+  y::world d = v[xx] * g_vec[yy] - v[yy] * g_vec[xx];
+  if (!d) {
+    // Should have been excluded.
+    return y::wvec2();
+  }
+  y::world t = (v[yy] * geometry.start[xx] -
+                v[xx] * geometry.start[yy]) / d;
+
+  return geometry.start + t * g_vec;
+}
+
+void Lighting::trace_light_geometry(light_trace& output, y::world max_range,
                                     const y::vector<y::wvec2>& vertex_buffer,
                                     const geometry_entry& geometry_buffer,
                                     const geometry_map& map) const
@@ -515,26 +530,9 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
   typedef y::set<world_geometry, wg_hash> geometry_set;
 
   struct local {
-    // Calculates point on geometry at the given angle vector.
-    static y::wvec2 get_point_on_geometry(
-        const y::wvec2& v, const world_geometry& geometry)
-    {
-      // Finds t such that g(t) = g.start + t * (g.end - g.start) has
-      // g(t) cross v == 0.
-      y::wvec2 g_vec = geometry.end - geometry.start;
-      y::world d = v[xx] * g_vec[yy] - v[yy] * g_vec[xx];
-      if (!d) {
-        // Should have been excluded.
-        return y::wvec2();
-      }
-      y::world t = (v[yy] * geometry.start[xx] -
-                    v[xx] * geometry.start[yy]) / d;
-
-      return geometry.start + t * g_vec;
-    }
-
     // Calculates closest point and geometry.
     static y::wvec2 get_closest(
+        const Lighting& lighting,
         world_geometry& closest_geometry_output, y::world max_range,
         const y::wvec2& v, const geometry_set& stack)
     {
@@ -572,7 +570,7 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
           closest_geometry_output.end = y::wvec2();
         }
 
-        return get_point_on_geometry(v, closest_geometry_output);
+        return lighting.get_point_on_geometry(v, closest_geometry_output);
       }
 
       const world_geometry* closest_geometry = y::null;
@@ -583,7 +581,7 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
       for (const world_geometry& g : stack) {
         // Distance is defined by the intersection of the geometry with the
         // line from the origin to the current vertex.
-        y::wvec2 point = get_point_on_geometry(v, g);
+        y::wvec2 point = lighting.get_point_on_geometry(v, g);
         y::world dist_sq = point.length_squared();
 
         if (first || dist_sq < min_dist_sq) {
@@ -620,7 +618,7 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
   // defined opposite the sweep direction, this corresponds exactly to whether
   // the vertex is the start or end point of the geometry.
   world_geometry prev_closest_geometry;
-  local::get_closest(prev_closest_geometry, max_range,
+  local::get_closest(*this, prev_closest_geometry, max_range,
                      vertex_buffer[0], stack);
   // If stack is empty, make sure the first vertex gets added.
   bool add_first = stack.empty();
@@ -653,7 +651,7 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
     // Find the new closest geometry.
     world_geometry new_closest_geometry;
     y::wvec2 new_closest_point =
-        local::get_closest(new_closest_geometry, max_range, v, stack);
+        local::get_closest(*this, new_closest_geometry, max_range, v, stack);
 
     // When nothing has changed, skip (with special-case for empty stack at the
     // beginning).
@@ -664,13 +662,80 @@ void Lighting::trace_light_geometry(y::vector<y::wvec2>& output,
 
     // Add the two new points.
     y::wvec2 prev_closest_point =
-        local::get_point_on_geometry(v, prev_closest_geometry);
+        get_point_on_geometry(v, prev_closest_geometry);
     output.emplace_back(prev_closest_point);
     output.emplace_back(new_closest_point);
 
     // Store previous.
     prev_closest_geometry = new_closest_geometry;
   }
+}
+
+void Lighting::make_cone_trace(light_trace& output, const light_trace& trace,
+                               y::world aperture, y::world angle) const
+{
+  y::world min_angle = y::angle(angle - aperture);
+  y::world max_angle = y::angle(angle + aperture);
+  y::wvec2 min = y::wvec2::from_angle(min_angle);
+  y::wvec2 max = y::wvec2::from_angle(max_angle);
+
+  // We need to re-order the trace so that it doesn't have a big gap in the
+  // middle; do this by detecting straight runs of points in the cone.
+  bool straight = false;
+  y::vector<light_trace> straight_traces;
+
+  y::size min_index = 0;
+  y::size max_index = 0;
+
+  y::size i = 0;
+  for (; i < trace.size(); i += 2) {
+    const y::wvec2& v = trace[i];
+    const y::wvec2& w = trace[1 + i];
+    const y::wvec2& v2 = trace[(2 + i) % trace.size()];
+
+    y::world min_check = v[xx] * min[yy] - v[yy] * min[xx];
+    y::world max_check = v[xx] * max[yy] - v[yy] * max[xx];
+
+    y::world min_check_v2 = v2[xx] * min[yy] - v2[yy] * min[xx];
+    y::world max_check_v2 = v2[xx] * max[yy] - v2[yy] * max[xx];
+
+    // Find start and end indices of the conical section.
+    if (min_check >= 0 && min_check_v2 < 0) {
+      min_index = i;
+    }
+    if (max_check >= 0 && max_check_v2 < 0) {
+      max_index = i;
+    }
+
+    // Conical section is exactly the intersection of the half-planes defined
+    // by the minimum and maximum angles.
+    if (aperture > y::pi / 2 ? min_check < 0 || max_check >= 0 :
+                               min_check < 0 && max_check >= 0) {
+      if (!straight) {
+        straight = true;
+        straight_traces.emplace_back();
+      }
+      straight_traces.rbegin()->emplace_back(v);
+      straight_traces.rbegin()->emplace_back(w);
+    }
+    else {
+      straight = false;
+    }
+  }
+
+  // Assemble the trace from the straight-runs, with extra pairs at the start
+  // and end.
+  world_geometry min_cross(trace[1 + min_index],
+                           trace[(2 + min_index) % trace.size()]);
+  world_geometry max_cross(trace[1 + max_index],
+                           trace[(2 + max_index) % trace.size()]);
+  output.emplace_back();
+  output.emplace_back(get_point_on_geometry(min, min_cross));
+  for (auto it = straight_traces.rbegin(); it != straight_traces.rend(); ++it) {
+    output.insert(output.end(), it->begin(), it->end());
+  }
+  output.emplace_back(get_point_on_geometry(max, max_cross));
+  output.emplace_back();
 }
 
 bool Lighting::line_intersects_rect(

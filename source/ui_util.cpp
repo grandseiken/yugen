@@ -190,8 +190,8 @@ ConfirmationResult::ConfirmationResult()
 {
 }
 
-ConfirmationModal::ConfirmationModal(RenderUtil& util, ConfirmationResult& output,
-                                     const y::string& message)
+ConfirmationModal::ConfirmationModal(
+    RenderUtil& util, ConfirmationResult& output, const y::string& message)
   : _util(util)
   , _output(output)
   , _message(message)

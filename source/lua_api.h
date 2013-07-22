@@ -705,7 +705,7 @@ y_api(light__get_angle)
 y_api(light__set_angle)
     y_arg(Light*, light) y_arg(y::world, angle)
 {
-  light->angle = angle;
+  light->angle = y::angle(angle);
   y_void();
 }
 

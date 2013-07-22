@@ -12,8 +12,8 @@ class GlUtil;
 class RenderUtil;
 class WorldWindow;
 
-// Point lights only, so far!
-// TODO: cone lights, plane lights.
+// Point lights and cone lights only, so far!
+// TODO: plane lights.
 struct Light : y::no_copy {
   Light();
 
@@ -45,26 +45,11 @@ public:
   Lighting(const WorldWindow& world, GlUtil& gl);
   ~Lighting() override {};
 
-  // Stores trace results. Trace is relative to origin.
-  struct trace_key {
-    y::wvec2 origin;
-    y::world max_range;
-
-    bool operator==(const trace_key& key) const;
-    bool operator!=(const trace_key& key) const;
-  };
-  struct trace_key_hash {
-    y::size operator()(const trace_key& key) const;
-  };
-  typedef y::vector<y::wvec2> light_trace;
-  typedef y::map<trace_key, light_trace, trace_key_hash> trace_results;
-
   // Lighting functions.
   void recalculate_traces(
       const y::wvec2& camera_min, const y::wvec2& camera_max);
   void clear_results_and_cache();
 
-  const trace_results& get_traces() const;
   void render_traces(
       RenderUtil& util,
       const y::wvec2& camera_min, const y::wvec2& camera_max) const;
@@ -81,6 +66,20 @@ private:
       RenderUtil& util, const GlFramebuffer& normalbuffer,
       const y::wvec2& camera_min, const y::wvec2& camera_max,
       bool specular) const;
+
+  // Stores trace results. Trace is relative to origin.
+  struct trace_key {
+    y::wvec2 origin;
+    y::world max_range;
+
+    bool operator==(const trace_key& key) const;
+    bool operator!=(const trace_key& key) const;
+  };
+  struct trace_key_hash {
+    y::size operator()(const trace_key& key) const;
+  };
+  typedef y::vector<y::wvec2> light_trace;
+  typedef y::map<trace_key, light_trace, trace_key_hash> trace_results;
 
   // Internal lighting functions.
   struct world_geometry {
@@ -103,12 +102,15 @@ private:
                              const y::wvec2& origin,
                              y::world max_range,
                              const OrderedGeometry& all_geometry) const;
+  y::wvec2 get_point_on_geometry(
+      const y::wvec2& v, const world_geometry& geometry) const;
 
-  void trace_light_geometry(y::vector<y::wvec2>& output,
-                            y::world max_range,
+  void trace_light_geometry(light_trace& output, y::world max_range,
                             const y::vector<y::wvec2>& vertex_buffer,
                             const geometry_entry& geometry_buffer,
                             const geometry_map& map) const;
+  void make_cone_trace(light_trace& output, const light_trace& trace,
+                       y::world aperture, y::world angle) const;
 
   static bool line_intersects_rect(const y::wvec2& start, const y::wvec2& end,
                                    const y::wvec2& min, const y::wvec2& max);
