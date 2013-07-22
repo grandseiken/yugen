@@ -17,6 +17,8 @@ class WorldWindow;
 struct Light : y::no_copy {
   Light();
 
+  y::wvec2 offset;
+
   y::world get_max_range() const;
   // The range at which the light still has full intensity.
   y::world full_range;

@@ -7,6 +7,7 @@ varying vec2 pixels_coord;
 varying vec2 origin_coord;
 varying vec2 pos_coord;
 varying vec2 range_coord;
+varying vec4 colour_coord;
 varying float layer_coord;
 
 #include "light_util.glsl"
@@ -57,7 +58,7 @@ void main()
       specular_intensity(direct_specular, specular_power),
       specular_direct_coefficient);
 
-  vec4 colour = vec4(1.0, 1.0, 1.0, 1.0);
+  vec4 colour = vec4(1.0, 1.0, 1.0, colour_coord.a);
   colour.a *= total_specular *
       light_range_coefficient(sqrt(dist_sq), range_coord) *
       layering_value_coefficient(normal_tex.b, layer_coord);

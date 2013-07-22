@@ -38,11 +38,11 @@ local wall_jump_left = false
 
 -- Events.
 function on_submerge(amount)
-  light__set_layer_value(light, .2 + .05 * amount)
+  light:set_layer_value(.2 + .05 * amount)
 end
 
 function on_emerge()
-  light__set_layer_value(light, 0)
+  light:set_layer_value(0)
 end
 
 -- Jump behaviour.

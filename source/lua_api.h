@@ -613,6 +613,19 @@ y_ptrtypedef(Body) {
 /******************************************************************************/
 // Lighting API
 /******************************************************************************/
+y_api(light__get_offset)
+    y_arg(const Light*, light)
+{
+  y_return(light->offset);
+}
+
+y_api(light__set_offset)
+    y_arg(Light*, light) y_arg(const y::wvec2, offset)
+{
+  light->offset = offset;
+  y_void();
+}
+
 y_api(light__get_full_range)
     y_arg(const Light*, light)
 {
@@ -710,6 +723,8 @@ y_api(light__set_angle)
 }
 
 y_ptrtypedef(Light) {
+  y_method("get_offset", light__get_offset);
+  y_method("set_offset", light__set_offset);
   y_method("get_full_range", light__get_full_range);
   y_method("set_full_range", light__set_full_range);
   y_method("get_falloff_range", light__get_falloff_range);

@@ -95,45 +95,39 @@ void Lighting::recalculate_traces(
   source_list sources;
   get_sources(sources);
   for (const Script* s : sources) {
-    if (get_list(*s).empty()) {
-      continue;
-    }
-    const y::wvec2 origin = s->get_origin();
-
-    // Check the maximum range among all the Lights.
-    y::world max_range = 0;
     for (const entry& light : get_list(*s)) {
-      max_range = y::max(max_range, light->get_max_range());
+      const y::wvec2 origin = s->get_origin() + light->offset;
+      y::world max_range = light->get_max_range();
+
+      // Skip if maximum range doesn't overlap camera.
+      if (!(origin + y::wvec2{max_range, max_range} >= camera_min &&
+            origin + y::wvec2{-max_range, -max_range} < camera_max)) {
+        continue;
+      }
+
+      trace_key key{origin, max_range};
+      trace_preserve.insert(key);
+
+      // If the result is cached, we don't need to recalculate it.
+      if (_trace_results.find(key) != _trace_results.end()) {
+        continue;
+      }
+
+      // Find all the geometries that intersect the max-range square and their
+      // vertices, translated respective to origin.
+      vertex_buffer.clear();
+      geometry_buffer.clear();
+      map.clear();
+      get_relevant_geometry(vertex_buffer, geometry_buffer, map,
+                            origin, max_range, _world.get_geometry());
+
+      // Perform angular sort.
+      std::sort(vertex_buffer.begin(), vertex_buffer.end(), o);
+
+      // Trace the light geometry.
+      trace_light_geometry(_trace_results[key], max_range,
+                           vertex_buffer, geometry_buffer, map);
     }
-
-    // Skip if maximum range doesn't overlap camera.
-    if (!(origin + y::wvec2{max_range, max_range} >= camera_min &&
-          origin + y::wvec2{-max_range, -max_range} < camera_max)) {
-      continue;
-    }
-
-    trace_key key{origin, max_range};
-    trace_preserve.insert(key);
-
-    // If the result is cached, we don't need to recalculate it.
-    if (_trace_results.find(key) != _trace_results.end()) {
-      continue;
-    }
-
-    // Find all the geometries that intersect the max-range square and their
-    // vertices, translated respective to origin.
-    vertex_buffer.clear();
-    geometry_buffer.clear();
-    map.clear();
-    get_relevant_geometry(vertex_buffer, geometry_buffer, map,
-                          origin, max_range, _world.get_geometry());
-
-    // Perform angular sort.
-    std::sort(vertex_buffer.begin(), vertex_buffer.end(), o);
-
-    // Trace the light geometry.
-    trace_light_geometry(_trace_results[key], max_range,
-                         vertex_buffer, geometry_buffer, map);
   }
 
   // Get rid of the cached results we didn't use this frame.
@@ -243,12 +237,10 @@ void Lighting::render_internal(
       range_data.emplace_back(light.full_range);
       range_data.emplace_back(light.falloff_range);
       layering_data.emplace_back(light.layer_value);
-      if (!specular) {
-        colour_data.emplace_back(light.colour[rr]);
-        colour_data.emplace_back(light.colour[gg]);
-        colour_data.emplace_back(light.colour[bb]);
-        colour_data.emplace_back(light.colour[aa]);
-      }
+      colour_data.emplace_back(light.colour[rr]);
+      colour_data.emplace_back(light.colour[gg]);
+      colour_data.emplace_back(light.colour[bb]);
+      colour_data.emplace_back(light.colour[aa]);
     }
 
     // Add a triangle by element indices if it's necessary.
@@ -282,26 +274,19 @@ void Lighting::render_internal(
   source_list sources;
   get_sources(sources);
   for (const Script* s : sources) {
-    if (get_list(*s).empty()) {
-      continue;
-    }
-    const y::wvec2& origin = s->get_origin();
-
-    y::wvec2 min = camera_min - origin;
-    y::wvec2 max = camera_max - origin;
-
-    y::world max_range = 0;
     for (const entry& light : get_list(*s)) {
-      max_range = y::max(max_range, light->get_max_range());
-    }
+      const y::wvec2& origin = s->get_origin() + light->offset;
+      y::world max_range = light->get_max_range();
 
-    trace_key key{origin, max_range};
-    auto it = _trace_results.find(key);
-    if (it == _trace_results.end() || !it->second.size()) {
-      continue;
-    }
+      y::wvec2 min = camera_min - origin;
+      y::wvec2 max = camera_max - origin;
 
-    for (const entry& light : get_list(*s)) {
+      trace_key key{origin, max_range};
+      auto it = _trace_results.find(key);
+      if (it == _trace_results.end() || !it->second.size()) {
+        continue;
+      }
+
       // If the light is conical, slice out the correct section.
       light_trace cone_trace;
       const light_trace& trace =
@@ -355,9 +340,7 @@ void Lighting::render_internal(
   _origin_buffer->reupload_data(origin_data);
   _range_buffer->reupload_data(range_data);
   _layering_buffer->reupload_data(layering_data);
-  if (!specular) {
-    _colour_buffer->reupload_data(colour_data);
-  }
+  _colour_buffer->reupload_data(colour_data);
 
   util.get_gl().enable_depth(true, GL_LESS);
   util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
@@ -370,9 +353,7 @@ void Lighting::render_internal(
   program.bind_attribute("origin", *_origin_buffer);
   program.bind_attribute("range", *_range_buffer);
   program.bind_attribute("layer", *_layering_buffer);
-  if (!specular) {
-    program.bind_attribute("colour", *_colour_buffer);
-  }
+  program.bind_attribute("colour", *_colour_buffer);
   util.bind_pixel_uniforms(program);
 
   // It really shouldn't be necessary to use depth and draw lights one by one.
