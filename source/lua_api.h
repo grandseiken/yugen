@@ -626,16 +626,16 @@ y_api(light__set_offset)
   y_void();
 }
 
-y_api(light__get_plane_direction)
+y_api(light__get_normal_vec)
     y_arg(const Light*, light)
 {
-  y_return(light->plane_direction);
+  y_return(light->normal_vec);
 }
 
-y_api(light__set_plane_direction)
-    y_arg(Light*, light) y_arg(const y::wvec2, plane_direction)
+y_api(light__set_normal_vec)
+    y_arg(Light*, light) y_arg(const y::wvec2, normal_vec)
 {
-  light->plane_direction = plane_direction.normalised();
+  light->normal_vec = normal_vec.normalised();
   y_void();
 }
 
@@ -738,8 +738,8 @@ y_api(light__set_aperture)
 y_ptrtypedef(Light) {
   y_method("get_offset", light__get_offset);
   y_method("set_offset", light__set_offset);
-  y_method("get_plane_direction", light__get_plane_direction);
-  y_method("set_plane_direction", light__set_plane_direction);
+  y_method("get_normal_vec", light__get_normal_vec);
+  y_method("set_normal_vec", light__set_normal_vec);
   y_method("get_full_range", light__get_full_range);
   y_method("set_full_range", light__set_full_range);
   y_method("get_falloff_range", light__get_falloff_range);

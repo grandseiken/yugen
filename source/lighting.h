@@ -16,12 +16,6 @@ class WorldWindow;
 struct Light : y::no_copy {
   Light();
 
-  y::world get_max_range() const;
-  y::wvec2 get_offset() const;
-  bool is_planar() const;
-  bool overlaps_rect(const y::wvec2& origin,
-                     const y::wvec2& min, const y::wvec2& max) const;
-
   // Displacement from the owning Script's origin. For plane lights, the offset
   // defines the plane from (origin - offset) to (origin + offset).
   y::wvec2 offset;
@@ -51,7 +45,15 @@ struct Light : y::no_copy {
   // direction all along a plane (by which, through abuse of terminology, we
   // really mean a hyperplane; a line). Default (0, 0) gives a regular point
   // light.
-  y::wvec2 plane_direction;
+  y::wvec2 normal_vec;
+
+  // Handy functions.
+  y::world get_max_range() const;
+  y::wvec2 get_origin(const y::wvec2& origin) const;
+  y::wvec2 get_offset() const;
+  bool is_planar() const;
+  bool overlaps_rect(const y::wvec2& origin,
+                     const y::wvec2& min, const y::wvec2& max) const;
 };
 
 // Keeps a record of Lights and handles fancy lighting algorithms.
@@ -78,10 +80,28 @@ public:
 
 private:
 
+  typedef y::vector<y::wvec2> light_trace;
+
+  // Add all the data for a vertex of a lit shape.
+  void add_vertex(const y::wvec2& origin, const y::wvec2& trace,
+                  const Light& light) const;
+  // Add a triangle by element indices if necessary.
+  void add_triangle(
+      y::vector<GLushort>& element_data, const light_trace& light_trace,
+      const y::wvec2& min, const y::wvec2& max,
+      y::size origin_index, y::size a, y::size b, y::size c) const;
+
   void render_internal(
       RenderUtil& util, const GlFramebuffer& normalbuffer,
       const y::wvec2& camera_min, const y::wvec2& camera_max,
       bool specular) const;
+
+  void render_angular_internal(
+      const light_trace& trace, const Light& light, const y::wvec2& origin,
+      const y::wvec2& camera_min, const y::wvec2& camera_max) const;
+  void render_planar_internal(
+      const light_trace& trace, const Light& light, const y::wvec2& origin,
+      const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
   // Stores trace results. Trace is relative to origin.
   struct trace_key {
@@ -89,7 +109,7 @@ private:
     y::world max_range;
 
     // Key-fields for plane lights.
-    y::wvec2 plane_direction;
+    y::wvec2 normal_vec;
     y::wvec2 offset;
 
     bool operator==(const trace_key& key) const;
@@ -98,7 +118,6 @@ private:
   struct trace_key_hash {
     y::size operator()(const trace_key& key) const;
   };
-  typedef y::vector<y::wvec2> light_trace;
   typedef y::map<trace_key, light_trace, trace_key_hash> trace_results;
 
   // Internal lighting functions.
@@ -122,36 +141,42 @@ private:
 
   // Pair of functions for finding all vertices and geometries that might
   // affect the light output in the angular and planar settings.
-  void get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
-                             geometry_entry& geometry_output,
-                             geometry_map& map_output,
-                             const y::wvec2& origin,
-                             y::world max_range,
-                             const OrderedGeometry& all_geometry) const;
+  void get_relevant_geometry(
+      y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+      geometry_map& map_output, const Light& light, const y::wvec2& origin,
+      const OrderedGeometry& all_geometry, bool planar) const;
 
-  void get_planar_relevant_geometry(y::vector<y::wvec2>& vertex_output,
-                                    geometry_entry& geometry_output,
-                                    geometry_map& map_output,
-                                    const y::wvec2& origin,
-                                    y::world max_range, const y::wvec2& offset,
-                                    const y::wvec2& normal_vec,
-                                    const OrderedGeometry& all_geometry) const;
+  void get_angular_relevant_geometry(
+      y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+      geometry_map& map_output, const Light& light, const y::wvec2& origin,
+      const OrderedGeometry& all_geometry) const;
 
-  y::wvec2 get_point_on_geometry(
+  void get_planar_relevant_geometry(
+      y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+      geometry_map& map_output, const Light& light, const y::wvec2& origin,
+      const OrderedGeometry& all_geometry) const;
+
+  // Helper functions.
+  y::wvec2 get_angular_point_on_geometry(
       const y::wvec2& v, const world_geometry& geometry) const;
   y::wvec2 get_planar_point_on_geometry(
       const y::wvec2& normal_vec, const y::wvec2& v,
       const world_geometry& geometry) const;
 
   // Pair of functions for tracing angular and planar light geometry.
-  void trace_light_geometry(light_trace& output, y::world max_range,
+  void trace_light_geometry(light_trace& output, const Light& light,
                             const y::vector<y::wvec2>& vertex_buffer,
                             const geometry_entry& geometry_buffer,
-                            const geometry_map& map) const;
+                            const geometry_map& map, bool planar) const;
+
+  void trace_angular_light_geometry(
+      light_trace& output, const Light& light,
+      const y::vector<y::wvec2>& vertex_buffer,
+      const geometry_entry& geometry_buffer,
+      const geometry_map& map) const;
 
   void trace_planar_light_geometry(
-      light_trace& output, y::world max_range,
-      const y::wvec2& offset, const y::wvec2& normal_vec,
+      light_trace& output, const Light& light,
       const y::vector<y::wvec2>& vertex_buffer,
       const geometry_entry& geometry_buffer,
       const geometry_map& map) const;
@@ -167,6 +192,13 @@ private:
   GlUtil& _gl;
   GlUnique<GlProgram> _point_light_program;
   GlUnique<GlProgram> _point_light_specular_program;
+
+  mutable y::vector<GLfloat> _tri_data;
+  mutable y::vector<GLfloat> _origin_data;
+  mutable y::vector<GLfloat> _range_data;
+  mutable y::vector<GLfloat> _layering_data;
+  mutable y::vector<GLfloat> _colour_data;
+  mutable y::vector<y::vector<GLushort>> _element_data;
 
   GlUnique<GlBuffer<float, 2>> _tri_buffer;
   GlUnique<GlBuffer<float, 2>> _origin_buffer;

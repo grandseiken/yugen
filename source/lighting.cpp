@@ -21,6 +21,11 @@ y::world Light::get_max_range() const
   return full_range + falloff_range;
 }
 
+y::wvec2 Light::get_origin(const y::wvec2& origin) const
+{
+  return is_planar() ? origin : origin + offset;
+}
+
 y::wvec2 Light::get_offset() const
 {
   if (!is_planar()) {
@@ -28,13 +33,13 @@ y::wvec2 Light::get_offset() const
   }
 
   // Need to swap the offset so that it is consistent relative to the normal.
-  return plane_direction[yy] * offset[xx] -
-         plane_direction[xx] * offset[yy] >= 0 ? offset : -offset;
+  return normal_vec[yy] * offset[xx] -
+         normal_vec[xx] * offset[yy] >= 0 ? offset : -offset;
 }
 
 bool Light::is_planar() const
 {
-  return plane_direction != y::wvec2();
+  return normal_vec != y::wvec2();
 }
 
 bool Light::overlaps_rect(const y::wvec2& origin,
@@ -51,8 +56,8 @@ bool Light::overlaps_rect(const y::wvec2& origin,
 
   y::wvec2 a = origin - offset;
   y::wvec2 b = origin + offset;
-  y::wvec2 c = a + plane_direction * max_range;
-  y::wvec2 d = b + plane_direction * max_range;
+  y::wvec2 c = a + normal_vec * max_range;
+  y::wvec2 d = b + normal_vec * max_range;
 
   y::wvec2 light_min = y::min(y::min(a, b), y::min(c, d));
   y::wvec2 light_max = y::max(y::max(a, b), y::max(c, d));
@@ -153,19 +158,15 @@ void Lighting::recalculate_traces(
   get_sources(sources);
   for (const Script* s : sources) {
     for (const entry& light : get_list(*s)) {
-      bool plane_light = light->is_planar();
-      const y::wvec2 origin = plane_light ?
-          s->get_origin() : s->get_origin() + light->offset;
+      const y::wvec2 origin = light->get_origin(s->get_origin());
 
       // Skip if light doesn't overlap camera.
       if (!light->overlaps_rect(origin, camera_min, camera_max)) {
         continue;
       }
 
-      y::world max_range = light->get_max_range();
-      y::wvec2 offset = light->get_offset();
-      trace_key key{origin, max_range,
-                    light->plane_direction, offset};
+      trace_key key{origin, light->get_max_range(),
+                    light->normal_vec, light->get_offset()};
       trace_preserve.insert(key);
 
       // If the result is cached, we don't need to recalculate it.
@@ -177,30 +178,24 @@ void Lighting::recalculate_traces(
       map.clear();
 
       // Find all the geometries that intersect the max-range square and their
-      // vertices, translated respective to origin, then perform the appropriate
-      // sort and trace the geometry.
-      if (!plane_light) {
-        get_relevant_geometry(vertex_buffer, geometry_buffer, map,
-                              origin, max_range, _world.get_geometry());
+      // vertices, translated respective to origin.
+      get_relevant_geometry(vertex_buffer, geometry_buffer, map,
+                            *light, origin, _world.get_geometry(),
+                            light->is_planar());
 
+      // Perform the appropriate vertex sort.
+      if (light->is_planar()) {
+        planar.normal_vec = light->normal_vec;
+        std::sort(vertex_buffer.begin(), vertex_buffer.end(), planar);
+      }
+      else {
         std::sort(vertex_buffer.begin(), vertex_buffer.end(), angular);
-
-        trace_light_geometry(_trace_results[key], max_range,
-                             vertex_buffer, geometry_buffer, map);
-        continue;
       }
 
-      get_planar_relevant_geometry(
-          vertex_buffer, geometry_buffer, map,
-          origin, max_range, offset, light->plane_direction,
-          _world.get_geometry());
-
-      planar.normal_vec = light->plane_direction;
-      std::sort(vertex_buffer.begin(), vertex_buffer.end(), planar);
-
-      trace_planar_light_geometry(_trace_results[key], max_range,
-                                  offset, light->plane_direction,
-                                  vertex_buffer, geometry_buffer, map);
+      // Trace the light geometry.
+      trace_light_geometry(_trace_results[key], *light,
+                           vertex_buffer, geometry_buffer, map,
+                           light->is_planar());
     }
   }
 
@@ -265,6 +260,48 @@ void Lighting::render_specularbuffer(
   render_internal(util, normalbuffer, camera_min, camera_max, true);
 }
 
+void Lighting::add_vertex(const y::wvec2& origin, const y::wvec2& trace,
+                          const Light& light) const
+{
+  _tri_data.emplace_back((trace + origin)[xx]);
+  _tri_data.emplace_back((trace + origin)[yy]);
+  _origin_data.emplace_back(origin[xx]);
+  _origin_data.emplace_back(origin[yy]);
+  _range_data.emplace_back(light.full_range);
+  _range_data.emplace_back(light.falloff_range);
+  _layering_data.emplace_back(light.layer_value);
+  _colour_data.emplace_back(light.colour[rr]);
+  _colour_data.emplace_back(light.colour[gg]);
+  _colour_data.emplace_back(light.colour[bb]);
+  _colour_data.emplace_back(light.colour[aa]);
+}
+
+void Lighting::add_triangle(
+    y::vector<GLushort>& element_data, const light_trace& trace,
+    const y::wvec2& min, const y::wvec2& max,
+    y::size origin_index, y::size a, y::size b, y::size c) const
+{
+  static const y::wvec2 o;
+  // Check has area.
+  if (a == b || a == c || a == b) {
+    return;
+  }
+  const y::wvec2& aa = a ? trace[a - 1] : o;
+  const y::wvec2& bb = b ? trace[b - 1] : o;
+  const y::wvec2& cc = c ? trace[c - 1] : o;
+  // Check overlaps camera.
+  // TODO: this is wrong if the triangle is big enough to overlap camera
+  // without any line touching it.
+  if (!line_intersects_rect(aa, bb, min, max) &&
+      !line_intersects_rect(aa, cc, min, max) &&
+      !line_intersects_rect(bb, cc, min, max)) {
+    return;
+  }
+  element_data.emplace_back(origin_index + a);
+  element_data.emplace_back(origin_index + b);
+  element_data.emplace_back(origin_index + c);
+}
+
 void Lighting::render_internal(
     RenderUtil& util, const GlFramebuffer& normalbuffer,
     const y::wvec2& camera_min, const y::wvec2& camera_max,
@@ -273,94 +310,21 @@ void Lighting::render_internal(
   if (!(util.get_resolution() >= y::ivec2())) {
     return;
   }
-  y::vector<GLfloat> tri_data;
-  y::vector<GLfloat> origin_data;
-  y::vector<GLfloat> range_data;
-  y::vector<GLfloat> layering_data;
-  y::vector<GLfloat> colour_data;
-  y::vector<y::vector<GLushort>> element_data;
-
-  struct local {
-    y::vector<GLfloat>& tri_data;
-    y::vector<GLfloat>& origin_data;
-    y::vector<GLfloat>& range_data;
-    y::vector<GLfloat>& layering_data;
-    y::vector<GLfloat>& colour_data;
-    bool specular;
-
-    local(y::vector<GLfloat>& tri_data, y::vector<GLfloat>& origin_data,
-          y::vector<GLfloat>& range_data, y::vector<GLfloat>& layering_data,
-          y::vector<GLfloat>& colour_data, bool specular)
-      : tri_data(tri_data)
-      , origin_data(origin_data)
-      , range_data(range_data)
-      , layering_data(layering_data)
-      , colour_data(colour_data)
-      , specular(specular)
-    {
-    }
-
-    // Add all the data for a vertex of a lit shape.
-    void add_vertex(const y::wvec2& origin, const y::wvec2& trace,
-                    const Light& light) const
-    {
-      tri_data.emplace_back((trace + origin)[xx]);
-      tri_data.emplace_back((trace + origin)[yy]);
-      origin_data.emplace_back(origin[xx]);
-      origin_data.emplace_back(origin[yy]);
-      range_data.emplace_back(light.full_range);
-      range_data.emplace_back(light.falloff_range);
-      layering_data.emplace_back(light.layer_value);
-      colour_data.emplace_back(light.colour[rr]);
-      colour_data.emplace_back(light.colour[gg]);
-      colour_data.emplace_back(light.colour[bb]);
-      colour_data.emplace_back(light.colour[aa]);
-    }
-
-    // Add a triangle by element indices if it's necessary.
-    static void add_triangle(
-        y::vector<GLushort>& element_data, const light_trace& trace,
-        const y::wvec2& min, const y::wvec2& max,
-        y::size origin_index, y::size a, y::size b, y::size c)
-    {
-      static const y::wvec2 o;
-      // Check has area.
-      if (a == b || a == c || a == b) {
-        return;
-      }
-      const y::wvec2& aa = a ? trace[a - 1] : o;
-      const y::wvec2& bb = b ? trace[b - 1] : o;
-      const y::wvec2& cc = c ? trace[c - 1] : o;
-      // Check overlaps camera.
-      // TODO: this is wrong if the triangle is big enough to overlap camera
-      // without any line touching it.
-      if (!line_intersects_rect(aa, bb, min, max) &&
-          !line_intersects_rect(aa, cc, min, max) &&
-          !line_intersects_rect(bb, cc, min, max)) {
-        return;
-      }
-      element_data.emplace_back(origin_index + a);
-      element_data.emplace_back(origin_index + b);
-      element_data.emplace_back(origin_index + c);
-    }
-  };
-  local loc(tri_data, origin_data, range_data,
-            layering_data, colour_data, specular);
+  _tri_data.clear();
+  _origin_data.clear();
+  _range_data.clear();
+  _layering_data.clear();
+  _colour_data.clear();
+  _element_data.clear();
 
   source_list sources;
   get_sources(sources);
   for (const Script* s : sources) {
     for (const entry& light : get_list(*s)) {
-      bool plane_light = light->is_planar();
-      const y::wvec2& origin = plane_light ?
-          s->get_origin() : s->get_origin() + light->offset;
-      y::world max_range = light->get_max_range();
+      const y::wvec2 origin = light->get_origin(s->get_origin());
 
-      y::wvec2 min = camera_min - origin;
-      y::wvec2 max = camera_max - origin;
-
-      trace_key key{origin, max_range,
-                    light->plane_direction, light->get_offset()};
+      trace_key key{origin, light->get_max_range(),
+                    light->normal_vec, light->get_offset()};
       auto it = _trace_results.find(key);
       if (it == _trace_results.end() || !it->second.size()) {
         continue;
@@ -368,63 +332,26 @@ void Lighting::render_internal(
 
       // If the light is conical, slice out the correct section.
       light_trace cone_trace;
-      bool cone_light = !plane_light && light->aperture < y::pi;
+      bool cone_light = !light->is_planar() && light->aperture < y::pi;
       const light_trace& trace = cone_light ? cone_trace : it->second;
       if (cone_light) {
         make_cone_trace(cone_trace, it->second, light->angle, light->aperture);
       }
 
-      // TODO.
-      if (plane_light) {
-        continue;
+      if (light->is_planar()) {
+        render_planar_internal(trace, *light, origin, camera_min, camera_max);
       }
-
-      // Arranging in a triangle fan causes tears in the triangles due to slight
-      // inaccuracies, so we use a fan with three triangles per actual triangle
-      // to make sure the edges line up exactly.
-      y::size origin_index = tri_data.size() / 2;
-
-      // Set up the vertices.
-      loc.add_vertex(origin, y::wvec2(), *light);
-      for (y::size i = 0; i < trace.size(); ++i) {
-        loc.add_vertex(origin, trace[i], *light);
-      }
-
-      // Set up the indices.
-      element_data.emplace_back();
-      auto& light_element_data = *element_data.rbegin();
-      for (y::size i = 1; i < trace.size(); i += 2) {
-        y::size prev = i - 1;
-        y::size a = i;
-        y::size b = (1 + i) % trace.size();
-        y::size next = (2 + i) % trace.size();
-
-        // Find the closer of the two possible vertices for left and right
-        // (depending on whether each corner is a concave or convex one).
-        y::size l = trace[a].length_squared() <=
-                    trace[prev].length_squared() ? a : prev;
-        y::size r = trace[b].length_squared() <=
-                    trace[next].length_squared() ? b : next;
-
-        // Render the triangles, using the configuration:
-        // origin, l, r; l, r, b; a, b, l.
-        // Triangles which have no area or do not overlap the camera are
-        // skipped in the add_triangle function.
-        local::add_triangle(light_element_data, trace, min, max,
-                            origin_index, 0, 1 + l, 1 + r);
-        local::add_triangle(light_element_data, trace, min, max,
-                            origin_index, 1 + l, 1 + r, 1 + b);
-        local::add_triangle(light_element_data, trace, min, max,
-                            origin_index, 1 + a, 1 + b, 1 + l);
+      else {
+        render_angular_internal(trace, *light, origin, camera_min, camera_max);
       }
     }
   }
 
-  _tri_buffer->reupload_data(tri_data);
-  _origin_buffer->reupload_data(origin_data);
-  _range_buffer->reupload_data(range_data);
-  _layering_buffer->reupload_data(layering_data);
-  _colour_buffer->reupload_data(colour_data);
+  _tri_buffer->reupload_data(_tri_data);
+  _origin_buffer->reupload_data(_origin_data);
+  _range_buffer->reupload_data(_range_data);
+  _layering_buffer->reupload_data(_layering_data);
+  _colour_buffer->reupload_data(_colour_data);
 
   util.get_gl().enable_depth(true, GL_LESS);
   util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
@@ -445,21 +372,79 @@ void Lighting::render_internal(
   // stop the light triangles from very occassionally overlapping and producing
   // artefacts, even though the triangles are formed with *exactly* the same
   // edges. I don't know what's going wrong.
-  y::size n = element_data.size();
-  for (const auto& data : element_data) {
-    program.bind_uniform("depth", float(n--) / (1 + element_data.size()));
+  y::size n = _element_data.size();
+  for (const auto& data : _element_data) {
+    program.bind_uniform("depth", float(n--) / (1 + _element_data.size()));
     _element_buffer->reupload_data(data);
     _element_buffer->draw_elements(GL_TRIANGLES, data.size());
   }
 }
 
+void Lighting::render_angular_internal(
+    const light_trace& trace, const Light& light, const y::wvec2& origin,
+    const y::wvec2& camera_min, const y::wvec2& camera_max) const
+{
+  // Arranging in a triangle fan causes tears in the triangles due to slight
+  // inaccuracies, so we use a fan with three triangles per actual triangle
+  // to make sure the edges line up exactly.
+  y::size origin_index = _tri_data.size() / 2;
+
+  // Set up the vertices.
+  add_vertex(origin, y::wvec2(), light);
+  for (y::size i = 0; i < trace.size(); ++i) {
+    add_vertex(origin, trace[i], light);
+  }
+  const y::wvec2 min = camera_min - origin;
+  const y::wvec2 max = camera_max - origin;
+
+  // Set up the indices.
+  _element_data.emplace_back();
+  auto& light_element_data = *_element_data.rbegin();
+  for (y::size i = 1; i < trace.size(); i += 2) {
+    y::size prev = i - 1;
+    y::size a = i;
+    y::size b = (1 + i) % trace.size();
+    y::size next = (2 + i) % trace.size();
+
+    // Find the closer of the two possible vertices for left and right
+    // (depending on whether each corner is a concave or convex one).
+    y::size l = trace[a].length_squared() <=
+                trace[prev].length_squared() ? a : prev;
+    y::size r = trace[b].length_squared() <=
+                trace[next].length_squared() ? b : next;
+
+    // Render the triangles, using the configuration:
+    // origin, l, r; l, r, b; a, b, l.
+    // Triangles which have no area or do not overlap the camera are
+    // skipped in the add_triangle function.
+    add_triangle(light_element_data, trace, min, max,
+                 origin_index, 0, 1 + l, 1 + r);
+    add_triangle(light_element_data, trace, min, max,
+                 origin_index, 1 + l, 1 + r, 1 + b);
+    add_triangle(light_element_data, trace, min, max,
+                 origin_index, 1 + a, 1 + b, 1 + l);
+  }
+}
+
+void Lighting::render_planar_internal(
+    const light_trace& trace, const Light& light, const y::wvec2& origin,
+    const y::wvec2& camera_min, const y::wvec2& camera_max) const
+{
+  // TODO.
+  (void)trace;
+  (void)light;
+  (void)origin;
+  (void)camera_min;
+  (void)camera_max;
+}
+
 bool Lighting::trace_key::operator==(const trace_key& key) const
 {
   if (!(origin == key.origin && max_range == key.max_range &&
-        plane_direction == key.plane_direction)) {
+        normal_vec == key.normal_vec)) {
     return false;
   }
-  return plane_direction == y::wvec2() || offset == key.offset;
+  return normal_vec == y::wvec2() || offset == key.offset;
 }
 
 bool Lighting::trace_key::operator!=(const trace_key& key) const
@@ -473,9 +458,9 @@ y::size Lighting::trace_key_hash::operator()(const trace_key& key) const
   boost::hash_combine(seed, key.origin[xx]);
   boost::hash_combine(seed, key.origin[yy]);
   boost::hash_combine(seed, key.max_range);
-  boost::hash_combine(seed, key.plane_direction[xx]);
-  boost::hash_combine(seed, key.plane_direction[yy]);
-  if (key.plane_direction != y::wvec2()) {
+  boost::hash_combine(seed, key.normal_vec[xx]);
+  boost::hash_combine(seed, key.normal_vec[yy]);
+  if (key.normal_vec != y::wvec2()) {
     boost::hash_combine(seed, key.offset[xx]);
     boost::hash_combine(seed, key.offset[yy]);
   }
@@ -519,16 +504,30 @@ y::size Lighting::world_geometry_hash::operator()(const world_geometry& g) const
   return seed;
 }
 
-void Lighting::get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
-                                     geometry_entry& geometry_output,
-                                     geometry_map& map_output,
-                                     const y::wvec2& origin,
-                                     y::world max_range,
-                                     const OrderedGeometry& all_geometry) const
+void Lighting::get_relevant_geometry(
+    y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+    geometry_map& map_output, const Light& light, const y::wvec2& origin,
+    const OrderedGeometry& all_geometry, bool planar) const
+{
+  if (planar) {
+    get_planar_relevant_geometry(vertex_output, geometry_output, map_output,
+                                 light, origin, all_geometry);
+  }
+  else {
+    get_angular_relevant_geometry(vertex_output, geometry_output, map_output,
+                                  light, origin, all_geometry);
+  }
+}
+
+void Lighting::get_angular_relevant_geometry(
+    y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+    geometry_map& map_output, const Light& light, const y::wvec2& origin,
+    const OrderedGeometry& all_geometry) const
 {
   // We could find only the vertices whose geometries intersect the circle
   // defined by origin and max_range, but that is way more expensive and
   // squares are easier anyway.
+  y::world max_range = light.get_max_range();
   y::wvec2 bound = y::wvec2{max_range, max_range};
 
   // See Collision::collider_move for details.
@@ -580,15 +579,15 @@ void Lighting::get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
 }
 
 void Lighting::get_planar_relevant_geometry(
-    y::vector<y::wvec2>& vertex_output,
-    geometry_entry& geometry_output,
-    geometry_map& map_output,
-    const y::wvec2& origin, y::world max_range, const y::wvec2& offset,
-    const y::wvec2& normal_vec, const OrderedGeometry& all_geometry) const
+    y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+    geometry_map& map_output, const Light& light, const y::wvec2& origin,
+    const OrderedGeometry& all_geometry) const
 {
   // We find all the vertices whose geometries intersect the bounding box of the
   // plane-light parallelogram.
-  y::wvec2 v = max_range * normal_vec;
+  y::wvec2 offset = light.get_offset();
+  y::wvec2 v = light.get_max_range() * light.normal_vec;
+
   y::wvec2 min_bound = y::min(y::min(-offset, offset),
                               y::min(v - offset, v + offset));
   y::wvec2 max_bound = y::max(y::max(-offset, offset),
@@ -632,7 +631,7 @@ void Lighting::get_planar_relevant_geometry(
   vertex_output.emplace_back(y::wvec2{v + offset});
 }
 
-y::wvec2 Lighting::get_point_on_geometry(
+y::wvec2 Lighting::get_angular_point_on_geometry(
     const y::wvec2& v, const world_geometry& geometry) const
 {
   // Calculates point on geometry at the given angle vector. Finds t such that
@@ -667,10 +666,26 @@ y::wvec2 Lighting::get_planar_point_on_geometry(
   return v + t * normal_vec;
 }
 
-void Lighting::trace_light_geometry(light_trace& output, y::world max_range,
+void Lighting::trace_light_geometry(light_trace& output, const Light& light,
                                     const y::vector<y::wvec2>& vertex_buffer,
                                     const geometry_entry& geometry_buffer,
-                                    const geometry_map& map) const
+                                    const geometry_map& map, bool planar) const
+{
+  if (planar) {
+    trace_planar_light_geometry(output, light,
+                                vertex_buffer, geometry_buffer, map);
+  }
+  else {
+    trace_angular_light_geometry(output, light,
+                                 vertex_buffer, geometry_buffer, map);
+  }
+}
+
+void Lighting::trace_angular_light_geometry(
+    light_trace& output, const Light& light,
+    const y::vector<y::wvec2>& vertex_buffer,
+    const geometry_entry& geometry_buffer,
+    const geometry_map& map) const
 {
   struct local {
     // Calculates closest point and geometry.
@@ -712,7 +727,8 @@ void Lighting::trace_light_geometry(light_trace& output, y::world max_range,
           closest_geometry_output.end = y::wvec2();
         }
 
-        return lighting.get_point_on_geometry(v, closest_geometry_output);
+        return lighting.get_angular_point_on_geometry(
+            v, closest_geometry_output);
       }
 
       const world_geometry* closest_geometry = y::null;
@@ -723,7 +739,7 @@ void Lighting::trace_light_geometry(light_trace& output, y::world max_range,
       for (const world_geometry& g : stack) {
         // Distance is defined by the intersection of the geometry with the
         // line from the origin to the current vertex.
-        y::wvec2 point = lighting.get_point_on_geometry(v, g);
+        y::wvec2 point = lighting.get_angular_point_on_geometry(v, g);
         y::world dist_sq = point.length_squared();
 
         if (first || dist_sq < min_dist_sq) {
@@ -760,7 +776,7 @@ void Lighting::trace_light_geometry(light_trace& output, y::world max_range,
   // defined opposite the sweep direction, this corresponds exactly to whether
   // the vertex is the start or end point of the geometry.
   world_geometry prev_closest_geometry;
-  local::get_closest(prev_closest_geometry, max_range,
+  local::get_closest(prev_closest_geometry, light.get_max_range(),
                      first_vec, stack, *this);
   // If stack is empty, make sure the first vertex gets added.
   bool add_first = stack.empty();
@@ -793,7 +809,8 @@ void Lighting::trace_light_geometry(light_trace& output, y::world max_range,
     // Find the new closest geometry.
     world_geometry new_closest_geometry;
     y::wvec2 new_closest_point =
-        local::get_closest(new_closest_geometry, max_range, v, stack, *this);
+        local::get_closest(new_closest_geometry, light.get_max_range(),
+                           v, stack, *this);
 
     // When nothing has changed, skip (with special-case for empty stack at the
     // beginning).
@@ -804,7 +821,7 @@ void Lighting::trace_light_geometry(light_trace& output, y::world max_range,
 
     // Add the two new points.
     y::wvec2 prev_closest_point =
-        get_point_on_geometry(v, prev_closest_geometry);
+        get_angular_point_on_geometry(v, prev_closest_geometry);
     output.emplace_back(prev_closest_point);
     output.emplace_back(new_closest_point);
 
@@ -814,8 +831,7 @@ void Lighting::trace_light_geometry(light_trace& output, y::world max_range,
 }
 
 void Lighting::trace_planar_light_geometry(
-    light_trace& output, y::world max_range,
-    const y::wvec2& offset, const y::wvec2& normal_vec,
+    light_trace& output, const Light& light,
     const y::vector<y::wvec2>& vertex_buffer,
     const geometry_entry& geometry_buffer,
     const geometry_map& map) const
@@ -823,8 +839,7 @@ void Lighting::trace_planar_light_geometry(
   struct local {
     // Calculates closest point and geometry.
     static y::wvec2 get_closest(
-        world_geometry& closest_geometry_output, y::world max_range,
-        const y::wvec2& offset, const y::wvec2& normal_vec,
+        world_geometry& closest_geometry_output, const Light& light,
         const y::wvec2& v, const geometry_set& stack, const Lighting& lighting)
     {
       const world_geometry* closest_geometry = y::null;
@@ -832,18 +847,14 @@ void Lighting::trace_planar_light_geometry(
       // Point on light plane for comparison.
       const y::wvec2 plane_point =
           lighting.get_planar_point_on_geometry(
-              normal_vec, v, world_geometry(-offset, offset));
+              light.normal_vec, v,
+              world_geometry(-light.get_offset(), light.get_offset()));
 
       bool first = true;
       y::world min_dist_sq = 0;
       for (const world_geometry& g : stack) {
         y::wvec2 point =
-            lighting.get_planar_point_on_geometry(normal_vec, v, g);
-        // If point is on the wrong side of the light plane, need to skip this
-        // geometry.
-        if (offset[xx] * point[yy] - offset[yy] * point[xx] < 0) {
-          continue;
-        }
+            lighting.get_planar_point_on_geometry(light.normal_vec, v, g);
         y::world dist_sq = (point - plane_point).length_squared();
 
         if (first || dist_sq < min_dist_sq) {
@@ -857,11 +868,13 @@ void Lighting::trace_planar_light_geometry(
       // If the stack is empty (or all points were on the wrong side), use the
       // max-range plane.
       if (first) {
-        closest_geometry_output.end = normal_vec * max_range - offset;
-        closest_geometry_output.start = normal_vec * max_range + offset;
+        closest_geometry_output.end =
+            light.normal_vec * light.get_max_range() - light.get_offset();
+        closest_geometry_output.start =
+            light.normal_vec * light.get_max_range() + light.get_offset();
 
         return lighting.get_planar_point_on_geometry(
-            normal_vec, v, closest_geometry_output);
+            light.normal_vec, v, closest_geometry_output);
       }
 
       closest_geometry_output = *closest_geometry;
@@ -873,9 +886,9 @@ void Lighting::trace_planar_light_geometry(
   // respect to basis defined by light angle rather than angular coordinates.
   // Currently, this will not work correctly if any of the geometry lines cross
   // the light plane; this would be solved by adding the intersections to the
-  // vertex list in get_planar_relevant_geometry (but even when working
-  // correctly it'd look somewhat odd, so I didn't bother).
-  const y::wvec2 plane_vec{normal_vec[yy], -normal_vec[xx]};
+  // vertex list in get_planar_relevant_geometry and limiting points behind the
+  // light plane.
+  const y::wvec2 plane_vec{light.normal_vec[yy], -light.normal_vec[xx]};
 
   // Initialise the stack with geometry that intersects the line from the first
   // vertex towards the light angle (but doesn't start exactly on it).
@@ -884,8 +897,8 @@ void Lighting::trace_planar_light_geometry(
   for (const world_geometry& g : geometry_buffer) {
     y::wvec2 s = g.start - first_vec;
     y::wvec2 e = g.end - first_vec;
-    y::world d_s = s[xx] * normal_vec[yy] - s[yy] * normal_vec[xx];
-    y::world d_e = e[xx] * normal_vec[yy] - e[yy] * normal_vec[xx];
+    y::world d_s = s[xx] * light.normal_vec[yy] - s[yy] * light.normal_vec[xx];
+    y::world d_e = e[xx] * light.normal_vec[yy] - e[yy] * light.normal_vec[xx];
     // Lines crossing in the opposite direction have already been excluded.
     if (d_s < 0 && d_e >= 0) {
       stack.insert(g);
@@ -895,12 +908,11 @@ void Lighting::trace_planar_light_geometry(
   // Algorithm: same as the angular case, but sweeping along a plane. See above
   // for details.
   world_geometry prev_closest_geometry;
-  local::get_closest(prev_closest_geometry, max_range, offset, normal_vec,
-                     first_vec, stack, *this);
+  local::get_closest(prev_closest_geometry, light, first_vec, stack, *this);
   bool add_first = stack.empty();
 
-  output.emplace_back(-offset);
-  output.emplace_back(-offset);
+  output.emplace_back(-light.get_offset());
+  output.emplace_back(-light.get_offset());
 
   for (y::size i = 0; i < vertex_buffer.size(); ++i) {
     const auto& v = vertex_buffer[i];
@@ -928,8 +940,7 @@ void Lighting::trace_planar_light_geometry(
 
     world_geometry new_closest_geometry;
     y::wvec2 new_closest_point =
-        local::get_closest(new_closest_geometry, max_range, offset, normal_vec,
-                           v, stack, *this);
+        local::get_closest(new_closest_geometry, light, v, stack, *this);
 
     bool add_last = i == vertex_buffer.size() - 1 && stack.empty();
     if (new_closest_geometry == prev_closest_geometry &&
@@ -939,15 +950,16 @@ void Lighting::trace_planar_light_geometry(
     add_first = false;
 
     y::wvec2 prev_closest_point =
-        get_planar_point_on_geometry(normal_vec, v, prev_closest_geometry);
+        get_planar_point_on_geometry(
+            light.normal_vec, v, prev_closest_geometry);
     output.emplace_back(prev_closest_point);
     output.emplace_back(new_closest_point);
 
     prev_closest_geometry = new_closest_geometry;
   }
 
-  output.emplace_back(offset);
-  output.emplace_back(offset);
+  output.emplace_back(light.get_offset());
+  output.emplace_back(light.get_offset());
 }
 
 void Lighting::make_cone_trace(light_trace& output, const light_trace& trace,
@@ -1009,11 +1021,11 @@ void Lighting::make_cone_trace(light_trace& output, const light_trace& trace,
   world_geometry max_cross(trace[1 + max_index],
                            trace[(2 + max_index) % trace.size()]);
   output.emplace_back();
-  output.emplace_back(get_point_on_geometry(min, min_cross));
+  output.emplace_back(get_angular_point_on_geometry(min, min_cross));
   for (auto it = straight_traces.rbegin(); it != straight_traces.rend(); ++it) {
     output.insert(output.end(), it->begin(), it->end());
   }
-  output.emplace_back(get_point_on_geometry(max, max_cross));
+  output.emplace_back(get_angular_point_on_geometry(max, max_cross));
   output.emplace_back();
 }
 

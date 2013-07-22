@@ -12,6 +12,8 @@ local up_check, down_check, left_check, right_check =
 -- Test light.
 local light = self:create_light(64, 64)
 light:set_colour(1, 1, 1)
+light:set_normal_vec(vec(-0.5, 1))
+light:set_offset(vec(128, 0))
 
 -- Jump constants.
 local JUMP_STAGE_NONE = 0
