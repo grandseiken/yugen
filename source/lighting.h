@@ -12,16 +12,23 @@ class GlUtil;
 class RenderUtil;
 class WorldWindow;
 
-// Point lights and cone lights only, so far!
-// TODO: plane lights.
+// Data for various kinds of light.
 struct Light : y::no_copy {
   Light();
 
+  y::world get_max_range() const;
+  y::wvec2 get_offset() const;
+  bool is_planar() const;
+  bool overlaps_rect(const y::wvec2& origin,
+                     const y::wvec2& min, const y::wvec2& max) const;
+
+  // Displacement from the owning Script's origin. For plane lights, the offset
+  // defines the plane from (origin - offset) to (origin + offset).
   y::wvec2 offset;
 
-  y::world get_max_range() const;
   // The range at which the light still has full intensity.
   y::world full_range;
+
   // The additional range through which the intensity falls off to zero.
   y::world falloff_range;
 
@@ -33,11 +40,18 @@ struct Light : y::no_copy {
   // Red, green, blue, and intensity.
   y::fvec4 colour;
 
+  // Angle in which a conical light is pointing.
+  y::world angle;
+
   // Half-angle between 0 and pi through which a conical light shines. Default
   // (pi) gives a regular point light.
   y::world aperture;
-  // Angle in which a conical light is pointing.
-  y::world angle;
+
+  // Whether this is a plane light. Such a light emits light in a particular
+  // direction all along a plane (by which, through abuse of terminology, we
+  // really mean a hyperplane; a line). Default (0, 0) gives a regular point
+  // light.
+  y::wvec2 plane_direction;
 };
 
 // Keeps a record of Lights and handles fancy lighting algorithms.
@@ -74,6 +88,10 @@ private:
     y::wvec2 origin;
     y::world max_range;
 
+    // Key-fields for plane lights.
+    y::wvec2 plane_direction;
+    y::wvec2 offset;
+
     bool operator==(const trace_key& key) const;
     bool operator!=(const trace_key& key) const;
   };
@@ -95,24 +113,52 @@ private:
     y::wvec2 start;
     y::wvec2 end;
   };
+  struct world_geometry_hash {
+    y::size operator()(const world_geometry& g) const;
+  };
   typedef y::vector<world_geometry> geometry_entry;
   typedef y::map<y::wvec2, geometry_entry> geometry_map;
+  typedef y::set<world_geometry, world_geometry_hash> geometry_set;
 
+  // Pair of functions for finding all vertices and geometries that might
+  // affect the light output in the angular and planar settings.
   void get_relevant_geometry(y::vector<y::wvec2>& vertex_output,
                              geometry_entry& geometry_output,
                              geometry_map& map_output,
                              const y::wvec2& origin,
                              y::world max_range,
                              const OrderedGeometry& all_geometry) const;
+
+  void get_planar_relevant_geometry(y::vector<y::wvec2>& vertex_output,
+                                    geometry_entry& geometry_output,
+                                    geometry_map& map_output,
+                                    const y::wvec2& origin,
+                                    y::world max_range, const y::wvec2& offset,
+                                    const y::wvec2& normal_vec,
+                                    const OrderedGeometry& all_geometry) const;
+
   y::wvec2 get_point_on_geometry(
       const y::wvec2& v, const world_geometry& geometry) const;
+  y::wvec2 get_planar_point_on_geometry(
+      const y::wvec2& normal_vec, const y::wvec2& v,
+      const world_geometry& geometry) const;
 
+  // Pair of functions for tracing angular and planar light geometry.
   void trace_light_geometry(light_trace& output, y::world max_range,
                             const y::vector<y::wvec2>& vertex_buffer,
                             const geometry_entry& geometry_buffer,
                             const geometry_map& map) const;
+
+  void trace_planar_light_geometry(
+      light_trace& output, y::world max_range,
+      const y::wvec2& offset, const y::wvec2& normal_vec,
+      const y::vector<y::wvec2>& vertex_buffer,
+      const geometry_entry& geometry_buffer,
+      const geometry_map& map) const;
+
+  // Converts a point-light trace into a cone-light trace.
   void make_cone_trace(light_trace& output, const light_trace& trace,
-                       y::world aperture, y::world angle) const;
+                       y::world angle, y::world aperture) const;
 
   static bool line_intersects_rect(const y::wvec2& start, const y::wvec2& end,
                                    const y::wvec2& min, const y::wvec2& max);

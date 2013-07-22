@@ -626,6 +626,19 @@ y_api(light__set_offset)
   y_void();
 }
 
+y_api(light__get_plane_direction)
+    y_arg(const Light*, light)
+{
+  y_return(light->plane_direction);
+}
+
+y_api(light__set_plane_direction)
+    y_arg(Light*, light) y_arg(const y::wvec2, plane_direction)
+{
+  light->plane_direction = plane_direction.normalised();
+  y_void();
+}
+
 y_api(light__get_full_range)
     y_arg(const Light*, light)
 {
@@ -696,19 +709,6 @@ y_api(light__set_intensity)
   y_void();
 }
 
-y_api(light__get_aperture)
-    y_arg(const Light*, light)
-{
-  y_return(light->aperture);
-}
-
-y_api(light__set_aperture)
-    y_arg(Light*, light) y_arg(y::world, aperture)
-{
-  light->aperture = aperture;
-  y_void();
-}
-
 y_api(light__get_angle)
     y_arg(const Light*, light)
 {
@@ -722,9 +722,24 @@ y_api(light__set_angle)
   y_void();
 }
 
+y_api(light__get_aperture)
+    y_arg(const Light*, light)
+{
+  y_return(light->aperture);
+}
+
+y_api(light__set_aperture)
+    y_arg(Light*, light) y_arg(y::world, aperture)
+{
+  light->aperture = aperture;
+  y_void();
+}
+
 y_ptrtypedef(Light) {
   y_method("get_offset", light__get_offset);
   y_method("set_offset", light__set_offset);
+  y_method("get_plane_direction", light__get_plane_direction);
+  y_method("set_plane_direction", light__set_plane_direction);
   y_method("get_full_range", light__get_full_range);
   y_method("set_full_range", light__set_full_range);
   y_method("get_falloff_range", light__get_falloff_range);
@@ -735,8 +750,8 @@ y_ptrtypedef(Light) {
   y_method("set_colour", light__set_colour);
   y_method("get_intensity", light__get_intensity);
   y_method("set_intensity", light__set_intensity);
-  y_method("get_aperture", light__get_aperture);
-  y_method("set_aperture", light__set_aperture);
   y_method("get_angle", light__get_angle);
   y_method("set_angle", light__set_angle);
+  y_method("get_aperture", light__get_aperture);
+  y_method("set_aperture", light__set_aperture);
 } y_endtypedef();
