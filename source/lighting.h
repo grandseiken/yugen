@@ -87,9 +87,10 @@ private:
                   const Light& light) const;
   // Add a triangle by element indices if necessary.
   void add_triangle(
-      y::vector<GLushort>& element_data, const light_trace& light_trace,
+      y::vector<GLushort>& element_data,
       const y::wvec2& min, const y::wvec2& max,
-      y::size start_index, y::size a, y::size b, y::size c) const;
+      y::size start_index, y::size a, y::size b, y::size c,
+      const y::wvec2& at, const y::wvec2& bt, const y::wvec2& ct) const;
 
   void render_internal(
       RenderUtil& util, const GlFramebuffer& normalbuffer,

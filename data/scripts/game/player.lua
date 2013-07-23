@@ -10,10 +10,10 @@ local up_check, down_check, left_check, right_check =
     create_all_checks(self, vec(0, 8), vec(6, 16))
 
 -- Test light.
-local light = self:create_light(64, 64)
+local light = self:create_light(128, 128)
 light:set_colour(1, 1, 1)
 light:set_normal_vec(vec(-0.5, 1))
-light:set_offset(vec(128, 0))
+light:set_offset(vec(256, 0))
 
 -- Jump constants.
 local JUMP_STAGE_NONE = 0

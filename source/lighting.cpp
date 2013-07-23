@@ -193,6 +193,7 @@ void Lighting::recalculate_traces(
       }
 
       // Trace the light geometry.
+      // TODO: soften the shadows, somehow.
       trace_light_geometry(_trace_results[key], *light,
                            vertex_buffer, geometry_buffer, map,
                            light->is_planar());
@@ -277,24 +278,21 @@ void Lighting::add_vertex(const y::wvec2& origin, const y::wvec2& trace,
 }
 
 void Lighting::add_triangle(
-    y::vector<GLushort>& element_data, const light_trace& trace,
-    const y::wvec2& min, const y::wvec2& max,
-    y::size start_index, y::size a, y::size b, y::size c) const
+    y::vector<GLushort>& element_data, const y::wvec2& min, const y::wvec2& max,
+    y::size start_index, y::size a, y::size b, y::size c,
+    const y::wvec2& at, const y::wvec2& bt, const y::wvec2& ct) const
 {
   static const y::wvec2 o;
   // Check has area.
   if (a == b || a == c || a == b) {
     return;
   }
-  const y::wvec2& aa = a ? trace[a - 1] : o;
-  const y::wvec2& bb = b ? trace[b - 1] : o;
-  const y::wvec2& cc = c ? trace[c - 1] : o;
   // Check overlaps camera.
   // TODO: this is wrong if the triangle is big enough to overlap camera
   // without any line touching it.
-  if (!line_intersects_rect(aa, bb, min, max) &&
-      !line_intersects_rect(aa, cc, min, max) &&
-      !line_intersects_rect(bb, cc, min, max)) {
+  if (!line_intersects_rect(at, bt, min, max) &&
+      !line_intersects_rect(at, ct, min, max) &&
+      !line_intersects_rect(bt, ct, min, max)) {
     return;
   }
   element_data.emplace_back(start_index + a);
@@ -418,12 +416,15 @@ void Lighting::render_angular_internal(
     // origin, l, r; l, r, b; a, b, l.
     // Triangles which have no area or do not overlap the camera are
     // skipped in the add_triangle function.
-    add_triangle(light_element_data, trace, min, max,
-                 origin_index, 0, 1 + l, 1 + r);
-    add_triangle(light_element_data, trace, min, max,
-                 origin_index, 1 + l, 1 + r, 1 + b);
-    add_triangle(light_element_data, trace, min, max,
-                 origin_index, 1 + a, 1 + b, 1 + l);
+    add_triangle(light_element_data, min, max, origin_index,
+                 0, 1 + l, 1 + r,
+                 y::wvec2(), trace[l], trace[r]);
+    add_triangle(light_element_data, min, max, origin_index,
+                 1 + l, 1 + r, 1 + b,
+                 trace[l], trace[r], trace[b]);
+    add_triangle(light_element_data, min, max, origin_index,
+                 1 + a, 1 + b, 1 + l,
+                 trace[a], trace[b], trace[l]);
   }
 }
 
@@ -468,22 +469,26 @@ void Lighting::render_planar_internal(
 
     // Render the triangles, using the configuration:
     // left on-plane, right on-plane, r; left on-plane, l, r; l, r, a; a, b, r.
-    add_triangle(light_element_data, trace, min, max, start_index,
+    add_triangle(light_element_data, min, max, start_index,
                  3 * (l / 2),
                  3 * (r / 2),
-                 1 + 3 * (r / 2) + (r % 2));
-    add_triangle(light_element_data, trace, min, max, start_index,
+                 1 + 3 * (r / 2) + (r % 2),
+                 on_plane_l, on_plane_r, trace[r]);
+    add_triangle(light_element_data, min, max, start_index,
                  3 * (l / 2),
                  1 + 3 * (l / 2) + (l % 2),
-                 1 + 3 * (r / 2) + (r % 2));
-    add_triangle(light_element_data, trace, min, max, start_index,
+                 1 + 3 * (r / 2) + (r % 2),
+                 on_plane_l, trace[l], trace[r]);
+    add_triangle(light_element_data, min, max, start_index,
                  1 + 3 * (l / 2) + (l % 2),
                  1 + 3 * (r / 2) + (r % 2),
-                 1 + 3 * (a / 2) + (a % 2));
-    add_triangle(light_element_data, trace, min, max, start_index,
+                 1 + 3 * (a / 2) + (a % 2),
+                 trace[l], trace[r], trace[a]);
+    add_triangle(light_element_data, min, max, start_index,
                  1 + 3 * (a / 2) + (a % 2),
                  1 + 3 * (b / 2) + (b % 2),
-                 1 + 3 * (r / 2) + (r % 2));
+                 1 + 3 * (r / 2) + (r % 2),
+                 trace[a], trace[b], trace[r]);
   }
 }
 
