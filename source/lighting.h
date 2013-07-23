@@ -89,7 +89,7 @@ private:
   void add_triangle(
       y::vector<GLushort>& element_data, const light_trace& light_trace,
       const y::wvec2& min, const y::wvec2& max,
-      y::size origin_index, y::size a, y::size b, y::size c) const;
+      y::size start_index, y::size a, y::size b, y::size c) const;
 
   void render_internal(
       RenderUtil& util, const GlFramebuffer& normalbuffer,

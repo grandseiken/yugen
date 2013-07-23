@@ -263,8 +263,8 @@ void Lighting::render_specularbuffer(
 void Lighting::add_vertex(const y::wvec2& origin, const y::wvec2& trace,
                           const Light& light) const
 {
-  _tri_data.emplace_back((trace + origin)[xx]);
-  _tri_data.emplace_back((trace + origin)[yy]);
+  _tri_data.emplace_back(trace[xx]);
+  _tri_data.emplace_back(trace[yy]);
   _origin_data.emplace_back(origin[xx]);
   _origin_data.emplace_back(origin[yy]);
   _range_data.emplace_back(light.full_range);
@@ -279,7 +279,7 @@ void Lighting::add_vertex(const y::wvec2& origin, const y::wvec2& trace,
 void Lighting::add_triangle(
     y::vector<GLushort>& element_data, const light_trace& trace,
     const y::wvec2& min, const y::wvec2& max,
-    y::size origin_index, y::size a, y::size b, y::size c) const
+    y::size start_index, y::size a, y::size b, y::size c) const
 {
   static const y::wvec2 o;
   // Check has area.
@@ -297,9 +297,9 @@ void Lighting::add_triangle(
       !line_intersects_rect(bb, cc, min, max)) {
     return;
   }
-  element_data.emplace_back(origin_index + a);
-  element_data.emplace_back(origin_index + b);
-  element_data.emplace_back(origin_index + c);
+  element_data.emplace_back(start_index + a);
+  element_data.emplace_back(start_index + b);
+  element_data.emplace_back(start_index + c);
 }
 
 void Lighting::render_internal(
@@ -338,6 +338,7 @@ void Lighting::render_internal(
         make_cone_trace(cone_trace, it->second, light->angle, light->aperture);
       }
 
+      // Set up the vertex data and indices.
       if (light->is_planar()) {
         render_planar_internal(trace, *light, origin, camera_min, camera_max);
       }
@@ -390,9 +391,9 @@ void Lighting::render_angular_internal(
   y::size origin_index = _tri_data.size() / 2;
 
   // Set up the vertices.
-  add_vertex(origin, y::wvec2(), light);
+  add_vertex(origin, origin, light);
   for (y::size i = 0; i < trace.size(); ++i) {
-    add_vertex(origin, trace[i], light);
+    add_vertex(origin, origin + trace[i], light);
   }
   const y::wvec2 min = camera_min - origin;
   const y::wvec2 max = camera_max - origin;
@@ -430,12 +431,60 @@ void Lighting::render_planar_internal(
     const light_trace& trace, const Light& light, const y::wvec2& origin,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
-  // TODO.
-  (void)trace;
-  (void)light;
-  (void)origin;
-  (void)camera_min;
-  (void)camera_max;
+  // Similarly here we use up to 4 triangles to prevent tearing.
+  y::size start_index = _tri_data.size() / 2;
+
+  // Set up the vertices.
+  y::wvec2 offset = light.get_offset();
+  for (y::size i = 0; i < trace.size(); i += 2) {
+    y::wvec2 on_plane = get_planar_point_on_geometry(
+        light.normal_vec, trace[i], world_geometry(-offset, offset));
+    add_vertex(origin + on_plane, origin + on_plane, light);
+    add_vertex(origin + on_plane, origin + trace[i], light);
+    add_vertex(origin + on_plane, origin + trace[1 + i], light);
+  }
+
+  const y::wvec2 min = camera_min - origin;
+  const y::wvec2 max = camera_max - origin;
+
+  // Set up the indices.
+  _element_data.emplace_back();
+  auto& light_element_data = *_element_data.rbegin();
+  for (y::size i = 1; i < trace.size() - 2; i += 2) {
+    y::size prev = i - 1;
+    y::size a = i;
+    y::size b = 1 + i;
+    y::size next = 2 + i;
+
+    y::wvec2 on_plane_l = get_planar_point_on_geometry(
+        light.normal_vec, trace[a], world_geometry(-offset, offset));
+    y::wvec2 on_plane_r = get_planar_point_on_geometry(
+        light.normal_vec, trace[b], world_geometry(-offset, offset));
+
+    y::size l = (trace[a] - on_plane_l).length_squared() <=
+                (trace[prev] - on_plane_l).length_squared() ? a : prev;
+    y::size r = (trace[b] - on_plane_r).length_squared() <=
+                (trace[next] - on_plane_r).length_squared() ? b : next;
+
+    // Render the triangles, using the configuration:
+    // left on-plane, right on-plane, r; left on-plane, l, r; l, r, a; a, b, r.
+    add_triangle(light_element_data, trace, min, max, start_index,
+                 3 * (l / 2),
+                 3 * (r / 2),
+                 1 + 3 * (r / 2) + (r % 2));
+    add_triangle(light_element_data, trace, min, max, start_index,
+                 3 * (l / 2),
+                 1 + 3 * (l / 2) + (l % 2),
+                 1 + 3 * (r / 2) + (r % 2));
+    add_triangle(light_element_data, trace, min, max, start_index,
+                 1 + 3 * (l / 2) + (l % 2),
+                 1 + 3 * (r / 2) + (r % 2),
+                 1 + 3 * (a / 2) + (a % 2));
+    add_triangle(light_element_data, trace, min, max, start_index,
+                 1 + 3 * (a / 2) + (a % 2),
+                 1 + 3 * (b / 2) + (b % 2),
+                 1 + 3 * (r / 2) + (r % 2));
+  }
 }
 
 bool Lighting::trace_key::operator==(const trace_key& key) const
@@ -911,9 +960,6 @@ void Lighting::trace_planar_light_geometry(
   local::get_closest(prev_closest_geometry, light, first_vec, stack, *this);
   bool add_first = stack.empty();
 
-  output.emplace_back(-light.get_offset());
-  output.emplace_back(-light.get_offset());
-
   for (y::size i = 0; i < vertex_buffer.size(); ++i) {
     const auto& v = vertex_buffer[i];
 
@@ -957,9 +1003,6 @@ void Lighting::trace_planar_light_geometry(
 
     prev_closest_geometry = new_closest_geometry;
   }
-
-  output.emplace_back(light.get_offset());
-  output.emplace_back(light.get_offset());
 }
 
 void Lighting::make_cone_trace(light_trace& output, const light_trace& trace,
