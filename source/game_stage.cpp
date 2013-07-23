@@ -215,6 +215,7 @@ void ScriptBank::create_in_bounds(
 
     bool overlaps_unrefreshed = false;
     for (const y::ivec2& cell : _unrefreshed) {
+      // TODO: this doesn't seem to be working quite right.
       if (ws.origin + ws.region / 2 >= y::wvec2(
               cell * Tileset::tile_size * Cell::cell_size) &&
           ws.origin - ws.region / 2 < y::wvec2(

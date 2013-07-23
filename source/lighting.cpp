@@ -288,12 +288,11 @@ void Lighting::add_triangle(
     return;
   }
   // Check overlaps camera.
-  // TODO: this is wrong if the triangle is big enough to overlap camera
-  // without any line touching it.
   if (!line_intersects_rect(at, bt, min, max) &&
       !line_intersects_rect(at, ct, min, max) &&
       !line_intersects_rect(bt, ct, min, max)) {
-    return;
+    // TODO: this is wrong if the triangle is big enough to overlap camera
+    // without any line touching it.
   }
   element_data.emplace_back(start_index + a);
   element_data.emplace_back(start_index + b);
