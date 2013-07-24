@@ -192,7 +192,11 @@ void Lighting::recalculate_traces(
       }
 
       // Trace the light geometry.
-      // TODO: soften the shadows, somehow.
+      // TODO: soften the shadows, somehow. I think the best approach is, for
+      // each convex corner, to rotate the trace vector backwards slightly and
+      // add another set of triangles from these. However if the new triangle
+      // intersects geometry, we need to split it up (and split up the existing
+      // line from the corner).
       trace_light_geometry(_trace_results[key], *light,
                            vertex_buffer, geometry_buffer, map,
                            light->is_planar());

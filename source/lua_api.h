@@ -298,8 +298,10 @@ y_api(script__collider_move)
 
 y_api(script__collider_rotate)
    y_arg(Script*, script) y_arg(y::world, rotate)
+   y_optarg(const y::wvec2, origin_offset)
 {
-  y_return(stage.get_collision().collider_rotate(*script, rotate));
+  y_return(stage.get_collision().collider_rotate(
+      *script, rotate, origin_offset_defined ? origin_offset : y::wvec2()));
 }
 
 y_api(script__body_check)
@@ -334,8 +336,6 @@ y_api(script__destroy_light)
   y_void();
 }
 
-// TODO: allow calling destroy_body, body_check, destroy_light and so directly
-// on the objects.
 y_ptrtypedef(Script) {
   y_method("get_uid", script__get_uid);
   y_method("get_origin", script__get_origin);

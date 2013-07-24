@@ -15,10 +15,10 @@ struct Body : y::no_copy {
 
   // Get bounds (on x-axis). Potentially this could be made virtual and
   // overridden for other shapes.
-  y::wvec2 get_min(const y::wvec2& origin, y::world rotation) const;
-  y::wvec2 get_max(const y::wvec2& origin, y::world rotation) const;
-  y::wvec2 get_full_rotation_min(const y::wvec2& origin) const;
-  y::wvec2 get_full_rotation_max(const y::wvec2& origin) const;
+  typedef y::pair<y::wvec2, y::wvec2> bounds;
+  bounds get_bounds(const y::wvec2& origin, y::world rotation) const;
+  bounds get_full_rotation_bounds(
+      const y::wvec2& origin, y::world rotation, const y::wvec2& offset) const;
 
   void get_vertices(y::vector<y::wvec2>& output,
                     const y::wvec2& origin, y::world rotation) const;
@@ -39,8 +39,8 @@ public:
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
   y::wvec2 collider_move(Script& source, const y::wvec2& move) const;
-  // TODO: allow rotation about arbitrary points rather than just the origin.
-  y::world collider_rotate(Script& source, y::world rotate) const;
+  y::world collider_rotate(Script& source, y::world rotate,
+                           const y::wvec2& origin_offset) const;
   bool body_check(const Script& source, const Body& body,
                   y::int32 collide_mask) const;
 
@@ -78,16 +78,11 @@ private:
   bool has_intersection(const world_geometry& a,
                         const world_geometry& b) const;
 
-  y::wvec2 get_min(const entry_list& bodies, y::int32 collide_mask,
-                   const y::wvec2& origin, y::world rotation) const;
-  y::wvec2 get_max(const entry_list& bodies, y::int32 collide_mask,
-                   const y::wvec2& origin, y::world rotation) const;
-  y::wvec2 get_full_rotation_min(const entry_list& bodies,
-                                 y::int32 collide_mask,
-                                 const y::wvec2& origin) const;
-  y::wvec2 get_full_rotation_max(const entry_list& bodies,
-                                 y::int32 collide_mask,
-                                 const y::wvec2& origin) const;
+  Body::bounds get_bounds(const entry_list& bodies, y::int32 collide_mask,
+                          const y::wvec2& origin, y::world rotation) const;
+  Body::bounds get_full_rotation_bounds(
+      const entry_list& bodies, y::int32 collide_mask,
+      const y::wvec2& origin, y::world rotation, const y::wvec2& offset) const;
 
   void get_geometries(y::vector<world_geometry>& output,
                       const y::vector<y::wvec2>& vertices) const;

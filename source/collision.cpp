@@ -16,48 +16,45 @@ Body::Body()
 {
 }
 
-y::wvec2 Body::get_min(const y::wvec2& origin, y::world rotation) const
+Body::bounds Body::get_bounds(const y::wvec2& origin,
+                                   y::world rotation) const
 {
   y::vector<y::wvec2> vertices;
   get_vertices(vertices, origin, rotation);
 
   y::wvec2 min;
-  bool first = true;
-  for (const y::wvec2& v : vertices) {
-    min = first ? v : y::min(min, v);
-    first = false;
-  }
-  return min;
-}
-
-y::wvec2 Body::get_max(const y::wvec2& origin, y::world rotation) const
-{
-  y::vector<y::wvec2> vertices;
-  get_vertices(vertices, origin, rotation);
-
   y::wvec2 max;
   bool first = true;
   for (const y::wvec2& v : vertices) {
+    min = first ? v : y::min(min, v);
     max = first ? v : y::max(max, v);
     first = false;
   }
-  return max;
+  return y::make_pair(min, max);
 }
 
-y::wvec2 Body::get_full_rotation_min(const y::wvec2& origin) const
+Body::bounds Body::get_full_rotation_bounds(
+    const y::wvec2& origin, y::world rotation, const y::wvec2& offset) const
 {
-  y::wvec2 min = offset - size / 2;
-  y::wvec2 max = offset + size / 2;
-  y::world size = y::max(y::abs(min), y::abs(max)).length();
-  return origin + y::wvec2{-size, -size};
-}
+  // Where the body will rotate to depends on both its current rotation and
+  // the offset of rotation. We rotate it in local coordinates first, then
+  // check the bounds in offset coordinates, and finally return in world
+  // coordinates.
+  y::vector<y::wvec2> vertices;
+  get_vertices(vertices, -offset, rotation);
 
-y::wvec2 Body::get_full_rotation_max(const y::wvec2& origin) const
-{
-  y::wvec2 min = offset - size / 2;
-  y::wvec2 max = offset + size / 2;
+  y::wvec2 min;
+  y::wvec2 max;
+  bool first = true;
+  for (const y::wvec2& v : vertices) {
+    min = first ? v : y::min(min, v);
+    max = first ? v : y::max(max, v);
+    first = false;
+  }
+
   y::world size = y::max(y::abs(min), y::abs(max)).length();
-  return origin + y::wvec2{size, size};
+  return y::make_pair(origin + offset + y::wvec2{-size, -size},
+                      origin + offset + y::wvec2{size, size});
 }
 
 void Body::get_vertices(y::vector<y::wvec2>& output,
@@ -122,9 +119,8 @@ void Collision::render(
         continue;
       }
 
-      y::wvec2 min = b->get_min(s->get_origin(), s->get_rotation());
-      y::wvec2 max = b->get_max(s->get_origin(), s->get_rotation());
-      if (!(max >= camera_min && min < camera_max)) {
+      auto bounds = b->get_bounds(s->get_origin(), s->get_rotation());
+      if (!(bounds.second >= camera_min && bounds.first < camera_max)) {
         continue;
       }
 
@@ -160,12 +156,10 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // Bounding boxes of the source Bodies.
-  y::wvec2 min_bound = get_min(bodies, COLLIDE_RESV_WORLD,
-                               source.get_origin(), source.get_rotation());
-  y::wvec2 max_bound = get_max(bodies, COLLIDE_RESV_WORLD,
-                               source.get_origin(), source.get_rotation());
-  min_bound = y::min(min_bound, move + min_bound);
-  max_bound = y::max(max_bound, move + max_bound);
+  auto bounds = get_bounds(bodies, COLLIDE_RESV_WORLD,
+                           source.get_origin(), source.get_rotation());
+  y::wvec2 min_bound = y::min(bounds.first, move + bounds.first);
+  y::wvec2 max_bound = y::max(bounds.second, move + bounds.second);
 
   y::world min_ratio = 1;
   // Eliminating geometry by bucket and order depends heavily on structure of
@@ -238,11 +232,26 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
   return limited_move;
 }
 
-y::world Collision::collider_rotate(Script& source, y::world rotate) const
+y::world Collision::collider_rotate(Script& source, y::world rotate,
+                                    const y::wvec2& origin_offset) const
 {
+  struct local {
+    static y::wvec2 origin_displace(const y::wvec2& origin_offset,
+                                    y::world rotation)
+    {
+      y::wvec2 row_0(cos(rotation), -sin(rotation));
+      y::wvec2 row_1(sin(rotation), cos(rotation));
+
+      return origin_offset -
+          y::wvec2{origin_offset.dot(row_0), origin_offset.dot(row_1)};
+    }
+  };
+
   const entry_list& bodies = get_list(source);
   if (bodies.empty() || rotate == 0.) {
     source.set_rotation(y::angle(rotate + source.get_rotation()));
+    source.set_origin(source.get_origin() +
+                      local::origin_displace(origin_offset, rotate));
     return rotate;
   }
 
@@ -250,13 +259,14 @@ y::world Collision::collider_rotate(Script& source, y::world rotate) const
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // Bounding boxes of the source Bodies.
-  y::wvec2 min_bound = get_full_rotation_min(bodies, COLLIDE_RESV_WORLD,
-                                             source.get_origin());
-  y::wvec2 max_bound = get_full_rotation_max(bodies, COLLIDE_RESV_WORLD,
-                                             source.get_origin());
+  auto bounds = get_full_rotation_bounds(
+      bodies, COLLIDE_RESV_WORLD,
+      source.get_origin(), source.get_rotation(), origin_offset);
+  const y::wvec2& min_bound = bounds.first;
+  const y::wvec2& max_bound = bounds.second;
 
   y::world limiting_rotation = y::abs(rotate);
-  // See collider_move for details. Can we unify this into a common function?
+  // See collider_move for details.
   for (y::size i = 0; i < geometry.buckets.size(); ++i) {
     y::int32 g_max = geometry.get_max_for_bucket(i);
     if (min_bound[xx] >= g_max) {
@@ -277,7 +287,8 @@ y::world Collision::collider_rotate(Script& source, y::world rotate) const
       }
 
       // Very similar strategy to collider_move, except we are projecting points
-      // along arcs of circles defined by the distance to the Script's origin.
+      // along arcs of circles defined by the distance to the Script's origin
+      // (plus offset).
       // Again, we project the first set of points forwards and the second set
       // of points backwards along the arcs.
       world_geometry wg{y::wvec2(g.start), y::wvec2(g.end)};
@@ -296,17 +307,20 @@ y::world Collision::collider_rotate(Script& source, y::world rotate) const
                        source.get_origin(), source.get_rotation());
         get_geometries(geometries, vertices);
 
+        y::wvec2 origin = source.get_origin() + origin_offset;
         limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                                wg, vertices, source.get_origin(), rotate));
+                                wg, vertices, origin, rotate));
         limiting_rotation = y::min(limiting_rotation, get_arc_projection(
                                 geometries, {wg.start, wg.end},
-                                source.get_origin(), -rotate));
+                                origin, -rotate));
       }
     }
   }
   // Rotate.
   const y::world limited_rotation = limiting_rotation * (rotate > 0 ? 1 : -1);
   source.set_rotation(y::angle(limited_rotation + source.get_rotation()));
+  source.set_origin(source.get_origin() +
+                    local::origin_displace(origin_offset, limited_rotation));
   return limited_rotation;
 }
 
@@ -317,8 +331,9 @@ bool Collision::body_check(const Script& source, const Body& body,
     return false;
   }
   const OrderedGeometry& geometry = _world.get_geometry();
-  y::wvec2 min_bound = body.get_min(source.get_origin(), source.get_rotation());
-  y::wvec2 max_bound = body.get_max(source.get_origin(), source.get_rotation());
+  auto bounds = body.get_bounds(source.get_origin(), source.get_rotation());
+  const y::wvec2& min_bound = bounds.first;
+  const y::wvec2& max_bound = bounds.second;
 
   y::vector<y::wvec2> vertices;
   y::vector<world_geometry> geometries;
@@ -551,72 +566,42 @@ bool Collision::has_intersection(const world_geometry& a,
 // general seem to affect things! Without bounds checks, check_body succeeds
 // for things touching at a line, for instance, where they otherwise wouldn't.
 // Should we add a small tolerance, maybe?
-y::wvec2 Collision::get_min(const entry_list& bodies,
-                            y::int32 collide_mask,
-                            const y::wvec2& origin, y::world rotation) const
+Body::bounds Collision::get_bounds(
+    const entry_list& bodies, y::int32 collide_mask,
+    const y::wvec2& origin, y::world rotation) const
 {
   y::wvec2 min;
-  bool first = true;
-  for (const entry& e : bodies) {
-    if (!(e->collide_mask & collide_mask)) {
-      continue;
-    }
-    min = first ? e->get_min(origin, rotation) :
-                  y::min(min, e->get_min(origin, rotation));
-    first = false;
-  }
-  return min;
-}
-
-y::wvec2 Collision::get_max(const entry_list& bodies,
-                            y::int32 collide_mask,
-                            const y::wvec2& origin, y::world rotation) const
-{
   y::wvec2 max;
   bool first = true;
   for (const entry& e : bodies) {
     if (!(e->collide_mask & collide_mask)) {
       continue;
     }
-    max = first ? e->get_max(origin, rotation) :
-                  y::max(max, e->get_max(origin, rotation));
+    auto bounds = e->get_bounds(origin, rotation);
+    min = first ? bounds.first : y::min(min, bounds.first);
+    max = first ? bounds.second : y::max(max, bounds.second);
     first = false;
   }
-  return max;
+  return y::make_pair(min, max);
 }
 
-y::wvec2 Collision::get_full_rotation_min(const entry_list& bodies,
-                                          y::int32 collide_mask,
-                                          const y::wvec2& origin) const
+Body::bounds Collision::get_full_rotation_bounds(
+    const entry_list& bodies, y::int32 collide_mask,
+    const y::wvec2& origin, y::world rotation, const y::wvec2& offset) const
 {
   y::wvec2 min;
-  bool first = true;
-  for (const entry& e : bodies) {
-    if (!(e->collide_mask & collide_mask)) {
-      continue;
-    }
-    min = first ? e->get_full_rotation_min(origin) :
-                  y::min(min, e->get_full_rotation_min(origin));
-    first = false;
-  }
-  return min;
-}
-
-y::wvec2 Collision::get_full_rotation_max(const entry_list& bodies,
-                                          y::int32 collide_mask,
-                                          const y::wvec2& origin) const
-{
   y::wvec2 max;
   bool first = true;
   for (const entry& e : bodies) {
     if (!(e->collide_mask & collide_mask)) {
       continue;
     }
-    max = first ? e->get_full_rotation_max(origin) :
-                  y::max(max, e->get_full_rotation_max(origin));
+    auto bounds = e->get_full_rotation_bounds(origin, rotation, offset);
+    min = first ? bounds.first : y::min(min, bounds.first);
+    max = first ? bounds.second : y::max(max, bounds.second);
     first = false;
   }
-  return max;
+  return y::make_pair(min, max);
 }
 
 void Collision::get_geometries(y::vector<world_geometry>& output,

@@ -104,6 +104,8 @@ class GameRenderer : public y::no_copy {
 public:
 
   // All the defined layers, in order. Keep in sync with render.lua.
+  // TODO: distortion layers or passes? Probably one right at the end is all
+  // we need, rather than several in-between other layers.
   enum draw_layer {
     DRAW_PARALLAX0,
     DRAW_PARALLAX1,
