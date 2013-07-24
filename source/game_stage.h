@@ -240,7 +240,7 @@ public:
 
   GameStage(const Databank& bank,
             RenderUtil& util, const GlFramebuffer& framebuffer,
-            const CellMap& map, const y::wvec2& coord);
+            const CellMap& map, const y::wvec2& coord, bool fake = false);
   ~GameStage() override {};
 
   const Databank& get_bank() const;

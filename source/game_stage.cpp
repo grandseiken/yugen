@@ -561,7 +561,7 @@ y::world Camera::get_rotation() const
 
 GameStage::GameStage(const Databank& bank,
                      RenderUtil& util, const GlFramebuffer& framebuffer,
-                     const CellMap& map, const y::wvec2& coord)
+                     const CellMap& map, const y::wvec2& coord, bool fake)
   : _bank(bank)
   , _map(map)
   , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
@@ -571,7 +571,7 @@ GameStage::GameStage(const Databank& bank,
   , _camera(framebuffer.get_size())
   , _collision(_world)
   , _lighting(_world, util.get_gl())
-  , _environment(util.get_gl())
+  , _environment(util.get_gl(), fake)
   , _player(y::null)
 {
   const LuaFile& file = _bank.scripts.get("/scripts/game/player.lua");

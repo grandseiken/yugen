@@ -11,6 +11,7 @@
 
 class Databank;
 class Filesystem;
+class GameStage;
 class GlUtil;
 
 // Globs and loads resources. Requesting resources by invalid names returns
@@ -72,6 +73,9 @@ private:
 struct LuaFile {
   y::string path;
   y::string contents;
+
+  // Editor display.
+  y::fvec4 yedit_colour;
 };
 
 #ifndef SPRITE_DEC
@@ -119,6 +123,8 @@ public:
 private:
 
   void make_default_map();
+  // Load the script and call some functions to get its info.
+  void make_lua_file(LuaFile& file, GameStage& gl);
 
   // Used to delete the textures when the Databank is destroyed.
   y::vector<GlUnique<GlTexture2D>> _textures;

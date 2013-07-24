@@ -525,12 +525,12 @@ void Script::call(const y::string& function_name, const lua_args& args)
 void Script::call(lua_args& output, const y::string& function_name,
                   const lua_args& args)
 {
+  lua_int top = lua_gettop(_state);
   lua_getglobal(_state, function_name.c_str());
   LuaType<LuaValue> t;
   for (const LuaValue& arg : args) {
     t.push(_state, arg);
   }
-  lua_int top = lua_gettop(_state);
   if (lua_pcall(_state, args.size(), LUA_MULTRET, 1)) {
     const char* error = lua_tostring(_state, -1);
     std::cerr << "Calling function " << _path << ":" <<

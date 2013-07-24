@@ -2,6 +2,10 @@
 #include "../render.lua"
 #include "../script_set.lua"
 
+function yedit_colour()
+  return .3, .6, .8
+end
+
 local function submerge(amount)
   return function(script)
     script:send_message("on_submerge", amount)

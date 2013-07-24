@@ -1,10 +1,13 @@
 #include "databank.h"
 #include "filesystem.h"
+#include "game_stage.h"
 #include "gl_util.h"
+#include "lua.h"
 #include "proto/cell.pb.h"
+#include "render_util.h"
 
 Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
-  : _default_script{"/yedit/missing.lua", ""}
+  : _default_script{"/yedit/missing.lua", "", y::fvec4{1.f, 1.f, 1.f, 1.f}}
   , _default_sprite{gl.make_texture("/yedit/missing.png"),
                     gl.make_texture("/default_normal.png")}
   , _default_tileset(_default_sprite)
@@ -14,19 +17,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
   , cells(_default_cell)
   , maps(_default_map)
 {
-  filesystem.read_file_with_includes(_default_script.contents,
-                                     _default_script.path);
-
   y::string_vector paths;
-  filesystem.list_pattern(paths, "/scripts/**.lua");
-  for (const y::string& s : paths) {
-    LuaFile* lua_file = new LuaFile;
-    lua_file->path = s;
-    filesystem.read_file_with_includes(lua_file->contents, s);
-    scripts.insert(s, y::move_unique(lua_file));
-  }
-
-  paths.clear();
   filesystem.list_pattern(paths, "/sprites/**.png");
   for (const y::string& s : paths) {
     y::string bare_path;
@@ -77,6 +68,27 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
     sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
   }
 
+  filesystem.read_file_with_includes(_default_script.contents,
+                                     _default_script.path);
+  // Scripts in the root directory are for inclusion only.
+  paths.clear();
+  filesystem.list_pattern(paths, "/scripts/*/**.lua");
+  for (const y::string& s : paths) {
+    LuaFile* lua_file = new LuaFile;
+    lua_file->path = s;
+    filesystem.read_file_with_includes(lua_file->contents, s);
+    scripts.insert(s, y::move_unique(lua_file));
+  }
+  // Construct a fake GameStage so we can access the functions.
+  RenderUtil fake_util(gl);
+  GlUnique<GlFramebuffer> fake_framebuffer(
+      gl.make_unique_framebuffer(y::ivec2{128, 128}, false, false));
+  GameStage fake_stage(*this, fake_util, *fake_framebuffer,
+                       _default_map, y::wvec2(), true);
+  for (y::size i = 0; i < scripts.size(); ++i) {
+    make_lua_file(scripts.get(i), fake_stage);
+  }
+
   reload_cells_and_maps(filesystem);
 }
 
@@ -114,4 +126,20 @@ void Databank::make_default_map()
 
   cells.insert("/world/default.cell", y::move_unique(blueprint));
   maps.insert("/world/default.map", y::move_unique(map));
+}
+
+void Databank::make_lua_file(LuaFile& file, GameStage& fake_stage)
+{
+  Script script(fake_stage, file.path, file.contents, y::wvec2(), y::wvec2());
+
+  file.yedit_colour = y::fvec4{.5f, .5f, .5f, 1.f};
+  if (script.has_function("yedit_colour")) {
+    Script::lua_args out;
+    script.call(out, "yedit_colour");
+    if (out.size() >= 3) {
+      file.yedit_colour[rr] = float(out[0].world);
+      file.yedit_colour[gg] = float(out[1].world);
+      file.yedit_colour[bb] = float(out[2].world);
+    }
+  }
 }

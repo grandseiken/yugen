@@ -3,7 +3,7 @@
 #include "gl_util.h"
 #include "render_util.h"
 
-Environment::Environment(GlUtil& gl)
+Environment::Environment(GlUtil& gl, bool fake)
   : _fog_program(gl.make_unique_program({
         "/shaders/env_fog.v.glsl",
         "/shaders/env_fog.f.glsl"}))
@@ -14,6 +14,10 @@ Environment::Environment(GlUtil& gl)
         "/shaders/env_reflect_normal.v.glsl",
         "/shaders/env_reflect_normal.f.glsl"}))
 {
+  if (fake) {
+    return;
+  }
+
   typedef Perlin<float> fperlin;
   typedef Perlin<y::fvec2> fv2perlin;
 

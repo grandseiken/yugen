@@ -42,7 +42,7 @@ public:
     y::world wave_scale;
   };
 
-  Environment(GlUtil& util);
+  Environment(GlUtil& util, bool fake);
 
   void render_fog_colour(
       RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,

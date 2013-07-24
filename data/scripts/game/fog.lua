@@ -1,6 +1,10 @@
 -- Test fog script.
 #include "../render.lua"
 
+function yedit_colour()
+  return .3, .3, .3
+end
+
 local frame = 0
 function update()
   frame = 1 + frame

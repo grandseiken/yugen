@@ -2,6 +2,10 @@
 #include "../collide.lua"
 #include "../render.lua"
 
+function yedit_colour()
+  return .6, .4, .2
+end
+
 local sprite = get_sprite("/tiles/ruin.png")
 local body = self:create_body(vec(0, 0), vec(32, 32))
 body:set_collide_mask(COLLIDE_WORLD)

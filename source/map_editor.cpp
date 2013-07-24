@@ -539,13 +539,16 @@ void MapEditor::draw_scripts() const
         get_hover_world() - get_drag_start() : y::ivec2();
     y::ivec2 min = world_to_camera((s.min + off) * Tileset::tile_size);
     y::ivec2 max = world_to_camera((s.max + off) * Tileset::tile_size);
-    _util.irender_fill(min, Tileset::tile_size + max - min,
-                       colour::highlight);
-    _util.irender_outline(min, Tileset::tile_size + max - min,
-                          colour::outline);
-    _util.irender_text(
-        s.path, min, &s == hover_script || &s == drag_script ?
-            colour::select : colour::item);
+
+    y::fvec4 c = s.path == "/yedit/missing.lua" ?
+        y::fvec4{1.f, 1.f, 1.f, 1.f} : _bank.scripts.get(s.path).yedit_colour;
+    if (&s != drag_script) {
+      c[aa] = .5f;
+    }
+    _util.irender_fill(min, Tileset::tile_size + max - min, c);
+    _util.irender_outline(min, Tileset::tile_size + max - min, colour::outline);
+    _util.irender_text(s.path, min, &s == hover_script || &s == drag_script ?
+                                    colour::select : colour::item);
   }
 }
 
