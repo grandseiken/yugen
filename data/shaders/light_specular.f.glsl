@@ -19,7 +19,7 @@ const float specular_power = 2;
 
 void main()
 {
-  // See point_light.f.glsl for more detailed comments.
+  // See light.f.glsl for more detailed comments.
   float max_range = range_coord.x + range_coord.y;
   vec2 dist_v = pixels_coord - origin_coord;
   float dist_sq = dist_v.x * dist_v.x + dist_v.y * dist_v.y;

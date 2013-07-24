@@ -66,12 +66,12 @@ bool Light::overlaps_rect(const y::wvec2& origin,
 Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
   : _world(world)
   , _gl(gl)
-  , _point_light_program(gl.make_unique_program({
-        "/shaders/point_light.v.glsl",
-        "/shaders/point_light.f.glsl"}))
-  , _point_light_specular_program(gl.make_unique_program({
-        "/shaders/point_light_specular.v.glsl",
-        "/shaders/point_light_specular.f.glsl"}))
+  , _light_program(gl.make_unique_program({
+        "/shaders/light.v.glsl",
+        "/shaders/light.f.glsl"}))
+  , _light_specular_program(gl.make_unique_program({
+        "/shaders/light_specular.v.glsl",
+        "/shaders/light_specular.f.glsl"}))
   , _tri_buffer(gl.make_unique_buffer<GLfloat, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _origin_buffer(gl.make_unique_buffer<GLfloat, 2>(
@@ -362,7 +362,7 @@ void Lighting::render_internal(
   util.get_gl().enable_depth(true, GL_LESS);
   util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
   const GlProgram& program = specular ?
-    *_point_light_specular_program : *_point_light_program;
+    *_light_specular_program : *_light_program;
 
   program.bind();
   program.bind_uniform("normalbuffer", normalbuffer);

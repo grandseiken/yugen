@@ -191,8 +191,8 @@ private:
 
   const WorldWindow& _world;
   GlUtil& _gl;
-  GlUnique<GlProgram> _point_light_program;
-  GlUnique<GlProgram> _point_light_specular_program;
+  GlUnique<GlProgram> _light_program;
+  GlUnique<GlProgram> _light_specular_program;
 
   mutable y::vector<GLfloat> _tri_data;
   mutable y::vector<GLfloat> _origin_data;

@@ -10,8 +10,6 @@ varying float layer_coord;
 
 #include "light_util.glsl"
 
-// TODO: make sure this really is correct for planar lights and then rename it
-// to get rid of the point_ prefix.
 void main()
 {
   // Add full range and fall-off range.
