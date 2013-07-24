@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <boost/functional/hash.hpp>
 
+// TODO: make a 2D cross product in vector.h and use it everywhere here.
 Light::Light()
   : full_range(1.)
   , falloff_range(1.)
@@ -287,12 +288,20 @@ void Lighting::add_triangle(
   if (a == b || a == c || a == b) {
     return;
   }
-  // Check overlaps camera.
+  // Check overlaps camera. The line-rect tests cover the case where the
+  // triangle is inside or intersects the rectangle. To cover the case where the
+  // rectangle is inside the triangle we check one vertex of the rectangle.
+  bool ab_test = (bt - at)[xx] * (min - at)[yy] -
+                 (bt - at)[yy] * (min - at)[xx] < 0;
+  bool bc_test = (ct - bt)[xx] * (min - bt)[yy] -
+                 (ct - bt)[yy] * (min - bt)[xx] < 0;
+  bool ca_test = (at - ct)[xx] * (min - ct)[yy] -
+                 (at - ct)[yy] * (min - ct)[xx] < 0;
   if (!line_intersects_rect(at, bt, min, max) &&
       !line_intersects_rect(at, ct, min, max) &&
-      !line_intersects_rect(bt, ct, min, max)) {
-    // TODO: this is wrong if the triangle is big enough to overlap camera
-    // without any line touching it.
+      !line_intersects_rect(bt, ct, min, max) &&
+      !(ab_test == bc_test && bc_test == ca_test)) {
+    return;
   }
   element_data.emplace_back(start_index + a);
   element_data.emplace_back(start_index + b);
@@ -1091,8 +1100,8 @@ bool Lighting::line_intersects_rect(
   // Check equation of line.
   if (start[xx] - end[xx] != 0) {
     y::world m = (end[yy] - start[yy]) / (end[xx] - start[xx]);
-    y::world y_neg = end[yy] + m * (end[xx] + min[xx]);
-    y::world y_pos = end[yy] + m * (end[xx] + max[xx]);
+    y::world y_neg = end[yy] + m * (min[xx] - end[xx]);
+    y::world y_pos = end[yy] + m * (max[xx] - end[xx]);
 
     if ((max[yy] < y_neg && max[yy] < y_pos) ||
         (min[yy] >= y_neg && min[yy] >= y_pos)) {
