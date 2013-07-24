@@ -6,7 +6,8 @@
 #include "proto/cell.pb.h"
 #include "render_util.h"
 
-Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
+Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
+                   bool load_yedit_data)
   : _default_script{"/yedit/missing.lua", "", y::fvec4{1.f, 1.f, 1.f, 1.f}}
   , _default_sprite{gl.make_texture("/yedit/missing.png"),
                     gl.make_texture("/default_normal.png")}
@@ -85,7 +86,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl)
       gl.make_unique_framebuffer(y::ivec2{128, 128}, false, false));
   GameStage fake_stage(*this, fake_util, *fake_framebuffer,
                        _default_map, y::wvec2(), true);
-  for (y::size i = 0; i < scripts.size(); ++i) {
+  for (y::size i = 0; i < scripts.size() && load_yedit_data; ++i) {
     make_lua_file(scripts.get(i), fake_stage);
   }
 

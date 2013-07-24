@@ -271,7 +271,7 @@ y::int32 main(y::int32 argc, char** argv)
   if (!gl) {
     return 1;
   }
-  Databank databank(filesystem, gl);
+  Databank databank(filesystem, gl, true);
   RenderUtil util(gl);
 
   ModalStack stack;

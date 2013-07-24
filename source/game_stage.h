@@ -238,6 +238,8 @@ private:
 class GameStage : public Modal {
 public:
 
+  // Set fake to true to avoid expensive initialisation computations when
+  // we're only using this as a fake to access Scripts from the editor.
   GameStage(const Databank& bank,
             RenderUtil& util, const GlFramebuffer& framebuffer,
             const CellMap& map, const y::wvec2& coord, bool fake = false);
