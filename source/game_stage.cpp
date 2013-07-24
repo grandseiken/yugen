@@ -215,7 +215,9 @@ void ScriptBank::create_in_bounds(
 
     bool overlaps_unrefreshed = false;
     for (const y::ivec2& cell : _unrefreshed) {
-      // TODO: this doesn't seem to be working quite right.
+      // TODO: this doesn't seem to be working quite right. Also need some way
+      // to mark a script as "always load", or some way of making them really
+      // big but not horrible to work with in the editor.
       if (ws.origin + ws.region / 2 >= y::wvec2(
               cell * Tileset::tile_size * Cell::cell_size) &&
           ws.origin - ws.region / 2 < y::wvec2(

@@ -87,9 +87,12 @@ public:
   void set_region(const y::wvec2& region);
   void set_rotation(y::world rotation);
 
+  typedef y::vector<LuaValue> lua_args;
+
   bool has_function(const y::string& function_name) const;
-  void call(const y::string& function_name);
-  void call(const y::string& function_name, const y::vector<LuaValue>& args);
+  void call(const y::string& function_name, const lua_args& args = {});
+  void call(lua_args& output, const y::string& function_name,
+            const lua_args& args = {});
 
   void destroy();
   bool is_destroyed() const;

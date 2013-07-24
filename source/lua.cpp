@@ -516,20 +516,22 @@ bool Script::has_function(const y::string& function_name) const
   return has;
 }
 
-void Script::call(const y::string& function_name)
+void Script::call(const y::string& function_name, const lua_args& args)
 {
-  call(function_name, {});
+  lua_args output;
+  call(output, function_name, args);
 }
 
-void Script::call(const y::string& function_name,
-                  const y::vector<LuaValue>& args)
+void Script::call(lua_args& output, const y::string& function_name,
+                  const lua_args& args)
 {
   lua_getglobal(_state, function_name.c_str());
   LuaType<LuaValue> t;
   for (const LuaValue& arg : args) {
     t.push(_state, arg);
   }
-  if (lua_pcall(_state, args.size(), 0, 1)) {
+  lua_int top = lua_gettop(_state);
+  if (lua_pcall(_state, args.size(), LUA_MULTRET, 1)) {
     const char* error = lua_tostring(_state, -1);
     std::cerr << "Calling function " << _path << ":" <<
         function_name << " failed";
@@ -537,6 +539,9 @@ void Script::call(const y::string& function_name,
       std::cerr << ": " << error;
     }
     std::cerr << std::endl;
+  }
+  for (++top; top <= lua_gettop(_state); ++top) {
+    output.emplace_back(t.get(_state, top));
   }
 }
 
