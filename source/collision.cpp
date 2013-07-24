@@ -400,21 +400,15 @@ y::world Collision::get_projection_ratio(
   // v(t) = v.start + t * (v.end - v.start)
   // g(u) = g.start + u * (g.end - g.start)
   // Finds t, u such that v(t) = g(u).
-  y::world denominator =
-      (g.end[xx] - g.start[xx]) * (v.end[yy] - v.start[yy]) -
-      (g.end[yy] - g.start[yy]) * (v.end[xx] - v.start[xx]);
+  y::world denominator = (g.end - g.start).cross(v.end - v.start);
 
   // Lines are parallel or coincident.
   if (!denominator) {
     return 2;
   }
 
-  y::world t = (
-      (g.end[xx] - g.start[xx]) * (v.start[yy] - g.start[yy]) -
-      (g.end[yy] - g.start[yy]) * (v.start[xx] - g.start[xx])) / -denominator;
-  y::world u = (
-      (v.end[xx] - v.start[xx]) * (g.start[yy] - v.start[yy]) -
-      (v.end[yy] - v.start[yy]) * (g.start[xx] - v.start[xx])) / denominator;
+  y::world t = (g.end - g.start).cross(v.start - g.start) / -denominator;
+  y::world u = (v.end - v.start).cross(g.start - v.start) / denominator;
 
   // Lines intersect outside of the segments. A small amount of tolerance is
   // necessary when bodies are rotated due to trigonometric innaccuracy.
