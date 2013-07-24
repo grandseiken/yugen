@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <boost/functional/hash.hpp>
 
-// TODO: make a 2D cross product in vector.h and use it everywhere here.
 Light::Light()
   : full_range(1.)
   , falloff_range(1.)
@@ -34,8 +33,7 @@ y::wvec2 Light::get_offset() const
   }
 
   // Need to swap the offset so that it is consistent relative to the normal.
-  return normal_vec[yy] * offset[xx] -
-         normal_vec[xx] * offset[yy] >= 0 ? offset : -offset;
+  return offset.cross(normal_vec) >= 0 ? offset : -offset;
 }
 
 bool Light::is_planar() const
@@ -109,7 +107,7 @@ void Lighting::recalculate_traces(
         return a[xx] >= 0 && b[xx] >= 0 ? a[xx] < b[xx] : a[xx] > b[xx];
       }
 
-      y::world d = a[yy] * b[xx] - a[xx] * b[yy];
+      y::world d = b.cross(a);
       // If d is zero, points are on same half-line, so fall back to distance
       // from the origin.
       return d < 0 ||
@@ -291,12 +289,9 @@ void Lighting::add_triangle(
   // Check overlaps camera. The line-rect tests cover the case where the
   // triangle is inside or intersects the rectangle. To cover the case where the
   // rectangle is inside the triangle we check one vertex of the rectangle.
-  bool ab_test = (bt - at)[xx] * (min - at)[yy] -
-                 (bt - at)[yy] * (min - at)[xx] < 0;
-  bool bc_test = (ct - bt)[xx] * (min - bt)[yy] -
-                 (ct - bt)[yy] * (min - bt)[xx] < 0;
-  bool ca_test = (at - ct)[xx] * (min - ct)[yy] -
-                 (at - ct)[yy] * (min - ct)[xx] < 0;
+  bool ab_test = (bt - at).cross(min - at) < 0;
+  bool bc_test = (ct - bt).cross(min - bt) < 0;
+  bool ca_test = (at - ct).cross(min - ct) < 0;
   if (!line_intersects_rect(at, bt, min, max) &&
       !line_intersects_rect(at, ct, min, max) &&
       !line_intersects_rect(bt, ct, min, max) &&
@@ -617,7 +612,7 @@ void Lighting::get_angular_relevant_geometry(
       // Exclude geometries which are defined in the wrong direction, that is,
       // check whether the line is going clockwise or anticlockwise around the
       // origin.
-      if (g_s[yy] * g_e[xx] - g_s[xx] * g_e[yy] >= 0) {
+      if (g_e.cross(g_s) >= 0) {
         continue;
       }
 
@@ -675,8 +670,7 @@ void Lighting::get_planar_relevant_geometry(
       }
 
       // Exclude geometries which cross the light angle in the wrong direction.
-      const y::wvec2 g_vec = g_e - g_s;
-      if (v[yy] * g_vec[xx] - v[xx] * g_vec[yy] >= 0) {
+      if ((g_e - g_s).cross(v) >= 0) {
         continue;
       }
 
@@ -699,13 +693,12 @@ y::wvec2 Lighting::get_angular_point_on_geometry(
   // Calculates point on geometry at the given angle vector. Finds t such that
   // g(t) = g.start + t * (g.end - g.start) has g(t) cross v == 0.
   y::wvec2 g_vec = geometry.end - geometry.start;
-  y::world d = v[xx] * g_vec[yy] - v[yy] * g_vec[xx];
+  y::world d = v.cross(g_vec);
   if (!d) {
     // Should have been excluded.
     return y::wvec2();
   }
-  y::world t = (v[yy] * geometry.start[xx] -
-                v[xx] * geometry.start[yy]) / d;
+  y::world t = geometry.start.cross(v) / d;
 
   return geometry.start + t * g_vec;
 }
@@ -715,15 +708,12 @@ y::wvec2 Lighting::get_planar_point_on_geometry(
     const world_geometry& geometry) const
 {
   const y::wvec2 g_vec = geometry.end - geometry.start;
-  const y::world d = g_vec[xx] * normal_vec[yy] -
-                     g_vec[yy] * normal_vec[xx];
+  const y::world d = g_vec.cross(normal_vec);
   if (!d) {
     // Normal in same direction as geometry. Should have been excluded.
     return y::wvec2();
   }
-
-  y::wvec2 vs = geometry.start - v;
-  y::world t = (g_vec[xx] * vs[yy] - g_vec[yy] * vs[xx]) / d;
+  y::world t = g_vec.cross(geometry.start - v) / d;
 
   return v + t * normal_vec;
 }
@@ -824,10 +814,8 @@ void Lighting::trace_angular_light_geometry(
   geometry_set stack;
   const y::wvec2& first_vec = vertex_buffer[0];
   for (const world_geometry& g : geometry_buffer) {
-    y::world d_s = first_vec[xx] * g.start[yy] - first_vec[yy] * g.start[xx];
-    y::world d_e = first_vec[xx] * g.end[yy] - first_vec[yy] * g.end[xx];
     // If d_e < 0 && d_s > 0 then line crosses the negative half.
-    if (d_s < 0 && d_e >= 0) {
+    if (first_vec.cross(g.start) < 0 && first_vec.cross(g.end) >= 0) {
       stack.insert(g);
     }
   }
@@ -863,7 +851,7 @@ void Lighting::trace_angular_light_geometry(
     // the same line from the origin as the next vertex, skip.
     if (i < vertex_buffer.size() - 1) {
       const auto& next = vertex_buffer[1 + i];
-      if (v[xx] * next[yy] - v[yy] - next[xx] == 0) {
+      if (v.cross(next) == 0) {
         continue;
       }
     }
@@ -957,12 +945,9 @@ void Lighting::trace_planar_light_geometry(
   geometry_set stack;
   const y::wvec2& first_vec = vertex_buffer[0];
   for (const world_geometry& g : geometry_buffer) {
-    y::wvec2 s = g.start - first_vec;
-    y::wvec2 e = g.end - first_vec;
-    y::world d_s = s[xx] * light.normal_vec[yy] - s[yy] * light.normal_vec[xx];
-    y::world d_e = e[xx] * light.normal_vec[yy] - e[yy] * light.normal_vec[xx];
     // Lines crossing in the opposite direction have already been excluded.
-    if (d_s < 0 && d_e >= 0) {
+    if ((g.start - first_vec).cross(light.normal_vec) < 0 &&
+        (g.end - first_vec).cross(light.normal_vec) >= 0) {
       stack.insert(g);
     }
   }
@@ -1040,17 +1025,14 @@ void Lighting::make_cone_trace(light_trace& output, const light_trace& trace,
     const y::wvec2& w = trace[1 + i];
     const y::wvec2& v2 = trace[(2 + i) % trace.size()];
 
-    y::world min_check = v[xx] * min[yy] - v[yy] * min[xx];
-    y::world max_check = v[xx] * max[yy] - v[yy] * max[xx];
-
-    y::world min_check_v2 = v2[xx] * min[yy] - v2[yy] * min[xx];
-    y::world max_check_v2 = v2[xx] * max[yy] - v2[yy] * max[xx];
+    y::world min_check = v.cross(min);
+    y::world max_check = v.cross(max);
 
     // Find start and end indices of the conical section.
-    if (min_check >= 0 && min_check_v2 < 0) {
+    if (min_check >= 0 && v2.cross(min) < 0) {
       min_index = i;
     }
-    if (max_check >= 0 && max_check_v2 < 0) {
+    if (max_check >= 0 && v2.cross(max) < 0) {
       max_index = i;
     }
 

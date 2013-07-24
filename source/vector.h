@@ -276,6 +276,15 @@ namespace y {
 
     template<
         typename U = T,
+        typename std::enable_if<N == 2 &&
+                                std::is_same<T, U>::value, bool>::type = 0>
+    T cross(const V& arg) const
+    {
+      return elements[0] * arg[1] - arg[0] * elements[1];
+    }
+
+    template<
+        typename U = T,
         typename std::enable_if<N == 3 &&
                                 std::is_same<T, U>::value, bool>::type = 0>
     V cross(const V& arg) const
