@@ -200,7 +200,7 @@ void ScriptBank::clean_destroyed()
 }
 
 void ScriptBank::create_in_bounds(
-    const Databank& bank, const CellMap& map, const WorldWindow& world,
+    const Databank& bank, WorldSource& source, const WorldWindow& world,
     const y::wvec2& lower, const y::wvec2& upper)
 {
   if (_all_unrefreshed) {
@@ -210,7 +210,7 @@ void ScriptBank::create_in_bounds(
   }
 
   // Create scripts that overlap new cells (which were not already active).
-  for (const ScriptBlueprint& s : map.get_scripts()) {
+  for (const ScriptBlueprint& s : source.get_scripts()) {
     WorldScript ws = world.script_blueprint_to_world_script(s);
 
     bool overlaps_unrefreshed = false;
@@ -563,8 +563,8 @@ GameStage::GameStage(const Databank& bank,
                      RenderUtil& util, const GlFramebuffer& framebuffer,
                      const CellMap& map, const y::wvec2& coord, bool fake)
   : _bank(bank)
-  , _map(map)
-  , _world(map, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
+  , _world_source(map)
+  , _world(_world_source, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
         Tileset::tile_size * Cell::cell_size))
   , _scripts(*this)
   , _renderer(util, framebuffer)
@@ -728,7 +728,8 @@ void GameStage::update()
   // manually-destroyed scripts.
   _scripts.get_unrefreshed(_world);
   _scripts.clean_out_of_bounds(*_player, lower_bound, upper_bound);
-  _scripts.create_in_bounds(_bank, _map, _world, lower_bound, upper_bound);
+  _scripts.create_in_bounds(_bank, _world_source, _world,
+                            lower_bound, upper_bound);
   _scripts.clean_destroyed();
 
   // Clean up from the various ScriptMaps.

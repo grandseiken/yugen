@@ -64,7 +64,7 @@ public:
   void clean_out_of_bounds(const Script& player,
                            const y::wvec2& lower, const y::wvec2& upper);
   void clean_destroyed();
-  void create_in_bounds(const Databank& bank, const CellMap& map,
+  void create_in_bounds(const Databank& bank, WorldSource& source,
                         const WorldWindow& window,
                         const y::wvec2& lower, const y::wvec2& upper);
 
@@ -280,8 +280,8 @@ private:
   void script_maps_clean_up();
 
   const Databank& _bank;
-  const CellMap& _map;
 
+  CellMapSource _world_source;
   WorldWindow _world;
   ScriptBank _scripts;
   GameRenderer _renderer;

@@ -73,9 +73,54 @@ struct WorldScript {
   y::wvec2 region;
 };
 
+// Interface for supplying cells to the WorldWindow.
+class WorldSource : public y::no_copy {
+public:
+
+  // Pass a unique ID based on the type so we can distinguish equality.
+  WorldSource(y::size type_id);
+  virtual ~WorldSource() {}
+
+  // Subclasses must override to call types_equal(source) and check data.
+  virtual bool operator==(const WorldSource& source) const = 0;
+  bool operator!=(const WorldSource& source) const;
+
+  // Get the cell at a particular coordinate.
+  virtual const CellBlueprint* get_coord(const y::ivec2& coord) = 0;
+  // Get all the scripts.
+  virtual const CellMap::script_list& get_scripts() = 0;
+
+protected:
+
+  bool types_equal(const WorldSource& source) const;
+
+private:
+
+  y::size _type_id;
+
+};
+
+// Default WorldSource based on a CellMap.
+class CellMapSource : public WorldSource {
+public:
+
+  const y::size type_id = 0xce11;
+
+  CellMapSource(const CellMap& map);
+  ~CellMapSource() override {}
+
+  bool operator==(const WorldSource& source) const override;
+  const CellBlueprint* get_coord(const y::ivec2& coord) override;
+  virtual const CellMap::script_list& get_scripts() override;
+
+private:
+
+  const CellMap& _map;
+
+};
+
 // Sliding window into a Cell source. The source can be changed to simulate
 // non-planar geometry.
-// TODO: use a WorldSource interface instead of CellMap directly?
 class WorldWindow : public y::no_copy {
 public:
 
@@ -83,12 +128,13 @@ public:
   static const y::int32 active_window_half_size = 1;
 
   // Initialise world with the given coord of the active map at (0, 0) in the
-  // active window.
-  WorldWindow(const CellMap& active_map, const y::ivec2& active_coord);
+  // active window. Source is owned by caller and must be preserved.
+  WorldWindow(WorldSource& active_source, const y::ivec2& active_coord);
 
   // Sets the active map with the given coord at (0, 0) in the active window.
   // Avoids reloading cells whenever possible.
-  void set_active_map(const CellMap& active_map, const y::ivec2& active_coord);
+  void set_active_source(WorldSource& active_source,
+                         const y::ivec2& active_coord);
 
   // Sets the given coord to (0, 0) in the active window. Avoids reloading cells
   // whenever possible.
@@ -146,8 +192,8 @@ private:
   // [-half_width, half_width] * [-half_width, half_width].
   void update_active_window_cell(const y::ivec2& v);
 
-  const CellMap* _active_map;
-  y::ivec2 _active_map_offset;
+  WorldSource* _active_source;
+  y::ivec2 _active_source_offset;
 
   struct active_window_entry {
     active_window_entry();

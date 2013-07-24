@@ -723,36 +723,72 @@ void WorldGeometry::merge_all_geometry() const
   }
 }
 
-WorldWindow::WorldWindow(const CellMap& active_map,
+WorldSource::WorldSource(y::size type_id)
+  : _type_id(type_id)
+{
+}
+
+bool WorldSource::operator!=(const WorldSource& source) const
+{
+  return !operator==(source);
+}
+
+bool WorldSource::types_equal(const WorldSource& source) const
+{
+  return _type_id == source._type_id;
+}
+
+CellMapSource::CellMapSource(const CellMap& map)
+  : WorldSource(type_id)
+  , _map(map)
+{
+}
+
+bool CellMapSource::operator==(const WorldSource& source) const
+{
+  return types_equal(source) && &_map == &((CellMapSource*)&source)->_map;
+}
+
+const CellBlueprint* CellMapSource::get_coord(const y::ivec2& coord)
+{
+  return _map.get_coord(coord);
+}
+
+const CellMap::script_list& CellMapSource::get_scripts()
+{
+  return _map.get_scripts();
+}
+
+WorldWindow::WorldWindow(WorldSource& active_source,
                          const y::ivec2& active_coord)
-  : _active_map(&active_map)
-  , _active_map_offset(-active_coord)
+  : _active_source(&active_source)
+  , _active_source_offset(-active_coord)
   , _active_window(new active_window_entry[
       (1 + 2 * active_window_half_size) * (1 + 2 * active_window_half_size)])
 {
   update_active_window();
 }
 
-void WorldWindow::set_active_map(const CellMap& active_map,
-                                 const y::ivec2& active_coord)
+void WorldWindow::set_active_source(WorldSource& active_source,
+                                    const y::ivec2& active_coord)
 {
-  if (_active_map == &active_map) {
+  if (_active_source == &active_source) {
     set_active_coord(active_coord);
     return;
   }
-  _active_map = &active_map;
-  _active_map_offset = -active_coord;
+  _active_source = &active_source;
+  _active_source_offset = -active_coord;
   update_active_window();
 }
 
 void WorldWindow::set_active_coord(const y::ivec2& active_coord)
 {
-  move_active_window(_active_map_offset + active_coord);
+  move_active_window(_active_source_offset + active_coord);
 }
 
 y::ivec2 WorldWindow::get_active_coord() const
 {
-  return -_active_map_offset;
+  return -_active_source_offset;
 }
 
 void WorldWindow::move_active_window(const y::ivec2& offset)
@@ -762,7 +798,7 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
   }
   y::int32 half_size = active_window_half_size;
   y::ivec2 half_v{half_size, half_size};
-  _active_map_offset -= offset;
+  _active_source_offset -= offset;
 
   // Temporary copy of the active window.
   y::unique<active_window_entry[]> copy(
@@ -871,12 +907,13 @@ void WorldWindow::clear_refreshed_cells()
 WorldScript WorldWindow::script_blueprint_to_world_script(
     const ScriptBlueprint& blueprint) const
 {
-  return {blueprint.path,
-          y::wvec2(Cell::cell_size * Tileset::tile_size * _active_map_offset +
-                   (Tileset::tile_size * (y::ivec2{1, 1} + blueprint.min +
-                                                           blueprint.max)) / 2),
-          y::wvec2((Tileset::tile_size * (y::ivec2{1, 1} + blueprint.max -
-                                                           blueprint.min)))};
+  return {
+    blueprint.path,
+    y::wvec2(Cell::cell_size * Tileset::tile_size * _active_source_offset +
+             (Tileset::tile_size * (y::ivec2{1, 1} + blueprint.min +
+                                                     blueprint.max)) / 2),
+    y::wvec2((Tileset::tile_size * (y::ivec2{1, 1} + blueprint.max -
+                                                     blueprint.min)))};
 }
 
 y::size WorldWindow::to_internal_index(const y::ivec2& active_window)
@@ -890,7 +927,7 @@ y::size WorldWindow::to_internal_index(const y::ivec2& active_window)
 const CellBlueprint* WorldWindow::active_window_target(
     const y::ivec2& active_window) const
 {
-  return _active_map->get_coord(active_window - _active_map_offset);
+  return _active_source->get_coord(active_window - _active_source_offset);
 }
 
 void WorldWindow::update_active_window()
