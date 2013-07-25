@@ -4,6 +4,7 @@
 #include "gl_util.h"
 #include "tileset.h"
 #include "window.h"
+#include <boost/functional/hash.hpp>
 
 ScriptBank::ScriptBank(GameStage& stage)
   : _stage(stage)
@@ -111,13 +112,13 @@ void ScriptBank::render_all(const Camera& camera) const
   }
 }
 
-void ScriptBank::get_unrefreshed(WorldWindow& world)
+void ScriptBank::get_preserved_cells(WorldWindow& world)
 {
-  // Find unrefreshed cells. In the common case where all cells are unrefreshed
-  // we can optimise most of the things away.
-  _all_unrefreshed = world.get_refreshed_cells().empty();
-  _unrefreshed.clear();
-  for (auto it = world.get_cartesian(); !_all_unrefreshed && it; ++it) {
+  // Find preserved cells we don't need to refresh. In the common case where all
+  // cells should be preserved we can optimise most of the things away.
+  _all_cells_preserved = world.get_refreshed_cells().empty();
+  _preserved_cells.clear();
+  for (auto it = world.get_cartesian(); !_all_cells_preserved && it; ++it) {
     bool refreshed = false;
     for (const y::ivec2& cell : world.get_refreshed_cells()) {
       if (cell == *it) {
@@ -126,7 +127,7 @@ void ScriptBank::get_unrefreshed(WorldWindow& world)
       }
     }
     if (!refreshed) {
-      _unrefreshed.emplace_back(*it);
+      _preserved_cells.emplace_back(*it);
     }
   }
   world.clear_refreshed_cells();
@@ -136,17 +137,18 @@ void ScriptBank::clean_out_of_bounds(
     const Script& player, const y::wvec2& lower, const y::wvec2& upper)
 {
   struct local {
-    bool all_unrefreshed;
-    const WorldWindow::cell_list& unrefreshed;
+    bool all_cells_preserved;
+    const WorldWindow::cell_list& preserved_cells;
     const Script* player;
 
     const y::wvec2& lower;
     const y::wvec2& upper;
 
-    local(bool all_unrefreshed, const WorldWindow::cell_list& unrefreshed,
+    local(bool all_cells_preserved,
+          const WorldWindow::cell_list& preserved_cells,
           const Script* player, const y::wvec2& lower, const y::wvec2& upper)
-      : all_unrefreshed(all_unrefreshed)
-      , unrefreshed(unrefreshed)
+      : all_cells_preserved(all_cells_preserved)
+      , preserved_cells(preserved_cells)
       , player(player)
       , lower(lower)
       , upper(upper)
@@ -164,26 +166,27 @@ void ScriptBank::clean_out_of_bounds(
       const y::wvec2& origin = s->get_origin();
       const y::wvec2& region = s->get_region();
 
-      bool overlaps_unrefreshed = false;
-      for (const y::ivec2& cell : unrefreshed) {
+      bool overlaps_preserved = false;
+      for (const y::ivec2& cell : preserved_cells) {
         if (origin + region / 2 >= y::wvec2(
                 cell * Tileset::tile_size * Cell::cell_size) &&
             origin - region / 2 < y::wvec2(
                 (y::ivec2{1, 1} + cell) *
                     Tileset::tile_size * Cell::cell_size)) {
-          overlaps_unrefreshed = true;
+          overlaps_preserved = true;
           break;
         }
       }
-      if (all_unrefreshed) {
-        overlaps_unrefreshed = origin + region / 2 >= lower &&
-                               origin - region / 2 < upper;
+      if (all_cells_preserved) {
+        overlaps_preserved = origin + region / 2 >= lower &&
+                             origin - region / 2 < upper;
       }
-      return !overlaps_unrefreshed;
+      return !overlaps_preserved;
     }
   };
 
-  local is_out_of_bounds(_all_unrefreshed, _unrefreshed, &player, lower, upper);
+  local is_out_of_bounds(_all_cells_preserved, _preserved_cells,
+                         &player, lower, upper);
   _scripts.remove_if(is_out_of_bounds);
 }
 
@@ -197,14 +200,25 @@ void ScriptBank::clean_destroyed()
   };
 
   _scripts.remove_if(local::is_destroyed);
+  // Remove all the script map entries where the references have been
+  // invalidated.
+  for (auto it = _script_map.begin(); it != _script_map.end();) {
+    if (!it->second.is_valid()) {
+      it = _script_map.erase(it);
+    }
+    else {
+      ++it;
+    }
+  }
 }
 
 void ScriptBank::create_in_bounds(
     const Databank& bank, WorldSource& source, const WorldWindow& world,
     const y::wvec2& lower, const y::wvec2& upper)
 {
-  if (_all_unrefreshed) {
-    // In this case overlaps_world == overlaps_unrefreshed, so this will never
+  // Preserved cell coordinates are relative to the active window.
+  if (_all_cells_preserved) {
+    // In this case overlaps_world == overlaps_preserved, so this will never
     // do anything.
     return;
   }
@@ -213,16 +227,15 @@ void ScriptBank::create_in_bounds(
   for (const ScriptBlueprint& s : source.get_scripts()) {
     WorldScript ws = world.script_blueprint_to_world_script(s);
 
-    bool overlaps_unrefreshed = false;
-    for (const y::ivec2& cell : _unrefreshed) {
-      // TODO: this doesn't seem to be working quite right. Also need some way
-      // to mark a script as "always load", or some way of making them really
-      // big but not horrible to work with in the editor.
+    bool overlaps_preserved = false;
+    for (const y::ivec2& cell : _preserved_cells) {
+      // TODO: need some way to mark a script as "always load", or some way of
+      // making them really big but not horrible to work with in the editor.
       if (ws.origin + ws.region / 2 >= y::wvec2(
               cell * Tileset::tile_size * Cell::cell_size) &&
           ws.origin - ws.region / 2 < y::wvec2(
               (y::ivec2{1, 1} + cell) * Tileset::tile_size * Cell::cell_size)) {
-        overlaps_unrefreshed = true;
+        overlaps_preserved = true;
         break;
       }
     }
@@ -230,10 +243,17 @@ void ScriptBank::create_in_bounds(
     bool overlaps_world = ws.origin + ws.region / 2 >= lower &&
                           ws.origin - ws.region / 2 < upper;
 
-    if (overlaps_world && !overlaps_unrefreshed) {
+    // We maintain a map from ScriptBlueprint sources to script references so
+    // that we never create more than one instance of a particular blueprint
+    // at a time.
+    script_map_key key{source, s};
+    if (overlaps_world && !overlaps_preserved &&
+        _script_map.find(key) == _script_map.end()) {
       const LuaFile& file = bank.scripts.get(ws.path);
-      add_script(y::move_unique(
-          new Script(_stage, file.path, file.contents, ws.origin, ws.region)));
+      Script* script =
+          new Script(_stage, file.path, file.contents, ws.origin, ws.region);
+      _script_map.insert(y::make_pair(key, ConstScriptReference(*script)));
+      add_script(y::move_unique(script));
     }
   }
 }
@@ -242,6 +262,31 @@ void ScriptBank::add_script(y::unique<Script> script)
 {
   _scripts.emplace_back();
   (_scripts.rbegin())->swap(script);
+}
+
+bool ScriptBank::script_map_key::operator==(const script_map_key& key) const
+{
+  return source == key.source &&
+      blueprint.min == key.blueprint.min &&
+      blueprint.max == key.blueprint.max &&
+      blueprint.path == key.blueprint.path;
+}
+
+bool ScriptBank::script_map_key::operator!=(const script_map_key& key) const
+{
+  return !operator==(key);
+}
+
+y::size ScriptBank::script_map_hash::operator()(const script_map_key& key) const
+{
+  y::size seed = 0;
+  key.source.hash_combine(seed);
+  boost::hash_combine(seed, key.blueprint.min[xx]);
+  boost::hash_combine(seed, key.blueprint.min[yy]);
+  boost::hash_combine(seed, key.blueprint.max[xx]);
+  boost::hash_combine(seed, key.blueprint.max[yy]);
+  boost::hash_combine(seed, key.blueprint.path);
+  return seed;
 }
 
 GameRenderer::GameRenderer(RenderUtil& util, const GlFramebuffer& framebuffer)
@@ -726,7 +771,7 @@ void GameStage::update()
 
   // Clean up out-of-bounds scripts, add new in-bounds scripts, then clean up
   // manually-destroyed scripts.
-  _scripts.get_unrefreshed(_world);
+  _scripts.get_preserved_cells(_world);
   _scripts.clean_out_of_bounds(*_player, lower_bound, upper_bound);
   _scripts.create_in_bounds(_bank, _world_source, _world,
                             lower_bound, upper_bound);

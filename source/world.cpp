@@ -1,6 +1,14 @@
 #include "world.h"
 
 #include "tileset.h"
+#include <boost/functional/hash.hpp>
+
+Geometry::Geometry(const y::ivec2& start, const y::ivec2& end, bool external)
+  : start(start)
+  , end(end)
+  , external(external)
+{
+}
 
 bool Geometry::order::operator()(const Geometry& a, const Geometry& b) const
 {
@@ -319,94 +327,94 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
 
       switch (min_c) {
         case Tileset::COLLIDE_HALF_U:
-          list.emplace_back(Geometry{max + Tileset::r, min + Tileset::l});
+          list.emplace_back(Geometry(max + Tileset::r, min + Tileset::l));
           break;
         case Tileset::COLLIDE_HALF_D:
-          list.emplace_back(Geometry{min + Tileset::l, max + Tileset::r});
+          list.emplace_back(Geometry(min + Tileset::l, max + Tileset::r));
           break;
         case Tileset::COLLIDE_HALF_L:
-          list.emplace_back(Geometry{min + Tileset::u, max + Tileset::d});
+          list.emplace_back(Geometry(min + Tileset::u, max + Tileset::d));
           break;
         case Tileset::COLLIDE_HALF_R:
-          list.emplace_back(Geometry{max + Tileset::d, min + Tileset::u});
+          list.emplace_back(Geometry(max + Tileset::d, min + Tileset::u));
           break;
 
         case Tileset::COLLIDE_SLOPE1_UL:
-          list.emplace_back(Geometry{min + Tileset::ul, max + Tileset::dr});
+          list.emplace_back(Geometry(min + Tileset::ul, max + Tileset::dr));
           break;
         case Tileset::COLLIDE_SLOPE1_UR:
-          list.emplace_back(Geometry{min + Tileset::dl, max + Tileset::ur});
+          list.emplace_back(Geometry(min + Tileset::dl, max + Tileset::ur));
           break;
         case Tileset::COLLIDE_SLOPE1_DL:
-          list.emplace_back(Geometry{max + Tileset::ur, min + Tileset::dl});
+          list.emplace_back(Geometry(max + Tileset::ur, min + Tileset::dl));
           break;
         case Tileset::COLLIDE_SLOPE1_DR:
-          list.emplace_back(Geometry{max + Tileset::dr, min + Tileset::ul});
+          list.emplace_back(Geometry(max + Tileset::dr, min + Tileset::ul));
           break;
 
         case Tileset::COLLIDE_SLOPEH_UL_A:
         case Tileset::COLLIDE_SLOPEH_UL_B:
-          list.emplace_back(Geometry{
+          list.emplace_back(Geometry(
               min + (min_c == Tileset::COLLIDE_SLOPEH_UL_A ? Tileset::l :
                                                              Tileset::ul),
               max + (max_c == Tileset::COLLIDE_SLOPEH_UL_B ? Tileset::r :
-                                                             Tileset::dr)});
+                                                             Tileset::dr)));
           break;
         case Tileset::COLLIDE_SLOPEH_UR_A:
         case Tileset::COLLIDE_SLOPEH_UR_B:
-          list.emplace_back(Geometry{
+          list.emplace_back(Geometry(
               min + (min_c == Tileset::COLLIDE_SLOPEH_UR_B ? Tileset::l :
                                                              Tileset::dl),
               max + (max_c == Tileset::COLLIDE_SLOPEH_UR_A ? Tileset::r :
-                                                             Tileset::ur)});
+                                                             Tileset::ur)));
           break;
         case Tileset::COLLIDE_SLOPEH_DL_A:
         case Tileset::COLLIDE_SLOPEH_DL_B:
-          list.emplace_back(Geometry{
+          list.emplace_back(Geometry(
               max + (max_c == Tileset::COLLIDE_SLOPEH_DL_B ? Tileset::r :
                                                              Tileset::ur),
               min + (min_c == Tileset::COLLIDE_SLOPEH_DL_A ? Tileset::l :
-                                                             Tileset::dl)});
+                                                             Tileset::dl)));
           break;
         case Tileset::COLLIDE_SLOPEH_DR_A:
         case Tileset::COLLIDE_SLOPEH_DR_B:
-          list.emplace_back(Geometry{
+          list.emplace_back(Geometry(
               max + (max_c == Tileset::COLLIDE_SLOPEH_DR_A ? Tileset::r :
                                                              Tileset::dr),
               min + (min_c == Tileset::COLLIDE_SLOPEH_DR_B ? Tileset::l :
-                                                             Tileset::ul)});
+                                                             Tileset::ul)));
           break;
         case Tileset::COLLIDE_SLOPE2_UL_A:
         case Tileset::COLLIDE_SLOPE2_UL_B:
-          list.emplace_back(Geometry{
+          list.emplace_back(Geometry(
               min + (min_c == Tileset::COLLIDE_SLOPE2_UL_B ? Tileset::u :
                                                              Tileset::ul),
               max + (max_c == Tileset::COLLIDE_SLOPE2_UL_A ? Tileset::d :
-                                                             Tileset::dr)});
+                                                             Tileset::dr)));
           break;
         case Tileset::COLLIDE_SLOPE2_UR_A:
         case Tileset::COLLIDE_SLOPE2_UR_B:
-          list.emplace_back(Geometry{
+          list.emplace_back(Geometry(
               min + (min_c == Tileset::COLLIDE_SLOPE2_UR_A ? Tileset::d :
                                                              Tileset::dl),
               max + (max_c == Tileset::COLLIDE_SLOPE2_UR_B ? Tileset::u :
-                                                             Tileset::ur)});
+                                                             Tileset::ur)));
           break;
         case Tileset::COLLIDE_SLOPE2_DL_A:
         case Tileset::COLLIDE_SLOPE2_DL_B:
-          list.emplace_back(Geometry{
+          list.emplace_back(Geometry(
               min + (min_c == Tileset::COLLIDE_SLOPE2_DL_A ? Tileset::u :
                                                              Tileset::ur),
               max + (max_c == Tileset::COLLIDE_SLOPE2_DL_B ? Tileset::d :
-                                                             Tileset::dl)});
+                                                             Tileset::dl)));
           break;
         case Tileset::COLLIDE_SLOPE2_DR_A:
         case Tileset::COLLIDE_SLOPE2_DR_B:
-          list.emplace_back(Geometry{
+          list.emplace_back(Geometry(
               max + (max_c == Tileset::COLLIDE_SLOPE2_DR_B ? Tileset::d :
                                                              Tileset::dr),
               min + (min_c == Tileset::COLLIDE_SLOPE2_DR_A ? Tileset::u :
-                                                             Tileset::ul)});
+                                                             Tileset::ul)));
           break;
 
         default: {}
@@ -459,7 +467,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
 
         // Make sure the geometry is always on the right of its boundary.
         list.emplace_back(boundary == RIGHT ?
-                          Geometry{start, end} : Geometry{end, start});
+                          Geometry(start, end) : Geometry(end, start));
       }
       if (new_boundary != NONE) {
         boundary_start = t;
@@ -497,7 +505,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
         y::ivec2 end = mul * y::ivec2{col, t};
 
         list.emplace_back(boundary == RIGHT ?
-                          Geometry{start, end} : Geometry{end, start});
+                          Geometry(start, end) : Geometry(end, start));
       }
       if (new_boundary != NONE) {
         boundary_start = t;
@@ -583,10 +591,11 @@ void WorldGeometry::merge_all_geometry() const
 
   struct local {
     static void insert(OrderedGeometry& target,
-                       const geometry_list& list, const y::ivec2& offset)
+                       const geometry_list& list, const y::ivec2& offset,
+                       bool external)
     {
       for (const Geometry& g : list) {
-        target.insert({g.start + offset, g.end + offset});
+        target.insert(Geometry(g.start + offset, g.end + offset, external));
       }
     }
 
@@ -597,12 +606,14 @@ void WorldGeometry::merge_all_geometry() const
         y::size& a_index, y::size& b_index, geometry_list& a, geometry_list& b)
     {
       if (a_max < b_min) {
-        target.insert({a_offset + a[a_index].start, a_offset + a[a_index].end});
+        target.insert(Geometry(a_offset + a[a_index].start,
+                               a_offset + a[a_index].end, true));
         ++a_index;
         return;
       }
       if (b_max < a_min) {
-        target.insert({b_offset + b[b_index].start, b_offset + b[b_index].end});
+        target.insert(Geometry(b_offset + b[b_index].start,
+                               b_offset + b[b_index].end, true));
         ++b_index;
         return;
       }
@@ -610,7 +621,8 @@ void WorldGeometry::merge_all_geometry() const
       // This rest magically works for all cases because the one of the
       // lists has segments stored in reverse.
       if (a_min != b_min) {
-        target.insert({a_offset + a[a_index].start, b_offset + b[b_index].end});
+        target.insert(Geometry(a_offset + a[a_index].start,
+                               b_offset + b[b_index].end, true));
       }
 
       if (a_max < b_max) {
@@ -638,20 +650,20 @@ void WorldGeometry::merge_all_geometry() const
     // Add all non-edge geometry.
     const bucket& bucket = jt->second;
     const y::ivec2 offset = *it * Tileset::tile_size * Cell::cell_size;
-    local::insert(_ordered_geometry, bucket.middle, offset);
+    local::insert(_ordered_geometry, bucket.middle, offset, false);
 
     // Where there's no adjacent cell, add the edge geometry.
     if (_buckets.find(*it - y::ivec2{0, 1}) == _buckets.end()) {
-      local::insert(_ordered_geometry, bucket.top, offset);
+      local::insert(_ordered_geometry, bucket.top, offset, true);
     }
     if (_buckets.find(*it - y::ivec2{1, 0}) == _buckets.end()) {
-      local::insert(_ordered_geometry, bucket.left, offset);
+      local::insert(_ordered_geometry, bucket.left, offset, true);
     }
     if (_buckets.find(*it + y::ivec2{0, 1}) == _buckets.end()) {
-      local::insert(_ordered_geometry, bucket.bottom, offset);
+      local::insert(_ordered_geometry, bucket.bottom, offset, true);
     }
     if (_buckets.find(*it + y::ivec2{1, 0}) == _buckets.end()) {
-      local::insert(_ordered_geometry, bucket.right, offset);
+      local::insert(_ordered_geometry, bucket.right, offset, true);
     }
 
     // Merge edge geometry with adjacent cells. This depends on implementation
@@ -680,12 +692,13 @@ void WorldGeometry::merge_all_geometry() const
                           top_index, bottom_index, top, bottom);
       }
       for (; top_index < top.size(); ++top_index) {
-        _ordered_geometry.insert({offset + top[top_index].start,
-                                  offset + top[top_index].end});
+        _ordered_geometry.insert(Geometry(offset + top[top_index].start,
+                                          offset + top[top_index].end, true));
       }
       for (; bottom_index < bottom.size(); ++bottom_index) {
-        _ordered_geometry.insert({bottom_offset + bottom[bottom_index].start,
-                                  bottom_offset + bottom[bottom_index].end});
+        _ordered_geometry.insert(Geometry(
+            bottom_offset + bottom[bottom_index].start,
+            bottom_offset + bottom[bottom_index].end, true));
       }
     }
     jt = _buckets.find(*it + y::ivec2{1, 0});
@@ -712,12 +725,13 @@ void WorldGeometry::merge_all_geometry() const
                           right_index, left_index, right, left);
       }
       for (; left_index < left.size(); ++left_index) {
-        _ordered_geometry.insert({offset + left[left_index].start,
-                                  offset + left[left_index].end});
+        _ordered_geometry.insert(Geometry(offset + left[left_index].start,
+                                          offset + left[left_index].end, true));
       }
       for (; right_index < right.size(); ++right_index) {
-        _ordered_geometry.insert({right_offset + right[right_index].start,
-                                  right_offset + right[right_index].end});
+        _ordered_geometry.insert(Geometry(
+            right_offset + right[right_index].start,
+            right_offset + right[right_index].end, true));
       }
     }
   }
@@ -738,6 +752,11 @@ bool WorldSource::types_equal(const WorldSource& source) const
   return _type_id == source._type_id;
 }
 
+y::size WorldSource::get_type_id() const
+{
+  return _type_id;
+}
+
 CellMapSource::CellMapSource(const CellMap& map)
   : WorldSource(type_id)
   , _map(map)
@@ -747,6 +766,12 @@ CellMapSource::CellMapSource(const CellMap& map)
 bool CellMapSource::operator==(const WorldSource& source) const
 {
   return types_equal(source) && &_map == &((CellMapSource*)&source)->_map;
+}
+
+void CellMapSource::hash_combine(y::size& seed) const
+{
+  boost::hash_combine(seed, get_type_id());
+  boost::hash_combine(seed, &_map);
 }
 
 const CellBlueprint* CellMapSource::get_coord(const y::ivec2& coord)

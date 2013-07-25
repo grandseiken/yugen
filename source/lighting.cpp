@@ -614,6 +614,11 @@ void Lighting::get_angular_relevant_geometry(
         continue;
       }
 
+      // We allow lights to shine in from outside the active window.
+      if (g.external) {
+        continue;
+      }
+
       geometry_output.emplace_back(g_s, g_e);
       map_output[g_s].emplace_back(g_s, g_e);
       map_output[g_e].emplace_back(g_s, g_e);
@@ -669,6 +674,10 @@ void Lighting::get_planar_relevant_geometry(
 
       // Exclude geometries which cross the light angle in the wrong direction.
       if ((g_e - g_s).cross(v) >= 0) {
+        continue;
+      }
+
+      if (g.external) {
         continue;
       }
 

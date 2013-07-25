@@ -60,10 +60,12 @@ public:
 
   // Functions for updating the active Scripts based on changes to the active
   // window.
-  void get_unrefreshed(WorldWindow& world);
+  void get_preserved_cells(WorldWindow& world);
   void clean_out_of_bounds(const Script& player,
                            const y::wvec2& lower, const y::wvec2& upper);
   void clean_destroyed();
+  // The WorldSource passed here must continue to exist for as long as any
+  // Scripts sourced from it exist in the game world.
   void create_in_bounds(const Databank& bank, WorldSource& source,
                         const WorldWindow& window,
                         const y::wvec2& lower, const y::wvec2& upper);
@@ -77,6 +79,20 @@ private:
   typedef y::list<y::unique<Script>> script_list;
   script_list _scripts;
 
+  // Map from ScriptBlueprint keys to existing scripts.
+  struct script_map_key {
+    bool operator==(const script_map_key& key) const;
+    bool operator!=(const script_map_key& key) const;
+    const WorldSource& source;
+    ScriptBlueprint blueprint;
+  };
+  struct script_map_hash {
+    y::size operator()(const script_map_key& key) const;
+  };
+  typedef y::map<script_map_key, ConstScriptReference,
+                 script_map_hash> script_map;
+  script_map _script_map;
+
   mutable y::map<const Script*, y::size> _uid_map;
   mutable y::int32 _uid_counter;
 
@@ -87,8 +103,9 @@ private:
   };
   y::vector<message> _messages;
 
-  bool _all_unrefreshed;
-  WorldWindow::cell_list _unrefreshed;
+  // Temporary per-frame data for storing which cells we need to preserve.
+  bool _all_cells_preserved;
+  WorldWindow::cell_list _preserved_cells;
 
 };
 

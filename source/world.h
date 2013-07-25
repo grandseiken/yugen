@@ -8,8 +8,13 @@
 // order; that is, when facing from start to end the solid geometry lies on the
 // right-hand side.
 struct Geometry {
+  Geometry(const y::ivec2& start, const y::ivec2& end, bool external = false);
+
   y::ivec2 start;
   y::ivec2 end;
+
+  // True if the geometry is part of the external wall rather than actual tiles.
+  bool external;
 
   struct order {
     bool operator()(const Geometry&, const Geometry& b) const;
@@ -73,12 +78,9 @@ struct WorldScript {
   y::wvec2 region;
 };
 
-// Interface for supplying cells to the WorldWindow. Changes won't be
-// immediately picked up if modified while used as the source for a WorldWindow;
-// nor will they be picked up if the same object, once modified, is passed
-// to set_active_source (as it will compare equal with itself). For this
-// reason, for immediate changes always construct an entirely new WorldSource
-// to pass in.
+// Interface for supplying cells to the WorldWindow. WorldSources must be
+// immutable and must also never be destroyed while Scripts still exist
+// in the game world that they have been sourced from.
 class WorldSource : public y::no_copy {
 public:
 
@@ -90,6 +92,9 @@ public:
   virtual bool operator==(const WorldSource& source) const = 0;
   bool operator!=(const WorldSource& source) const;
 
+  // Subclasses must override to hash get_type_id() and the data.
+  virtual void hash_combine(y::size& seed) const = 0;
+
   // Get the cell at a particular coordinate.
   virtual const CellBlueprint* get_coord(const y::ivec2& coord) = 0;
   // Get all the scripts.
@@ -98,6 +103,7 @@ public:
 protected:
 
   bool types_equal(const WorldSource& source) const;
+  y::size get_type_id() const;
 
 private:
 
@@ -115,6 +121,8 @@ public:
   ~CellMapSource() override {}
 
   bool operator==(const WorldSource& source) const override;
+  void hash_combine(y::size& seed) const override;
+
   const CellBlueprint* get_coord(const y::ivec2& coord) override;
   virtual const CellMap::script_list& get_scripts() override;
 
