@@ -365,6 +365,20 @@ private:
 
 };
 
+// Convenience struct to store a buffer and its data source together.
+template<typename T, y::size N>
+struct GlDatabuffer {
+
+  GlDatabuffer(GlUnique<GlBuffer<T, N>>&& buffer);
+  const GlBuffer<T, N>& reupload() const;
+
+  // The data is mutable as it's generally temporary, used for rendering, and
+  // populated every frame from other sources.
+  mutable y::vector<T> data;
+  GlUnique<GlBuffer<T, N>> buffer;
+
+};
+
 template<typename T, y::size N>
 GlBuffer<T, N>::GlBuffer()
   : GlHandle(0)
@@ -621,6 +635,19 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
 {
   arg.bind(GL_TEXTURE0 + _texture_index);
   return bind_uniform(index, name, _texture_index++);
+}
+
+template<typename T, y::size N>
+GlDatabuffer<T, N>::GlDatabuffer(GlUnique<GlBuffer<T, N>>&& buffer)
+  : buffer(std::forward<GlUnique<GlBuffer<T, N>>>(buffer))
+{
+}
+
+template<typename T, y::size N>
+const GlBuffer<T, N>& GlDatabuffer<T, N>::reupload() const
+{
+  buffer->reupload_data(data);
+  return *buffer;
 }
 
 #endif

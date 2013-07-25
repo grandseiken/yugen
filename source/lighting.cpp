@@ -72,15 +72,15 @@ Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
   , _light_specular_program(gl.make_unique_program({
         "/shaders/light_specular.v.glsl",
         "/shaders/light_specular.f.glsl"}))
-  , _tri_buffer(gl.make_unique_buffer<GLfloat, 2>(
+  , _tri(gl.make_unique_buffer<GLfloat, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _origin_buffer(gl.make_unique_buffer<GLfloat, 2>(
+  , _origin(gl.make_unique_buffer<GLfloat, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _range_buffer(gl.make_unique_buffer<GLfloat, 2>(
+  , _range(gl.make_unique_buffer<GLfloat, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _colour_buffer(gl.make_unique_buffer<GLfloat, 4>(
+  , _colour(gl.make_unique_buffer<GLfloat, 4>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _layering_buffer(gl.make_unique_buffer<GLfloat, 1>(
+  , _layering(gl.make_unique_buffer<GLfloat, 1>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _element_buffer(gl.make_unique_buffer<GLushort, 1>(
         GL_ELEMENT_ARRAY_BUFFER, GL_STREAM_DRAW))
@@ -267,17 +267,17 @@ void Lighting::render_specularbuffer(
 void Lighting::add_vertex(const y::wvec2& origin, const y::wvec2& trace,
                           const Light& light) const
 {
-  _tri_data.emplace_back(trace[xx]);
-  _tri_data.emplace_back(trace[yy]);
-  _origin_data.emplace_back(origin[xx]);
-  _origin_data.emplace_back(origin[yy]);
-  _range_data.emplace_back(light.full_range);
-  _range_data.emplace_back(light.falloff_range);
-  _layering_data.emplace_back(light.layer_value);
-  _colour_data.emplace_back(light.colour[rr]);
-  _colour_data.emplace_back(light.colour[gg]);
-  _colour_data.emplace_back(light.colour[bb]);
-  _colour_data.emplace_back(light.colour[aa]);
+  _tri.data.emplace_back(trace[xx]);
+  _tri.data.emplace_back(trace[yy]);
+  _origin.data.emplace_back(origin[xx]);
+  _origin.data.emplace_back(origin[yy]);
+  _range.data.emplace_back(light.full_range);
+  _range.data.emplace_back(light.falloff_range);
+  _layering.data.emplace_back(light.layer_value);
+  _colour.data.emplace_back(light.colour[rr]);
+  _colour.data.emplace_back(light.colour[gg]);
+  _colour.data.emplace_back(light.colour[bb]);
+  _colour.data.emplace_back(light.colour[aa]);
 }
 
 void Lighting::add_triangle(
@@ -315,11 +315,11 @@ void Lighting::render_internal(
   if (!(util.get_resolution() >= y::ivec2())) {
     return;
   }
-  _tri_data.clear();
-  _origin_data.clear();
-  _range_data.clear();
-  _layering_data.clear();
-  _colour_data.clear();
+  _tri.data.clear();
+  _origin.data.clear();
+  _range.data.clear();
+  _layering.data.clear();
+  _colour.data.clear();
   _element_data.clear();
 
   source_list sources;
@@ -353,12 +353,6 @@ void Lighting::render_internal(
     }
   }
 
-  _tri_buffer->reupload_data(_tri_data);
-  _origin_buffer->reupload_data(_origin_data);
-  _range_buffer->reupload_data(_range_data);
-  _layering_buffer->reupload_data(_layering_data);
-  _colour_buffer->reupload_data(_colour_data);
-
   util.get_gl().enable_depth(true, GL_LESS);
   util.get_gl().enable_blend(true, GL_SRC_ALPHA, GL_ONE);
   const GlProgram& program = specular ?
@@ -366,11 +360,11 @@ void Lighting::render_internal(
 
   program.bind();
   program.bind_uniform("normalbuffer", normalbuffer);
-  program.bind_attribute("pixels", *_tri_buffer);
-  program.bind_attribute("origin", *_origin_buffer);
-  program.bind_attribute("range", *_range_buffer);
-  program.bind_attribute("layer", *_layering_buffer);
-  program.bind_attribute("colour", *_colour_buffer);
+  program.bind_attribute("pixels", _tri.reupload());
+  program.bind_attribute("origin", _origin.reupload());
+  program.bind_attribute("range", _range.reupload());
+  program.bind_attribute("layer", _layering.reupload());
+  program.bind_attribute("colour", _colour.reupload());
   util.bind_pixel_uniforms(program);
 
   // It really shouldn't be necessary to use depth and draw lights one by one.
@@ -393,7 +387,7 @@ void Lighting::render_angular_internal(
   // Arranging in a triangle fan causes tears in the triangles due to slight
   // inaccuracies, so we use a fan with three triangles per actual triangle
   // to make sure the edges line up exactly.
-  y::size origin_index = _tri_data.size() / 2;
+  y::size origin_index = _tri.data.size() / 2;
 
   // Set up the vertices.
   add_vertex(origin, origin, light);
@@ -440,7 +434,7 @@ void Lighting::render_planar_internal(
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
   // Similarly here we use up to 4 triangles to prevent tearing.
-  y::size start_index = _tri_data.size() / 2;
+  y::size start_index = _tri.data.size() / 2;
 
   // Set up the vertices.
   y::wvec2 offset = light.get_offset();

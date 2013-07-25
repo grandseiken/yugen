@@ -97,19 +97,19 @@ RenderUtil::RenderUtil(GlUtil& gl)
   , _sprite_program(gl.make_unique_program({
         "/shaders/sprite.v.glsl",
         "/shaders/sprite.f.glsl"}))
-  , _pixels_buffer(gl.make_unique_buffer<float, 2>(
+  , _pixels(gl.make_unique_buffer<float, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _rotation_buffer(gl.make_unique_buffer<float, 1>(
+  , _rotation(gl.make_unique_buffer<float, 1>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _origin_buffer(gl.make_unique_buffer<float, 2>(
+  , _origin(gl.make_unique_buffer<float, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _frame_index_buffer(gl.make_unique_buffer<float, 2>(
+  , _frame_index(gl.make_unique_buffer<float, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _depth_buffer(gl.make_unique_buffer<float, 1>(
+  , _depth(gl.make_unique_buffer<float, 1>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _colour_buffer(gl.make_unique_buffer<float, 4>(
+  , _colour(gl.make_unique_buffer<float, 4>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
-  , _element_buffer(gl.make_unique_buffer<GLushort, 1>(
+  , _element(gl.make_unique_buffer<GLushort, 1>(
         GL_ELEMENT_ARRAY_BUFFER, GL_DYNAMIC_DRAW))
 {
 }
@@ -373,51 +373,44 @@ void RenderUtil::render_batch(
     // Vertex attribute divisor buffers would be nice for this kind of thing,
     // but it's not available until around OpenGL 4.3 which is kind of recent
     // to target.
-    y::write_vector<float, y::vector<y::int32>>(_pixels_data, 8 * i, {
+    y::write_vector<float, y::vector<y::int32>>(_pixels.data, 8 * i, {
         -frame_size[xx] / 2, -frame_size[yy] / 2,
         frame_size[xx] / 2, -frame_size[yy] / 2,
         -frame_size[xx] / 2, frame_size[yy] / 2,
         frame_size[xx] / 2, frame_size[yy] / 2});
-    y::write_vector(_rotation_data, 4 * i, {
+    y::write_vector(_rotation.data, 4 * i, {
         s.rotation, s.rotation, s.rotation, s.rotation});
-    y::write_vector(_origin_data, 8 * i, {
+    y::write_vector(_origin.data, 8 * i, {
         left, top, left, top,
         left, top, left, top});
-    y::write_vector(_frame_index_data, 8 * i, {
+    y::write_vector(_frame_index.data, 8 * i, {
         s.frame_x, s.frame_y, s.frame_x, s.frame_y,
         s.frame_x, s.frame_y, s.frame_x, s.frame_y});
-    y::write_vector(_depth_data, 4 * i, {
+    y::write_vector(_depth.data, 4 * i, {
         s.depth, s.depth, s.depth, s.depth});
-    y::write_vector(_colour_data, 16 * i, {
+    y::write_vector(_colour.data, 16 * i, {
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa]});
   }
 
-  _pixels_buffer->reupload_data(_pixels_data);
-  _rotation_buffer->reupload_data(_rotation_data);
-  _frame_index_buffer->reupload_data(_frame_index_data);
-  _origin_buffer->reupload_data(_origin_data);
-  _depth_buffer->reupload_data(_depth_data);
-  _colour_buffer->reupload_data(_colour_data);
-
-  if (_element_data.size() / 6 < length) {
-    for (y::size i = _element_data.size() / 6; i < length; ++i) {
-      y::write_vector(_element_data, 6 * i, {
+  if (_element.data.size() / 6 < length) {
+    for (y::size i = _element.data.size() / 6; i < length; ++i) {
+      y::write_vector(_element.data, 6 * i, {
           GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
           GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
     }
-    _element_buffer->reupload_data(_element_data);
+    _element.reupload();
   }
 
   _sprite_program->bind();
-  _sprite_program->bind_attribute("pixels", *_pixels_buffer);
-  _sprite_program->bind_attribute("rotation", *_rotation_buffer);
-  _sprite_program->bind_attribute("origin", *_origin_buffer);
-  _sprite_program->bind_attribute("frame_index", *_frame_index_buffer);
-  _sprite_program->bind_attribute("depth", *_depth_buffer);
-  _sprite_program->bind_attribute("colour", *_colour_buffer);
+  _sprite_program->bind_attribute("pixels", _pixels.reupload());
+  _sprite_program->bind_attribute("rotation", _rotation.reupload());
+  _sprite_program->bind_attribute("origin", _origin.reupload());
+  _sprite_program->bind_attribute("frame_index", _frame_index.reupload());
+  _sprite_program->bind_attribute("depth", _depth.reupload());
+  _sprite_program->bind_attribute("colour", _colour.reupload());
 
   y::ivec2 v = sprite.get_size() / frame_size;
   _sprite_program->bind_uniform("sprite", sprite);
@@ -425,7 +418,7 @@ void RenderUtil::render_batch(
   _sprite_program->bind_uniform("frame_count", v);
   _sprite_program->bind_uniform("normal", normal);
   bind_pixel_uniforms(*_sprite_program);
-  _element_buffer->draw_elements(GL_TRIANGLES, 6 * length);
+  _element.buffer->draw_elements(GL_TRIANGLES, 6 * length);
 }
 
 void RenderUtil::render_batch(const RenderBatch& batch) const

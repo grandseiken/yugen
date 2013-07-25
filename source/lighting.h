@@ -194,18 +194,13 @@ private:
   GlUnique<GlProgram> _light_program;
   GlUnique<GlProgram> _light_specular_program;
 
-  mutable y::vector<GLfloat> _tri_data;
-  mutable y::vector<GLfloat> _origin_data;
-  mutable y::vector<GLfloat> _range_data;
-  mutable y::vector<GLfloat> _layering_data;
-  mutable y::vector<GLfloat> _colour_data;
-  mutable y::vector<y::vector<GLushort>> _element_data;
+  GlDatabuffer<float, 2> _tri;
+  GlDatabuffer<float, 2> _origin;
+  GlDatabuffer<float, 2> _range;
+  GlDatabuffer<float, 4> _colour;
+  GlDatabuffer<float, 1> _layering;
 
-  GlUnique<GlBuffer<float, 2>> _tri_buffer;
-  GlUnique<GlBuffer<float, 2>> _origin_buffer;
-  GlUnique<GlBuffer<float, 2>> _range_buffer;
-  GlUnique<GlBuffer<float, 4>> _colour_buffer;
-  GlUnique<GlBuffer<float, 1>> _layering_buffer;
+  mutable y::vector<y::vector<GLushort>> _element_data;
   GlUnique<GlBuffer<GLushort, 1>> _element_buffer;
 
   trace_results _trace_results;

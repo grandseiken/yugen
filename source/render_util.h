@@ -181,23 +181,13 @@ private:
   GlUnique<GlProgram> _draw_program;
   GlUnique<GlProgram> _sprite_program;
 
-  // TODO: figure out if this is really worth it, and if so, come up with a
-  // more easily-reusable way to do it (lighting.h too).
-  mutable y::vector<float> _pixels_data;
-  mutable y::vector<float> _rotation_data;
-  mutable y::vector<float> _origin_data;
-  mutable y::vector<float> _frame_index_data;
-  mutable y::vector<float> _depth_data;
-  mutable y::vector<float> _colour_data;
-  mutable y::vector<GLushort> _element_data;
-
-  GlUnique<GlBuffer<float, 2>> _pixels_buffer;
-  GlUnique<GlBuffer<float, 1>> _rotation_buffer;
-  GlUnique<GlBuffer<float, 2>> _origin_buffer;
-  GlUnique<GlBuffer<float, 2>> _frame_index_buffer;
-  GlUnique<GlBuffer<float, 1>> _depth_buffer;
-  GlUnique<GlBuffer<float, 4>> _colour_buffer;
-  GlUnique<GlBuffer<GLushort, 1>> _element_buffer;
+  GlDatabuffer<float, 2> _pixels;
+  GlDatabuffer<float, 1> _rotation;
+  GlDatabuffer<float, 2> _origin;
+  GlDatabuffer<float, 2> _frame_index;
+  GlDatabuffer<float, 1> _depth;
+  GlDatabuffer<float, 4> _colour;
+  GlDatabuffer<GLushort, 1> _element;
 
 };
 

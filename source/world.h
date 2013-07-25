@@ -73,7 +73,12 @@ struct WorldScript {
   y::wvec2 region;
 };
 
-// Interface for supplying cells to the WorldWindow.
+// Interface for supplying cells to the WorldWindow. Changes won't be
+// immediately picked up if modified while used as the source for a WorldWindow;
+// nor will they be picked up if the same object, once modified, is passed
+// to set_active_source (as it will compare equal with itself). For this
+// reason, for immediate changes always construct an entirely new WorldSource
+// to pass in.
 class WorldSource : public y::no_copy {
 public:
 

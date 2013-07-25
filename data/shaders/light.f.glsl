@@ -1,7 +1,8 @@
 uniform sampler2D normalbuffer;
 uniform float depth;
 
-// TODO: profile this and see if this is actually faster than using uniforms.
+// We could pass all of these as attributes or uniforms. It doesn't seem to make
+// a huge difference to performance either way.
 varying vec2 pixels_coord;
 varying vec2 pos_coord;
 varying vec2 range_coord;
