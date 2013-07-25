@@ -66,7 +66,7 @@ public:
   void clean_destroyed();
   // The WorldSource passed here must continue to exist for as long as any
   // Scripts sourced from it exist in the game world.
-  void create_in_bounds(const Databank& bank, WorldSource& source,
+  void create_in_bounds(const Databank& bank, const WorldSource& source,
                         const WorldWindow& window,
                         const y::wvec2& lower, const y::wvec2& upper);
 
@@ -259,7 +259,8 @@ public:
   // we're only using this as a fake to access Scripts from the editor.
   GameStage(const Databank& bank,
             RenderUtil& util, const GlFramebuffer& framebuffer,
-            const CellMap& map, const y::wvec2& coord, bool fake = false);
+            const y::string& source_key, const y::wvec2& coord,
+            bool fake = false);
   ~GameStage() override {};
 
   const Databank& get_bank() const;
@@ -282,6 +283,12 @@ public:
   const Environment& get_environment() const;
   /***/ Environment& get_environment();
 
+  // World source functions.
+  // Since it's important we keep around all the sources we use, this function
+  // should be used to access them based on a string key. The type of source
+  // depends on the string, for example a path to a map file.
+  const WorldSource& get_source(const y::string& source_key) const;
+
   // Modal functions.
   void event(const sf::Event& e) override;
   void update() override;
@@ -298,7 +305,10 @@ private:
 
   const Databank& _bank;
 
-  CellMapSource _world_source;
+  typedef y::map<y::string, y::unique<const WorldSource>> source_map;
+  mutable source_map _source_map;
+  y::string _active_source_key;
+
   WorldWindow _world;
   ScriptBank _scripts;
   GameRenderer _renderer;

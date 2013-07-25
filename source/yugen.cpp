@@ -260,11 +260,11 @@ y::int32 main(y::int32 argc, char** argv)
   Databank databank(filesystem, gl);
   RenderUtil util(gl);
 
-  y::size map = 0;
+  y::string map = databank.maps.get_names()[0];
   y::wvec2 world;
   if (!args.empty()) {
     if (databank.maps.is_name_used(args[0])) {
-      map = databank.maps.get_index(args[0]);
+      map = args[0];
     }
     y::ivec2 tile{std::stoi(args[1]), std::stoi(args[2])};
     world = (y::wvec2{.5, .5} + y::wvec2(tile)) *
@@ -277,7 +277,7 @@ y::int32 main(y::int32 argc, char** argv)
   Yugen* yugen = new Yugen(util, run_timing);
   GameStage* stage = new GameStage(
       databank, util, yugen->get_framebuffer(),
-      databank.maps.get(map), world);
+      map, world);
   yugen->set_stage(stage);
 
   ModalStack stack;

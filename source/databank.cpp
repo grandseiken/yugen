@@ -69,6 +69,8 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
   }
 
+  reload_cells_and_maps(filesystem);
+
   filesystem.read_file_with_includes(_default_script.contents,
                                      _default_script.path);
   // Scripts in the root directory are for inclusion only.
@@ -85,12 +87,10 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
   GlUnique<GlFramebuffer> fake_framebuffer(
       gl.make_unique_framebuffer(y::ivec2{128, 128}, false, false));
   GameStage fake_stage(*this, fake_util, *fake_framebuffer,
-                       _default_map, y::wvec2(), true);
+                       maps.get_names()[0], y::wvec2(), true);
   for (y::size i = 0; i < scripts.size() && load_yedit_data; ++i) {
     make_lua_file(scripts.get(i), fake_stage);
   }
-
-  reload_cells_and_maps(filesystem);
 }
 
 void Databank::reload_cells_and_maps(const Filesystem& filesystem)

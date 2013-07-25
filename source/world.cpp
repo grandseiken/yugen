@@ -774,17 +774,17 @@ void CellMapSource::hash_combine(y::size& seed) const
   boost::hash_combine(seed, &_map);
 }
 
-const CellBlueprint* CellMapSource::get_coord(const y::ivec2& coord)
+const CellBlueprint* CellMapSource::get_coord(const y::ivec2& coord) const
 {
   return _map.get_coord(coord);
 }
 
-const CellMap::script_list& CellMapSource::get_scripts()
+const CellMap::script_list& CellMapSource::get_scripts() const
 {
   return _map.get_scripts();
 }
 
-WorldWindow::WorldWindow(WorldSource& active_source,
+WorldWindow::WorldWindow(const WorldSource& active_source,
                          const y::ivec2& active_coord)
   : _active_source(&active_source)
   , _active_source_offset(-active_coord)
@@ -794,7 +794,7 @@ WorldWindow::WorldWindow(WorldSource& active_source,
   update_active_window();
 }
 
-void WorldWindow::set_active_source(WorldSource& active_source,
+void WorldWindow::set_active_source(const WorldSource& active_source,
                                     const y::ivec2& active_coord)
 {
   if (_active_source == &active_source) {

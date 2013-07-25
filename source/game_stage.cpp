@@ -213,7 +213,7 @@ void ScriptBank::clean_destroyed()
 }
 
 void ScriptBank::create_in_bounds(
-    const Databank& bank, WorldSource& source, const WorldWindow& world,
+    const Databank& bank, const WorldSource& source, const WorldWindow& world,
     const y::wvec2& lower, const y::wvec2& upper)
 {
   // Preserved cell coordinates are relative to the active window.
@@ -606,11 +606,13 @@ y::world Camera::get_rotation() const
 
 GameStage::GameStage(const Databank& bank,
                      RenderUtil& util, const GlFramebuffer& framebuffer,
-                     const CellMap& map, const y::wvec2& coord, bool fake)
+                     const y::string& source_key, const y::wvec2& coord,
+                     bool fake)
   : _bank(bank)
-  , _world_source(map)
-  , _world(_world_source, y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
-        Tileset::tile_size * Cell::cell_size))
+  , _active_source_key(source_key)
+  , _world(get_source(source_key),
+           y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
+               Tileset::tile_size * Cell::cell_size))
   , _scripts(*this)
   , _renderer(util, framebuffer)
   , _camera(framebuffer.get_size())
@@ -708,6 +710,23 @@ Environment& GameStage::get_environment()
   return _environment;
 }
 
+const WorldSource& GameStage::get_source(const y::string& source_key) const
+{
+  auto it = _source_map.find(source_key);
+  if (it != _source_map.end()) {
+    return *it->second;
+  }
+
+  if (_bank.maps.is_name_used(source_key)) {
+    CellMapSource* source = new CellMapSource(_bank.maps.get(source_key));
+    _source_map.insert(y::make_pair(source_key, y::move_unique(source)));
+    return *source;
+  }
+
+  std::cerr << "Invalid WorldSource key " << source_key << std::endl;
+  return *(WorldSource*)y::null;
+}
+
 void GameStage::event(const sf::Event& e)
 {
   if (e.type != sf::Event::KeyPressed) {
@@ -773,8 +792,8 @@ void GameStage::update()
   // manually-destroyed scripts.
   _scripts.get_preserved_cells(_world);
   _scripts.clean_out_of_bounds(*_player, lower_bound, upper_bound);
-  _scripts.create_in_bounds(_bank, _world_source, _world,
-                            lower_bound, upper_bound);
+  _scripts.create_in_bounds(_bank, get_source(_active_source_key),
+                            _world, lower_bound, upper_bound);
   _scripts.clean_destroyed();
 
   // Clean up from the various ScriptMaps.

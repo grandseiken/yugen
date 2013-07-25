@@ -96,9 +96,9 @@ public:
   virtual void hash_combine(y::size& seed) const = 0;
 
   // Get the cell at a particular coordinate.
-  virtual const CellBlueprint* get_coord(const y::ivec2& coord) = 0;
+  virtual const CellBlueprint* get_coord(const y::ivec2& coord) const = 0;
   // Get all the scripts.
-  virtual const CellMap::script_list& get_scripts() = 0;
+  virtual const CellMap::script_list& get_scripts() const = 0;
 
 protected:
 
@@ -123,8 +123,8 @@ public:
   bool operator==(const WorldSource& source) const override;
   void hash_combine(y::size& seed) const override;
 
-  const CellBlueprint* get_coord(const y::ivec2& coord) override;
-  virtual const CellMap::script_list& get_scripts() override;
+  const CellBlueprint* get_coord(const y::ivec2& coord) const override;
+  virtual const CellMap::script_list& get_scripts() const override;
 
 private:
 
@@ -142,11 +142,11 @@ public:
 
   // Initialise world with the given coord of the active map at (0, 0) in the
   // active window. Source is owned by caller and must be preserved.
-  WorldWindow(WorldSource& active_source, const y::ivec2& active_coord);
+  WorldWindow(const WorldSource& active_source, const y::ivec2& active_coord);
 
   // Sets the active map with the given coord at (0, 0) in the active window.
   // Avoids reloading cells whenever possible.
-  void set_active_source(WorldSource& active_source,
+  void set_active_source(const WorldSource& active_source,
                          const y::ivec2& active_coord);
 
   // Sets the given coord to (0, 0) in the active window. Avoids reloading cells
@@ -205,7 +205,7 @@ private:
   // [-half_width, half_width] * [-half_width, half_width].
   void update_active_window_cell(const y::ivec2& v);
 
-  WorldSource* _active_source;
+  const WorldSource* _active_source;
   y::ivec2 _active_source_offset;
 
   struct active_window_entry {
