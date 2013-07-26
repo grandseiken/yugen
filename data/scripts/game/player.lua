@@ -222,7 +222,6 @@ function update()
              down_check_start, down_check_now)
   self:collider_move(vec(0, GRAVITY * y_multiplier()))
   jump_timer_logic(down_check_now)
-  set_camera_rotation(get_camera_rotation() + math.pi / 1024)
 end
 
 function key(k)

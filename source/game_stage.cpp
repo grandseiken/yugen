@@ -580,10 +580,9 @@ void Camera::update(Script* focus)
   const y::wvec2 row_3(sin(_rotation), cos(_rotation));
   y::wvec2 dir =
       y::wvec2{_is_moving_x ? 1. : 0.,
-               _is_moving_y ? 1. : 0.} *
-          camera_speed * target / y::abs(target);
+               _is_moving_y ? 1. : 0.} * target / y::abs(target);
   dir = y::wvec2{dir.dot(row_2), dir.dot(row_3)};
-  _origin += dir;
+  _origin += camera_speed * dir;
 }
 
 void Camera::move(const y::wvec2& move)

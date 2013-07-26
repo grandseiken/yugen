@@ -175,7 +175,7 @@ void Yugen::crop_render(const GlFramebuffer& source,
 {
   // TODO: some sort of cleverer algorithm? Dithering after rotation in a
   // separate step from the post-processing would mean we could do averaged
-  // rotation.
+  // rotation. Also, looks weird right now anyway.
   _crop_program->bind();
   _crop_program->bind_attribute("position", _util.quad_vertex());
   _crop_program->bind_uniform("native_res", target_size);
