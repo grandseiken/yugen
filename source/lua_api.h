@@ -601,6 +601,12 @@ y_api(body__set_collide_mask)
   y_void();
 }
 
+y_api(body__get_source)
+    y_arg(Body*, body)
+{
+  y_return(&body->source);
+}
+
 y_api(body__body_check)
     y_arg(Body*, body) y_arg(y::int32, collide_mask)
 {
@@ -622,6 +628,7 @@ y_ptrtypedef(Body) {
   y_method("set_offset", body__set_offset);
   y_method("set_size", body__set_size);
   y_method("set_collide_mask", body__set_collide_mask);
+  y_method("get_source", body__get_source);
   y_method("body_check", body__body_check);
   y_method("destroy", body__destroy);
 } y_endtypedef();
@@ -751,6 +758,12 @@ y_api(light__set_aperture)
   y_void();
 }
 
+y_api(light__get_source)
+    y_arg(Light*, light)
+{
+  y_return(&light->source);
+}
+
 y_api(light__destroy)
     y_arg(Light*, light)
 {
@@ -777,5 +790,6 @@ y_ptrtypedef(Light) {
   y_method("set_angle", light__set_angle);
   y_method("get_aperture", light__get_aperture);
   y_method("set_aperture", light__set_aperture);
+  y_method("get_source", light__get_source);
   y_method("destroy", light__destroy);
 } y_endtypedef();
