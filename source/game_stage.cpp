@@ -557,8 +557,8 @@ void Camera::update(Script* focus)
   static const y::wvec2 camera_speed{2.5, 4.};
 
   // Rotate into camera-space so that movement respects rotation.
-  const y::wvec2 row_0(cos(-_rotation), -sin(-_rotation));
-  const y::wvec2 row_1(sin(-_rotation), cos(-_rotation));
+  const y::wvec2 row_0(cos(_rotation), -sin(_rotation));
+  const y::wvec2 row_1(sin(_rotation), cos(_rotation));
   y::wvec2 target = focus->get_origin() - _origin;
   target = y::wvec2{target.dot(row_0), target.dot(row_1)};
 
@@ -576,8 +576,8 @@ void Camera::update(Script* focus)
     _is_moving_y = true;
   }
 
-  const y::wvec2 row_2(cos(_rotation), -sin(_rotation));
-  const y::wvec2 row_3(sin(_rotation), cos(_rotation));
+  const y::wvec2 row_2(cos(-_rotation), -sin(-_rotation));
+  const y::wvec2 row_3(sin(-_rotation), cos(-_rotation));
   y::wvec2 dir =
       y::wvec2{_is_moving_x ? 1. : 0.,
                _is_moving_y ? 1. : 0.} * target / y::abs(target);
