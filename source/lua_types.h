@@ -356,6 +356,9 @@ bool LuaType<LuaValue>::is(lua_State* state, lua_int index) const
 
   void *v = lua_touserdata(state, index);
   bool is_userdata = v && lua_getmetatable(state, index);
+  if (is_userdata) {
+    lua_pop(state, 1);
+  }
 
   return
       is_userdata ||
