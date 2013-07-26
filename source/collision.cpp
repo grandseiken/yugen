@@ -153,7 +153,8 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
   // TODO: to avoid order-dependent edge-cases (e.g. player standing on platform
   // moving downwards), need to store per-frame list of things which tried to
   // move but were blocked by bodies. If the blocker moves away, try again to
-  // move all the things which were blocked by it.
+  // move all the things which were blocked by it. Also need some way of pushing
+  // blockers, possibly with a push_mask (recursively?).
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // Bounding boxes of the source Bodies.
@@ -534,6 +535,13 @@ y::world Collision::get_projection_ratio(
     const world_geometry& geometry,
     const y::wvec2& vertex, const y::wvec2& move, bool tolerance) const
 {
+  // Skip collisions where the geometry is defined in the opposite direction.
+  // This currently overlaps with the existing check for world geometry, but
+  // is more correct for body-body collisions.
+  if (move.cross(geometry.start - vertex) <= 0) {
+    return 2;
+  }
+
   static const y::world tolerance_factor = 1.0 / 4096;
   world_geometry v{vertex, move + vertex};
   const world_geometry& g = geometry;
@@ -710,8 +718,7 @@ bool Collision::has_intersection(const world_geometry& a,
 
 // TODO: this is supposed to be an optimisation, but actually changes things.
 // Essentially, two lines moving flush past each other may get stuck if this
-// step doesn't exclude them. May be possible to fix this by chopping off the
-// very ends of edge in get_geometries().
+// step doesn't exclude them. May be fixed with colinear checks?
 Body::bounds Collision::get_bounds(
     const entry_list& bodies, y::int32 collide_mask,
     const y::wvec2& origin, y::world rotation) const

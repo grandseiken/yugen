@@ -6,7 +6,8 @@
 -- Collider body and check bodies.
 local body = self:create_body(vec(0, 8), vec(6, 16))
 body:set_collide_type(COLLIDE_PLAYER)
-body:set_collide_mask(COLLIDE_WORLD + COLLIDE_OBJECT)
+local collide_mask = COLLIDE_WORLD + COLLIDE_OBJECT
+body:set_collide_mask(collide_mask)
 local up_check, down_check, left_check, right_check =
     create_all_checks(self, vec(0, 8), vec(6, 16))
 
@@ -181,7 +182,7 @@ function update()
   -- Need to know the down check before the x-axis move for applying
   -- acceleration when we go off a cliff, and being able to jump when
   -- running down a slope.
-  local down_check_start = down_check:body_check(COLLIDE_WORLD)
+  local down_check_start = down_check:body_check(collide_mask)
   local down_check_now = false
 
   -- Handle x-axis movement with stepping up slopes (or down overhangs when
@@ -202,18 +203,18 @@ function update()
   if not is_jumping() then
     original_y = self:get_origin():y()
     self:collider_move(vec(0, MOVE_SPEED))
-    down_check_now = down_check:body_check(COLLIDE_WORLD)
+    down_check_now = down_check:body_check(collide_mask)
     if not down_check_now then
       self:collider_move(vec(0, original_y - self:get_origin():y()))
-      down_check_now = down_check:body_check(COLLIDE_WORLD)
+      down_check_now = down_check:body_check(collide_mask)
     end
   else
-    down_check_now = down_check:body_check(COLLIDE_WORLD)
+    down_check_now = down_check:body_check(collide_mask)
   end
 
-  local up_check_now = up_check:body_check(COLLIDE_WORLD)
-  local left_check_now = left_check:body_check(COLLIDE_WORLD)
-  local right_check_now = right_check:body_check(COLLIDE_WORLD)
+  local up_check_now = up_check:body_check(collide_mask)
+  local left_check_now = left_check:body_check(collide_mask)
+  local right_check_now = right_check:body_check(collide_mask)
 
   -- Handle y-axis movement.
   jump_logic(left_down, right_down, up_down,
