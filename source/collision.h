@@ -12,7 +12,7 @@ class WorldWindow;
 // A Body is, thus far, a rectangular area of some size, whose center
 // is offset some amount from the origin of the source Script.
 struct Body : y::no_copy {
-  Body();
+  Body(const Script& source);
 
   // Get bounds (on x-axis). Potentially this could be made virtual and
   // overridden for other shapes.
@@ -24,6 +24,7 @@ struct Body : y::no_copy {
   void get_vertices(y::vector<y::wvec2>& output,
                     const y::wvec2& origin, y::world rotation) const;
 
+  const Script& source;
   y::wvec2 offset;
   y::wvec2 size;
   y::int32 collide_mask;
@@ -48,6 +49,7 @@ public:
   // This must be called whenever a Script's position or rotation changes in
   // order to update the bodies in the spatial hash.
   void update_script(const Script& source) const;
+  void clear_spatial_hash() const;
   virtual void on_create(const Script& source, Body* obj) override;
   virtual void on_destroy(const Script& source, Body* obj) override;
 
@@ -80,6 +82,8 @@ private:
                               const y::wvec2& vertex,
                               const y::wvec2& origin, y::world rotation) const;
 
+  bool has_intersection(const y::vector<world_geometry>& a,
+                        const y::vector<world_geometry>& b) const;
   bool has_intersection(const y::vector<world_geometry>& a,
                         const world_geometry& b) const;
   bool has_intersection(const world_geometry& a,

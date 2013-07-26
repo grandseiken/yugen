@@ -29,13 +29,7 @@ void ScriptBank::get_in_region(
     result& output,
     const y::wvec2& origin, const y::wvec2& region) const
 {
-  // TODO: we should be able to accelerate this somehow. Looping through
-  // every time is bad. Not as easy as it seems, though, since to skip by x-axis
-  // we need to re-sort every time this function is called (as the scripts might
-  // move around between calls), which is at least O(n) even on an almost-sorted
-  // list anyway.
-  // We need to either accept up to one frame of staleness, or think up some
-  // cleverer acceleration structure.
+  // TODO: use a SpatialHash for this.
   for (const auto& script : _scripts) {
     if (script->get_origin().in_region(origin - region / 2, region)) {
       output.emplace_back(script.get());
@@ -96,6 +90,8 @@ void ScriptBank::handle_messages()
 void ScriptBank::move_all(const y::wvec2& move,
                           const Collision& collision) const
 {
+  // We clear the spatial hash since we're going to reinsert everything anyway.
+  collision.clear_spatial_hash();
   for (const auto& script : _scripts) {
     script->set_origin(script->get_origin() + move, collision);
   }

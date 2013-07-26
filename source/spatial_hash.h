@@ -15,6 +15,9 @@ public:
   // Remove the object.
   void remove(T t);
 
+  // Clear all objects.
+  void clear();
+
   // Find all objects which might overlap the given rectangle.
   void search(y::vector<T>& output,
               const y::wvec2& min, const y::wvec2& max) const;
@@ -74,6 +77,13 @@ void SpatialHash<T>::remove(T t)
     }
   }
   _fallback_bucket.erase(t);
+}
+
+template<typename T>
+void SpatialHash<T>::clear()
+{
+  _buckets.clear();
+  _fallback_bucket.clear();
 }
 
 template<typename T>

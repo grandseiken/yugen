@@ -14,7 +14,7 @@ class WorldWindow;
 
 // Data for various kinds of light.
 struct Light : y::no_copy {
-  Light();
+  Light(const Script& source);
 
   // Displacement from the owning Script's origin. For plane lights, the offset
   // defines the plane from (origin - offset) to (origin + offset).

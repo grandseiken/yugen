@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <boost/functional/hash.hpp>
 
-Light::Light()
+Light::Light(const Script& source)
   : full_range(1.)
   , falloff_range(1.)
   , layer_value(0.)
@@ -14,6 +14,7 @@ Light::Light()
   , angle(0.)
   , aperture(y::pi)
 {
+  (void)source;
 }
 
 y::world Light::get_max_range() const

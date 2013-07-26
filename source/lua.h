@@ -85,6 +85,7 @@ public:
   const y::wvec2& get_origin() const;
   y::world get_rotation() const;
   void set_region(const y::wvec2& region);
+  // We require the Collision when changing in order to update the spatial hash.
   void set_origin(const y::wvec2& origin, const Collision& collision);
   void set_rotation(y::world rotation, const Collision& collision);
 
@@ -160,7 +161,7 @@ private:
 template<typename T>
 T* ScriptMap<T>::create_obj(Script& source)
 {
-  T* obj = new T();
+  T* obj = new T(source);
   auto it = _map.find(&source);
   if (it != _map.end() && !it->second.ref.is_valid()) {
     _map.erase(it);
