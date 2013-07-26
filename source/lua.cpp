@@ -404,7 +404,8 @@ const Script* ConstScriptReference::operator->() const
 Script::Script(GameStage& stage,
                const y::string& path, const y::string& contents,
                const y::wvec2& origin, const y::wvec2& region)
-  : _path(path)
+  : _stage(stage)
+  , _path(path)
   // Use standard allocator and panic function.
   , _state(luaL_newstate())
   , _origin(origin)
@@ -499,16 +500,18 @@ void Script::set_region(const y::wvec2& region)
   _region = region;
 }
 
-void Script::set_origin(const y::wvec2& origin, const Collision& collision)
+void Script::set_origin(const y::wvec2& origin)
 {
   _origin = origin;
-  collision.update_script(*this);
+  _stage.get_collision().update_spatial_hash(*this);
+  _stage.get_scripts().update_spatial_hash(*this);
 }
 
-void Script::set_rotation(y::world rotation, const Collision& collision)
+void Script::set_rotation(y::world rotation)
 {
   _rotation = rotation;
-  collision.update_script(*this);
+  _stage.get_collision().update_spatial_hash(*this);
+  _stage.get_scripts().update_spatial_hash(*this);
 }
 
 bool Script::has_function(const y::string& function_name) const

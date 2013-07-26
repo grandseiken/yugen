@@ -8,6 +8,7 @@
 
 ScriptBank::ScriptBank(GameStage& stage)
   : _stage(stage)
+  , _spatial_hash(128)
   , _uid_counter(0)
 {
 }
@@ -29,21 +30,19 @@ void ScriptBank::get_in_region(
     result& output,
     const y::wvec2& origin, const y::wvec2& region) const
 {
-  // TODO: use a SpatialHash for this.
-  for (const auto& script : _scripts) {
-    if (script->get_origin().in_region(origin - region / 2, region)) {
-      output.emplace_back(script.get());
-    }
-  }
+  _spatial_hash.search(output, origin - region / 2, origin + region / 2);
 }
 
 void ScriptBank::get_in_radius(result& output,
                                const y::wvec2& origin, y::world radius) const
 {
+  result temp;
+  _spatial_hash.search(temp, origin - y::wvec2{radius, radius},
+                             origin + y::wvec2{radius, radius});
   const y::world radius_sq = radius * radius;
-  for (const auto& script : _scripts) {
+  for (const auto& script : temp) {
     if ((script->get_origin() - origin).length_squared() <= radius_sq) {
-      output.emplace_back(script.get());
+      output.emplace_back(script);
     }
   }
 }
@@ -63,6 +62,16 @@ void ScriptBank::send_message(Script* script, const y::string& function_name,
                               const y::vector<LuaValue>& args)
 {
   _messages.push_back({script, function_name, args});
+}
+
+void ScriptBank::update_spatial_hash(Script& source)
+{
+  _spatial_hash.update(&source, source.get_origin(), source.get_origin());
+}
+
+void ScriptBank::remove_spatial_hash(Script& source)
+{
+  _spatial_hash.remove(&source);
 }
 
 void ScriptBank::update_all() const
@@ -87,13 +96,14 @@ void ScriptBank::handle_messages()
   _messages.clear();
 }
 
-void ScriptBank::move_all(const y::wvec2& move,
-                          const Collision& collision) const
+void ScriptBank::move_all(const y::wvec2& move, Collision& collision)
 {
-  // We clear the spatial hash since we're going to reinsert everything anyway.
+  // We clear the spatial hashes since we're going to reinsert everything
+  // anyway.
   collision.clear_spatial_hash();
+  _spatial_hash.clear();
   for (const auto& script : _scripts) {
-    script->set_origin(script->get_origin() + move, collision);
+    script->set_origin(script->get_origin() + move);
   }
 }
 
@@ -134,6 +144,7 @@ void ScriptBank::clean_out_of_bounds(
     const Script& player, const y::wvec2& lower, const y::wvec2& upper)
 {
   struct local {
+    spatial_hash& spatial;
     bool all_cells_preserved;
     const WorldWindow::cell_list& preserved_cells;
     const Script* player;
@@ -141,10 +152,11 @@ void ScriptBank::clean_out_of_bounds(
     const y::wvec2& lower;
     const y::wvec2& upper;
 
-    local(bool all_cells_preserved,
+    local(spatial_hash& spatial, bool all_cells_preserved,
           const WorldWindow::cell_list& preserved_cells,
           const Script* player, const y::wvec2& lower, const y::wvec2& upper)
-      : all_cells_preserved(all_cells_preserved)
+      : spatial(spatial)
+      , all_cells_preserved(all_cells_preserved)
       , preserved_cells(preserved_cells)
       , player(player)
       , lower(lower)
@@ -178,11 +190,14 @@ void ScriptBank::clean_out_of_bounds(
         overlaps_preserved = origin + region / 2 >= lower &&
                              origin - region / 2 < upper;
       }
+      if (!overlaps_preserved) {
+        spatial.remove(s.get());
+      }
       return !overlaps_preserved;
     }
   };
 
-  local is_out_of_bounds(_all_cells_preserved, _preserved_cells,
+  local is_out_of_bounds(_spatial_hash, _all_cells_preserved, _preserved_cells,
                          &player, lower, upper);
   _scripts.remove_if(is_out_of_bounds);
 }
@@ -190,13 +205,24 @@ void ScriptBank::clean_out_of_bounds(
 void ScriptBank::clean_destroyed()
 {
   struct local {
-    static bool is_destroyed(const y::unique<Script>& s)
+    spatial_hash& spatial;
+
+    local(spatial_hash& spatial)
+      : spatial(spatial)
     {
+    }
+
+    bool operator()(const y::unique<Script>& s)
+    {
+      if (s->is_destroyed()) {
+        spatial.remove(s.get());
+      }
       return s->is_destroyed();
     }
   };
 
-  _scripts.remove_if(local::is_destroyed);
+  local is_destroyed(_spatial_hash);
+  _scripts.remove_if(is_destroyed);
   // Remove all the script map entries where the references have been
   // invalidated.
   for (auto it = _script_map.begin(); it != _script_map.end();) {
@@ -257,6 +283,7 @@ void ScriptBank::create_in_bounds(
 
 void ScriptBank::add_script(y::unique<Script> script)
 {
+  update_spatial_hash(*script);
   _scripts.emplace_back();
   (_scripts.rbegin())->swap(script);
 }

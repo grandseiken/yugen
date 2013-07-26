@@ -83,13 +83,15 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     scripts.insert(s, y::move_unique(lua_file));
   }
   // Construct a fake GameStage so we can access the functions.
-  RenderUtil fake_util(gl);
-  GlUnique<GlFramebuffer> fake_framebuffer(
-      gl.make_unique_framebuffer(y::ivec2{128, 128}, false, false));
-  GameStage fake_stage(*this, fake_util, *fake_framebuffer,
-                       maps.get_names()[0], y::wvec2(), true);
-  for (y::size i = 0; i < scripts.size() && load_yedit_data; ++i) {
-    make_lua_file(scripts.get(i), fake_stage);
+  if (load_yedit_data) {
+    RenderUtil fake_util(gl);
+    GlUnique<GlFramebuffer> fake_framebuffer(
+        gl.make_unique_framebuffer(y::ivec2{128, 128}, false, false));
+    GameStage fake_stage(*this, fake_util, *fake_framebuffer,
+                         maps.get_names()[0], y::wvec2(), true);
+    for (y::size i = 0; i < scripts.size(); ++i) {
+      make_lua_file(scripts.get(i), fake_stage);
+    }
   }
 }
 

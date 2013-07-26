@@ -145,7 +145,7 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
 {
   const entry_list& bodies = get_list(source);
   if (bodies.empty() || move == y::wvec2()) {
-    source.set_origin(source.get_origin() + move, *this);
+    source.set_origin(source.get_origin() + move);
     return move;
   }
 
@@ -269,7 +269,7 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
   // such that moving by t * move is blocked), and recurse in any free unblocked
   // direction.
   const y::wvec2 limited_move = min_ratio * move;
-  source.set_origin(limited_move + source.get_origin(), *this);
+  source.set_origin(limited_move + source.get_origin());
   // TODO: (optionally) recurse?
   return limited_move;
 }
@@ -291,9 +291,9 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
 
   const entry_list& bodies = get_list(source);
   if (bodies.empty() || rotate == 0.) {
-    source.set_rotation(y::angle(rotate + source.get_rotation()), *this);
+    source.set_rotation(y::angle(rotate + source.get_rotation()));
     source.set_origin(source.get_origin() +
-                      local::origin_displace(origin_offset, rotate), *this);
+                      local::origin_displace(origin_offset, rotate));
     return rotate;
   }
 
@@ -401,10 +401,10 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
   // Rotate.
   const y::world limited_rotation = limiting_rotation * (rotate > 0 ? 1 : -1);
   source.set_rotation(
-      y::angle(limited_rotation + source.get_rotation()), *this);
+      y::angle(limited_rotation + source.get_rotation()));
   source.set_origin(
       source.get_origin() +
-      local::origin_displace(origin_offset, limited_rotation), *this);
+      local::origin_displace(origin_offset, limited_rotation));
   return limited_rotation;
 }
 
@@ -479,7 +479,7 @@ bool Collision::body_check(const Script& source, const Body& body,
   return false;
 }
 
-void Collision::update_script(const Script& source) const
+void Collision::update_spatial_hash(const Script& source)
 { 
   for (const entry& body : get_list(source)) {
     auto bounds = body->get_bounds(source.get_origin(), source.get_rotation());
@@ -487,7 +487,7 @@ void Collision::update_script(const Script& source) const
   }
 }
 
-void Collision::clear_spatial_hash() const
+void Collision::clear_spatial_hash()
 {
   _spatial_hash.clear();
 }

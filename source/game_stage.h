@@ -7,6 +7,7 @@
 #include "lighting.h"
 #include "lua.h"
 #include "modal.h"
+#include "spatial_hash.h"
 #include "render_util.h"
 #include "world.h"
 
@@ -52,10 +53,14 @@ public:
   // Functions below here should only be called by GameStage or GameRenderer,
   // not from the Lua API.
 
+  // Update the spatial hash.
+  void update_spatial_hash(Script& source);
+  void remove_spatial_hash(Script& source);
+
   // Functions for updating/rendering all the Scripts.
   void update_all() const;
   void handle_messages();
-  void move_all(const y::wvec2& move, const Collision& collision) const;
+  void move_all(const y::wvec2& move, Collision& collision);
   void render_all(const Camera& camera) const;
 
   // Functions for updating the active Scripts based on changes to the active
@@ -78,6 +83,10 @@ private:
 
   typedef y::list<y::unique<Script>> script_list;
   script_list _scripts;
+  
+  // Spatial hash of existing scripts.
+  typedef SpatialHash<Script*> spatial_hash;
+  spatial_hash _spatial_hash;
 
   // Map from ScriptBlueprint keys to existing scripts.
   struct script_map_key {

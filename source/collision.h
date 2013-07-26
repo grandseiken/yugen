@@ -48,8 +48,8 @@ public:
 
   // This must be called whenever a Script's position or rotation changes in
   // order to update the bodies in the spatial hash.
-  void update_script(const Script& source) const;
-  void clear_spatial_hash() const;
+  void update_spatial_hash(const Script& source);
+  void clear_spatial_hash();
   virtual void on_create(const Script& source, Body* obj) override;
   virtual void on_destroy(const Script& source, Body* obj) override;
 
@@ -99,7 +99,7 @@ private:
                       const y::vector<y::wvec2>& vertices) const;
 
   const WorldWindow& _world;
-  mutable SpatialHash<Body*> _spatial_hash;
+  SpatialHash<Body*> _spatial_hash;
 
 };
 

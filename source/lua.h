@@ -5,7 +5,6 @@
 #include "vector.h"
 #include "lua_types.h"
 
-class Collision;
 class Filesystem;
 class GameStage;
 class Script;
@@ -85,9 +84,8 @@ public:
   const y::wvec2& get_origin() const;
   y::world get_rotation() const;
   void set_region(const y::wvec2& region);
-  // We require the Collision when changing in order to update the spatial hash.
-  void set_origin(const y::wvec2& origin, const Collision& collision);
-  void set_rotation(y::world rotation, const Collision& collision);
+  void set_origin(const y::wvec2& origin);
+  void set_rotation(y::world rotation);
 
   typedef y::vector<LuaValue> lua_args;
 
@@ -101,6 +99,7 @@ public:
 
 private:
 
+  GameStage& _stage;
   y::string _path;
   lua_State* _state;
 

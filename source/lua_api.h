@@ -240,14 +240,14 @@ y_api(script__set_region)
 y_api(script__set_origin)
     y_arg(Script*, script) y_arg(const y::wvec2, origin)
 {
-  script->set_origin(origin, stage.get_collision());
+  script->set_origin(origin);
   y_void();
 }
 
 y_api(script__set_rotation)
     y_arg(Script*, script) y_arg(y::world, rotation)
 {
-  script->set_rotation(rotation, stage.get_collision());
+  script->set_rotation(rotation);
   y_void();
 }
 
