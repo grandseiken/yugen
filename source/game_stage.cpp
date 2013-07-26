@@ -93,10 +93,11 @@ void ScriptBank::handle_messages()
   _messages.clear();
 }
 
-void ScriptBank::move_all(const y::wvec2& move) const
+void ScriptBank::move_all(const y::wvec2& move,
+                          const Collision& collision) const
 {
   for (const auto& script : _scripts) {
-    script->set_origin(script->get_origin() + move);
+    script->set_origin(script->get_origin() + move, collision);
   }
 }
 
@@ -783,7 +784,7 @@ void GameStage::update()
       _world.move_active_window(move);
       y::wvec2 script_move = y::wvec2(
           move * Cell::cell_size * Tileset::tile_size);
-      _scripts.move_all(-script_move);
+      _scripts.move_all(-script_move, get_collision());
       _camera.move(-script_move);
     }
   }

@@ -212,29 +212,22 @@ y_api(script__get_uid)
   y_return(stage.get_scripts().get_uid(script));
 }
 
-y_api(script__get_origin)
-    y_arg(const Script*, script)
-{
-  y_return(script->get_origin());
-}
-
 y_api(script__get_region)
     y_arg(const Script*, script)
 {
   y_return(script->get_region());
 }
 
+y_api(script__get_origin)
+    y_arg(const Script*, script)
+{
+  y_return(script->get_origin());
+}
+
 y_api(script__get_rotation)
     y_arg(const Script*, script)
 {
   y_return(script->get_rotation());
-}
-
-y_api(script__set_origin)
-    y_arg(Script*, script) y_arg(const y::wvec2, origin)
-{
-  script->set_origin(origin);
-  y_void();
 }
 
 y_api(script__set_region)
@@ -244,10 +237,17 @@ y_api(script__set_region)
   y_void();
 }
 
+y_api(script__set_origin)
+    y_arg(Script*, script) y_arg(const y::wvec2, origin)
+{
+  script->set_origin(origin, stage.get_collision());
+  y_void();
+}
+
 y_api(script__set_rotation)
     y_arg(Script*, script) y_arg(y::world, rotation)
 {
-  script->set_rotation(rotation);
+  script->set_rotation(rotation, stage.get_collision());
   y_void();
 }
 
@@ -338,11 +338,11 @@ y_api(script__destroy_light)
 
 y_ptrtypedef(Script) {
   y_method("get_uid", script__get_uid);
-  y_method("get_origin", script__get_origin);
   y_method("get_region", script__get_region);
+  y_method("get_origin", script__get_origin);
   y_method("get_rotation", script__get_rotation);
-  y_method("set_origin", script__set_origin);
   y_method("set_region", script__set_region);
+  y_method("set_origin", script__set_origin);
   y_method("set_rotation", script__set_rotation);
   y_method("destroy", script__destroy);
   y_method("send_message", script__send_message);

@@ -55,7 +55,7 @@ public:
   // Functions for updating/rendering all the Scripts.
   void update_all() const;
   void handle_messages();
-  void move_all(const y::wvec2& move) const;
+  void move_all(const y::wvec2& move, const Collision& collision) const;
   void render_all(const Camera& camera) const;
 
   // Functions for updating the active Scripts based on changes to the active

@@ -1,4 +1,5 @@
 #include "lua.h"
+#include "collision.h"
 
 // Variadic push.
 lua_int push_all(lua_State* state)
@@ -478,14 +479,14 @@ const y::string& Script::get_path() const
   return _path;
 }
 
-const y::wvec2& Script::get_origin() const
-{
-  return _origin;
-}
-
 const y::wvec2& Script::get_region() const
 {
   return _region;
+}
+
+const y::wvec2& Script::get_origin() const
+{
+  return _origin;
 }
 
 y::world Script::get_rotation() const
@@ -493,19 +494,21 @@ y::world Script::get_rotation() const
   return _rotation;
 }
 
-void Script::set_origin(const y::wvec2& origin)
-{
-  _origin = origin;
-}
-
 void Script::set_region(const y::wvec2& region)
 {
   _region = region;
 }
 
-void Script::set_rotation(y::world rotation)
+void Script::set_origin(const y::wvec2& origin, const Collision& collision)
+{
+  _origin = origin;
+  collision.update_script(*this);
+}
+
+void Script::set_rotation(y::world rotation, const Collision& collision)
 {
   _rotation = rotation;
+  collision.update_script(*this);
 }
 
 bool Script::has_function(const y::string& function_name) const

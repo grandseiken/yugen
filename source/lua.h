@@ -5,6 +5,7 @@
 #include "vector.h"
 #include "lua_types.h"
 
+class Collision;
 class Filesystem;
 class GameStage;
 class Script;
@@ -80,12 +81,12 @@ public:
   // dynamically created). The origin is always centered in the region. Scripts
   // are created when their region overlaps the WorldWindow, and automatically
   // destroyed when their current region is completely outside it.
-  const y::wvec2& get_origin() const;
   const y::wvec2& get_region() const;
+  const y::wvec2& get_origin() const;
   y::world get_rotation() const;
-  void set_origin(const y::wvec2& origin);
   void set_region(const y::wvec2& region);
-  void set_rotation(y::world rotation);
+  void set_origin(const y::wvec2& origin, const Collision& collision);
+  void set_rotation(y::world rotation, const Collision& collision);
 
   typedef y::vector<LuaValue> lua_args;
 
@@ -137,6 +138,10 @@ public:
   const entry_list& get_list(const Script& source) const;
   void get_sources(source_list& output) const;
 
+  // Override for custom behaviour extension.
+  virtual void on_create(const Script& source, T* obj);
+  virtual void on_destroy(const Script& source, T* obj);
+
 private:
 
   // We hold a weak reference to each Script so that we can destroy the objects
@@ -166,6 +171,7 @@ T* ScriptMap<T>::create_obj(Script& source)
              ConstScriptReference(source), y::vector<entry>()})).first;
   }
   it->second.list.emplace_back(obj);
+  on_create(source, obj);
   return obj;
 }
 
@@ -184,6 +190,7 @@ void ScriptMap<T>::destroy_obj(const Script& source, T* obj)
       _map.erase(it);
     }
   }
+  on_destroy(source, obj);
 }
 
 template<typename T>
@@ -191,6 +198,9 @@ void ScriptMap<T>::destroy_all(const Script& source)
 {
   auto it = _map.find(const_cast<Script*>(&source));
   if (it != _map.end()) {
+    for (auto jt = it->second.list.begin(); jt != it->second.list.end(); ++jt) {
+      on_destroy(source, jt->get());
+    }
     _map.erase(it);
   }
 }
@@ -203,6 +213,10 @@ void ScriptMap<T>::clean_up()
       ++it;
     }
     else {
+      for (auto jt = it->second.list.begin();
+           jt != it->second.list.end(); ++jt) {
+        on_destroy(*it->first, jt->get());
+      }
       it = _map.erase(it);
     }
   }
@@ -227,6 +241,20 @@ void ScriptMap<T>::get_sources(source_list& output) const
       output.emplace_back(pair.first);
     }
   }
+}
+
+template<typename T>
+void ScriptMap<T>::on_create(const Script& source, T* obj)
+{
+  (void)source;
+  (void)obj;
+}
+
+template<typename T>
+void ScriptMap<T>::on_destroy(const Script& source, T* obj)
+{
+  (void)source;
+  (void)obj;
 }
 
 template<typename T>

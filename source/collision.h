@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "lua.h"
+#include "spatial_hash.h"
 #include "vector.h"
 
 class RenderUtil;
@@ -43,6 +44,12 @@ public:
                            const y::wvec2& origin_offset) const;
   bool body_check(const Script& source, const Body& body,
                   y::int32 collide_mask) const;
+
+  // This must be called whenever a Script's position or rotation changes in
+  // order to update the bodies in the spatial hash.
+  void update_script(const Script& source) const;
+  virtual void on_create(const Script& source, Body* obj) override;
+  virtual void on_destroy(const Script& source, Body* obj) override;
 
 private:
 
@@ -88,6 +95,7 @@ private:
                       const y::vector<y::wvec2>& vertices) const;
 
   const WorldWindow& _world;
+  mutable SpatialHash<Body*> _spatial_hash;
 
 };
 

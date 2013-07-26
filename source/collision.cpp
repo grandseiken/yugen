@@ -17,7 +17,7 @@ Body::Body()
 }
 
 Body::bounds Body::get_bounds(const y::wvec2& origin,
-                                   y::world rotation) const
+                              y::world rotation) const
 {
   y::vector<y::wvec2> vertices;
   get_vertices(vertices, origin, rotation);
@@ -85,6 +85,7 @@ void Body::get_vertices(y::vector<y::wvec2>& output,
 
 Collision::Collision(const WorldWindow& world)
   : _world(world)
+  , _spatial_hash(256)
 {
 }
 
@@ -143,7 +144,7 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
 {
   const entry_list& bodies = get_list(source);
   if (bodies.empty() || move == y::wvec2()) {
-    source.set_origin(source.get_origin() + move);
+    source.set_origin(source.get_origin() + move, *this);
     return move;
   }
 
@@ -227,7 +228,7 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
   // such that moving by t * move is blocked), and recurse in any free unblocked
   // direction.
   const y::wvec2 limited_move = min_ratio * move;
-  source.set_origin(limited_move + source.get_origin());
+  source.set_origin(limited_move + source.get_origin(), *this);
   // TODO: (optionally) recurse?
   return limited_move;
 }
@@ -249,9 +250,9 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
 
   const entry_list& bodies = get_list(source);
   if (bodies.empty() || rotate == 0.) {
-    source.set_rotation(y::angle(rotate + source.get_rotation()));
+    source.set_rotation(y::angle(rotate + source.get_rotation()), *this);
     source.set_origin(source.get_origin() +
-                      local::origin_displace(origin_offset, rotate));
+                      local::origin_displace(origin_offset, rotate), *this);
     return rotate;
   }
 
@@ -318,9 +319,11 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
   }
   // Rotate.
   const y::world limited_rotation = limiting_rotation * (rotate > 0 ? 1 : -1);
-  source.set_rotation(y::angle(limited_rotation + source.get_rotation()));
-  source.set_origin(source.get_origin() +
-                    local::origin_displace(origin_offset, limited_rotation));
+  source.set_rotation(
+      y::angle(limited_rotation + source.get_rotation()), *this);
+  source.set_origin(
+      source.get_origin() +
+      local::origin_displace(origin_offset, limited_rotation), *this);
   return limited_rotation;
 }
 
@@ -367,6 +370,26 @@ bool Collision::body_check(const Script& source, const Body& body,
   }
 
   return false;
+}
+
+void Collision::update_script(const Script& source) const
+{ 
+  for (const entry& body : get_list(source)) {
+    auto bounds = body->get_bounds(source.get_origin(), source.get_rotation());
+    _spatial_hash.update(body.get(), bounds.first, bounds.second);
+  }
+}
+
+void Collision::on_create(const Script& source, Body* obj)
+{
+  auto bounds = obj->get_bounds(source.get_origin(), source.get_rotation());
+  _spatial_hash.update(obj, bounds.first, bounds.second);
+}
+
+void Collision::on_destroy(const Script& source, Body* obj)
+{
+  (void)source;
+  _spatial_hash.remove(obj);
 }
 
 y::world Collision::get_projection_ratio(
