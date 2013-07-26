@@ -164,6 +164,7 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
   y::wvec2 max_bound = y::max(bounds.second, move + bounds.second);
 
   y::world min_ratio = 1;
+  y::vector<y::wvec2> vertices_temp;
   y::vector<y::wvec2> vertices;
   y::vector<world_geometry> geometries;
 
@@ -212,12 +213,14 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
         if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
           continue;
         }
+        vertices_temp.clear();
         vertices.clear();
         geometries.clear();
 
-        b.get_vertices(vertices,
+        b.get_vertices(vertices_temp,
                        source.get_origin(), source.get_rotation());
-        get_geometries(geometries, vertices);
+        get_vertices_and_geometries_for_move(geometries, vertices,
+                                             move, vertices_temp);
 
         min_ratio = y::min(min_ratio, get_projection_ratio(wg, vertices, move));
         min_ratio = y::min(min_ratio, get_projection_ratio(
@@ -238,13 +241,15 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
   y::vector<y::wvec2> block_vertices;
   y::vector<world_geometry> block_geometries;
   for (const auto& pointer : bodies) {
+    vertices_temp.clear();
     vertices.clear();
     geometries.clear();
 
     const Body& b = *pointer;
-    b.get_vertices(vertices,
+    b.get_vertices(vertices_temp,
                    source.get_origin(), source.get_rotation());
-    get_geometries(geometries, vertices);
+    get_vertices_and_geometries_for_move(
+        geometries, vertices, move, vertices_temp);
 
     for (Body* block : blocking_bodies) {
       if (&block->source == &source ||
@@ -252,13 +257,15 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
         continue;
       }
 
+      vertices_temp.clear();
       block_vertices.clear();
       block_geometries.clear();
 
-      block->get_vertices(block_vertices,
+      block->get_vertices(vertices_temp,
                           block->source.get_origin(),
                           block->source.get_rotation());
-      get_geometries(block_geometries, block_vertices);
+      get_vertices_and_geometries_for_move(
+          block_geometries, block_vertices, -move, vertices_temp);
 
       min_ratio = y::min(min_ratio, get_projection_ratio(
                       block_geometries, vertices, move));
@@ -535,13 +542,6 @@ y::world Collision::get_projection_ratio(
     const world_geometry& geometry,
     const y::wvec2& vertex, const y::wvec2& move, bool tolerance) const
 {
-  // Skip collisions where the geometry is defined in the opposite direction.
-  // This currently overlaps with the existing check for world geometry, but
-  // is more correct for body-body collisions.
-  if (move.cross(geometry.start - vertex) <= 0) {
-    return 2;
-  }
-
   static const y::world tolerance_factor = 1.0 / 4096;
   world_geometry v{vertex, move + vertex};
   const world_geometry& g = geometry;
@@ -573,8 +573,6 @@ y::world Collision::get_projection_ratio(
   // necessary when bodies are rotated due to trigonometric innaccuracy.
   // (But we don't want tolerance when this is just a generic line check rather
   // than an actual projection.)
-  // TODO: work out what makes us get stuck inside inside corners of zero
-  // width.
   if (t < (tolerance ? -tolerance_factor : 0) || t > 1 || u < 0 || u > 1) {
     return 2;
   }
@@ -716,9 +714,8 @@ bool Collision::has_intersection(const world_geometry& a,
   return get_projection_ratio(a, b.start, b.end - b.start, false) <= 1;
 }
 
-// TODO: this is supposed to be an optimisation, but actually changes things.
-// Essentially, two lines moving flush past each other may get stuck if this
-// step doesn't exclude them. May be fixed with colinear checks?
+// This filtering looks like an optimisation, but actually affects whether
+// collision will happen 'on a point'. Not a big deal.
 Body::bounds Collision::get_bounds(
     const entry_list& bodies, y::int32 collide_mask,
     const y::wvec2& origin, y::world rotation) const
@@ -763,6 +760,36 @@ void Collision::get_geometries(y::vector<world_geometry>& output,
                                const y::vector<y::wvec2>& vertices) const
 {
   for (y::size i = 0; i < vertices.size(); ++i) {
-    output.push_back({vertices[i], vertices[(i + 1) % vertices.size()]});
+    output.push_back({vertices[i], vertices[(1 + i) % vertices.size()]});
+  }
+}
+
+void Collision::get_vertices_and_geometries_for_move(
+    y::vector<world_geometry>& geometry_output,
+    y::vector<y::wvec2>& vertex_output,
+    const y::wvec2& move, const y::vector<y::wvec2>& vertices) const
+{
+  bool first_keep = false;
+  bool keep = false;
+
+  for (y::size i = 0; i < vertices.size(); ++i) {
+    const y::wvec2& a = vertices[i];
+    const y::wvec2& b = vertices[(1 + i) % vertices.size()];
+
+    bool last_keep = keep;
+    keep = move.cross(b - a) > 0;
+    if (!i) {
+      first_keep = keep;
+    }
+
+    if (keep) {
+      geometry_output.push_back({a, b});
+    }
+    if (i && (keep || last_keep)) {
+      vertex_output.push_back(vertices[i]);
+    }
+  }
+  if (!vertices.empty() && (keep || first_keep)) {
+    vertex_output.push_back(vertices[0]);
   }
 }
