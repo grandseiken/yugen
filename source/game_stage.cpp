@@ -576,13 +576,15 @@ void Camera::update(Script* focus)
     _is_moving_y = true;
   }
 
+  // Calculate and rotate back into world-space.
   const y::wvec2 row_2(cos(-_rotation), -sin(-_rotation));
   const y::wvec2 row_3(sin(-_rotation), cos(-_rotation));
   y::wvec2 dir =
       y::wvec2{_is_moving_x ? 1. : 0.,
-               _is_moving_y ? 1. : 0.} * target / y::abs(target);
-  dir = y::wvec2{dir.dot(row_2), dir.dot(row_3)};
-  _origin += camera_speed * dir;
+               _is_moving_y ? 1. : 0.} * target * camera_speed *
+      y::wvec2{target[xx] ? 1. / y::abs(target[xx]) : 0.,
+               target[yy] ? 1. / y::abs(target[yy]) : 0.};
+  _origin += y::wvec2{dir.dot(row_2), dir.dot(row_3)};
 }
 
 void Camera::move(const y::wvec2& move)

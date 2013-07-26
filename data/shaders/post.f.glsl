@@ -3,6 +3,7 @@ uniform sampler2D bayer;
 uniform ivec2 native_res;
 uniform ivec2 bayer_res;
 uniform vec2 bayer_off;
+uniform float bayer_rot;
 uniform int bayer_frame;
 varying vec2 tex_coord;
 
@@ -27,8 +28,17 @@ void main()
 
   vec2 off = bayer_off + 0.5;
   off = off - mod(off, 1.0);
-  vec2 bayer_coord =
-      (tex_coord * vec2(native_res) - off) / bayer_res;
+  mat2 rot = mat2(cos(bayer_rot), sin(bayer_rot),
+                  -sin(bayer_rot), cos(bayer_rot));
+
+  vec2 bayer_coord = tex_coord * vec2(native_res);
+  // To preserve the straightness of the dithering, the dithering must be
+  // shifted either when rotating or when moving a rotated camera. This
+  // is controlled by the presence of the rot multiplier. Not sure which
+  // will be the most common case to optimise for, but right now the dithering
+  // going a bit mad when rotating looks less weird.
+  bayer_coord = bayer_coord - rot * off;
+  bayer_coord /= bayer_res;
   vec3 bayer_val =
       vec3(texture2D(bayer, bayer_coord + r_off).x,
            texture2D(bayer, bayer_coord + g_off).x,

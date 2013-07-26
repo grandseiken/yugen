@@ -30,8 +30,9 @@ public:
 
 private:
 
-  void post_render(const GlFramebuffer& source) const;
   void crop_render(const GlFramebuffer& source,
+                   const y::ivec2& target_size) const;
+  void post_render(const GlFramebuffer& source,
                    const y::ivec2& target_size) const;
   void upscale_render(const GlFramebuffer& source,
                       const y::ivec2& target_size) const;
@@ -44,12 +45,12 @@ private:
   RunTiming& _run_timing;
 
   GlUnique<GlFramebuffer> _framebuffer;
-  GlUnique<GlFramebuffer> _post_buffer;
   GlUnique<GlFramebuffer> _crop_buffer;
+  GlUnique<GlFramebuffer> _post_buffer;
   GameStage* _stage;
 
-  GlUnique<GlProgram> _post_program;
   GlUnique<GlProgram> _crop_program;
+  GlUnique<GlProgram> _post_program;
   GlUnique<GlProgram> _upscale_program;
   GlUnique<GlTexture2D> _bayer_texture;
   mutable y::size _bayer_frame;
