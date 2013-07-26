@@ -13,6 +13,7 @@ enum CollideMaskReserved {
 
 Body::Body(const Script& source)
   : source(source)
+  , collide_type(COLLIDE_RESV_NONE)
   , collide_mask(COLLIDE_RESV_NONE)
 {
 }
@@ -117,7 +118,7 @@ void Collision::render(
     y::vector<y::wvec2> vertices;
 
     for (const entry& b : get_list(*s)) {
-      if (!b->collide_mask) {
+      if (!b->collide_type && !b->collide_mask) {
         continue;
       }
 
@@ -246,7 +247,7 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
 
     for (Body* block : blocking_bodies) {
       if (&block->source == &source ||
-          !(b.collide_mask & block->collide_mask)) {
+          !(b.collide_mask & block->collide_type)) {
         continue;
       }
 
@@ -379,7 +380,7 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
 
     for (Body* block : blocking_bodies) {
       if (&block->source == &source ||
-          !(b.collide_mask & block->collide_mask)) {
+          !(b.collide_mask & block->collide_type)) {
         continue;
       }
 
@@ -459,7 +460,7 @@ bool Collision::body_check(const Script& source, const Body& body,
   y::vector<world_geometry> block_geometries;
   for (Body* block : blocking_bodies) {
     if (&block->source == &body.source ||
-        !(collide_mask & block->collide_mask)) {
+        !(collide_mask & block->collide_type)) {
       continue;
     }
 

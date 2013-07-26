@@ -574,6 +574,12 @@ y_api(body__get_size)
   y_return(body->size);
 }
 
+y_api(body__get_collide_type)
+    y_arg(const Body*, body)
+{
+  y_return(body->collide_type);
+}
+
 y_api(body__get_collide_mask)
     y_arg(const Body*, body)
 {
@@ -591,6 +597,13 @@ y_api(body__set_size)
     y_arg(Body*, body) y_arg(const y::wvec2, size)
 {
   body->size = size;
+  y_void();
+}
+
+y_api(body__set_collide_type)
+    y_arg(Body*, body) y_arg(y::int32, collide_type)
+{
+  body->collide_type = collide_type;
   y_void();
 }
 
@@ -624,9 +637,11 @@ y_api(body__destroy)
 y_ptrtypedef(Body) {
   y_method("get_offset", body__get_offset);
   y_method("get_size", body__get_size);
+  y_method("get_collide_type", body__get_collide_type);
   y_method("get_collide_mask", body__get_collide_mask);
   y_method("set_offset", body__set_offset);
   y_method("set_size", body__set_size);
+  y_method("set_collide_type", body__set_collide_type);
   y_method("set_collide_mask", body__set_collide_mask);
   y_method("get_source", body__get_source);
   y_method("body_check", body__body_check);

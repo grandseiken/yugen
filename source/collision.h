@@ -27,6 +27,10 @@ struct Body : y::no_copy {
   const Script& source;
   y::wvec2 offset;
   y::wvec2 size;
+
+  // Bodies are blocked by any bodies whose collide_mask matches their
+  // collide_type.
+  y::int32 collide_type;
   y::int32 collide_mask;
 };
 

@@ -5,7 +5,8 @@
 
 -- Collider body and check bodies.
 local body = self:create_body(vec(0, 8), vec(6, 16))
-body:set_collide_mask(COLLIDE_WORLD)
+body:set_collide_type(COLLIDE_PLAYER)
+body:set_collide_mask(COLLIDE_WORLD + COLLIDE_OBJECT)
 local up_check, down_check, left_check, right_check =
     create_all_checks(self, vec(0, 8), vec(6, 16))
 

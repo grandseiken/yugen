@@ -8,7 +8,8 @@ end
 
 local sprite = get_sprite("/tiles/ruin.png")
 local body = self:create_body(vec(0, 0), vec(32, 32))
-body:set_collide_mask(COLLIDE_WORLD)
+body:set_collide_type(COLLIDE_OBJECT)
+body:set_collide_mask(COLLIDE_WORLD + COLLIDE_PLAYER)
 local test = self:create_light(50, 50)
 
 function on_submerge(amount)

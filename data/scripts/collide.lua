@@ -9,6 +9,8 @@ local COLLIDE_RESV1 = 4
 local COLLIDE_RESV2 = 8
 
 -- Custom values.
+local COLLIDE_PLAYER = 16
+local COLLIDE_OBJECT = 32
 
 -- Standard overlap size for check bodies.
 local CHECK_OVERLAP = 0.1
