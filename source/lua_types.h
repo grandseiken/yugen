@@ -7,34 +7,53 @@
 typedef y::int32 lua_int;
 
 // Can hold a variety of different Lua types.
-// TODO: make this work with more types. Userdata types are tricky, because we
-// need to be able to determine arbitrary types from Lua userdatums.
 struct LuaValue {
+  LuaValue(void* userdata, const y::string& metatable);
   LuaValue(y::world world);
   LuaValue(bool boolean);
   LuaValue(const y::string& string);
   LuaValue(const y::vector<LuaValue>& array);
 
+  LuaValue(const LuaValue& value);
+  LuaValue(LuaValue&& value);
+  LuaValue& operator=(const LuaValue& value);
+  LuaValue& operator=(LuaValue&& value);
+  ~LuaValue();
+
   enum {
+    USERDATA,
     WORLD,
     BOOLEAN,
     STRING,
     ARRAY,
   } type;
 
+  void* userdata;
   y::world world;
   bool boolean;
   y::string string;
   y::vector<LuaValue> array;
 };
 
+struct LuaGenericType {
+  virtual void to_lua(lua_State* state, const void* v) const = 0;
+  virtual void* copy(const void* v) const = 0;
+  virtual void del(void* v) const = 0;
+};
+typedef y::map<y::string, y::unique<const LuaGenericType>> LuaGenericTypeMap;
+extern LuaGenericTypeMap lua_generic_type_map;
+
 // Generic Lua-allocated and copied type.
 template<typename T>
-struct LuaType {
+struct LuaType : LuaGenericType {
   // For generic types, this can't be defined automatically here. Should be
   // defined by a y_*typedef macro in lua_api.h.
   static const y::string type_name;
   static T default_value;
+
+  void to_lua(lua_State* state, const void* v) const override;
+  void* copy(const void* v) const override;
+  void del(void* v) const override;
 
   inline T& get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
@@ -119,6 +138,29 @@ y::vector<T> LuaType<y::vector<T>>::default_value;
 
 // Generic Lua-allocated and copied implementation.
 template<typename T>
+void LuaType<T>::to_lua(lua_State* state, const void* v) const
+{
+  typedef typename std::remove_const<T>::type T_non_const;
+  T_non_const* t = reinterpret_cast<T_non_const*>(
+      lua_newuserdata(state, sizeof(T)));
+  const T& arg = *reinterpret_cast<const T*>(v);
+  new (t) T_non_const(arg);
+}
+
+template<typename T>
+void* LuaType<T>::copy(const void* v) const
+{
+  const T& arg = *reinterpret_cast<const T*>(v);
+  return new typename std::remove_const<T>::type(arg);
+}
+
+template<typename T>
+void LuaType<T>::del(void* v) const
+{
+  delete reinterpret_cast<T*>(v);
+}
+
+template<typename T>
 T& LuaType<T>::get(lua_State* state, lua_int index) const
 {
   void* v = lua_touserdata(state, index);
@@ -145,8 +187,7 @@ bool LuaType<T>::is(lua_State* state, lua_int index) const
 template<typename T>
 void LuaType<T>::push(lua_State* state, const T& arg) const
 {
-  T* t = reinterpret_cast<T*>(
-      lua_newuserdata(state, sizeof(T)));
+  T* t = reinterpret_cast<T*>(lua_newuserdata(state, sizeof(T)));
   luaL_getmetatable(state, type_name.c_str());
   lua_setmetatable(state, -2);
   new (t) T(arg);
@@ -293,6 +334,16 @@ LuaValue LuaType<LuaValue>::get(lua_State* state, lua_int index) const
     return LuaValue(array.get(state, index));
   }
 
+  // Check for arbitrary userdata.
+  void *v = lua_touserdata(state, index);
+  if (v && lua_getmetatable(state, index)) {
+    lua_pushstring(state, "_typename");
+    lua_rawget(state, -2);
+    y::string t = lua_tostring(state, -1);
+    lua_pop(state, 2);
+    return LuaValue(lua_generic_type_map[t]->copy(v), t);
+  }
+
   return LuaValue(0.);
 }
 
@@ -303,7 +354,11 @@ bool LuaType<LuaValue>::is(lua_State* state, lua_int index) const
   LuaType<y::string> string;
   LuaType<y::vector<LuaValue>> array;
 
+  void *v = lua_touserdata(state, index);
+  bool is_userdata = v && lua_getmetatable(state, index);
+
   return
+      is_userdata ||
       world.is(state, index) ||
       boolean.is(state, index) ||
       string.is(state, index) ||
@@ -313,6 +368,11 @@ bool LuaType<LuaValue>::is(lua_State* state, lua_int index) const
 void LuaType<LuaValue>::push(lua_State* state, const LuaValue& arg) const
 {
   switch (arg.type) {
+    case LuaValue::USERDATA:
+      lua_generic_type_map[arg.string]->to_lua(state, arg.userdata);
+      luaL_getmetatable(state, arg.string.c_str());
+      lua_setmetatable(state, -2);
+      break;
     case LuaValue::WORLD:
       LuaType<y::world>().push(state, arg.world);
       break;

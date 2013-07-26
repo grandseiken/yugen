@@ -37,7 +37,7 @@ local wall_jump_timer = 0
 local wall_jump_left = false
 
 -- Events.
-function on_submerge(amount)
+function on_submerge(amount, water, v)
   light:set_layer_value(.2 + .05 * amount)
 end
 

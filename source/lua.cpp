@@ -71,6 +71,9 @@ static RegistryIndex stage_registry_index;
 /***/     lua_pushstring(_y_state, "__index");                                 \
 /***/     lua_pushvalue(_y_state, -2);                                         \
 /***/     lua_settable(_y_state, -3);                                          \
+/***/     lua_pushstring(_y_state, "_typename");                               \
+/***/     lua_pushstring(_y_state, LuaType<T*>::type_name.c_str());            \
+/***/     lua_settable(_y_state, -3);                                          \
 /***/     y_method("__eq", T##__eq);
 /***/
 /***/ #define y_valtypedef(T)                                                  \
@@ -88,6 +91,9 @@ static RegistryIndex stage_registry_index;
 /***/     luaL_newmetatable(_y_state, LuaType<T>::type_name.c_str());          \
 /***/     lua_pushstring(_y_state, "__index");                                 \
 /***/     lua_pushvalue(_y_state, -2);                                         \
+/***/     lua_settable(_y_state, -3);                                          \
+/***/     lua_pushstring(_y_state, "_typename");                               \
+/***/     lua_pushstring(_y_state, LuaType<T>::type_name.c_str());             \
 /***/     lua_settable(_y_state, -3);                                          \
 /***/     y_method("__eq", T##__eq);
 /***/
@@ -170,11 +176,21 @@ static RegistryIndex stage_registry_index;
 /***/ #define y_ptrtypedef(T)                                                  \
 /***/   _y_api_##T::_y_typedef(_y_state);                                      \
 /***/   lua_pop(_y_state, 1);                                                  \
+/***/   if (lua_generic_type_map.find(LuaType<T*>::type_name) ==               \
+/***/       lua_generic_type_map.end()) {                                      \
+/***/     lua_generic_type_map.insert(y::make_pair(                            \
+/***/         LuaType<T*>::type_name, y::move_unique(new LuaType<T*>())));     \
+/***/   }                                                                      \
 /***/   (void)LuaType<T*>::type_name;
 /***/
 /***/ #define y_valtypedef(T)                                                  \
 /***/   _y_api_##T::_y_typedef(_y_state);                                      \
 /***/   lua_pop(_y_state, 1);                                                  \
+/***/   if (lua_generic_type_map.find(LuaType<T>::type_name) ==                \
+/***/       lua_generic_type_map.end()) {                                      \
+/***/     lua_generic_type_map.insert(y::make_pair(                            \
+/***/         LuaType<T>::type_name, y::move_unique(new LuaType<T>())));       \
+/***/   }                                                                      \
 /***/   (void)LuaType<T>::type_name;
 /***/
 /***/ #define y_method(name, function)
