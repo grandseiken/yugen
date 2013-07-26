@@ -157,8 +157,6 @@ void Yugen::draw() const
 void Yugen::crop_render(const GlFramebuffer& source,
                         const y::ivec2& target_size) const
 {
-  // TODO: since the dithering happens after cropping, we could consider
-  // attempting interpolated rotation.
   _crop_program->bind();
   _crop_program->bind_attribute("position", _util.quad_vertex());
   _crop_program->bind_uniform("native_res", target_size);
