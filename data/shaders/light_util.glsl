@@ -21,7 +21,7 @@ vec3 sq_coords_to_world_normal(vec2 coords)
   vec2 sq = coords * coords;
   float m = max(sq.x, sq.y);
   float d = inversesqrt((sq.x + sq.y) / m);
-  return vec3(coords.x * d, coords.y * d, m >= 1 ? 0.0 : sqrt(1 - m));
+  return vec3(coords.x * d, coords.y * d, sqrt(max(0.0, 1.0 - m)));
 }
 
 // Same as above, but takes coords scaled to the unit circle already.
@@ -29,7 +29,7 @@ vec3 circular_coords_to_world_normal(vec2 coords)
 {
   vec2 sq = coords * coords;
   return vec3(coords.x, coords.y,
-              sq.x + sq.y >= 1 ? 0.0 : sqrt(1 - sq.x - sq.y));
+              sqrt(max(0.0, 1 - sq.x - sq.y)));
 }
 
 // Returns the square cooords of a normal encoded in a texture value.
@@ -108,7 +108,7 @@ float cel_shade(float light, bool ambient, bool specular)
   float clamp = specular ? cel_shade_clamp_specular : cel_shade_clamp;
   float cel = light + 0.5 * clamp;
   cel = cel - mod(cel, clamp);
-  light = cel_shade_mix * cel + (1 - cel_shade_mix) * light;
+  light = mix(light, cel, cel_shade_mix);
 
   if (ambient && ambient_is_post_cel_shade) {
     light = light + ambient_light;

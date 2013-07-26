@@ -17,6 +17,8 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
     return;
   }
 
+  // OpenGL 2.1 is very old. we could potentially target 3.0 if there's any
+  // reason to. Even 3.1 seems to have patchy support on Linux, though.
   if (!GLEW_VERSION_2_1) {
     std::cerr << "OpenGL 2.1 not available" << std::endl;
     return;

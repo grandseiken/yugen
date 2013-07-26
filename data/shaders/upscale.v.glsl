@@ -6,14 +6,15 @@ varying vec2 tex_coord;
 
 void main()
 {
-  // Correction is needed for floor/division to behave properly.
+  // Correction is needed for floor/division to behave properly. Probably due
+  // to awful default drivers on Linux.
   const float correction = 1.0 / 0xffff;
-  tex_coord = vec2(0.5) + 0.5 * position;
+  tex_coord = 0.5 + 0.5 * position;
 
   vec2 scale_v = vec2(screen_res) / vec2(native_res) + correction;
   float scale = floor(scale_v.x < scale_v.y ? scale_v.x : scale_v.y);
 
-  vec2 viewport = vec2(1.0);
+  vec2 viewport = 1.0;
   if (scale >= 1.0 && integral_scale_lock) {
     viewport = scale * native_res / vec2(screen_res);
   }

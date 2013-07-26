@@ -41,7 +41,7 @@ void main()
   // the screen plane gives the same circle as the direct lighting.
   float dist = sqrt(dist_sq);
   vec2 direct_dir =
-      dist_v == vec2(0.0) ? vec2(0.0) : dist_v / dist;
+      dist_v == 0.0 ? vec2(0.0) : dist_v / dist;
   vec2 indirect_dir = dist_v / max_range;
 
   // Similarly, light directions have x, y in [-1, 1]; scale and treat as

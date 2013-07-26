@@ -21,7 +21,7 @@ void main()
 {
   vec4 raw = texture2D(framebuffer, tex_coord);
 
-  vec2 bayer_div = vec2(1.0 / bayer_res.x, 1.0 / bayer_res.y);
+  vec2 bayer_div = 1.0 / vec2(bayer_res);
   vec2 r_off = 0.05 * bayer_frame * bayer_div * r_dir;
   vec2 g_off = 0.07 * bayer_frame * bayer_div * g_dir;
   vec2 b_off = 0.11 * bayer_frame * bayer_div * b_dir;
@@ -44,7 +44,7 @@ void main()
            texture2D(bayer, bayer_coord + g_off).x,
            texture2D(bayer, bayer_coord + b_off).x) * div;
 
-  vec4 adjusted = raw + dithering_mix * vec4(bayer_val, 0.0) +
-      (1.0 - dithering_mix) * 0.5 * div;
+  vec4 adjusted = raw +
+      mix(vec4(0.5 * div), vec4(bayer_val, 0.0), dithering_mix);
   gl_FragColor = adjusted - mod(adjusted, div);
 }

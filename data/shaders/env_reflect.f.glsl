@@ -41,7 +41,7 @@ void main()
 
   // Calculate texture offset based on perlin noise.
   vec2 p = vec2(perlin_lookup(perlin, tex_coord, frame / perlin_size.z));
-  p = 2.0 * (p - vec2(0.5, 0.5));
+  p = 2.0 * (p - 0.5);
   p /= vec2(resolution);
 
   // Calculate reflect and refract coordinates.
@@ -56,12 +56,13 @@ void main()
   float reflect_dist_mix =
       (reflect_dist - reflect_fade_start) /
       (reflect_fade_end - reflect_fade_start);
-  reflect_dist_mix = 1.0 - max(0.0, min(1.0, reflect_dist_mix));
+  reflect_dist_mix = 1.0 - clamp(reflect_dist_mix, 0.0, 1.0);
 
   // Interpolate near the edge of source framebuffer.
-  float edge_dist = min(min(reflect_v.x, reflect_v.y),
-                        min(1.0 - reflect_v.x, 1.0 - reflect_v.y));
-  float edge_fade = max(0.0, min(1.0, edge_dist / source_edge_fade_dist));
+  float edge_dist = min(
+      min(reflect_v.x, reflect_v.y),
+      min(1.0 - reflect_v.x, 1.0 - reflect_v.y));
+  float edge_fade = clamp(edge_dist / source_edge_fade_dist, 0.0, 1.0);
 
   vec4 c = mix(colour, reflect, reflect_mix * reflect_dist_mix * edge_fade);
   c = mix(refract, c, colour.a);
