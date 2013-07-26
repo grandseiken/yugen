@@ -348,7 +348,7 @@ y_ptrtypedef(Script) {
   y_method("send_message", script__send_message);
   y_method("create_body", script__create_body);
   y_method("destroy_bodies", script__destroy_bodies);
-  y_method("destroy_bodies", script__destroy_body);
+  y_method("destroy_body", script__destroy_body);
   y_method("collider_move", script__collider_move);
   y_method("collider_rotate", script__collider_rotate);
   y_method("body_check", script__body_check);
@@ -601,6 +601,20 @@ y_api(body__set_collide_mask)
   y_void();
 }
 
+y_api(body__body_check)
+    y_arg(Body*, body) y_arg(y::int32, collide_mask)
+{
+  y_return(stage.get_collision().body_check(body->source,
+                                            *body, collide_mask));
+}
+
+y_api(body__destroy)
+    y_arg(Body*, body)
+{
+  stage.get_collision().destroy_obj(body->source, body);
+  y_void();
+}
+
 y_ptrtypedef(Body) {
   y_method("get_offset", body__get_offset);
   y_method("get_size", body__get_size);
@@ -608,6 +622,8 @@ y_ptrtypedef(Body) {
   y_method("set_offset", body__set_offset);
   y_method("set_size", body__set_size);
   y_method("set_collide_mask", body__set_collide_mask);
+  y_method("body_check", body__body_check);
+  y_method("destroy", body__destroy);
 } y_endtypedef();
 
 /******************************************************************************/
@@ -735,6 +751,13 @@ y_api(light__set_aperture)
   y_void();
 }
 
+y_api(light__destroy)
+    y_arg(Light*, light)
+{
+  stage.get_lighting().destroy_obj(light->source, light);
+  y_void();
+}
+
 y_ptrtypedef(Light) {
   y_method("get_offset", light__get_offset);
   y_method("set_offset", light__set_offset);
@@ -754,4 +777,5 @@ y_ptrtypedef(Light) {
   y_method("set_angle", light__set_angle);
   y_method("get_aperture", light__get_aperture);
   y_method("set_aperture", light__set_aperture);
+  y_method("destroy", light__destroy);
 } y_endtypedef();

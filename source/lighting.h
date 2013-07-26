@@ -16,6 +16,8 @@ class WorldWindow;
 struct Light : y::no_copy {
   Light(const Script& source);
 
+  const Script& source;
+
   // Displacement from the owning Script's origin. For plane lights, the offset
   // defines the plane from (origin - offset) to (origin + offset).
   y::wvec2 offset;

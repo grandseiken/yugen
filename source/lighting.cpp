@@ -7,7 +7,8 @@
 #include <boost/functional/hash.hpp>
 
 Light::Light(const Script& source)
-  : full_range(1.)
+  : source(source)
+  , full_range(1.)
   , falloff_range(1.)
   , layer_value(0.)
   , colour{1.f, 1.f, 1.f, 1.f}

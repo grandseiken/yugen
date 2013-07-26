@@ -180,7 +180,7 @@ function update()
   -- Need to know the down check before the x-axis move for applying
   -- acceleration when we go off a cliff, and being able to jump when
   -- running down a slope.
-  local down_check_start = self:body_check(down_check, COLLIDE_WORLD)
+  local down_check_start = down_check:body_check(COLLIDE_WORLD)
   local down_check_now = false
 
   -- Handle x-axis movement with stepping up slopes (or down overhangs when
@@ -201,18 +201,18 @@ function update()
   if not is_jumping() then
     original_y = self:get_origin():y()
     self:collider_move(vec(0, MOVE_SPEED))
-    down_check_now = self:body_check(down_check, COLLIDE_WORLD)
+    down_check_now = down_check:body_check(COLLIDE_WORLD)
     if not down_check_now then
       self:collider_move(vec(0, original_y - self:get_origin():y()))
-      down_check_now = self:body_check(down_check, COLLIDE_WORLD)
+      down_check_now = down_check:body_check(COLLIDE_WORLD)
     end
   else
-    down_check_now = self:body_check(down_check, COLLIDE_WORLD)
+    down_check_now = down_check:body_check(COLLIDE_WORLD)
   end
 
-  local up_check_now = self:body_check(up_check, COLLIDE_WORLD)
-  local left_check_now = self:body_check(left_check, COLLIDE_WORLD)
-  local right_check_now = self:body_check(right_check, COLLIDE_WORLD)
+  local up_check_now = up_check:body_check(COLLIDE_WORLD)
+  local left_check_now = left_check:body_check(COLLIDE_WORLD)
+  local right_check_now = right_check:body_check(COLLIDE_WORLD)
 
   -- Handle y-axis movement.
   jump_logic(left_down, right_down, up_down,
