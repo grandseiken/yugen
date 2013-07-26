@@ -547,8 +547,6 @@ Camera::Camera(const y::ivec2& framebuffer_size)
 
 void Camera::update(Script* focus)
 {
-  // TODO: respect rotation (i.e., use coordinate system defined by the
-  // current camera rotation)?
   static const y::world camera_deadzone_size =
       y::world(y::min(RenderUtil::native_size[xx],
                       RenderUtil::native_size[yy])) / 5;
@@ -558,29 +556,34 @@ void Camera::update(Script* focus)
       camera_deadzone + y::wvec2{128., 128.};
   static const y::wvec2 camera_speed{2.5, 4.};
 
-  y::wvec2 target = focus->get_origin();
+  // Rotate into camera-space so that movement respects rotation.
+  const y::wvec2 row_0(cos(-_rotation), -sin(-_rotation));
+  const y::wvec2 row_1(sin(-_rotation), cos(-_rotation));
+  y::wvec2 target = focus->get_origin() - _origin;
+  target = y::wvec2{target.dot(row_0), target.dot(row_1)};
 
-  if (y::abs(target[xx] - _origin[xx]) < camera_deadzone[xx] / 2) {
+  if (y::abs(target[xx]) < camera_deadzone[xx] / 2) {
     _is_moving_x = false;
   }
-  if (y::abs(target[yy] - _origin[yy]) < camera_deadzone[yy] / 2) {
+  if (y::abs(target[yy]) < camera_deadzone[yy] / 2) {
     _is_moving_y = false;
   }
 
-  if (y::abs(target[xx] - _origin[xx]) > camera_deadzone_buffer[xx] / 2) {
+  if (y::abs(target[xx]) > camera_deadzone_buffer[xx] / 2) {
     _is_moving_x = true;
   }
-  if (y::abs(target[yy] - _origin[yy]) > camera_deadzone_buffer[yy] / 2) {
+  if (y::abs(target[yy]) > camera_deadzone_buffer[yy] / 2) {
     _is_moving_y = true;
   }
 
-  y::wvec2 dir = target - _origin;
-  if (_is_moving_x && dir[xx]) {
-    _origin[xx] += camera_speed[xx] * (dir[xx] / y::abs(dir[xx]));
-  }
-  if (_is_moving_y && dir[yy]) {
-    _origin[yy] += camera_speed[yy] * (dir[yy] / y::abs(dir[yy]));
-  }
+  const y::wvec2 row_2(cos(_rotation), -sin(_rotation));
+  const y::wvec2 row_3(sin(_rotation), cos(_rotation));
+  y::wvec2 dir =
+      y::wvec2{_is_moving_x ? 1. : 0.,
+               _is_moving_y ? 1. : 0.} *
+          camera_speed * target / y::abs(target);
+  dir = y::wvec2{dir.dot(row_2), dir.dot(row_3)};
+  _origin += dir;
 }
 
 void Camera::move(const y::wvec2& move)

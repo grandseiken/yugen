@@ -75,8 +75,8 @@ void Body::get_vertices(y::vector<y::wvec2>& output,
     output.emplace_back(origin + dl);
   }
   else {
-    y::wvec2 row_0(cos(rotation), -sin(rotation));
-    y::wvec2 row_1(sin(rotation), cos(rotation));
+    const y::wvec2 row_0(cos(rotation), -sin(rotation));
+    const y::wvec2 row_1(sin(rotation), cos(rotation));
 
     output.emplace_back(origin + y::wvec2{ul.dot(row_0), ul.dot(row_1)});
     output.emplace_back(origin + y::wvec2{ur.dot(row_0), ur.dot(row_1)});
@@ -290,8 +290,8 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
     static y::wvec2 origin_displace(const y::wvec2& origin_offset,
                                     y::world rotation)
     {
-      y::wvec2 row_0(cos(rotation), -sin(rotation));
-      y::wvec2 row_1(sin(rotation), cos(rotation));
+      const y::wvec2 row_0(cos(rotation), -sin(rotation));
+      const y::wvec2 row_1(sin(rotation), cos(rotation));
 
       return origin_offset -
           y::wvec2{origin_offset.dot(row_0), origin_offset.dot(row_1)};
