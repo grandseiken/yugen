@@ -201,6 +201,9 @@ public:
   // Render using this shader.
   void bind() const;
 
+  // Unbind and disable an attribute.
+  void unbind_attribute(const y::string& name) const;
+
   // Bind the value of an attribute variable.
   template<typename T, y::size N>
   bool bind_attribute(const y::string& name,
@@ -267,9 +270,6 @@ protected:
   friend class GlUtil;
   explicit GlProgram(GLuint handle);
 
-  // TODO: need to store which attribute indices have been enabled with
-  // glEnableVertexAttribArray so we can disable them if we ever have
-  // optional attributes.
 private:
 
   // Check if uniform or attribute name exists in program.
@@ -299,6 +299,10 @@ private:
 
   GLint get_attribute_location(const y::string& name) const;
   GLint get_attribute_location(const y::string& name, y::size index) const;
+
+  // Store which attributes are enabled so we can disable them when no longer
+  // needed.
+  mutable y::set<GLint> _enabled_attribute_indices;
 
 };
 
@@ -459,6 +463,7 @@ bool GlProgram::bind_attribute(const y::string& name,
   }
 
   GLint location = get_attribute_location(name);
+  _enabled_attribute_indices.insert(location);
   glEnableVertexAttribArray(location);
   buffer.bind();
   glVertexAttribPointer(
@@ -552,6 +557,7 @@ bool GlProgram::bind_attribute(y::size index, const y::string& name,
   }
 
   GLint location = get_attribute_location(name, index);
+  _enabled_attribute_indices.insert(location);
   glEnableVertexAttribArray(location);
   buffer.bind();
   glVertexAttribPointer(

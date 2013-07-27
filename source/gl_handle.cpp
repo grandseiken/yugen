@@ -87,6 +87,18 @@ void GlProgram::bind() const
 {
   glUseProgram(get_handle());
   _texture_index = 0;
+  // Disable all attribute arrays by default.
+  for (GLint location : _enabled_attribute_indices) {
+    glDisableVertexAttribArray(location);
+  }
+  _enabled_attribute_indices.clear();
+}
+
+void GlProgram::unbind_attribute(const y::string& name) const
+{
+  GLint location = get_attribute_location(name);
+  _enabled_attribute_indices.erase(location);
+  glDisableVertexAttribArray(location);
 }
 
 bool GlProgram::bind_uniform(const y::string& name,
