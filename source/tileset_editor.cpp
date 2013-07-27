@@ -134,6 +134,11 @@ void SetCollideAction::undo() const
   tileset.set_collision(coord, Tileset::Collision(old_collide));
 }
 
+bool SetCollideAction::is_noop() const
+{
+  return old_collide == new_collide;
+}
+
 TilesetPanel::TilesetPanel(Tileset& tileset, y::int32& collide_select,
                            UndoStack& undo_stack)
   : Panel(y::ivec2(), y::ivec2(), 0)

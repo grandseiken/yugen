@@ -101,8 +101,11 @@ void MapEditor::event(const sf::Event& e)
       get_undo_stack().new_action(y::move_unique(_script_add_action));
     }
     else if (is_script_layer()) {
+      const ScriptBlueprint& b = _map.get_script_at(get_drag_start());
+      y::ivec2 move = get_hover_world() - get_drag_start();
       get_undo_stack().new_action(y::move_unique(
-          new ScriptMoveAction(_map, get_drag_start(), get_hover_world())));
+          new ScriptMoveAction(_map, b.min, b.max,
+                               b.min + move, b.max + move, b.path)));
     }
     // End pick and copy tiles.
     else if (!_camera_drag && !_light_drag) {
@@ -170,13 +173,14 @@ void MapEditor::event(const sf::Event& e)
 
     // Remove cell or script.
     case sf::Keyboard::Delete:
-      if (!is_script_layer() && _map.is_coord_used(get_hover_cell())) {
+      if (!is_script_layer()) {
         get_undo_stack().new_action(y::move_unique(
             new CellRemoveAction(_bank, _map, get_hover_cell())));
       }
-      if (is_script_layer() && _map.has_script_at(get_hover_world())) {
+      if (is_script_layer()) {
+        const ScriptBlueprint& b = _map.get_script_at(get_hover_world());
         get_undo_stack().new_action(y::move_unique(
-            new ScriptRemoveAction(_map, get_hover_world())));
+            new ScriptRemoveAction(_map, b.min, b.max, b.path)));
       }
       break;
 
@@ -266,18 +270,16 @@ void MapEditor::update()
   }
 
   // Update hover and status text.
-  if (!is_mouse_on_screen()) {
-    return;
-  }
-
   _layer_status.clear();
-  y::sstream ss;
-  ss << get_hover_cell() << " : " << get_hover_tile() <<
-      " [" << Zoom::array[_zoom] << "X]";
-  _layer_status.emplace_back(ss.str());
-  if (_map.is_coord_used(get_hover_cell())) {
-    _layer_status.emplace_back(
-        _bank.cells.get_name(*_map.get_coord(get_hover_cell())));
+  if (is_mouse_on_screen()) {
+    y::sstream ss;
+    ss << get_hover_cell() << " : " << get_hover_tile() <<
+        " [" << Zoom::array[_zoom] << "X]";
+    _layer_status.emplace_back(ss.str());
+    if (_map.is_coord_used(get_hover_cell())) {
+      _layer_status.emplace_back(
+          _bank.cells.get_name(*_map.get_coord(get_hover_cell())));
+    }
   }
   if (!get_undo_stack().is_position_saved()) {
     _layer_status.emplace_back("*Unsaved*");
@@ -301,23 +303,18 @@ void MapEditor::update()
   // Rename or add cell.
   if (_input_result.success) {
     const y::string& result = _input_result.result;
-    if (result.substr(0, 7) == "/world/" &&
-        result.substr(result.length() - 5) == ".cell") {
-      if (_map.is_coord_used(get_hover_cell())) {
-        if (!_bank.cells.is_name_used(result)) {
-          get_undo_stack().new_action(y::move_unique(
-              new CellRenameAction(_bank, _map, get_hover_cell(), result)));
-        }
-      }
-      else {
-        get_undo_stack().new_action(y::move_unique(
-            new CellAddAction(_bank, _map, get_hover_cell(), result)));
-      }
+    if (_map.is_coord_used(get_hover_cell())) {
+      get_undo_stack().new_action(y::move_unique(
+            new CellRenameAction(_bank, _map, get_hover_cell(), result)));
+    }
+    else {
+      get_undo_stack().new_action(y::move_unique(
+          new CellAddAction(_bank, _map, get_hover_cell(), result)));
     }
     _input_result.success = false;
   }
 
-  if (!is_dragging()) {
+  if (!is_dragging() || !is_mouse_on_screen()) {
     return;
   }
   // Continuous tile drawing.

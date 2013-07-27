@@ -47,27 +47,46 @@ y::ivec2_iterator CellMap::get_cartesian() const
   return y::cartesian(_min, _max);
 }
 
-void CellMap::add_script(const y::ivec2& v, const y::string& path)
+void CellMap::add_script(const ScriptBlueprint& blueprint)
 {
-  add_script(v, y::ivec2{1, 1} + v, path);
+  if (!has_script(blueprint)) {
+    _scripts.emplace_back(blueprint);
+  }
 }
 
-void CellMap::add_script(const y::ivec2& min, const y::ivec2& max,
-                               const y::string& path)
+bool CellMap::has_script(const ScriptBlueprint& blueprint) const
 {
-  _scripts.emplace_back(ScriptBlueprint{min, max, path});
+  for (const ScriptBlueprint& b : _scripts) {
+    if (b.min == blueprint.min && b.max == blueprint.max &&
+        b.path == blueprint.path) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void CellMap::remove_script(const ScriptBlueprint& blueprint)
+{
+  for (auto it = _scripts.begin(); it != _scripts.end();) {
+    if (it->min == blueprint.min && it->max == blueprint.max &&
+        it->path == blueprint.path) {
+      it = _scripts.erase(it);
+    }
+    else {
+      ++it;
+    }
+  } 
 }
 
 const CellMap::script_list& CellMap::get_scripts() const
 {
   return _scripts;
-
 }
 
 bool CellMap::has_script_at(const y::ivec2& v) const
 {
-  for (const ScriptBlueprint& s : _scripts) {
-    if (v.in_region(s.min, y::ivec2{1, 1} + s.max - s.min)) {
+  for (const ScriptBlueprint& b : _scripts) {
+    if (v.in_region(b.min, y::ivec2{1, 1} + b.max - b.min)) {
       return true;
     }
   }
@@ -78,31 +97,24 @@ const ScriptBlueprint& CellMap::get_script_at(const y::ivec2& v) const
 {
   static ScriptBlueprint missing{y::ivec2(), y::ivec2(),
                                  "/yedit/missing.lua"};
-  for (auto it = _scripts.rbegin(); it != _scripts.rend(); ++it) {
-    if (v.in_region(it->min, y::ivec2{1, 1} + it->max - it->min)) {
-      return *it;
+  // We prefer the smaller Scripts as this is much nicer in the editor.
+  y::int32 min;
+  bool first = true;
+  const ScriptBlueprint* result = y::null;
+  for (const ScriptBlueprint& b : _scripts) {
+    y::ivec2 len = b.max - b.min;
+    if (v.in_region(b.min, y::ivec2{1, 1} + len)) {
+      if (first || len[xx] * len[yy] <= min) {
+        min = len[xx] * len[yy];
+        result = &b;
+        first = false;
+      }
     }
+  }
+  if (result) {
+    return *result;
   }
   return missing;
-}
-
-y::size CellMap::get_script_index_at(const y::ivec2& v) const
-{
-  y::size n = _scripts.size() - 1;
-  for (auto it = _scripts.rbegin(); it != _scripts.rend(); ++it) {
-    if (v.in_region(it->min, y::ivec2{1, 1} + it->max - it->min)) {
-      return n;
-    }
-    --n;
-  }
-  return -1;
-}
-
-void CellMap::remove_script(y::size index)
-{
-  if (index < _scripts.size()) {
-    _scripts.erase(_scripts.begin() + index);
-  }
 }
 
 void CellMap::save_to_proto(const Databank& bank, proto::CellMap& proto) const

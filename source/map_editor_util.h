@@ -27,6 +27,7 @@ struct CellAddAction : public StackAction {
 
   void redo() const override;
   void undo() const override;
+  bool is_noop() const override;
 };
 
 // Action that renames a cell.
@@ -42,6 +43,7 @@ struct CellRenameAction : public StackAction {
 
   void redo() const override;
   void undo() const override;
+  bool is_noop() const override;
 };
 
 // Action that removes a cell.
@@ -55,6 +57,7 @@ struct CellRemoveAction : public StackAction {
 
   void redo() const override;
   void undo() const override;
+  bool is_noop() const override;
 };
 
 // Action that changes a set of tiles.
@@ -76,6 +79,7 @@ struct TileEditAction : public StackAction {
 
   void redo() const override;
   void undo() const override;
+  bool is_noop() const override;
 };
 
 // Action that adds a script.
@@ -90,32 +94,40 @@ struct ScriptAddAction : public StackAction {
 
   void redo() const override;
   void undo() const override;
+  bool is_noop() const override;
 };
 
 // Action that removes a script.
 struct ScriptRemoveAction : public StackAction {
-  ScriptRemoveAction(CellMap& map, const y::ivec2& world);
+  ScriptRemoveAction(CellMap& map, const y::ivec2& min, const y::ivec2& max,
+                     const y::string& path);
 
   CellMap& map;
-  y::ivec2 world;
-  mutable y::ivec2 min;
-  mutable y::ivec2 max;
-  mutable y::string path;
+  y::ivec2 min;
+  y::ivec2 max;
+  y::string path;
 
   void redo() const override;
   void undo() const override;
+  bool is_noop() const override;
 };
 
 // Action that moves a script.
 struct ScriptMoveAction : public StackAction {
-  ScriptMoveAction(CellMap& map, const y::ivec2& start, const y::ivec2& end);
+  ScriptMoveAction(CellMap& map, const y::ivec2& min, const y::ivec2& max,
+                   const y::ivec2& new_min, const y::ivec2& new_max,
+                   const y::string& path);
 
   CellMap& map;
-  y::ivec2 start;
-  y::ivec2 end;
+  y::ivec2 min;
+  y::ivec2 max;
+  y::ivec2 new_min;
+  y::ivec2 new_max;
+  y::string path;
 
   void redo() const override;
   void undo() const override;
+  bool is_noop() const override;
 };
 
 // The current set of tiles stored in the brush.

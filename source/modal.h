@@ -20,6 +20,8 @@ public:
 
   virtual void undo() const = 0;
   virtual void redo() const = 0;
+  // Override to return true if the action is trivial and should be discarded.
+  virtual bool is_noop() const = 0;
 
 };
 

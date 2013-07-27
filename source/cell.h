@@ -47,14 +47,13 @@ public:
   typedef y::vector<ScriptBlueprint> script_list;
 
   // Script manipulation.
-  void add_script(const y::ivec2& v, const y::string& path);
-  void add_script(const y::ivec2& min, const y::ivec2& max,
-                  const y::string& path);
+  void add_script(const ScriptBlueprint& blueprint);
+  bool has_script(const ScriptBlueprint& blueprint) const;
+  void remove_script(const ScriptBlueprint& blueprint);
+
   const script_list& get_scripts() const;
   bool has_script_at(const y::ivec2& v) const;
   const ScriptBlueprint& get_script_at(const y::ivec2& v) const;
-  y::size get_script_index_at(const y::ivec2& v) const;
-  void remove_script(y::size index);
 
 protected:
 

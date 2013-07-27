@@ -31,6 +31,13 @@ void CellAddAction::undo() const
   map.clear_coord(cell);
 }
 
+bool CellAddAction::is_noop() const
+{
+  return path.substr(0, 7) != "/world/" ||
+      path.substr(path.length() - 5) != ".cell" ||
+      map.get_coord(cell);
+}
+
 CellRenameAction::CellRenameAction(Databank& bank, CellMap& map,
                                    const y::ivec2& cell, const y::string& path)
   : bank(bank)
@@ -51,6 +58,15 @@ void CellRenameAction::undo() const
   bank.cells.rename(*map.get_coord(cell), old_path);
 }
 
+bool CellRenameAction::is_noop() const
+{
+  return new_path.substr(0, 7) != "/world/" ||
+      new_path.substr(new_path.length() - 5) != ".cell" ||
+      !map.get_coord(cell) ||
+      bank.cells.get_name(*map.get_coord(cell)) == new_path ||
+      bank.cells.is_name_used(new_path);
+}
+
 CellRemoveAction::CellRemoveAction(Databank& bank, CellMap& map,
                                    const y::ivec2& cell)
   : bank(bank)
@@ -68,6 +84,11 @@ void CellRemoveAction::redo() const
 void CellRemoveAction::undo() const
 {
   map.set_coord(cell, bank.cells.get(path));
+}
+
+bool CellRemoveAction::is_noop() const
+{
+  return !map.get_coord(cell);
 }
 
 TileEditAction::TileEditAction(CellMap& map, y::int32 layer)
@@ -106,6 +127,16 @@ void TileEditAction::undo() const
   }
 }
 
+bool TileEditAction::is_noop() const
+{
+  for (const auto& pair : edits) {
+    if (pair.second.old_tile != pair.second.new_tile) {
+      return false;
+    }
+  }
+  return true;
+}
+
 ScriptAddAction::ScriptAddAction(
     CellMap& map, const y::ivec2& min, const y::ivec2& max,
     const y::string& path)
@@ -118,63 +149,72 @@ ScriptAddAction::ScriptAddAction(
 
 void ScriptAddAction::redo() const
 {
-  map.add_script(min, max, path);
+  map.add_script({min, max, path});
 }
 
 void ScriptAddAction::undo() const
 {
-  map.remove_script(map.get_script_index_at(min));
+  map.remove_script({min, max, path});
 }
 
-ScriptRemoveAction::ScriptRemoveAction(CellMap& map, const y::ivec2& world)
+bool ScriptAddAction::is_noop() const
+{
+  return map.has_script({min, max, path});
+}
+
+ScriptRemoveAction::ScriptRemoveAction(
+    CellMap& map, const y::ivec2& min, const y::ivec2& max,
+    const y::string& path)
   : map(map)
-  , world(world)
+  , min(min)
+  , max(max)
+  , path(path)
 {
 }
 
 void ScriptRemoveAction::redo() const
 {
-  const ScriptBlueprint& s = map.get_script_at(world);
-  min = s.min;
-  max = s.max;
-  path = s.path;
-  map.remove_script(map.get_script_index_at(world));
+  map.remove_script({min, max, path});
 }
 
 void ScriptRemoveAction::undo() const
 {
-  map.add_script(min, max, path);
+  map.add_script({min, max, path});
 }
 
-ScriptMoveAction::ScriptMoveAction(CellMap& map,
-                                   const y::ivec2& start, const y::ivec2& end)
+bool ScriptRemoveAction::is_noop() const
+{
+  return !map.has_script({min, max, path});
+}
+
+ScriptMoveAction::ScriptMoveAction(
+    CellMap& map, const y::ivec2& min, const y::ivec2& max,
+    const y::ivec2& new_min, const y::ivec2& new_max, const y::string& path)
   : map(map)
-  , start(start)
-  , end(end)
+  , min(min)
+  , max(max)
+  , new_min(new_min)
+  , new_max(new_max)
+  , path(path)
 {
 }
 
 void ScriptMoveAction::redo() const
 {
-  const ScriptBlueprint& s = map.get_script_at(start);
-  y::ivec2 min = s.min;
-  y::ivec2 max = s.max;
-  y::string path = s.path;
-  map.remove_script(map.get_script_index_at(start));
-  map.add_script(min + end - start, max + end - start, path);
+  map.remove_script({min, max, path});
+  map.add_script({new_min, new_max, path});
 }
 
 void ScriptMoveAction::undo() const
 {
-  // TODO: this will sometimes delete scripts. Need to store the actual script
-  // moved, I think. Also need an is_noop() or similar to discard changes which
-  // don't actually do anything.
-  const ScriptBlueprint& s = map.get_script_at(end);
-  y::ivec2 min = s.min;
-  y::ivec2 max = s.max;
-  y::string path = s.path;
-  map.remove_script(map.get_script_index_at(end));
-  map.add_script(min + start - end, max + start - end, path);
+  map.remove_script({new_min, new_max, path});
+  map.add_script({min, max, path});
+}
+
+bool ScriptMoveAction::is_noop() const
+{
+  return map.has_script({new_min, new_max, path}) ||
+      !map.has_script({min, max, path});
 }
 
 TileBrush::TileBrush()

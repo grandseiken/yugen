@@ -20,6 +20,7 @@ struct SetCollideAction : public StackAction {
 
   void redo() const override;
   void undo() const override;
+  bool is_noop() const override;
 };
 
 // Displays the tileset with collision data overlaid.

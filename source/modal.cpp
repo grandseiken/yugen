@@ -24,9 +24,15 @@ bool UndoStack::can_redo() const
 
 void UndoStack::new_action(y::unique<StackAction> action)
 {
-  action->redo();
+  StackAction* a = action.get();
   _undo_stack.emplace_back();
   _undo_stack.rbegin()->swap(action);
+
+  if (a->is_noop()) {
+    _undo_stack.pop_back();
+    return;
+  }
+  a->redo();
   _redo_stack.clear();
 
   if (_save_offset >= 0) {
