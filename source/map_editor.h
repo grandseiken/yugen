@@ -28,6 +28,24 @@ private:
 
   friend class MinimapPanel;
 
+  // Enumeration of the 'handles' we have for moving scripts.
+  enum script_drag {
+    SCRIPT_UL,
+    SCRIPT_U,
+    SCRIPT_UR,
+    SCRIPT_L,
+    SCRIPT_MOVE,
+    SCRIPT_R,
+    SCRIPT_DL,
+    SCRIPT_D,
+    SCRIPT_DR,
+  };
+  script_drag get_script_drag(const ScriptBlueprint& blueprint,
+                              const y::ivec2& v) const;
+  void get_script_drag_result(y::ivec2& min_output, y::ivec2& max_output,
+                              const ScriptBlueprint& blueprint, script_drag sd,
+                              bool drag_modify, bool handle_modify) const;
+
   y::ivec2 world_to_camera(const y::ivec2& v) const;
   y::ivec2 camera_to_world(const y::ivec2& v) const;
 
@@ -72,6 +90,7 @@ private:
   bool _tile_edit_style;
   y::unique<TileEditAction> _tile_edit_action;
   y::unique<ScriptAddAction> _script_add_action;
+  script_drag _script_drag;
   TextInputResult _input_result;
   ConfirmationResult _confirm_result;
 

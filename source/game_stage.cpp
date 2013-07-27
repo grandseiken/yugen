@@ -250,10 +250,12 @@ void ScriptBank::create_in_bounds(
   for (const ScriptBlueprint& s : source.get_scripts()) {
     WorldScript ws = world.script_blueprint_to_world_script(s);
 
+    // It might be nice to have a way to provide some custom behaviour as to
+    // when scripts get loaded/unloaded via Lua functions. However, after a
+    // bunch of work to make working with very large scripts regions easier
+    // in the editor, it seems to be alright for now.
     bool overlaps_preserved = false;
     for (const y::ivec2& cell : _preserved_cells) {
-      // TODO: need some way to mark a script as "always load", or some way of
-      // making them really big but not horrible to work with in the editor.
       if (ws.origin + ws.region / 2 >= y::wvec2(
               cell * Tileset::tile_size * Cell::cell_size) &&
           ws.origin - ws.region / 2 < y::wvec2(

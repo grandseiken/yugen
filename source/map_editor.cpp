@@ -78,7 +78,11 @@ void MapEditor::event(const sf::Event& e)
     // Start script region create or move.
     else if (e.mouseButton.button == sf::Mouse::Left) {
       start_drag(get_hover_world());
-      if (control || !_map.has_script_at(get_hover_world())) {
+      if (control) {
+        _script_drag = get_script_drag(_map.get_script_at(get_hover_world()),
+                                       get_hover_world());
+      }
+      else {
         _script_add_action = y::move_unique(
             new ScriptAddAction(_map, get_hover_world(), get_hover_world(),
                 _script_panel.get_script()));
@@ -100,12 +104,14 @@ void MapEditor::event(const sf::Event& e)
     else if (_script_add_action) {
       get_undo_stack().new_action(y::move_unique(_script_add_action));
     }
+    // End drag and move script.
     else if (is_script_layer()) {
       const ScriptBlueprint& b = _map.get_script_at(get_drag_start());
-      y::ivec2 move = get_hover_world() - get_drag_start();
+      y::ivec2 new_min;
+      y::ivec2 new_max;
+      get_script_drag_result(new_min, new_max, b, _script_drag, true, false);
       get_undo_stack().new_action(y::move_unique(
-          new ScriptMoveAction(_map, b.min, b.max,
-                               b.min + move, b.max + move, b.path)));
+          new ScriptMoveAction(_map, b.min, b.max, new_min, new_max, b.path)));
     }
     // End pick and copy tiles.
     else if (!_camera_drag && !_light_drag) {
@@ -403,6 +409,111 @@ void MapEditor::draw() const
   get_panel_ui().draw(_util);
 }
 
+MapEditor::script_drag MapEditor::get_script_drag(
+    const ScriptBlueprint& blueprint, const y::ivec2& v) const
+{
+  if (blueprint.min == blueprint.max) {
+    return SCRIPT_MOVE;
+  }
+  if (blueprint.min[xx] == blueprint.max[xx]) {
+    return v[yy] == blueprint.min[yy] ? SCRIPT_UR :
+           v[yy] == blueprint.max[yy] ? SCRIPT_DL : SCRIPT_MOVE;
+  }
+  if (blueprint.min[yy] == blueprint.max[yy]) {
+    return v[xx] == blueprint.min[xx] ? SCRIPT_UL :
+           v[xx] == blueprint.max[xx] ? SCRIPT_DR : SCRIPT_MOVE;
+  }
+  if (v == blueprint.min) {
+    return SCRIPT_UL;
+  }
+  if (v == blueprint.max) {
+    return SCRIPT_DR;
+  }
+  if (v[xx] == blueprint.min[xx] && v[yy] == blueprint.max[yy]) {
+    return SCRIPT_DL;
+  }
+  if (v[xx] == blueprint.max[xx] && v[yy] == blueprint.min[yy]) {
+    return SCRIPT_UR;
+  }
+  if (v[xx] == blueprint.min[xx]) {
+    return SCRIPT_L;
+  }
+  if (v[xx] == blueprint.max[xx]) {
+    return SCRIPT_R;
+  }
+  if (v[yy] == blueprint.min[yy]) {
+    return SCRIPT_U;
+  }
+  if (v[yy] == blueprint.max[yy]) {
+    return SCRIPT_D;
+  }
+
+  return SCRIPT_MOVE;
+}
+
+void MapEditor::get_script_drag_result(
+    y::ivec2& min_output, y::ivec2& max_output,
+    const ScriptBlueprint& blueprint, script_drag sd,
+    bool drag_modify, bool handle_modify) const
+{
+  min_output = blueprint.min;
+  max_output = blueprint.max;
+  bool swap_x = false;
+  bool swap_y = false;
+
+  bool u = sd == SCRIPT_UL || sd == SCRIPT_UR || sd == SCRIPT_U;
+  bool l = sd == SCRIPT_UL || sd == SCRIPT_DL || sd == SCRIPT_L;
+  bool r = sd == SCRIPT_UR || sd == SCRIPT_DR || sd == SCRIPT_R;
+  bool d = sd == SCRIPT_DL || sd == SCRIPT_DR || sd == SCRIPT_D;
+
+  // Recalculate the script bounds based on current drag.
+  if (drag_modify) {
+    if (sd == SCRIPT_MOVE) {
+      y::ivec2 off = get_hover_world() - get_drag_start();
+      min_output += off;
+      max_output += off;
+    }
+    if (u) {
+      min_output[yy] = get_hover_world()[yy];
+    }
+    if (l) {
+      min_output[xx] = get_hover_world()[xx];
+    }
+    if (r) {
+      max_output[xx] = get_hover_world()[xx];
+    }
+    if (d) {
+      max_output[yy] = get_hover_world()[yy];
+    }
+
+    swap_x = min_output[xx] > max_output[xx];
+    swap_y = min_output[yy] > max_output[yy];
+    if (swap_x) {
+      std::swap(min_output[xx], max_output[xx]);
+    }
+    if (swap_y) {
+      std::swap(min_output[yy], max_output[yy]);
+    }
+  }
+
+  // Recalculate bounds to give the drag handle UI indicator only.
+  if (handle_modify) {
+    y::ivec2 min;
+    y::ivec2 max;
+    min[xx] = (swap_x ? l : r) ? max_output[xx] :
+        sd == SCRIPT_MOVE ? 1 + min_output[xx] : min_output[xx];
+    min[yy] = (swap_y ? u : d) ? max_output[yy] :
+        sd == SCRIPT_MOVE ? 1 + min_output[yy] : min_output[yy];
+    max[xx] = (swap_x ? r : l) ? min_output[xx] :
+        sd == SCRIPT_MOVE ? max_output[xx] - 1 : max_output[xx];
+    max[yy] = (swap_y ? d : u) ? min_output[yy] :
+        sd == SCRIPT_MOVE ? max_output[yy] - 1 : max_output[yy];
+
+    min_output = min;
+    max_output = max;
+  }
+}
+
 y::ivec2 MapEditor::world_to_camera(const y::ivec2& v) const
 {
   const Resolution& r = _util.get_window().get_mode();
@@ -522,9 +633,12 @@ void MapEditor::draw_cell_layer(
 
 void MapEditor::draw_scripts() const
 {
+  bool control = sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) ||
+                 sf::Keyboard::isKeyPressed(sf::Keyboard::RControl);
+
   // Script region the mouse is hovering over.
   const ScriptBlueprint* hover_script =
-      !is_dragging() && _map.has_script_at(get_hover_world()) ?
+      !is_dragging() && control && _map.has_script_at(get_hover_world()) ?
           &_map.get_script_at(get_hover_world()) : y::null;
 
   // Script being dragged.
@@ -533,15 +647,34 @@ void MapEditor::draw_scripts() const
 
   for (const ScriptBlueprint& s : _map.get_scripts()) {
     // Need to show an uncommitted script drag.
-    y::ivec2 off = &s == drag_script ?
-        get_hover_world() - get_drag_start() : y::ivec2();
-    y::ivec2 min = world_to_camera((s.min + off) * Tileset::tile_size);
-    y::ivec2 max = world_to_camera((s.max + off) * Tileset::tile_size);
+    y::ivec2 min;
+    y::ivec2 max;
+    get_script_drag_result(min, max, s, _script_drag, &s == drag_script, false);
+
+    min = world_to_camera(min * Tileset::tile_size);
+    max = world_to_camera(max * Tileset::tile_size);
 
     y::fvec4 c = s.path == "/yedit/missing.lua" ?
-        y::fvec4{1.f, 1.f, 1.f, 1.f} : _bank.scripts.get(s.path).yedit_colour;
-    c[aa] = &s != drag_script ? .3f : .6f;
+        colour::white : _bank.scripts.get(s.path).yedit_colour;
+    c[aa] = .3f;
     _util.irender_fill(min, Tileset::tile_size + max - min, c);
+
+    y::fvec4 hc{c[rr], c[gg], c[bb], .3f};
+    // Render hover indicator.
+    if (&s == hover_script || &s == drag_script) {
+      script_drag hd = &s == hover_script ?
+          get_script_drag(*hover_script, get_hover_world()) : _script_drag;
+
+      y::ivec2 hmin;
+      y::ivec2 hmax;
+      get_script_drag_result(hmin, hmax, s, hd, &s == drag_script, true);
+
+      hmin = world_to_camera(hmin * Tileset::tile_size);
+      hmax = world_to_camera(hmax * Tileset::tile_size);
+
+      _util.irender_fill(hmin, Tileset::tile_size + hmax - hmin, hc);
+    }
+
     _util.irender_outline(min, Tileset::tile_size + max - min, colour::outline);
     _util.irender_text(s.path, min, &s == hover_script || &s == drag_script ?
                                     colour::select : colour::item);
