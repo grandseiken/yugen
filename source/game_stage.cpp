@@ -488,7 +488,8 @@ void GameRenderer::render_tiles(
 
   // Render all the tiles in the world at once, batched by texture. We could
   // potentially store two renderbatches and only recompute this when the
-  // world changes.
+  // world changes. (And store the OpenGL buffer so it doesn't need to be
+  // reuploaded every frame either.)
   for (auto it = world.get_cartesian(); it; ++it) {
     Cell* cell = world.get_active_window_cell(*it);
     if (!cell) {

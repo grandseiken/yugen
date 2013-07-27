@@ -153,9 +153,10 @@ y::wvec2 Collision::collider_move(
   }
 
   // TODO: need some kind of 'pulling' mechanism. If a platform moves with
-  // something on top of it, the thing on top should also move. Not entirely
-  // sure how that should be implemented right now. Possibly some kind of
-  // contact-based system.
+  // something on top of it, the thing on top should also move. This should be
+  // a joint system: attach a joint at the object's feet every frame if it's
+  // standing on something. The same system can be used for other joints, like
+  // ropes and chains.
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // Bounding boxes of the source Bodies.
@@ -272,7 +273,7 @@ y::wvec2 Collision::collider_move(
       // Save the lowest block_ratio body so we can try to push it.
       y::world block_ratio =
           y::min(get_projection_ratio(block_geometries, vertices, move),
-                 get_projection_ratio(geometries, block_vertices, move));
+                 get_projection_ratio(geometries, block_vertices, -move));
       if (block_ratio < min_ratio) {
         first_block_output = block;
         min_ratio = block_ratio;
@@ -295,9 +296,6 @@ y::wvec2 Collision::collider_move(y::vector<Body*>& pushes_output,
   // TODO: (optionally) recurse against the blocked direction, i.e. slide down
   // a wall if we can? Doesn't matter for 'characters' who walk about through
   // very specific moves, for probably does for dumb physics-y objects.
-  // TODO: something odd is happening with collision; in particular, crates
-  // falling through the player, and so on. Really not sure what's going on
-  // here.
   Body* first_block;
   y::wvec2 limited_move = collider_move(first_block, source, move);
 
@@ -607,7 +605,8 @@ y::world Collision::get_projection_ratio(
   world_geometry v{vertex, move + vertex};
   const world_geometry& g = geometry;
 
-  // Skip geometry in the wrong direction.
+  // Skip geometry in the wrong direction. I think this is probably duplicated
+  // logic now that we have the get_vertices_and_geometries_for_move function.
   if (tolerance) {
     y::wvec2 g_vec = g.end - g.start;
     y::wvec2 normal{g_vec[yy], -g_vec[xx]};
