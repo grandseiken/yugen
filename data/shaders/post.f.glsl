@@ -5,7 +5,7 @@ uniform ivec2 bayer_res;
 uniform vec2 bayer_off;
 uniform float bayer_rot;
 uniform int bayer_frame;
-varying vec2 tex_coord;
+noperspective varying vec2 tex_coord;
 
 const int colours_per_channel = 16;
 const float div = 1.0 / (colours_per_channel - 1);
@@ -17,6 +17,10 @@ const vec2 b_dir = vec2(sin(0.2 + 4 * pi / 3), cos(0.2 + 4 * pi / 3));
 
 const float dithering_mix = 1.0;
 
+// See http://bisqwit.iki.fi/story/howto/dither/jy/ for the dithering bible.
+// TODO: change everything to GLSL 1.3, i.e. in and out rather than attribute
+// and varying, and so on. See
+// http://www.opengl.org/registry/doc/GLSLangSpec.Full.1.30.10.pdf
 void main()
 {
   vec4 raw = texture2D(framebuffer, tex_coord);

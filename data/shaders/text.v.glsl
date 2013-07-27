@@ -3,8 +3,8 @@
 attribute vec2 pixels;
 attribute float character;
 uniform vec2 origin;
-varying vec2 tex_coord;
-varying float character_coord;
+noperspective varying vec2 tex_coord;
+flat varying float character_coord;
 
 void main()
 {

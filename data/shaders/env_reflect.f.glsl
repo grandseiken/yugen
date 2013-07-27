@@ -12,10 +12,10 @@ uniform float reflect_fade_end;
 uniform float wave_height;
 uniform float wave_scale;
 
-varying vec2 tex_coord;
-varying vec2 reflect_coord;
-varying vec2 refract_coord;
-varying float reflect_dist;
+noperspective varying vec2 tex_coord;
+noperspective varying vec2 reflect_coord;
+noperspective varying vec2 refract_coord;
+noperspective varying float reflect_dist;
 
 #include "perlin.glsl"
 
@@ -40,9 +40,9 @@ void main()
   }
 
   // Calculate texture offset based on perlin noise.
-  vec2 p = vec2(perlin_lookup(perlin, tex_coord, frame / perlin_size.z));
+  vec2 p = perlin_lookup(perlin, tex_coord, frame / perlin_size.z);
   p = 2.0 * (p - 0.5);
-  p /= vec2(resolution);
+  p /= resolution;
 
   // Calculate reflect and refract coordinates.
   vec2 reflect_v = reflect_coord + normal_scaling_reflect * reflect_dist * p;
@@ -66,5 +66,5 @@ void main()
 
   vec4 c = mix(colour, reflect, reflect_mix * reflect_dist_mix * edge_fade);
   c = mix(refract, c, colour.a);
-  gl_FragColor = vec4(c.r, c.g, c.b, 1.0);
+  gl_FragColor = vec4(c.rgb, 1.0);
 }

@@ -267,6 +267,9 @@ protected:
   friend class GlUtil;
   explicit GlProgram(GLuint handle);
 
+  // TODO: need to store which attribute indices have been enabled with
+  // glEnableVertexAttribArray so we can disable them if we ever have
+  // optional attributes.
 private:
 
   // Check if uniform or attribute name exists in program.

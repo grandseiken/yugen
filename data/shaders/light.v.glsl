@@ -6,11 +6,11 @@ attribute vec2 range;
 attribute vec4 colour;
 attribute float layer;
 
-varying vec2 pixels_coord;
-varying vec2 pos_coord;
-varying vec2 range_coord;
-varying vec4 colour_coord;
-varying float layer_coord;
+noperspective varying vec2 pixels_coord;
+noperspective varying vec2 pos_coord;
+flat varying vec2 range_coord;
+flat varying vec4 colour_coord;
+flat varying float layer_coord;
 
 void main()
 {
@@ -18,7 +18,7 @@ void main()
   gl_Position = pos;
 
   pixels_coord = pixels - origin;
-  pos_coord = 0.5 + 0.5 * vec2(pos.x, pos.y);
+  pos_coord = 0.5 + 0.5 * pos.xy;
 
   range_coord = range;
   colour_coord = colour;

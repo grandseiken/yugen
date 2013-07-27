@@ -3,11 +3,11 @@ uniform float depth;
 
 // We could pass all of these as attributes or uniforms. It doesn't seem to make
 // a huge difference to performance either way.
-varying vec2 pixels_coord;
-varying vec2 pos_coord;
-varying vec2 range_coord;
-varying vec4 colour_coord;
-varying float layer_coord;
+noperspective varying vec2 pixels_coord;
+noperspective varying vec2 pos_coord;
+flat varying vec2 range_coord;
+flat varying vec4 colour_coord;
+flat varying float layer_coord;
 
 #include "light_util.glsl"
 
@@ -46,7 +46,7 @@ void main()
 
   // Similarly, light directions have x, y in [-1, 1]; scale and treat as
   // spherical coordinates.
-  vec3 direct_world = vec3(direct_dir.x, direct_dir.y, 0.0);
+  vec3 direct_world = vec3(direct_dir.xy, 0.0);
   vec3 indirect_world = circular_coords_to_world_normal(indirect_dir);
 
   // Calculate light values.

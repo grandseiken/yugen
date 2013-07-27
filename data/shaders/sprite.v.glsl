@@ -8,10 +8,10 @@ attribute float rotation;
 attribute float depth;
 uniform ivec2 frame_size;
 
-varying vec2 tex_coord;
-varying vec2 frame_coord;
-varying vec4 colour_coord;
-varying float depth_coord;
+noperspective varying vec2 tex_coord;
+flat varying vec2 frame_coord;
+flat varying vec4 colour_coord;
+flat varying float depth_coord;
 
 void main()
 {

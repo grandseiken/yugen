@@ -21,21 +21,20 @@ vec3 sq_coords_to_world_normal(vec2 coords)
   vec2 sq = coords * coords;
   float m = max(sq.x, sq.y);
   float d = inversesqrt((sq.x + sq.y) / m);
-  return vec3(coords.x * d, coords.y * d, sqrt(max(0.0, 1.0 - m)));
+  return vec3(coords.xy * d, sqrt(max(0.0, 1.0 - m)));
 }
 
 // Same as above, but takes coords scaled to the unit circle already.
 vec3 circular_coords_to_world_normal(vec2 coords)
 {
   vec2 sq = coords * coords;
-  return vec3(coords.x, coords.y,
-              sqrt(max(0.0, 1 - sq.x - sq.y)));
+  return vec3(coords.xy, sqrt(max(0.0, 1 - sq.x - sq.y)));
 }
 
 // Returns the square cooords of a normal encoded in a texture value.
 vec2 tex_to_sq_coords(vec4 normal_tex)
 {
-  return 2.0 * vec2(normal_tex.x, normal_tex.y) - 1.0;
+  return 2.0 * normal_tex.xy - 1.0;
 }
 
 // Returns the world normal from its encoding in a texture value.
@@ -50,7 +49,7 @@ float light_value(vec3 light_normal, vec3 world_normal)
   // Since light_normal has reversed z, we only negate the first two
   // coordinates.
   return dot(world_normal,
-             vec3(-light_normal.x, -light_normal.y, light_normal.z));
+             vec3(-light_normal.xy, light_normal.z));
 }
 
 // Calculates the specular value given normals from light to pixel, camera to

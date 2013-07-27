@@ -3,12 +3,12 @@ uniform float depth;
 uniform ivec2 resolution;
 uniform vec2 translation;
 
-varying vec2 pixels_coord;
-varying vec2 origin_coord;
-varying vec2 pos_coord;
-varying vec2 range_coord;
-varying vec4 colour_coord;
-varying float layer_coord;
+noperspective varying vec2 pixels_coord;
+flat varying vec2 origin_coord;
+noperspective varying vec2 pos_coord;
+flat varying vec2 range_coord;
+flat varying vec4 colour_coord;
+flat varying float layer_coord;
 
 #include "light_util.glsl"
 
@@ -38,15 +38,14 @@ void main()
 
   // Camera position for specular highlights. Distance from render-plane is
   // essentially made-up.
-  vec3 camera_pos = vec3(resolution.x / 2 - translation.x,
-                         resolution.y / 2 - translation.y,
+  vec3 camera_pos = vec3(resolution.xy / 2 - translation.xy,
                          camera_distance * resolution.y);
 
-  vec3 camera_to_pixel = vec3(pixels_coord.x, pixels_coord.y, 0.0) - camera_pos;
+  vec3 camera_to_pixel = vec3(pixels_coord.xy, 0.0) - camera_pos;
   camera_to_pixel = normalize(camera_to_pixel);
   vec3 indirect_light_to_pixel =
-      normalize(vec3(dist_v.x, dist_v.y, -max_range));
-  vec3 direct_light_to_pixel = normalize(vec3(dist_v.x, dist_v.y, 0.0));
+      normalize(vec3(dist_v.xy, -max_range));
+  vec3 direct_light_to_pixel = normalize(vec3(dist_v.xy, 0.0));
 
   // Calculate specular values.
   float direct_specular = specular_value(

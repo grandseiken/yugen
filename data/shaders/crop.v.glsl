@@ -2,7 +2,7 @@ attribute vec2 position;
 uniform ivec2 native_res;
 uniform ivec2 native_overflow_res;
 uniform float rotation;
-varying vec2 tex_coord;
+noperspective varying vec2 tex_coord;
 
 void main()
 {

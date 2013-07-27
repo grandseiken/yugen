@@ -1,6 +1,6 @@
 uniform sampler2D colourbuffer;
 uniform sampler2D lightbuffer;
-varying vec2 tex_coord;
+noperspective varying vec2 tex_coord;
 
 #include "light_util.glsl"
 

@@ -1,6 +1,6 @@
 #include "env.glsl"
 
-varying vec2 tex_coord;
+noperspective varying vec2 tex_coord;
 
 void main()
 {

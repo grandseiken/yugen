@@ -4,11 +4,11 @@ uniform ivec2 native_res;
 uniform bool integral_scale_lock;
 uniform bool use_epx;
 uniform bool use_fra;
-varying vec2 tex_coord;
+noperspective varying vec2 tex_coord;
 
 bool eq(vec4 a, vec4 b)
 {
-  return a.r == b.r && a.g == b.g && a.b == b.b;
+  return a.rgb == b.rgb;
 }
 
 // Fra scale. Does the two-step process of inflating to an arbitrarily high
@@ -32,8 +32,7 @@ vec4 fra_scale()
   vec4 pp = texture2D(framebuffer, tex_coord);
   vec4 np = texture2D(framebuffer, tex_coord + vec2(screen_size.x, 0.0));
   vec4 pn = texture2D(framebuffer, tex_coord + vec2(0.0, screen_size.y));
-  vec4 nn = texture2D(framebuffer, tex_coord + vec2(screen_size.x,
-                                                    screen_size.y));
+  vec4 nn = texture2D(framebuffer, tex_coord + screen_size);
 
   // Weight by the overlap areas.
   float pp_weight = prev_weight.x * prev_weight.y;

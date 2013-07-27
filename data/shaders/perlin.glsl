@@ -8,6 +8,5 @@ float perlin_z(vec2 tex_coord, float z)
 
 vec4 perlin_lookup(sampler3D perlin, vec2 tex_coord, float z)
 {
-  return texture3D(perlin, vec3(tex_coord.x, tex_coord.y,
-                                perlin_z(tex_coord, z)));
+  return texture3D(perlin, vec3(tex_coord.xy, perlin_z(tex_coord, z)));
 }

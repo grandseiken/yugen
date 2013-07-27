@@ -4,7 +4,7 @@ uniform sampler3D perlin;
 uniform float frame;
 uniform float fog_min = 0.4;
 uniform float fog_max = 0.7;
-varying vec2 tex_coord;
+noperspective varying vec2 tex_coord;
 
 #include "perlin.glsl"
 

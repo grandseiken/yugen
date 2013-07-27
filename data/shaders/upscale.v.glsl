@@ -2,7 +2,7 @@ attribute vec2 position;
 uniform ivec2 native_res;
 uniform ivec2 screen_res;
 uniform bool integral_scale_lock;
-varying vec2 tex_coord;
+noperspective varying vec2 tex_coord;
 
 void main()
 {
@@ -12,7 +12,7 @@ void main()
   tex_coord = 0.5 + 0.5 * position;
 
   vec2 scale_v = vec2(screen_res) / vec2(native_res) + correction;
-  float scale = floor(scale_v.x < scale_v.y ? scale_v.x : scale_v.y);
+  float scale = floor(min(scale_v.x, scale_v.y));
 
   vec2 viewport = 1.0;
   if (scale >= 1.0 && integral_scale_lock) {

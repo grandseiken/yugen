@@ -3,10 +3,10 @@ uniform ivec2 frame_size;
 uniform ivec2 frame_count;
 uniform bool normal;
 
-varying vec2 tex_coord;
-varying vec2 frame_coord;
-varying vec4 colour_coord;
-varying float depth_coord;
+noperspective varying vec2 tex_coord;
+flat varying vec2 frame_coord;
+flat varying vec4 colour_coord;
+flat varying float depth_coord;
 
 void main()
 {

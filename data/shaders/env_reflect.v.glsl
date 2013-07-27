@@ -4,10 +4,10 @@ uniform bool flip_x;
 uniform bool flip_y;
 uniform vec2 flip_axes;
 
-varying vec2 tex_coord;
-varying vec2 reflect_coord;
-varying vec2 refract_coord;
-varying float reflect_dist;
+noperspective varying vec2 tex_coord;
+noperspective varying vec2 reflect_coord;
+noperspective varying vec2 refract_coord;
+noperspective varying float reflect_dist;
 
 void main()
 {

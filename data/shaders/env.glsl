@@ -6,5 +6,5 @@ attribute vec2 pixels;
 
 vec2 env_tex_coord(vec2 pixels)
 {
-  return (tex_offset + pixels) / vec2(perlin_size.x, perlin_size.y);
+  return (tex_offset + pixels) / perlin_size.xy;
 }
