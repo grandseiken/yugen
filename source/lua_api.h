@@ -369,6 +369,8 @@ y_ptrtypedef(Script) {
 y_api(get_script)
     y_arg(y::string, path)
 {
+  y_assert(stage.get_bank().scripts.is_name_used(path), 0,
+           ("Missing script " + path + " used").c_str());
   y_return(&stage.get_bank().scripts.get(path));
 }
 
@@ -460,6 +462,8 @@ y_api(get_camera_rotation)
 y_api(get_sprite)
     y_arg(y::string, path)
 {
+  y_assert(stage.get_bank().sprites.is_name_used(path), 0,
+           ("Missing sprite " + path + " used").c_str());
   y_return(&stage.get_bank().sprites.get(path));
 }
 

@@ -18,6 +18,9 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
   , cells(_default_cell)
   , maps(_default_map)
 {
+  // Things should be loaded in order of dependence, so that the data can be
+  // accessed while loading if necessary. For example, maps depend on cells
+  // and scripts.
   y::string_vector paths;
   filesystem.list_pattern(paths, "/sprites/**.png");
   for (const y::string& s : paths) {
@@ -69,8 +72,6 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
   }
 
-  reload_cells_and_maps(filesystem);
-
   filesystem.read_file_with_includes(_default_script.contents,
                                      _default_script.path);
   // Scripts in the root directory are for inclusion only.
@@ -82,7 +83,14 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     filesystem.read_file_with_includes(lua_file->contents, s);
     scripts.insert(s, y::move_unique(lua_file));
   }
-  // Construct a fake GameStage so we can access the functions.
+
+  // Maps depend on knowing the names of scripts, but grabbing data out of
+  // scripts requires an actual map to be loaded for the GameStage, so this
+  // needs to happen in-between.
+  reload_cells_and_maps(filesystem);
+
+  // Fill in the editor data of the scripts. Construct a fake GameStage so we
+  // can access the functions.
   if (load_yedit_data) {
     RenderUtil fake_util(gl);
     GlUnique<GlFramebuffer> fake_framebuffer(

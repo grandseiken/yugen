@@ -2,7 +2,7 @@
 #include "../render.lua"
 
 local sprite = get_sprite("/tiles/temple.png")
-local script = get_script("/scripts/hello.lua")
+local script = get_script("/scripts/game/hello.lua")
 local counter = 0
 math.randomseed(os.time() + self:get_origin():x() + self:get_origin():y() * 17)
 local r = math.floor(100 * math.random())

@@ -2,7 +2,7 @@
 #include "../render.lua"
 
 local sprite = get_sprite("/tiles/temple.png")
-local script = get_script("/scripts/hello2.lua")
+local script = get_script("/scripts/game/hello2.lua")
 local counter = 0
 local body = self:create_body(vec(0, 8), vec(32, 16))
 function update()

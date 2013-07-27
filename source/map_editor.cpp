@@ -173,14 +173,14 @@ void MapEditor::event(const sf::Event& e)
 
     // Remove cell or script.
     case sf::Keyboard::Delete:
-      if (!is_script_layer()) {
-        get_undo_stack().new_action(y::move_unique(
-            new CellRemoveAction(_bank, _map, get_hover_cell())));
-      }
       if (is_script_layer()) {
         const ScriptBlueprint& b = _map.get_script_at(get_hover_world());
         get_undo_stack().new_action(y::move_unique(
             new ScriptRemoveAction(_map, b.min, b.max, b.path)));
+      }
+      else {
+        get_undo_stack().new_action(y::move_unique(
+            new CellRemoveAction(_bank, _map, get_hover_cell())));
       }
       break;
 

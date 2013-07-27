@@ -138,7 +138,14 @@ void CellMap::load_from_proto(Databank& bank, const proto::CellMap& proto)
   for (y::int32 i = 0; i < proto.coords_size(); ++i) {
     y::ivec2 v;
     y::load_from_proto(v, proto.coords(i).coord());
-    set_coord(v, bank.cells.get(proto.coords(i).cell()));
+    const y::string& path = proto.coords(i).cell();
+    if (bank.cells.is_name_used(path)) {
+      set_coord(v, bank.cells.get(path));
+    }
+    else {
+      std::cerr << "Map uses missing cell " << path <<
+          ", skipping" << std::endl;
+    }
   }
 
   for (y::int32 i = 0; i < proto.scripts_size(); ++i) {
@@ -146,7 +153,13 @@ void CellMap::load_from_proto(Databank& bank, const proto::CellMap& proto)
     y::load_from_proto(s.min, proto.scripts(i).min());
     y::load_from_proto(s.max, proto.scripts(i).max());
     s.path = proto.scripts(i).path();
-    _scripts.emplace_back(s);
+    if (bank.scripts.is_name_used(s.path)) {
+      _scripts.emplace_back(s);
+    }
+    else {
+      std::cerr << "Map uses missing script " << s.path <<
+          ", skipping" << std::endl;
+    }
   }
 }
 
