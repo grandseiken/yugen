@@ -193,7 +193,7 @@ function update()
   if step_amount ~= 0 then
     self:collider_move(vec(0, step_amount))
   end
-  self:collider_move(vec(v, 0), COLLIDE_PUSHABLE, 0)
+  self:collider_move(vec(v, 0), COLLIDE_PUSHABLE, 2)
   if step_amount ~= 0 then
     self:collider_move(vec(0, original_y - self:get_origin():y()))
   end

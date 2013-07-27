@@ -543,9 +543,7 @@ void MapEditor::draw_scripts() const
 
     y::fvec4 c = s.path == "/yedit/missing.lua" ?
         y::fvec4{1.f, 1.f, 1.f, 1.f} : _bank.scripts.get(s.path).yedit_colour;
-    if (&s != drag_script) {
-      c[aa] = .5f;
-    }
+    c[aa] = &s != drag_script ? .3f : .6f;
     _util.irender_fill(min, Tileset::tile_size + max - min, c);
     _util.irender_outline(min, Tileset::tile_size + max - min, colour::outline);
     _util.irender_text(s.path, min, &s == hover_script || &s == drag_script ?

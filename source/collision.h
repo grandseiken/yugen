@@ -45,7 +45,7 @@ public:
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
   // Push_mask controls the type of objects that can be pushed out of the way,
-  // and push_max the maximum recursion depth.
+  // and push_max the maximum number that can be pushed at once.
   y::wvec2 collider_move(Body*& first_blocker_output,
                          Script& source, const y::wvec2& move) const;
   y::wvec2 collider_move(y::vector<Body*>& pushes_output,

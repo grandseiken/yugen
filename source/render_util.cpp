@@ -243,7 +243,7 @@ void RenderUtil::render_fill(const y::fvec2& origin, const y::fvec2& size,
       (origin + size)[xx], (origin + size)[yy]};
 
   auto rect_buffer = _gl.make_unique_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, rect_data, sizeof(rect_data));
+      GL_ARRAY_BUFFER, GL_STREAM_DRAW, rect_data, sizeof(rect_data));
 
   _draw_program->bind();
   _draw_program->bind_attribute("pixels", *rect_buffer);
@@ -265,13 +265,13 @@ void RenderUtil::render_fill(const y::fvec2& a, const y::fvec2& b,
       a[xx], a[yy], b[xx], b[yy], c[xx], c[yy]};
 
   auto tri_buffer = _gl.make_unique_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, tri_data, sizeof(tri_data));
+      GL_ARRAY_BUFFER, GL_STREAM_DRAW, tri_data, sizeof(tri_data));
 
   _draw_program->bind();
   _draw_program->bind_attribute("pixels", *tri_buffer);
   _draw_program->bind_uniform("colour", colour);
   bind_pixel_uniforms(*_draw_program);
-  _quad_element->draw_elements(GL_TRIANGLES, 3);
+  _gl.draw_arrays(GL_TRIANGLES, 3);
 }
 
 void RenderUtil::irender_fill(const y::ivec2& origin, const y::ivec2& size,
@@ -309,22 +309,20 @@ void RenderUtil::render_lines(const y::vector<line>& lines,
     y::fvec2 normal =
         y::fvec2::from_angle((x.b - x.a).angle() + float(y::pi / 2));
 
-    y::write_vector(tri_data, 12 * i++, {
+    y::write_vector(tri_data, 8 * i, {
         x.a[xx], x.a[yy],
         (x.a + normal)[xx], (x.a + normal)[yy],
         x.b[xx], x.b[yy],
-        (x.a + normal)[xx], (x.a + normal)[yy],
-        x.b[xx], x.b[yy],
         (x.b + normal)[xx], (x.b + normal)[yy]});
-  }
-  for (i = 0; i < 6 * lines.size(); ++i) {
-    element_data.emplace_back(i);
+    y::write_vector<GLushort, y::vector<y::size>>(element_data, 6 * i++, {
+        4 * i, 1 + 4 * i, 2 + 4 * i,
+        1 + 4 * i, 2 + 4 * i, 3 + 4 * i});
   }
 
   auto tri_buffer = _gl.make_unique_buffer<GLfloat, 2>(
-      GL_ARRAY_BUFFER, GL_STATIC_DRAW, tri_data);
+      GL_ARRAY_BUFFER, GL_STREAM_DRAW, tri_data);
   auto element_buffer = _gl.make_unique_buffer<GLushort, 1>(
-      GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, element_data);
+      GL_ELEMENT_ARRAY_BUFFER, GL_STREAM_DRAW, element_data);
 
   _draw_program->bind();
   _draw_program->bind_attribute("pixels", *tri_buffer);

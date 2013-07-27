@@ -102,6 +102,9 @@ public:
   void enable_blend(bool blend, GLenum source = GL_SRC_ALPHA,
                                 GLenum target = GL_ONE_MINUS_SRC_ALPHA) const;
 
+  // Draw arrays.
+  void draw_arrays(GLenum mode, GLsizei count) const;
+
   template<typename T>
   GlUnique<T> make_unique(const T& t);
 

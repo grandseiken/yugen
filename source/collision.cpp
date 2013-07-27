@@ -152,10 +152,10 @@ y::wvec2 Collision::collider_move(
     return move;
   }
 
-  // Need some kind of 'pulling' mechanism. If a platform moves with something
-  // on top of it, the thing on top should also move. Not entirely sure how
-  // that should be implemented right now. Possibly some kind of contact-based
-  // system.
+  // TODO: need some kind of 'pulling' mechanism. If a platform moves with
+  // something on top of it, the thing on top should also move. Not entirely
+  // sure how that should be implemented right now. Possibly some kind of
+  // contact-based system.
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // Bounding boxes of the source Bodies.
