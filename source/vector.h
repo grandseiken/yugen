@@ -523,6 +523,34 @@ namespace y {
     return cartesian(vec<T, N, non_strict>(), max);
   }
 
+  // Perhaps this should go to a geometry.h or similar header.
+  template<typename T>
+  bool line_intersects_rect(const vec<T, 2>& start, const vec<T, 2>& end,
+                            const vec<T, 2>& min, const vec<T, 2>& max)
+  {
+    vec<T, 2> line_min = y::min(start, end);
+    vec<T, 2> line_max = y::max(start, end);
+
+    // Check bounds.
+    if (!(line_min < max && line_max > min)) {
+      return false;
+    }
+
+    // Check equation of line.
+    if (start[0] - end[0] != 0) {
+      T m = (end[1] - start[1]) / (end[0] - start[0]);
+      T y_neg = end[1] + m * (min[0] - end[0]);
+      T y_pos = end[1] + m * (max[0] - end[0]);
+
+      if ((max[1] < y_neg && max[1] < y_pos) ||
+          (min[1] >= y_neg && min[1] >= y_pos)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   typedef vec<int32, 2> ivec2;
   typedef vec<int32, 3> ivec3;
   typedef vec<float, 2> fvec2;

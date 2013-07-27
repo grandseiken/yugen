@@ -4,7 +4,7 @@
 #include "../render.lua"
 
 -- Collider body and check bodies.
-local bs, bo = vec(0, -8), vec(6, 48)
+local bs, bo = vec(0, 8), vec(6, 16)
 local body = self:create_body(bs, bo)
 body:set_collide_type(COLLIDE_PLAYER)
 local collide_mask = COLLIDE_WORLD + COLLIDE_OBJECT

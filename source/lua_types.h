@@ -6,7 +6,9 @@
 
 typedef y::int32 lua_int;
 
-// Can hold a variety of different Lua types.
+// LuaValue hold a variety of different Lua types. We use LuaType<LuaValue> when
+// we don't care exactly what type something is, but want to use it between C++
+// and Lua. When we know the exact type T we're working with, we use LuaType<T>.
 struct LuaValue {
   LuaValue(void* userdata, const y::string& metatable);
   LuaValue(y::world world);
@@ -35,6 +37,9 @@ struct LuaValue {
   y::vector<LuaValue> array;
 };
 
+// Base type for non-primitive (i.e. userdata) type information structures.
+// Since we need to copy these objects around arbitrarily without necessarily
+// knowing the type at compile-time, we need a mechanism to allow this.
 struct LuaGenericType {
   virtual void to_lua(lua_State* state, const void* v) const = 0;
   virtual void* copy(const void* v) const = 0;

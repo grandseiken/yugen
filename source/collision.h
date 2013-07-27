@@ -56,6 +56,17 @@ public:
   bool body_check(const Script& source, const Body& body,
                   y::int32 collide_mask) const;
 
+  typedef y::vector<Body*> result;
+  // Finds all bodies that currently overlap the given region even slightly,
+  // with an optional mask on thier collide_type.
+  void get_bodies_in_region(
+      result& output, const y::wvec2& origin, const y::wvec2& region,
+      y::int32 collide_mask) const;
+  // Similar, but for bodies that overlap a circle.
+  void get_bodies_in_radius(
+      result& output, const y::wvec2& origin, y::world radius,
+      y::int32 collide_mask) const;
+
   // This must be called whenever a Script's position or rotation changes in
   // order to update the bodies in the spatial hash.
   void update_spatial_hash(const Script& source);
@@ -92,6 +103,13 @@ private:
                               const y::wvec2& vertex,
                               const y::wvec2& origin, y::world rotation) const;
 
+  // Returns true if the line intersects the circle on more than a point.
+  // Finds t for intersection points of the form start + t * (end - start).
+  // Treats line as infinite; must check t in [0, 1] if the line is a segment.
+  bool line_intersects_circle(const y::wvec2& start, const y::wvec2& end,
+                              const y::wvec2& origin, y::world radius_sq,
+                              y::world& t_0, y::world& t_1) const;
+
   bool has_intersection(const y::vector<world_geometry>& a,
                         const y::vector<world_geometry>& b) const;
   bool has_intersection(const y::vector<world_geometry>& a,
@@ -108,7 +126,7 @@ private:
   void get_geometries(y::vector<world_geometry>& output,
                       const y::vector<y::wvec2>& vertices) const;
   // Get only the vertices and geometries oriented in the direction of a move.
-  // We could have a similar function for rotation, but it's less important.
+  // TODO: have a similar function for rotation.
   void get_vertices_and_geometries_for_move(
       y::vector<world_geometry>& geometry_output,
       y::vector<y::wvec2>& vertex_output,

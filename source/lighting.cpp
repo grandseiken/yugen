@@ -54,7 +54,6 @@ bool Light::overlaps_rect(const y::wvec2& origin,
 
   // Check rect against bounding-box of plane-light parallelogram. Could
   // probably be stricter, but this is simple and good enough.
-
   y::wvec2 a = origin - offset;
   y::wvec2 b = origin + offset;
   y::wvec2 c = a + normal_vec * max_range;
@@ -298,9 +297,9 @@ void Lighting::add_triangle(
   bool ab_test = (bt - at).cross(min - at) < 0;
   bool bc_test = (ct - bt).cross(min - bt) < 0;
   bool ca_test = (at - ct).cross(min - ct) < 0;
-  if (!line_intersects_rect(at, bt, min, max) &&
-      !line_intersects_rect(at, ct, min, max) &&
-      !line_intersects_rect(bt, ct, min, max) &&
+  if (!y::line_intersects_rect(at, bt, min, max) &&
+      !y::line_intersects_rect(at, ct, min, max) &&
+      !y::line_intersects_rect(bt, ct, min, max) &&
       !(ab_test == bc_test && bc_test == ca_test)) {
     return;
   }
@@ -605,7 +604,7 @@ void Lighting::get_angular_relevant_geometry(
       }
 
       // Check intersection.
-      if (!line_intersects_rect(g_s, g_e, -bound, bound)) {
+      if (!y::line_intersects_rect(g_s, g_e, -bound, bound)) {
         continue;
       }
 
@@ -670,7 +669,7 @@ void Lighting::get_planar_relevant_geometry(
         break;
       }
 
-      if (!line_intersects_rect(g_s, g_e, min_bound, max_bound)) {
+      if (!y::line_intersects_rect(g_s, g_e, min_bound, max_bound)) {
         continue;
       }
 
@@ -1076,29 +1075,3 @@ void Lighting::make_cone_trace(light_trace& output, const light_trace& trace,
   output.emplace_back();
 }
 
-bool Lighting::line_intersects_rect(
-    const y::wvec2& start, const y::wvec2& end,
-    const y::wvec2& min, const y::wvec2& max)
-{
-  y::wvec2 line_min = y::min(start, end);
-  y::wvec2 line_max = y::max(start, end);
-
-  // Check bounds.
-  if (!(line_min < max && line_max > min)) {
-    return false;
-  }
-
-  // Check equation of line.
-  if (start[xx] - end[xx] != 0) {
-    y::world m = (end[yy] - start[yy]) / (end[xx] - start[xx]);
-    y::world y_neg = end[yy] + m * (min[xx] - end[xx]);
-    y::world y_pos = end[yy] + m * (max[xx] - end[xx]);
-
-    if ((max[yy] < y_neg && max[yy] < y_pos) ||
-        (min[yy] >= y_neg && min[yy] >= y_pos)) {
-      return false;
-    }
-  }
-
-  return true;
-}

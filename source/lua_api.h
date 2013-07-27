@@ -403,6 +403,26 @@ y_api(get_scripts_in_radius)
   y_return(result);
 }
 
+y_api(get_bodies_in_region)
+    y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
+    y_optarg(y::int32, collide_mask)
+{
+  Collision::result result;
+  stage.get_collision().get_bodies_in_region(
+      result, origin, region, collide_mask_defined ? collide_mask : 0);
+  y_return(result);
+}
+
+y_api(get_bodies_in_radius)
+    y_arg(const y::wvec2, origin) y_arg(y::world, radius)
+    y_optarg(y::int32, collide_mask)
+{
+  Collision::result result;
+  stage.get_collision().get_bodies_in_radius(
+      result, origin, radius, collide_mask_defined ? collide_mask : 0);
+  y_return(result);
+}
+
 y_api(set_player)
     y_arg(Script*, script)
 {

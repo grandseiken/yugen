@@ -188,9 +188,6 @@ private:
   void make_cone_trace(light_trace& output, const light_trace& trace,
                        y::world angle, y::world aperture) const;
 
-  static bool line_intersects_rect(const y::wvec2& start, const y::wvec2& end,
-                                   const y::wvec2& min, const y::wvec2& max);
-
   const WorldWindow& _world;
   GlUtil& _gl;
   GlUnique<GlProgram> _light_program;

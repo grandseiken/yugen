@@ -547,6 +547,76 @@ bool Collision::body_check(const Script& source, const Body& body,
   return false;
 }
 
+void Collision::get_bodies_in_region(
+    result& output, const y::wvec2& origin, const y::wvec2& region,
+    y::int32 collide_mask) const
+{
+  y::wvec2 min = origin - region / 2;
+  y::wvec2 max = origin + region / 2;
+
+  result temp;
+  _spatial_hash.search(temp, min, max);
+
+  for (Body* body : temp) {
+    if (collide_mask & !(body->collide_type & collide_mask)) {
+      continue;
+    }
+    y::vector<y::wvec2> vertices;
+    body->get_vertices(vertices, body->source.get_origin(),
+                                 body->source.get_rotation());
+
+    bool intersect = !vertices.empty() &&
+        vertices[0] < max && vertices[0] >= min;
+    for (y::size i = 0; i < vertices.size() && !intersect; ++i) {
+      const y::wvec2& a = vertices[i];
+      const y::wvec2& b = vertices[(1 + i) % vertices.size()];
+      if (y::line_intersects_rect(a, b, min, max)) {
+        intersect = true;
+      }
+    }
+    if (intersect) {
+      output.emplace_back(body);
+    }
+  }
+}
+
+void Collision::get_bodies_in_radius(
+    result& output, const y::wvec2& origin, y::world radius,
+    y::int32 collide_mask) const
+{
+  result temp;
+  _spatial_hash.search(temp, origin - y::wvec2{radius, radius},
+                             origin + y::wvec2{radius, radius});
+  y::world radius_sq = radius * radius;
+
+  for (Body* body : temp) {
+    if (collide_mask & !(body->collide_type & collide_mask)) {
+      continue;
+    }
+    y::vector<y::wvec2> vertices;
+    body->get_vertices(vertices, body->source.get_origin(),
+                                 body->source.get_rotation());
+
+    bool intersect = !vertices.empty() &&
+        (vertices[0] - origin).length_squared() < radius_sq;
+    y::world t_0;
+    y::world t_1;
+    for (y::size i = 0; i < vertices.size() && !intersect; ++i) {
+      const y::wvec2& a = vertices[i];
+      const y::wvec2& b = vertices[(1 + i) % vertices.size()];
+      if (!line_intersects_circle(a, b, origin, radius_sq, t_0, t_1)) {
+        continue;
+      }
+      if ((t_0 > 0 && t_0 < 1) || (t_1 > 0 && t_1 < 1)) {
+        intersect = true;
+      }
+    }
+    if (intersect) {
+      output.emplace_back(body);
+    }
+  }
+}
+
 void Collision::update_spatial_hash(const Script& source)
 {
   for (const entry& body : get_list(source)) {
@@ -673,32 +743,12 @@ y::world Collision::get_arc_projection(
     const y::wvec2& origin, y::world rotation) const
 {
   const world_geometry& g = geometry;
-
-  // Equation of line (for t in [0, 1]):
-  // g(t) = g.start + t * (g.end - g.start)
-  // Equation of circle:
-  // |x - origin| = |vertex - origin|
-  // Finds all t such that |g(t) - origin| = |vertex - origin|.
-  // These are the roots of the equation a * t^2 + b * t + c = 0.
-  y::world r_sq = (vertex - origin).length_squared();
-  y::wvec2 g_vec = (g.end - g.start);
-
-  y::world a = g_vec.length_squared();
-  y::world b = 2 * (g.start.dot(g.end) + g.start.dot(origin) -
-                    g.end.dot(origin) - g.start.length_squared());
-  y::world c = (g.start - origin).length_squared() - r_sq;
-
-  y::world sqrtand = b * b - 4 * a * c;
-
-  // If no roots the line and circle do not meet. If one root they touch at a
-  // single point, so also cannot be blocking. If a is zero the line is a point.
-  if (sqrtand <= 0 || a == 0) {
+  y::world t_0;
+  y::world t_1;
+  if (!line_intersects_circle(g.start, g.end, origin,
+                              (vertex - origin).length_squared(), t_0, t_1)) {
     return y::abs(rotation);
   }
-
-  y::world sqrted = sqrt(sqrtand);
-  y::world t_0 = (-b + sqrted) / (2 * a);
-  y::world t_1 = (-b - sqrted) / (2 * a);
 
   // If any root t satisfies 0 <= t <= 1 then it is a block of the circle by the
   // line, so find the angle and limit.
@@ -739,11 +789,44 @@ y::world Collision::get_arc_projection(
       return limiting_rotation;
     }
   };
+  y::wvec2 g_vec = g.end - g.start;
   y::world initial_angle = (vertex - origin).angle();
   y::world limiting_rotation = y::min(
       local::limit(t_0, rotation, initial_angle, g.start, g_vec, origin),
       local::limit(t_1, rotation, initial_angle, g.start, g_vec, origin));
   return limiting_rotation;
+}
+
+bool Collision::line_intersects_circle(
+    const y::wvec2& start, const y::wvec2& end,
+    const y::wvec2& origin, y::world radius_sq,
+    y::world& t_0, y::world& t_1) const
+{
+  // Equation of line (for t in [0, 1]):
+  // f(t) = start + t * (end - start)
+  // Equation of circle:
+  // |x - origin| = radius
+  // Finds all t such that |g(t) - origin| = radius.
+  // These are the roots of the equation a * t^2 + b * t + c = 0.
+  y::wvec2 f_vec = (end - start);
+
+  y::world a = f_vec.length_squared();
+  y::world b = 2 * (start.dot(end) + start.dot(origin) -
+                    end.dot(origin) - start.length_squared());
+  y::world c = (start - origin).length_squared() - radius_sq;
+
+  y::world sqrtand = b * b - 4 * a * c;
+
+  // If no roots the line and circle do not meet. If one root they touch at a
+  // single point, so also cannot be blocking. If a is zero the line is a point.
+  if (sqrtand <= 0 || a == 0) {
+    return false;
+  }
+
+  y::world sqrted = sqrt(sqrtand);
+  t_0 = (-b + sqrted) / (2 * a);
+  t_1 = (-b - sqrted) / (2 * a);
+  return true;
 }
 
 bool Collision::has_intersection(const y::vector<world_geometry>& a,
