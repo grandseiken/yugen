@@ -258,6 +258,13 @@ void MapEditor::update()
   }
   _camera += speed * d;
 
+  // Quit without saving.
+  if (_confirm_result.confirm) {
+    _bank.reload_cells_and_maps(_output);
+    end();
+    return;
+  }
+
   // Update hover and status text.
   if (!is_mouse_on_screen()) {
     return;
@@ -308,12 +315,6 @@ void MapEditor::update()
       }
     }
     _input_result.success = false;
-  }
-
-  // Quit without saving.
-  if (_confirm_result.confirm) {
-    _bank.reload_cells_and_maps(_output);
-    end();
   }
 
   if (!is_dragging()) {

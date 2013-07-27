@@ -4,8 +4,8 @@ uniform ivec2 resolution;
 uniform vec2 translation;
 
 noperspective varying vec2 pixels_coord;
-flat varying vec2 origin_coord;
 noperspective varying vec2 pos_coord;
+flat varying vec2 origin_coord;
 flat varying vec2 range_coord;
 flat varying vec4 colour_coord;
 flat varying float layer_coord;

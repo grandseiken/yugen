@@ -224,11 +224,15 @@ static RegistryIndex stage_registry_index;
 /***/ #define y_assert(condition, index, message)
 /***/
 /***/ #define y_return(...)                                                    \
+/***/         (void)(__VA_ARGS__);                                             \
 /***/       }                                                                  \
 /***/     }                                                                    \
 /***/   }; while (false) {(void)0
 /***/
-/***/ #define y_void() y_return()
+/***/ #define y_void()                                                         \
+/***/       }                                                                  \
+/***/     }                                                                    \
+/***/   }; while (false) {(void)0
 /******************************************************************************/
 void y_register(lua_State* _y_state)
 {

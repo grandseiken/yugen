@@ -292,8 +292,14 @@ y_api(script__destroy_body)
 
 y_api(script__collider_move)
     y_arg(Script*, script) y_arg(const y::wvec2, move)
+    y_optarg(y::int32, push_mask) y_optarg(y::int32, push_max)
 {
-  y_return(stage.get_collision().collider_move(*script, move));
+  y::vector<Body*> pushes;
+  y::wvec2 moved = stage.get_collision().collider_move(
+      pushes,
+      *script, move, push_mask_defined ? push_mask : 0,
+      push_max_defined && push_max >= 0 ? push_max : 64);
+  y_return(moved);
 }
 
 y_api(script__collider_rotate)

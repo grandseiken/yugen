@@ -112,7 +112,7 @@ struct PowerSmoothing {
   T power;
 };
 
-// Arbitrary-dimensional perlin noise over values of type T, using random number
+// Arbitrary-dimensional perlin noise over type T, using random number
 // generator of type G. G must have overload T operator()() which generates
 // the next random T (in the desired range).
 // TODO: simplex noise.

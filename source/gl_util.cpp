@@ -18,9 +18,24 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
   }
 
   // OpenGL 2.1 is very old. we could potentially target 3.0 if there's any
-  // reason to. Even 3.1 seems to have patchy support on Linux, though.
+  // reason to. Even 3.1 seems to have patchy support on Linux, though. Also,
+  // Intel cards generally don't go beyond 2.1. However, the biggest change is
+  // a cleaner shader language (in/out), which perhaps isn't stricly necessary.
+  // Also allows multiple render-targets in a single shader pass.
+  // http://www.opengl.org/registry/doc/GLSLangSpec.Full.1.30.10.pdf
   if (!GLEW_VERSION_2_1) {
     std::cerr << "OpenGL 2.1 not available" << std::endl;
+    return;
+  }
+
+  if (!GLEW_ARB_texture_non_power_of_two) {
+    std::cerr << "OpenGL non-power-of-two textures not available" << std::endl;
+    return;
+  }
+
+  if (!GLEW_ARB_shading_language_100 || !GLEW_ARB_shader_objects ||
+      !GLEW_ARB_vertex_shader || !GLEW_ARB_fragment_shader) {
+    std::cerr << "OpenGL shaders not available" << std::endl;
     return;
   }
 

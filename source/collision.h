@@ -12,7 +12,7 @@ class WorldWindow;
 // A Body is, thus far, a rectangular area of some size, whose center
 // is offset some amount from the origin of the source Script.
 struct Body : y::no_copy {
-  Body(const Script& source);
+  Body(Script& source);
 
   // Get bounds (on x-axis). Potentially this could be made virtual and
   // overridden for other shapes.
@@ -24,7 +24,7 @@ struct Body : y::no_copy {
   void get_vertices(y::vector<y::wvec2>& output,
                     const y::wvec2& origin, y::world rotation) const;
 
-  const Script& source;
+  Script& source;
   y::wvec2 offset;
   y::wvec2 size;
 
@@ -44,7 +44,13 @@ public:
   void render(RenderUtil& util,
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
-  y::wvec2 collider_move(Script& source, const y::wvec2& move) const;
+  // Push_mask controls the type of objects that can be pushed out of the way,
+  // and push_max the maximum recursion depth.
+  y::wvec2 collider_move(Body*& first_blocker_output,
+                         Script& source, const y::wvec2& move) const;
+  y::wvec2 collider_move(y::vector<Body*>& pushes_output,
+                         Script& source, const y::wvec2& move,
+                         y::int32 push_mask, y::int32 push_max) const;
   y::world collider_rotate(Script& source, y::world rotate,
                            const y::wvec2& origin_offset) const;
   bool body_check(const Script& source, const Body& body,

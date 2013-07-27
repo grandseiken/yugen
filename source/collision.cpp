@@ -11,7 +11,7 @@ enum CollideMaskReserved {
   COLLIDE_RESV_2 = 8,
 };
 
-Body::Body(const Script& source)
+Body::Body(Script& source)
   : source(source)
   , collide_type(COLLIDE_RESV_NONE)
   , collide_mask(COLLIDE_RESV_NONE)
@@ -142,19 +142,20 @@ void Collision::render(
   util.render_lines(blue, {0.f, 0.f, 1.f, .5f});
 }
 
-y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
+y::wvec2 Collision::collider_move(
+    Body*& first_block_output, Script& source, const y::wvec2& move) const
 {
+  first_block_output = y::null;
   const entry_list& bodies = get_list(source);
   if (bodies.empty() || move == y::wvec2()) {
     source.set_origin(source.get_origin() + move);
     return move;
   }
 
-  // TODO: to avoid order-dependent edge-cases (e.g. player standing on platform
-  // moving downwards), need to store per-frame list of things which tried to
-  // move but were blocked by bodies. If the blocker moves away, try again to
-  // move all the things which were blocked by it. Also need some way of pushing
-  // blockers, possibly with a push_mask (recursively?).
+  // Need some kind of 'pulling' mechanism. If a platform moves with something
+  // on top of it, the thing on top should also move. Not entirely sure how
+  // that should be implemented right now. Possibly some kind of contact-based
+  // system.
   const OrderedGeometry& geometry = _world.get_geometry();
 
   // Bounding boxes of the source Bodies.
@@ -240,6 +241,7 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
 
   y::vector<y::wvec2> block_vertices;
   y::vector<world_geometry> block_geometries;
+
   for (const auto& pointer : bodies) {
     vertices_temp.clear();
     vertices.clear();
@@ -267,20 +269,79 @@ y::wvec2 Collision::collider_move(Script& source, const y::wvec2& move) const
       get_vertices_and_geometries_for_move(
           block_geometries, block_vertices, -move, vertices_temp);
 
-      min_ratio = y::min(min_ratio, get_projection_ratio(
-                      block_geometries, vertices, move));
-      min_ratio = y::min(min_ratio, get_projection_ratio(
-                      geometries, block_vertices, -move));
+      // Save the lowest block_ratio body so we can try to push it.
+      y::world block_ratio =
+          y::min(get_projection_ratio(block_geometries, vertices, move),
+                 get_projection_ratio(geometries, block_vertices, move));
+      if (block_ratio < min_ratio) {
+        first_block_output = block;
+        min_ratio = block_ratio;
+      }
     }
-  } 
+  }
 
   // Limit the movement to the minimum blocking ratio (i.e., least 0 <= t <= 1
   // such that moving by t * move is blocked), and recurse in any free unblocked
   // direction.
   const y::wvec2 limited_move = min_ratio * move;
   source.set_origin(limited_move + source.get_origin());
-  // TODO: (optionally) recurse?
   return limited_move;
+}
+
+y::wvec2 Collision::collider_move(y::vector<Body*>& pushes_output,
+                                  Script& source, const y::wvec2& move,
+                                  y::int32 push_mask, y::int32 push_max) const
+{
+  // TODO: (optionally) recurse against the blocked direction, i.e. slide down
+  // a wall if we can? Doesn't matter for 'characters' who walk about through
+  // very specific moves, for probably does for dumb physics-y objects.
+  // TODO: something odd is happening with collision; in particular, crates
+  // falling through the player, and so on. Really not sure what's going on
+  // here.
+  Body* first_block;
+  y::wvec2 limited_move = collider_move(first_block, source, move);
+
+  if (!first_block || !push_mask || push_max <= 0 ||
+      !(push_mask & first_block->collide_type)) {
+    return limited_move;
+  }
+
+  // Push it. I am the pusher robot. We are here to protect you from the
+  // terrible secret of space.
+  Script& block_source = first_block->source;
+  y::wvec2 remaining_move = move - limited_move;
+
+  // Attempt to push the blocker.
+  y::vector<Body*> pushes;
+  y::wvec2 block_move = collider_move(pushes,
+                                      block_source, remaining_move,
+                                      push_mask, push_max - 1);
+  // If it didn't move, we're stuck, continue as normal.
+  if (block_move == y::wvec2()) {
+    return limited_move;
+  }
+
+  // Otherwise, try to move us again. We need to subtract the number
+  // of objects we already pushed otherwise ordering can mean we push
+  // more than push_max in general.
+  pushes_output.emplace_back(first_block);
+  pushes_output.insert(pushes_output.end(), pushes.begin(), pushes.end());
+  pushes.clear();
+  y::wvec2 recursive_move = collider_move(
+      pushes, source, block_move,
+      push_mask, push_max - pushes_output.size());
+
+  // If we got stuck closer than the blocked object, move the blockers we
+  // already pushed back to where we got stuck.
+  if (recursive_move.length_squared() < block_move.length_squared()) {
+    for (Body* b : pushes_output) {
+      b->source.set_origin(recursive_move - block_move +
+                           b->source.get_origin());
+    }
+  }
+
+  pushes_output.insert(pushes_output.end(), pushes.begin(), pushes.end());
+  return limited_move + recursive_move;
 }
 
 y::world Collision::collider_rotate(Script& source, y::world rotate,
@@ -405,7 +466,7 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
       limiting_rotation = y::min(limiting_rotation, get_arc_projection(
                               geometries, block_vertices, origin, -rotate));
     }
-  } 
+  }
 
   // Rotate.
   const y::world limited_rotation = limiting_rotation * (rotate > 0 ? 1 : -1);
@@ -489,7 +550,7 @@ bool Collision::body_check(const Script& source, const Body& body,
 }
 
 void Collision::update_spatial_hash(const Script& source)
-{ 
+{
   for (const entry& body : get_list(source)) {
     auto bounds = body->get_bounds(source.get_origin(), source.get_rotation());
     _spatial_hash.update(body.get(), bounds.first, bounds.second);

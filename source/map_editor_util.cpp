@@ -166,6 +166,9 @@ void ScriptMoveAction::redo() const
 
 void ScriptMoveAction::undo() const
 {
+  // TODO: this will sometimes delete scripts. Need to store the actual script
+  // moved, I think. Also need an is_noop() or similar to discard changes which
+  // don't actually do anything.
   const ScriptBlueprint& s = map.get_script_at(end);
   y::ivec2 min = s.min;
   y::ivec2 max = s.max;

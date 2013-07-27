@@ -4,12 +4,13 @@
 #include "../render.lua"
 
 -- Collider body and check bodies.
-local body = self:create_body(vec(0, 8), vec(6, 16))
+local bs, bo = vec(0, -8), vec(6, 48)
+local body = self:create_body(bs, bo)
 body:set_collide_type(COLLIDE_PLAYER)
 local collide_mask = COLLIDE_WORLD + COLLIDE_OBJECT
 body:set_collide_mask(collide_mask)
 local up_check, down_check, left_check, right_check =
-    create_all_checks(self, vec(0, 8), vec(6, 16))
+    create_all_checks(self, bs, bo)
 
 -- Test light.
 local light = self:create_light(128, 128)
@@ -192,7 +193,7 @@ function update()
   if step_amount ~= 0 then
     self:collider_move(vec(0, step_amount))
   end
-  self:collider_move(vec(v, 0))
+  self:collider_move(vec(v, 0), COLLIDE_PUSHABLE, 0)
   if step_amount ~= 0 then
     self:collider_move(vec(0, original_y - self:get_origin():y()))
   end
@@ -236,5 +237,5 @@ local frame_size = vec(32, 32)
 local frame = vec(3, 16)
 
 function draw()
-  render_sprite_self(sprite, frame_size, frame, 0.3)
+  render_sprite_self(sprite, frame_size, frame, 0.25)
 end

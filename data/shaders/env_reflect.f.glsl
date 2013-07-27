@@ -19,7 +19,6 @@ noperspective varying float reflect_dist;
 
 #include "perlin.glsl"
 
-
 // Sampling outside the source framebuffer produces stretched column artefacts
 // in the reflection. Increasing the source framebuffer size helps, but in
 // general the reflect fade can always been lengthened such that we start
