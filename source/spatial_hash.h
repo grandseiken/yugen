@@ -155,7 +155,7 @@ void SpatialHash<T, V, N>::iterator::seek_to_next(bool inner)
 {
   // Replicates the search functions below in iterator form. Iterators have the
   // weirdest code structure. I think any sequence of nested loops with
-  // arbitrary break/continue conditions can be transform to an iterator with
+  // arbitrary break/continue conditions can be transformed to an iterator via
   // a seek function of the below form. It's a very unintuitive kind of logic,
   // though.
   if (inner) {

@@ -224,7 +224,7 @@ static RegistryIndex stage_registry_index;
 /***/ #define y_assert(condition, index, message)
 /***/
 /***/ #define y_return(...)                                                    \
-/***/         (void)(__VA_ARGS__);                                             \
+/***/         push_all(0, __VA_ARGS__);                                        \
 /***/       }                                                                  \
 /***/     }                                                                    \
 /***/   }; while (false) {(void)0

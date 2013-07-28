@@ -250,7 +250,8 @@ y::wvec2 Collision::collider_move(
   return limited_move;
 }
 
-y::wvec2 Collision::collider_move(y::vector<Body*>& pushes_output,
+y::wvec2 Collision::collider_move(y::vector<Body*>& push_body_output,
+                                  y::vector<y::wvec2>& push_amount_output,
                                   Script& source, const y::wvec2& move,
                                   y::int32 push_mask, y::int32 push_max) const
 {
@@ -271,8 +272,9 @@ y::wvec2 Collision::collider_move(y::vector<Body*>& pushes_output,
   y::wvec2 remaining_move = move - limited_move;
 
   // Attempt to push the blocker.
-  y::vector<Body*> pushes;
-  y::wvec2 block_move = collider_move(pushes,
+  y::vector<Body*> push_bodies;
+  y::vector<y::wvec2> push_amounts;
+  y::wvec2 block_move = collider_move(push_bodies, push_amounts,
                                       block_source, remaining_move,
                                       push_mask, push_max - 1);
   // If it didn't move, we're stuck, continue as normal.
@@ -280,26 +282,39 @@ y::wvec2 Collision::collider_move(y::vector<Body*>& pushes_output,
     return limited_move;
   }
 
+  // Store the output data recursively.
+  push_body_output.emplace_back(first_block);
+  push_amount_output.emplace_back(block_move);
+
+  push_body_output.insert(push_body_output.end(),
+                          push_bodies.begin(), push_bodies.end());
+  push_amount_output.insert(push_amount_output.end(),
+                            push_amounts.begin(), push_amounts.end());
+  push_bodies.clear();
+  push_amounts.clear();
+
   // Otherwise, try to move us again. We need to subtract the number
   // of objects we already pushed otherwise ordering can mean we push
   // more than push_max in general.
-  pushes_output.emplace_back(first_block);
-  pushes_output.insert(pushes_output.end(), pushes.begin(), pushes.end());
-  pushes.clear();
   y::wvec2 recursive_move = collider_move(
-      pushes, source, block_move,
-      push_mask, push_max - pushes_output.size());
+      push_bodies, push_amounts, source, block_move,
+      push_mask, push_max - push_body_output.size());
 
   // If we got stuck closer than the blocked object, move the blockers we
   // already pushed back to where we got stuck.
   if (recursive_move.length_squared() < block_move.length_squared()) {
-    for (Body* b : pushes_output) {
+    for (y::size i = 0; i < push_body_output.size(); ++i) {
+      Body* b = push_body_output[i];
       b->source.set_origin(recursive_move - block_move +
                            b->source.get_origin());
+      push_amount_output[i] = recursive_move;
     }
   }
 
-  pushes_output.insert(pushes_output.end(), pushes.begin(), pushes.end());
+  push_body_output.insert(push_body_output.end(),
+                          push_bodies.begin(), push_bodies.end());
+  push_amount_output.insert(push_amount_output.end(),
+                            push_amounts.begin(), push_amounts.end());
   return limited_move + recursive_move;
 }
 

@@ -193,7 +193,19 @@ function update()
   if step_amount ~= 0 then
     self:collider_move(vec(0, step_amount))
   end
-  self:collider_move(vec(v, 0), COLLIDE_PUSHABLE, 2)
+
+  -- Push things up slopes.
+  local amount, bodies, amounts =
+      self:collider_move(vec(v, -math.abs(v)), COLLIDE_PUSHABLE, 2)
+  -- Return self to original y-position.
+  self:collider_move(vec(0, -amount:y()))
+  -- This isn't necessarily the best implementation of pushing things up slopes,
+  -- but it works for now and has some interesting properties (actually solves
+  -- the 'standing on platform' issue, for instance, and makes it impossible to
+  -- push two boxes out from under a whole stack of boxes). We may want to
+  -- consider alternative approaches too, for example using the NYI sliding
+  -- recursion collision.
+
   if step_amount ~= 0 then
     self:collider_move(vec(0, original_y - self:get_origin():y()))
   end
