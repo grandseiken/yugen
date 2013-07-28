@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include "cell.h"
-#include <boost/iterator/iterator_facade.hpp>
+#include "spatial_hash.h"
 
 // A collision boundary line. By convention geometry is stored in clockwise
 // order; that is, when facing from start to end the solid geometry lies on the
@@ -14,66 +14,27 @@ struct Geometry {
   y::ivec2 start;
   y::ivec2 end;
 
+  bool operator==(const Geometry& g) const;
+  bool operator!=(const Geometry& g) const;
+
   // True if the geometry is part of the external wall rather than actual tiles.
   bool external;
-
-  struct order {
-    bool operator()(const Geometry&, const Geometry& b) const;
-  };
 };
 
-// An ordered bucket of geometry orders its members by their minimum
-// x-coordinate. The OrderedGeometry groups several buckets together, one per
-// x-cell, each bucket's elements having maximum x-coordinate in that cell.
-typedef y::ordered_set<Geometry, Geometry::order> OrderedBucket;
-class OrderedGeometry : public y::no_copy {
-public:
-
-  OrderedGeometry();
-
-  void insert(const Geometry& g);
-  void clear();
-
-  // Iterator for conveniently traversing all Geometries in a given range.
-  class iterator : public boost::iterator_facade<
-      iterator, const Geometry, boost::forward_traversal_tag> {
-  public:
-
-    iterator(const OrderedGeometry& g,
-             const y::wvec2& min, const y::wvec2& max);
-    explicit operator bool() const;
-
-  private:
-
-    friend class boost::iterator_core_access;
-
-    void seek_to_next();
-    void increment();
-    bool equal(const iterator& arg) const;
-    const Geometry& dereference() const;
-
-    const OrderedGeometry& _g;
-    y::wvec2 _min;
-    y::wvec2 _max;
-    y::size _i;
-    OrderedBucket::const_iterator _j;
+namespace std {
+  template<>
+  struct hash<Geometry> {
+    y::size operator()(const Geometry& g) const;
   };
-
-  iterator traverse(const y::wvec2& min_x, const y::wvec2& max_x) const;
-
-private:
-
-  y::int32 get_max_for_bucket(y::size index) const;
-
-  y::vector<OrderedBucket> buckets;
-
-};
+}
 
 // Stores world geometry.
 class WorldGeometry : public y::no_copy {
 public:
 
   WorldGeometry();
+
+  typedef SpatialHash<Geometry, y::world, 2> geometry_hash;
 
   // Set the geometry at a coordinate by calculating it from a CellBlueprint.
   void merge_geometry(const CellBlueprint& cell, const y::ivec2& coord);
@@ -83,7 +44,7 @@ public:
   void swap_geometry(const y::ivec2& a, const y::ivec2& b);
 
   // Get current geometry for the whole world.
-  const OrderedGeometry& get_geometry() const;
+  const geometry_hash& get_geometry() const;
 
 private:
 
@@ -98,7 +59,7 @@ private:
   };
 
   y::map<y::ivec2, bucket> _buckets;
-  mutable OrderedGeometry _ordered_geometry;
+  mutable geometry_hash _geometry_hash;
   mutable bool _dirty;
 
   void calculate_geometry(bucket& bucket, const CellBlueprint& cell);
@@ -211,7 +172,7 @@ public:
   y::ivec2_iterator get_cartesian() const;
 
   // Get geometry.
-  const OrderedGeometry& get_geometry() const;
+  const WorldGeometry::geometry_hash& get_geometry() const;
 
   // After window operations, there may be new Scripts that should be
   // instantiated. These functions report which cells should have their scripts

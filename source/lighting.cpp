@@ -563,7 +563,7 @@ y::size Lighting::world_geometry_hash::operator()(const world_geometry& g) const
 void Lighting::get_relevant_geometry(
     y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
     geometry_map& map_output, const Light& light, const y::wvec2& origin,
-    const OrderedGeometry& all_geometry, bool planar) const
+    const WorldGeometry::geometry_hash& all_geometry, bool planar) const
 {
   if (planar) {
     get_planar_relevant_geometry(vertex_output, geometry_output, map_output,
@@ -578,7 +578,7 @@ void Lighting::get_relevant_geometry(
 void Lighting::get_angular_relevant_geometry(
     y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
     geometry_map& map_output, const Light& light, const y::wvec2& origin,
-    const OrderedGeometry& all_geometry) const
+    const WorldGeometry::geometry_hash& all_geometry) const
 {
   // We could find only the vertices whose geometries intersect the circle
   // defined by origin and max_range, but that is way more expensive and
@@ -587,8 +587,8 @@ void Lighting::get_angular_relevant_geometry(
   y::wvec2 bound = y::wvec2{max_range, max_range};
 
   // See Collision::collider_move for details.
-  for (auto it = all_geometry.traverse(origin - bound,
-                                       origin + bound); it; ++it) {
+  for (auto it = all_geometry.search(origin - bound,
+                                     origin + bound); it; ++it) {
     // Translate to origin.
     const y::wvec2 g_s = y::wvec2(it->start) - origin;
     const y::wvec2 g_e = y::wvec2(it->end) - origin;
@@ -631,7 +631,7 @@ void Lighting::get_angular_relevant_geometry(
 void Lighting::get_planar_relevant_geometry(
     y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
     geometry_map& map_output, const Light& light, const y::wvec2& origin,
-    const OrderedGeometry& all_geometry) const
+    const WorldGeometry::geometry_hash& all_geometry) const
 {
   // We find all the vertices whose geometries intersect the bounding box of the
   // plane-light parallelogram.
@@ -644,8 +644,8 @@ void Lighting::get_planar_relevant_geometry(
                               y::max(v - offset, v + offset));
 
   // See above for details.
-  for (auto it = all_geometry.traverse(origin + min_bound,
-                                       origin + max_bound); it; ++it) {
+  for (auto it = all_geometry.search(origin + min_bound,
+                                     origin + max_bound); it; ++it) {
     const y::wvec2 g_s = y::wvec2(it->start) - origin;
     const y::wvec2 g_e = y::wvec2(it->end) - origin;
 

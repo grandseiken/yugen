@@ -620,6 +620,7 @@ y_api(body__set_offset)
     y_arg(Body*, body) y_arg(const y::wvec2, offset)
 {
   body->offset = offset;
+  body->source.set_origin(body->source.get_origin());
   y_void();
 }
 
@@ -627,6 +628,7 @@ y_api(body__set_size)
     y_arg(Body*, body) y_arg(const y::wvec2, size)
 {
   body->size = size;
+  body->source.set_origin(body->source.get_origin());
   y_void();
 }
 

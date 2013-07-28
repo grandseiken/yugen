@@ -85,7 +85,7 @@ private:
   script_list _scripts;
   
   // Spatial hash of existing scripts.
-  typedef SpatialHash<Script*> spatial_hash;
+  typedef SpatialHash<Script*, y::world, 2> spatial_hash;
   spatial_hash _spatial_hash;
 
   // Map from ScriptBlueprint keys to existing scripts.

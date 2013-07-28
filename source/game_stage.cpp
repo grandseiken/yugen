@@ -36,13 +36,11 @@ void ScriptBank::get_in_region(
 void ScriptBank::get_in_radius(result& output,
                                const y::wvec2& origin, y::world radius) const
 {
-  result temp;
-  _spatial_hash.search(temp, origin - y::wvec2{radius, radius},
-                             origin + y::wvec2{radius, radius});
+  y::wvec2 r{radius, radius};
   const y::world radius_sq = radius * radius;
-  for (const auto& script : temp) {
-    if ((script->get_origin() - origin).length_squared() <= radius_sq) {
-      output.emplace_back(script);
+  for (auto it = _spatial_hash.search(origin - r, origin + r); it; ++it) {
+    if (((*it)->get_origin() - origin).length_squared() <= radius_sq) {
+      output.emplace_back(*it);
     }
   }
 }

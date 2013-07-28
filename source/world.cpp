@@ -10,125 +10,31 @@ Geometry::Geometry(const y::ivec2& start, const y::ivec2& end, bool external)
 {
 }
 
-bool Geometry::order::operator()(const Geometry& a, const Geometry& b) const
+bool Geometry::operator==(const Geometry& g) const
 {
-  y::ivec2 a_min = y::min(a.start, a.end);
-  y::ivec2 a_max = y::max(a.start, a.end);
-  y::ivec2 b_min = y::min(b.start, b.end);
-  y::ivec2 b_max = y::max(b.start, b.end);
-
-  return a_min[xx] < b_min[xx] ? true :
-         a_min[xx] > b_min[xx] ? false :
-         a_max[xx] < b_max[xx] ? true :
-         a_max[xx] > b_max[xx] ? false :
-         a_min[yy] < b_min[yy] ? true :
-         a_min[yy] > b_min[yy] ? false :
-         a_max[yy] < b_max[yy];
+  return start == g.start && end == g.end;
 }
 
-OrderedGeometry::OrderedGeometry()
-  : buckets(1 + 2 * WorldWindow::active_window_half_size)
+bool Geometry::operator!=(const Geometry& g) const
 {
+  return !operator==(g);
 }
 
-void OrderedGeometry::insert(const Geometry& g)
-{
-  y::int32 max = y::max(g.start[xx], g.end[xx]);
-  y::int32 bucket =
-      WorldWindow::active_window_half_size +
-      y::euclidean_div(max, Cell::cell_size[xx] * Tileset::tile_size[xx]);
-  y::clamp<y::int32>(bucket, 0, buckets.size());
-  buckets[bucket].insert(g);
-}
-
-void OrderedGeometry::clear()
-{
-  for (auto& bucket : buckets) {
-    bucket.clear();
+namespace std {
+  y::size hash<Geometry>::operator()(const Geometry& g) const
+  {
+    y::size seed = 0;
+    boost::hash_combine(seed, g.start[xx]);
+    boost::hash_combine(seed, g.start[yy]);
+    boost::hash_combine(seed, g.end[xx]);
+    boost::hash_combine(seed, g.end[yy]);
+    return seed;
   }
-}
-
-OrderedGeometry::iterator::iterator(
-    const OrderedGeometry& g, const y::wvec2& min, const y::wvec2& max)
-  : _g(g)
-  , _min(min)
-  , _max(max)
-  , _i(0)
-{
-  if (_i < _g.buckets.size()) {
-    _j = _g.buckets[_i].begin();
-  }
-  seek_to_next();
-}
-
-void OrderedGeometry::iterator::seek_to_next()
-{
-  start:
-  // Eliminate geometry by bucket and order. Skip buckets we're completely
-  // outside.
-  while (_min[xx] >= _g.get_max_for_bucket(_i)) {
-    ++_i;
-    if (_i >= _g.buckets.size()) {
-      return;
-    }
-    _j = _g.buckets[_i].begin();
-  }
-
-  middle:
-  // Use ordering to break once we see a high enough minimum.
-  if (_j == _g.buckets[_i].end() ||
-      y::min(_j->start, _j->end)[xx] >= _max[xx]) {
-    ++_i;
-    if (_i >= _g.buckets.size()) {
-      return;
-    }
-    _j = _g.buckets[_i].begin();
-    goto start;
-  }
-
-  // Skip if general bounding-box check fails.
-  if (!(y::wvec2(y::min(_j->start, _j->end)) < _max &&
-        y::wvec2(y::max(_j->start, _j->end)) > _min)) {
-    ++_j;
-    goto middle;
-  }
-}
-
-OrderedGeometry::iterator::operator bool() const
-{
-  return _i < _g.buckets.size();
-}
-
-void OrderedGeometry::iterator::increment()
-{
-  ++_j;
-  seek_to_next();
-}
-
-bool OrderedGeometry::iterator::equal(const iterator& arg) const
-{
-  return _i == arg._i && _j == arg._j;
-}
-
-const Geometry& OrderedGeometry::iterator::dereference() const
-{
-  return *_j;
-}
-
-OrderedGeometry::iterator OrderedGeometry::traverse(const y::wvec2& min_x,
-                                                    const y::wvec2& max_x) const
-{
-  return iterator(*this, min_x, max_x);
-}
-
-y::int32 OrderedGeometry::get_max_for_bucket(y::size index) const
-{
-  return (1 + index - WorldWindow::active_window_half_size) *
-      Cell::cell_size[xx] * Tileset::tile_size[xx];
 }
 
 WorldGeometry::WorldGeometry()
-  : _dirty(false)
+  : _geometry_hash(512)
+  , _dirty(false)
 {
 }
 
@@ -155,13 +61,13 @@ void WorldGeometry::swap_geometry(const y::ivec2& a, const y::ivec2& b)
   _dirty = true;
 }
 
-const OrderedGeometry& WorldGeometry::get_geometry() const
+const WorldGeometry::geometry_hash& WorldGeometry::get_geometry() const
 {
   if (_dirty) {
     merge_all_geometry();
     _dirty = false;
   }
-  return _ordered_geometry;
+  return _geometry_hash;
 }
 
 void WorldGeometry::calculate_geometry(bucket& bucket,
@@ -663,30 +569,36 @@ void WorldGeometry::merge_all_geometry() const
   }
 
   struct local {
-    static void insert(OrderedGeometry& target,
+    static void insert(geometry_hash& target, const Geometry& g)
+    {
+      target.update(g, y::wvec2(y::min(g.start, g.end)),
+                       y::wvec2(y::max(g.start, g.end)));
+    }
+
+    static void insert(geometry_hash& target,
                        const geometry_list& list, const y::ivec2& offset,
                        bool external)
     {
       for (const Geometry& g : list) {
-        target.insert(Geometry(g.start + offset, g.end + offset, external));
+        insert(target, Geometry(g.start + offset, g.end + offset, external));
       }
     }
 
     static void merge_loop(
-        OrderedGeometry& target,
+        geometry_hash& target,
         const y::ivec2& a_offset, const y::ivec2& b_offset,
         y::int32 a_min, y::int32 a_max, y::int32 b_min, y::int32 b_max,
         y::size& a_index, y::size& b_index, geometry_list& a, geometry_list& b)
     {
       if (a_max < b_min) {
-        target.insert(Geometry(a_offset + a[a_index].start,
-                               a_offset + a[a_index].end, true));
+        insert(target, Geometry(a_offset + a[a_index].start,
+                                a_offset + a[a_index].end, true));
         ++a_index;
         return;
       }
       if (b_max < a_min) {
-        target.insert(Geometry(b_offset + b[b_index].start,
-                               b_offset + b[b_index].end, true));
+        insert(target, Geometry(b_offset + b[b_index].start,
+                                b_offset + b[b_index].end, true));
         ++b_index;
         return;
       }
@@ -694,8 +606,8 @@ void WorldGeometry::merge_all_geometry() const
       // This rest magically works for all cases because the one of the
       // lists has segments stored in reverse.
       if (a_min != b_min) {
-        target.insert(Geometry(a_offset + a[a_index].start,
-                               b_offset + b[b_index].end, true));
+        insert(target, Geometry(a_offset + a[a_index].start,
+                                b_offset + b[b_index].end, true));
       }
 
       if (a_max < b_max) {
@@ -713,7 +625,7 @@ void WorldGeometry::merge_all_geometry() const
     }
   };
 
-  _ordered_geometry.clear();
+  _geometry_hash.clear();
   for (auto it = y::cartesian(min, max); it; ++it) {
     auto jt = _buckets.find(*it);
     if (jt == _buckets.end()) {
@@ -723,20 +635,20 @@ void WorldGeometry::merge_all_geometry() const
     // Add all non-edge geometry.
     const bucket& bucket = jt->second;
     const y::ivec2 offset = *it * Tileset::tile_size * Cell::cell_size;
-    local::insert(_ordered_geometry, bucket.middle, offset, false);
+    local::insert(_geometry_hash, bucket.middle, offset, false);
 
     // Where there's no adjacent cell, add the edge geometry.
     if (_buckets.find(*it - y::ivec2{0, 1}) == _buckets.end()) {
-      local::insert(_ordered_geometry, bucket.top, offset, true);
+      local::insert(_geometry_hash, bucket.top, offset, true);
     }
     if (_buckets.find(*it - y::ivec2{1, 0}) == _buckets.end()) {
-      local::insert(_ordered_geometry, bucket.left, offset, true);
+      local::insert(_geometry_hash, bucket.left, offset, true);
     }
     if (_buckets.find(*it + y::ivec2{0, 1}) == _buckets.end()) {
-      local::insert(_ordered_geometry, bucket.bottom, offset, true);
+      local::insert(_geometry_hash, bucket.bottom, offset, true);
     }
     if (_buckets.find(*it + y::ivec2{1, 0}) == _buckets.end()) {
-      local::insert(_ordered_geometry, bucket.right, offset, true);
+      local::insert(_geometry_hash, bucket.right, offset, true);
     }
 
     // Merge edge geometry with adjacent cells. This depends on implementation
@@ -760,18 +672,19 @@ void WorldGeometry::merge_all_geometry() const
         y::int32 bottom_min = bottom[bottom_index].end[xx];
         y::int32 bottom_max = bottom[bottom_index].start[xx];
 
-        local::merge_loop(_ordered_geometry, offset, bottom_offset,
+        local::merge_loop(_geometry_hash, offset, bottom_offset,
                           top_min, top_max, bottom_min, bottom_max,
                           top_index, bottom_index, top, bottom);
       }
       for (; top_index < top.size(); ++top_index) {
-        _ordered_geometry.insert(Geometry(offset + top[top_index].start,
-                                          offset + top[top_index].end, true));
+        local::insert(_geometry_hash,
+                      Geometry(offset + top[top_index].start,
+                               offset + top[top_index].end, true));
       }
       for (; bottom_index < bottom.size(); ++bottom_index) {
-        _ordered_geometry.insert(Geometry(
-            bottom_offset + bottom[bottom_index].start,
-            bottom_offset + bottom[bottom_index].end, true));
+        local::insert(_geometry_hash,
+                      Geometry(bottom_offset + bottom[bottom_index].start,
+                               bottom_offset + bottom[bottom_index].end, true));
       }
     }
     jt = _buckets.find(*it + y::ivec2{1, 0});
@@ -793,18 +706,19 @@ void WorldGeometry::merge_all_geometry() const
 
         // This time the right list is the one with reversed segments, so need
         // to pass everything the other way around.
-        local::merge_loop(_ordered_geometry, right_offset, offset,
+        local::merge_loop(_geometry_hash, right_offset, offset,
                           right_min, right_max, left_min, left_max,
                           right_index, left_index, right, left);
       }
       for (; left_index < left.size(); ++left_index) {
-        _ordered_geometry.insert(Geometry(offset + left[left_index].start,
-                                          offset + left[left_index].end, true));
+        local::insert(_geometry_hash,
+                      Geometry(offset + left[left_index].start,
+                               offset + left[left_index].end, true));
       }
       for (; right_index < right.size(); ++right_index) {
-        _ordered_geometry.insert(Geometry(
-            right_offset + right[right_index].start,
-            right_offset + right[right_index].end, true));
+        local::insert(_geometry_hash,
+                      Geometry(right_offset + right[right_index].start,
+                               right_offset + right[right_index].end, true));
       }
     }
   }
@@ -987,7 +901,7 @@ y::ivec2_iterator WorldWindow::get_cartesian() const
       y::ivec2{1 + active_window_half_size, 1 + active_window_half_size});
 }
 
-const OrderedGeometry& WorldWindow::get_geometry() const
+const WorldGeometry::geometry_hash& WorldWindow::get_geometry() const
 {
   return _active_geometry.get_geometry();
 }

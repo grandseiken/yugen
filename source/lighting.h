@@ -4,13 +4,11 @@
 #include "common.h"
 #include "gl_handle.h"
 #include "lua.h"
+#include "world.h"
 #include "vector.h"
 
-struct Geometry;
-struct OrderedGeometry;
 class GlUtil;
 class RenderUtil;
-class WorldWindow;
 
 // Data for various kinds of light.
 struct Light : y::no_copy {
@@ -147,17 +145,17 @@ private:
   void get_relevant_geometry(
       y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
       geometry_map& map_output, const Light& light, const y::wvec2& origin,
-      const OrderedGeometry& all_geometry, bool planar) const;
+      const WorldGeometry::geometry_hash& all_geometry, bool planar) const;
 
   void get_angular_relevant_geometry(
       y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
       geometry_map& map_output, const Light& light, const y::wvec2& origin,
-      const OrderedGeometry& all_geometry) const;
+      const WorldGeometry::geometry_hash& all_geometry) const;
 
   void get_planar_relevant_geometry(
       y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
       geometry_map& map_output, const Light& light, const y::wvec2& origin,
-      const OrderedGeometry& all_geometry) const;
+      const WorldGeometry::geometry_hash& all_geometry) const;
 
   // Helper functions.
   y::wvec2 get_angular_point_on_geometry(

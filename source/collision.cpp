@@ -98,17 +98,15 @@ void Collision::render(
   y::vector<RenderUtil::line> green;
   y::vector<RenderUtil::line> blue;
 
-  for (auto it = _world.get_geometry().traverse(camera_min,
-                                                camera_max); it; ++it) {
+  for (auto it = _world.get_geometry().search(camera_min,
+                                             camera_max); it; ++it) {
     green.emplace_back(RenderUtil::line{y::fvec2(it->start),
                                         y::fvec2(it->end)});
   }
 
-  y::vector<Body*> bodies;
-  _spatial_hash.search(bodies, camera_min, camera_max);
-
   y::vector<y::wvec2> vertices;
-  for (Body* b : bodies) {
+  for (auto it = _spatial_hash.search(camera_min, camera_max); it; ++it) {
+    const Body* b = *it;
     if (!b->collide_type && !b->collide_mask) {
       continue;
     }
@@ -135,13 +133,11 @@ y::wvec2 Collision::collider_move(
     source.set_origin(source.get_origin() + move);
     return move;
   }
-
   // TODO: need some kind of 'pulling' mechanism. If a platform moves with
   // something on top of it, the thing on top should also move. This should be
   // a joint system: attach a joint at the object's feet every frame if it's
   // standing on something. The same system can be used for other joints, like
   // ropes and chains.
-  const OrderedGeometry& geometry = _world.get_geometry();
 
   // Bounding boxes of the source Bodies.
   auto bounds = get_bounds(bodies, COLLIDE_RESV_WORLD,
@@ -157,7 +153,7 @@ y::wvec2 Collision::collider_move(
   // By reversing the nesting of these loops we could skip geometry on a
   // per-body basis. Incurs extra overhead though, and since most things will
   // have one body it's unlikely to be worth it.
-  for (auto it = geometry.traverse(min_bound, max_bound); it; ++it) {
+  for (auto it = _world.get_geometry().search(min_bound, max_bound); it; ++it) {
     world_geometry wg{y::wvec2(it->start), y::wvec2(it->end)};
 
     // Skip geometry which is defined opposite the direction of movement..
@@ -333,8 +329,6 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
                       local::origin_displace(origin_offset, rotate));
     return rotate;
   }
-
-  const OrderedGeometry& geometry = _world.get_geometry();
   y::wvec2 origin = source.get_origin() + origin_offset;
 
   // Bounding boxes of the source Bodies.
@@ -350,7 +344,7 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
   y::vector<world_geometry> geometries;
 
   // See collider_move for details.
-  for (auto it = geometry.traverse(min_bound, max_bound); it; ++it) {
+  for (auto it = _world.get_geometry().search(min_bound, max_bound); it; ++it) {
     world_geometry wg{y::wvec2(it->start), y::wvec2(it->end)};
 
     // Check geometry orientation.
@@ -446,7 +440,6 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
 bool Collision::body_check(const Script& source, const Body& body,
                            y::int32 collide_mask) const
 {
-  const OrderedGeometry& geometry = _world.get_geometry();
   auto bounds = body.get_bounds(source.get_origin(), source.get_rotation());
   y::wvec2 min_bound = bounds.first;
   y::wvec2 max_bound = bounds.second;
@@ -459,7 +452,7 @@ bool Collision::body_check(const Script& source, const Body& body,
   get_geometries(geometries, vertices);
 
   // See collider_move for details.
-  for (auto it = geometry.traverse(min_bound, max_bound);
+  for (auto it = _world.get_geometry().search(min_bound, max_bound);
        it && collide_mask & COLLIDE_RESV_WORLD; ++it) {
     if (has_intersection(geometries, world_geometry{y::wvec2(it->start),
                                                     y::wvec2(it->end)})) {
@@ -471,12 +464,10 @@ bool Collision::body_check(const Script& source, const Body& body,
   min_bound = bounds.first;
   max_bound = bounds.second;
 
-  y::vector<Body*> blocking_bodies;
-  _spatial_hash.search(blocking_bodies, min_bound, max_bound);
-
   y::vector<y::wvec2> block_vertices;
   y::vector<world_geometry> block_geometries;
-  for (Body* block : blocking_bodies) {
+  for (auto it = _spatial_hash.search(min_bound, max_bound); it; ++it) {
+    const Body* block = *it;
     if (&block->source == &body.source ||
         !(collide_mask & block->collide_type)) {
       continue;
@@ -505,10 +496,8 @@ void Collision::get_bodies_in_region(
   y::wvec2 min = origin - region / 2;
   y::wvec2 max = origin + region / 2;
 
-  result temp;
-  _spatial_hash.search(temp, min, max);
-
-  for (Body* body : temp) {
+  for (auto it = _spatial_hash.search(min, max); it; ++it) {
+    Body* body = *it;
     if (collide_mask & !(body->collide_type & collide_mask)) {
       continue;
     }
@@ -535,12 +524,11 @@ void Collision::get_bodies_in_radius(
     result& output, const y::wvec2& origin, y::world radius,
     y::int32 collide_mask) const
 {
-  result temp;
-  _spatial_hash.search(temp, origin - y::wvec2{radius, radius},
-                             origin + y::wvec2{radius, radius});
+  y::wvec2 r{radius, radius};
   y::world radius_sq = radius * radius;
 
-  for (Body* body : temp) {
+  for (auto it = _spatial_hash.search(origin - r, origin + r); it; ++it) {
+    Body* body = *it;
     if (collide_mask & !(body->collide_type & collide_mask)) {
       continue;
     }

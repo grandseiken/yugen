@@ -138,7 +138,7 @@ private:
       const y::vector<y::wvec2>& vertices) const;
 
   const WorldWindow& _world;
-  SpatialHash<Body*> _spatial_hash;
+  SpatialHash<Body*, y::world, 2> _spatial_hash;
 
 };
 
