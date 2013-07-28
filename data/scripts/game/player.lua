@@ -166,6 +166,7 @@ end
 -- Movement constants.
 local GRAVITY = 4
 local MOVE_SPEED = 2.5
+local up_check_prev = false
 
 function update()
   local left_down = is_key_down(KEY_LEFT)
@@ -187,25 +188,27 @@ function update()
   local down_check_now = false
 
   -- Handle x-axis movement with stepping up slopes (or down overhangs when
-  -- in the air).
+  -- in the air). We have to step up twice: once in order to step
+  -- up small ledges, and once diagonally in order to push things up slopes.
   local original_y = self:get_origin():y()
   local step_amount = MOVE_SPEED * step_multiplier()
   if step_amount ~= 0 then
     self:collider_move(vec(0, step_amount))
   end
-
-  -- Push things up slopes.
-  local amount, bodies, amounts =
-      self:collider_move(vec(v, -math.abs(v)), COLLIDE_PUSHABLE, 2)
-  -- Return self to original y-position.
-  self:collider_move(vec(0, -amount:y()))
   -- This isn't necessarily the best implementation of pushing things up slopes,
   -- but it works for now and has some interesting properties (actually solves
   -- the 'standing on platform' issue, for instance, and makes it impossible to
   -- push two boxes out from under a whole stack of boxes). We may want to
   -- consider alternative approaches too, for example using the NYI sliding
   -- recursion collision.
-
+  local amount, bodies, amounts =
+      self:collider_move(vec(v, step_amount), COLLIDE_PUSHABLE, 2)
+  -- Undo the diagonal step.
+  self:collider_move(vec(0, -amount:y()))
+  for i, b in ipairs(bodies) do
+    b:get_source():collider_move(vec(0, -amounts[i]:y()))
+  end
+  -- Undo the straight step.
   if step_amount ~= 0 then
     self:collider_move(vec(0, original_y - self:get_origin():y()))
   end
@@ -225,15 +228,16 @@ function update()
     down_check_now = down_check:body_check(collide_mask)
   end
 
-  local up_check_now = up_check:body_check(collide_mask)
   local left_check_now = left_check:body_check(collide_mask)
   local right_check_now = right_check:body_check(collide_mask)
 
   -- Handle y-axis movement.
   jump_logic(left_down, right_down, up_down,
-             left_check_now, right_check_now, up_check_now,
+             left_check_now, right_check_now, up_check_prev,
              down_check_start, down_check_now)
-  self:collider_move(vec(0, GRAVITY * y_multiplier()))
+  local try_move = GRAVITY * y_multiplier()
+  local move = self:collider_move(vec(0, try_move), COLLIDE_PUSHABLE, 2)
+  up_check_prev = try_move < 0 and math.abs(move:y()) < math.abs(try_move)
   jump_timer_logic(down_check_now)
 end
 
