@@ -490,7 +490,7 @@ void Collision::get_bodies_in_radius(
 }
 
 void Collision::get_bodies_in_body(
-    result& output, const Body* body, y::int32 collide_mask)
+    result& output, const Body* body, y::int32 collide_mask) const
 {
   auto bounds = body->get_bounds(body->source.get_origin(),
                                  body->source.get_rotation());

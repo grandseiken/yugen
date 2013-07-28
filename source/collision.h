@@ -71,7 +71,7 @@ public:
       result& output, const y::wvec2& origin, y::world radius,
       y::int32 collide_mask) const;
   void get_bodies_in_body(
-      result& output, const Body* body, y::int32 collide_mask);
+      result& output, const Body* body, y::int32 collide_mask) const;
 
   // Returns true iff any of the source's bodies overlap the region or radius
   // or collide_mask.
