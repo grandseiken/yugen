@@ -29,7 +29,8 @@ struct Body : y::no_copy {
   y::wvec2 size;
 
   // Bodies are blocked by any bodies whose collide_mask matches their
-  // collide_type.
+  // collide_type. Collide_mask only affects what the body will be blocked
+  // by when moving or rotating.
   y::int32 collide_type;
   y::int32 collide_mask;
 };
@@ -55,14 +56,25 @@ public:
                          Script& source, const y::wvec2& move,
                          y::int32 push_mask, y::int32 push_max) const;
 
+  // Rotation currently doesn't support higher-level abstractions like pushing.
   y::world collider_rotate(Script& source, y::world rotate,
                            const y::wvec2& origin_offset) const;
-  bool body_check(const Script& source, const Body& body,
-                  y::int32 collide_mask) const;
 
   typedef y::vector<Body*> result;
-  // Finds all bodies that currently overlap the given region even slightly,
-  // with an optional mask on thier collide_type.
+  // Finds all bodies that currently overlap the given body, with an optional
+  // mask on their collide_type.
+  void bodies_check_list(result& output, const Body* body,
+                         y::int32 collide_mask);
+  // Check if any of the source bodies matching (optional) source_collide_mask
+  // overlap any bodies matching target_collide_mask.
+  bool source_check(const Script& source,
+                    y::int32 source_collide_mask,
+                    y::int32 target_collide_mask) const;
+  // Check if the body overlaps any geometry matching the given collide mask.
+  bool body_check(const Body* body, y::int32 collide_mask) const;
+
+  // Finds all bodies that currently overlap the given region, with an optional
+  // mask on thier collide_type.
   void get_bodies_in_region(
       result& output, const y::wvec2& origin, const y::wvec2& region,
       y::int32 collide_mask) const;
@@ -70,6 +82,20 @@ public:
   void get_bodies_in_radius(
       result& output, const y::wvec2& origin, y::world radius,
       y::int32 collide_mask) const;
+
+  // Returns true iff any of the source's bodies overlap the region or radius.
+  bool source_in_region(
+      const Script& source, const y::wvec2& origin, const y::wvec2& region,
+      y::int32 collide_mask) const;
+  bool source_in_radius(
+      const Script& source, const y::wvec2& origin, y::world radius,
+      y::int32 collide_mask) const;
+
+  // Returns true iff the given body overlaps the region or radius.
+  bool body_in_region(
+      const Body* body, const y::wvec2& origin, const y::wvec2& region) const;
+  bool body_in_radius(
+      const Body* body, const y::wvec2& origin, y::world radius) const;
 
   // This must be called whenever a Script's position or rotation changes in
   // order to update the bodies in the spatial hash.

@@ -638,7 +638,7 @@ void MapEditor::draw_scripts() const
 
   // Script region the mouse is hovering over.
   const ScriptBlueprint* hover_script =
-      !is_dragging() && control && _map.has_script_at(get_hover_world()) ?
+      !is_dragging() && _map.has_script_at(get_hover_world()) ?
           &_map.get_script_at(get_hover_world()) : y::null;
 
   // Script being dragged.
@@ -661,7 +661,7 @@ void MapEditor::draw_scripts() const
 
     y::fvec4 hc{c[rr], c[gg], c[bb], .3f};
     // Render hover indicator.
-    if (&s == hover_script || &s == drag_script) {
+    if ((control && &s == hover_script) || &s == drag_script) {
       script_drag hd = &s == hover_script ?
           get_script_drag(*hover_script, get_hover_world()) : _script_drag;
 

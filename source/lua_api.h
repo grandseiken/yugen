@@ -283,13 +283,6 @@ y_api(script__destroy_bodies)
   y_void();
 }
 
-y_api(script__destroy_body)
-    y_arg(const Script*, script) y_arg(Body*, body)
-{
-  stage.get_collision().destroy_obj(*script, body);
-  y_void();
-}
-
 y_api(script__collider_move)
     y_arg(Script*, script) y_arg(const y::wvec2, move)
     y_optarg(y::int32, push_mask) y_optarg(y::int32, push_max)
@@ -304,18 +297,35 @@ y_api(script__collider_move)
 }
 
 y_api(script__collider_rotate)
-   y_arg(Script*, script) y_arg(y::world, rotate)
-   y_optarg(const y::wvec2, origin_offset)
+    y_arg(Script*, script) y_arg(y::world, rotate)
+    y_optarg(const y::wvec2, origin_offset)
 {
   y_return(stage.get_collision().collider_rotate(
       *script, rotate, origin_offset_defined ? origin_offset : y::wvec2()));
 }
 
-y_api(script__body_check)
-    y_arg(const Script*, script) y_arg(const Body*, body)
-    y_arg(y::int32, collide_mask)
+y_api(script__in_region)
+    y_arg(Script*, script) y_arg(y::wvec2, origin) y_arg(y::wvec2, region)
+    y_optarg(y::int32, collide_mask)
 {
-  y_return(stage.get_collision().body_check(*script, *body, collide_mask));
+  y_return(stage.get_collision().source_in_region(
+      *script, origin, region, collide_mask_defined ? collide_mask : 0));
+}
+
+y_api(script__in_radius)
+    y_arg(Script*, script) y_arg(y::wvec2, origin) y_arg(y::world, radius)
+    y_optarg(y::int32, collide_mask)
+{
+  y_return(stage.get_collision().source_in_radius(
+      *script, origin, radius, collide_mask_defined ? collide_mask : 0));
+}
+
+y_api(script__source_check)
+    y_arg(Script*, script) y_arg(y::int32, source_collide_mask)
+    y_arg(y::int32, target_collide_mask)
+{
+  y_return(stage.get_collision().source_check(*script, source_collide_mask,
+                                                       target_collide_mask));
 }
 
 y_api(script__create_light)
@@ -336,13 +346,6 @@ y_api(script__destroy_lights)
   y_void();
 }
 
-y_api(script__destroy_light)
-    y_arg(const Script*, script) y_arg(Light*, light)
-{
-  stage.get_lighting().destroy_obj(*script, light);
-  y_void();
-}
-
 y_ptrtypedef(Script) {
   y_method("get_uid", script__get_uid);
   y_method("get_region", script__get_region);
@@ -355,13 +358,13 @@ y_ptrtypedef(Script) {
   y_method("send_message", script__send_message);
   y_method("create_body", script__create_body);
   y_method("destroy_bodies", script__destroy_bodies);
-  y_method("destroy_body", script__destroy_body);
   y_method("collider_move", script__collider_move);
   y_method("collider_rotate", script__collider_rotate);
-  y_method("body_check", script__body_check);
+  y_method("in_region", script__in_region);
+  y_method("in_radius", script__in_radius);
+  y_method("source_check", script__source_check);
   y_method("create_light", script__create_light);
   y_method("destroy_lights", script__destroy_lights);
-  y_method("destroy_light", script__destroy_light);
 } y_endtypedef();
 
 /******************************************************************************/
@@ -653,11 +656,31 @@ y_api(body__get_source)
   y_return(&body->source);
 }
 
+y_api(body__in_region)
+    y_arg(Body*, body) y_arg(y::wvec2, origin) y_arg(y::wvec2, region)
+{
+  y_return(stage.get_collision().body_in_region(body, origin, region));
+}
+
+y_api(body__in_radius)
+    y_arg(Body*, body) y_arg(y::wvec2, origin) y_arg(y::world, radius)
+{
+  y_return(stage.get_collision().body_in_radius(body, origin, radius));
+}
+
 y_api(body__body_check)
     y_arg(Body*, body) y_arg(y::int32, collide_mask)
 {
-  y_return(stage.get_collision().body_check(body->source,
-                                            *body, collide_mask));
+  y_return(stage.get_collision().body_check(body, collide_mask));
+}
+
+y_api(body__bodies_check_list)
+    y_arg(Body*, body) y_optarg(y::int32, collide_mask)
+{
+  Collision::result result;
+  stage.get_collision().bodies_check_list(
+      result, body, collide_mask_defined ? collide_mask : 0);
+  y_return(result);
 }
 
 y_api(body__destroy)
@@ -677,7 +700,10 @@ y_ptrtypedef(Body) {
   y_method("set_collide_type", body__set_collide_type);
   y_method("set_collide_mask", body__set_collide_mask);
   y_method("get_source", body__get_source);
+  y_method("in_region", body__in_region);
+  y_method("in_radius", body__in_radius);
   y_method("body_check", body__body_check);
+  y_method("bodies_check_list", body__bodies_check_list);
   y_method("destroy", body__destroy);
 } y_endtypedef();
 

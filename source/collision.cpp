@@ -452,18 +452,71 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
   return limited_rotation;
 }
 
-bool Collision::body_check(const Script& source, const Body& body,
-                           y::int32 collide_mask) const
+void Collision::bodies_check_list(
+    result& output, const Body* body, y::int32 collide_mask)
 {
-  auto bounds = body.get_bounds(source.get_origin(), source.get_rotation());
+  auto bounds = body->get_bounds(body->source.get_origin(),
+                                 body->source.get_rotation());
   y::wvec2 min_bound = bounds.first;
   y::wvec2 max_bound = bounds.second;
 
   y::vector<y::wvec2> vertices;
   y::vector<world_geometry> geometries;
 
-  body.get_vertices(vertices,
-                    source.get_origin(), source.get_rotation());
+  body->get_vertices(vertices,
+                     body->source.get_origin(), body->source.get_rotation());
+  get_geometries(geometries, vertices);
+
+  y::vector<y::wvec2> block_vertices;
+  y::vector<world_geometry> block_geometries;
+  for (auto it = _spatial_hash.search(min_bound, max_bound); it; ++it) {
+    Body* block = *it;
+    if (&block->source == &body->source ||
+        !(collide_mask & block->collide_type)) {
+      continue;
+    }
+
+    block_vertices.clear();
+    block_geometries.clear();
+
+    block->get_vertices(block_vertices,
+                        block->source.get_origin(),
+                        block->source.get_rotation());
+    get_geometries(block_geometries, block_vertices);
+
+    if (has_intersection(geometries, block_geometries)) {
+      output.emplace_back(block);
+    }
+  }
+}
+
+bool Collision::source_check(
+    const Script& source,
+    y::int32 source_collide_mask, y::int32 target_collide_mask) const
+{
+  for (const entry& e : get_list(source)) {
+    if (source_collide_mask && !(source_collide_mask && e->collide_type)) {
+      continue;
+    }
+    if (body_check(e.get(), target_collide_mask)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Collision::body_check(const Body* body, y::int32 collide_mask) const
+{
+  auto bounds = body->get_bounds(body->source.get_origin(),
+                                 body->source.get_rotation());
+  y::wvec2 min_bound = bounds.first;
+  y::wvec2 max_bound = bounds.second;
+
+  y::vector<y::wvec2> vertices;
+  y::vector<world_geometry> geometries;
+
+  body->get_vertices(vertices,
+                     body->source.get_origin(), body->source.get_rotation());
   get_geometries(geometries, vertices);
 
   // See collider_move for details.
@@ -475,15 +528,11 @@ bool Collision::body_check(const Script& source, const Body& body,
     }
   }
 
-  bounds = body.get_bounds(source.get_origin(), source.get_rotation());
-  min_bound = bounds.first;
-  max_bound = bounds.second;
-
   y::vector<y::wvec2> block_vertices;
   y::vector<world_geometry> block_geometries;
   for (auto it = _spatial_hash.search(min_bound, max_bound); it; ++it) {
     const Body* block = *it;
-    if (&block->source == &body.source ||
+    if (&block->source == &body->source ||
         !(collide_mask & block->collide_type)) {
       continue;
     }
@@ -513,23 +562,10 @@ void Collision::get_bodies_in_region(
 
   for (auto it = _spatial_hash.search(min, max); it; ++it) {
     Body* body = *it;
-    if (collide_mask & !(body->collide_type & collide_mask)) {
+    if (collide_mask && !(body->collide_type & collide_mask)) {
       continue;
     }
-    y::vector<y::wvec2> vertices;
-    body->get_vertices(vertices, body->source.get_origin(),
-                                 body->source.get_rotation());
-
-    bool intersect = !vertices.empty() &&
-        vertices[0] < max && vertices[0] >= min;
-    for (y::size i = 0; i < vertices.size() && !intersect; ++i) {
-      const y::wvec2& a = vertices[i];
-      const y::wvec2& b = vertices[(1 + i) % vertices.size()];
-      if (y::line_intersects_rect(a, b, min, max)) {
-        intersect = true;
-      }
-    }
-    if (intersect) {
+    if (body_in_region(body, origin, region)) {
       output.emplace_back(body);
     }
   }
@@ -540,35 +576,107 @@ void Collision::get_bodies_in_radius(
     y::int32 collide_mask) const
 {
   y::wvec2 r{radius, radius};
-  y::world radius_sq = radius * radius;
 
   for (auto it = _spatial_hash.search(origin - r, origin + r); it; ++it) {
     Body* body = *it;
-    if (collide_mask & !(body->collide_type & collide_mask)) {
+    if (collide_mask && !(body->collide_type & collide_mask)) {
       continue;
     }
-    y::vector<y::wvec2> vertices;
-    body->get_vertices(vertices, body->source.get_origin(),
-                                 body->source.get_rotation());
-
-    bool intersect = !vertices.empty() &&
-        (vertices[0] - origin).length_squared() < radius_sq;
-    y::world t_0;
-    y::world t_1;
-    for (y::size i = 0; i < vertices.size() && !intersect; ++i) {
-      const y::wvec2& a = vertices[i];
-      const y::wvec2& b = vertices[(1 + i) % vertices.size()];
-      if (!line_intersects_circle(a, b, origin, radius_sq, t_0, t_1)) {
-        continue;
-      }
-      if ((t_0 > 0 && t_0 < 1) || (t_1 > 0 && t_1 < 1)) {
-        intersect = true;
-      }
-    }
-    if (intersect) {
+    if (body_in_radius(body, origin, radius)) {
       output.emplace_back(body);
     }
   }
+}
+
+bool Collision::source_in_region(
+    const Script& source, const y::wvec2& origin, const y::wvec2& region,
+    y::int32 collide_mask) const
+{
+  Body::bounds bounds = get_bounds(get_list(source), collide_mask,
+                                   source.get_origin(), source.get_rotation());
+  if (bounds.first > origin + region / 2 ||
+      bounds.second < origin - region / 2) {
+    return false;
+  }
+  for (const entry& body : get_list(source)) {
+    if (collide_mask && !(body->collide_type & collide_mask)) {
+      continue;
+    }
+    if (body_in_region(body.get(), origin, region)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Collision::source_in_radius(
+    const Script& source, const y::wvec2& origin, y::world radius,
+    y::int32 collide_mask) const
+{
+  y::wvec2 r{radius, radius};
+  Body::bounds bounds = get_bounds(get_list(source), collide_mask,
+                                   source.get_origin(), source.get_rotation());
+  if (bounds.first > origin + r || bounds.second < origin - r) {
+    return false;
+  }
+
+  for (const entry& body : get_list(source)) {
+    if (collide_mask && !(body->collide_type & collide_mask)) {
+      continue;
+    }
+    if (body_in_radius(body.get(), origin, radius)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Collision::body_in_region(
+    const Body* body, const y::wvec2& origin, const y::wvec2& region) const
+{
+  y::wvec2 min = origin - region / 2;
+  y::wvec2 max = origin + region / 2;
+
+  y::vector<y::wvec2> vertices;
+  body->get_vertices(vertices, body->source.get_origin(),
+                               body->source.get_rotation());
+  if (!vertices.empty() &&
+      vertices[0] < max && vertices[0] >= min) {
+    return true;
+  }
+  for (y::size i = 0; i < vertices.size(); ++i) {
+    const y::wvec2& a = vertices[i];
+    const y::wvec2& b = vertices[(1 + i) % vertices.size()];
+    if (y::line_intersects_rect(a, b, min, max)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Collision::body_in_radius(
+    const Body* body, const y::wvec2& origin, y::world radius) const
+{
+  y::vector<y::wvec2> vertices;
+  body->get_vertices(vertices, body->source.get_origin(),
+                               body->source.get_rotation());
+
+  if (!vertices.empty() &&
+      (vertices[0] - origin).length_squared() < radius * radius) {
+    return true;
+  }
+
+  y::world t_0;
+  y::world t_1;
+  for (y::size i = 0; i < vertices.size(); ++i) {
+    const y::wvec2& a = vertices[i];
+    const y::wvec2& b = vertices[(1 + i) % vertices.size()];
+    if (line_intersects_circle(a, b, origin, radius * radius, t_0, t_1) &&
+        ((t_0 > 0 && t_0 < 1) || (t_1 > 0 && t_1 < 1))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void Collision::update_spatial_hash(const Script& source)

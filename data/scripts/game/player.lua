@@ -198,9 +198,10 @@ function update()
   -- This isn't necessarily the best implementation of pushing things up slopes,
   -- but it works for now and has some interesting properties (actually solves
   -- the 'standing on platform' issue, for instance, and makes it impossible to
-  -- push two boxes out from under a whole stack of boxes). We may want to
-  -- consider alternative approaches too, for example using the NYI sliding
-  -- recursion collision.
+  -- push two boxes out from under a whole stack of boxes).
+  -- It has some downsides, particularly we can't move objects into spaces
+  -- exactly as high as them. We may want to consider alternative approaches too,
+  -- for example using the NYI sliding recursion collision. 
   local amount, bodies, amounts =
       self:collider_move(vec(v, step_amount), COLLIDE_PUSHABLE, 2)
   -- Undo the diagonal step.
