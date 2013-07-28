@@ -50,6 +50,13 @@ SpatialHash<T>::SpatialHash(y::size bucket_size)
 template<typename T>
 void SpatialHash<T>::update(T t, const y::wvec2& min, const y::wvec2& max)
 {
+  // We store objects in a bucket based on their centre, check for objects
+  // in adjacent buckets, and keep a separate bucket for objects which
+  // could overlap more than the neighbouring buckets.
+  // An alternative strategy would be to do away with the fallback bucket
+  // and associate a list of all overlapping buckets with each object, but
+  // this is faster if we choose an appropriate bucket size such that using
+  // the fallback bucket is relatively rare.
   remove(t);
   y::wvec2 half_size = y::abs(max - min) / 2;
   y::wvec2 origin = (min + max) / 2;

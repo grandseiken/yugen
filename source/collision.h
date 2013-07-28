@@ -126,11 +126,16 @@ private:
   void get_geometries(y::vector<world_geometry>& output,
                       const y::vector<y::wvec2>& vertices) const;
   // Get only the vertices and geometries oriented in the direction of a move.
-  // TODO: have a similar function for rotation.
   void get_vertices_and_geometries_for_move(
       y::vector<world_geometry>& geometry_output,
       y::vector<y::wvec2>& vertex_output,
       const y::wvec2& move, const y::vector<y::wvec2>& vertices) const;
+  // Similar for rotation.
+  void get_vertices_and_geometries_for_rotate(
+      y::vector<world_geometry>& geometry_output,
+      y::vector<y::wvec2>& vertex_output,
+      y::world rotate, const y::wvec2& origin,
+      const y::vector<y::wvec2>& vertices) const;
 
   const WorldWindow& _world;
   SpatialHash<Body*> _spatial_hash;

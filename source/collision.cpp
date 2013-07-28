@@ -345,6 +345,10 @@ y::wvec2 Collision::collider_move(y::vector<Body*>& pushes_output,
 y::world Collision::collider_rotate(Script& source, y::world rotate,
                                     const y::wvec2& origin_offset) const
 {
+  // TODO: rotation still seems to be a little bit inconsistent as to
+  // when a thing touching a surface at a point will rotate. Seems like
+  // it always will for the first half of the rotation, but won't for the
+  // second half (for the player, at least).
   struct local {
     static y::wvec2 origin_displace(const y::wvec2& origin_offset,
                                     y::world rotation)
@@ -376,8 +380,10 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
   y::wvec2 max_bound = bounds.second;
 
   y::world limiting_rotation = y::abs(rotate);
+  y::vector<y::wvec2> vertices_temp;
   y::vector<y::wvec2> vertices;
   y::vector<world_geometry> geometries;
+
   // See collider_move for details.
   for (y::size i = 0; i < geometry.buckets.size(); ++i) {
     y::int32 g_max = geometry.get_max_for_bucket(i);
@@ -391,10 +397,15 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
       if (g_min[xx] >= max_bound[xx]) {
         break;
       }
-      // We can't skip geometry defined in opposite direction in the outer loop,
-      // since direction depends on body involved. That happens in
-      // get_arc_projection.
+
+      // Check bounding box and geometry orientation.
       if (!(g_min < max_bound && g_max > min_bound)) {
+        continue;
+      }
+      y::wvec2 v = y::wvec2(rotate > 0 ? g.end : g.start) - origin;
+      y::wvec2 rotate_normal{-v[yy], v[xx]};
+      if (!rotate_normal.cross(y::wvec2(rotate > 0 ? g.start - g.end :
+                                                     g.end - g.start)) > 0) {
         continue;
       }
 
@@ -410,13 +421,15 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
         if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
           continue;
         }
+        vertices_temp.clear();
         vertices.clear();
         geometries.clear();
 
-        b.get_vertices(vertices,
+        b.get_vertices(vertices_temp,
                        source.get_origin(), source.get_rotation());
-        get_geometries(geometries, vertices);
-
+        get_vertices_and_geometries_for_rotate(
+            geometries, vertices, rotate, origin, vertices_temp);
+        
         limiting_rotation = y::min(limiting_rotation, get_arc_projection(
                                 wg, vertices, origin, rotate));
         limiting_rotation = y::min(limiting_rotation, get_arc_projection(
@@ -437,13 +450,15 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
   y::vector<y::wvec2> block_vertices;
   y::vector<world_geometry> block_geometries;
   for (const auto& pointer : bodies) {
+    vertices_temp.clear();
     vertices.clear();
     geometries.clear();
 
     const Body& b = *pointer;
-    b.get_vertices(vertices,
+    b.get_vertices(vertices_temp,
                    source.get_origin(), source.get_rotation());
-    get_geometries(geometries, vertices);
+    get_vertices_and_geometries_for_rotate(
+        geometries, vertices, rotate, origin, vertices_temp);
 
     for (Body* block : blocking_bodies) {
       if (&block->source == &source ||
@@ -451,13 +466,15 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
         continue;
       }
 
+      vertices_temp.clear();
       block_vertices.clear();
       block_geometries.clear();
 
-      block->get_vertices(block_vertices,
+      block->get_vertices(vertices_temp,
                           block->source.get_origin(),
                           block->source.get_rotation());
-      get_geometries(block_geometries, block_vertices);
+      get_vertices_and_geometries_for_rotate(
+          block_geometries, block_vertices, -rotate, origin, vertices_temp);
 
       limiting_rotation = y::min(limiting_rotation, get_arc_projection(
                               block_geometries, vertices, origin, rotate));
@@ -767,7 +784,8 @@ y::world Collision::get_arc_projection(
       // Skip if the collision is opposite the direction the line is defined in.
       // This is done by forming a line from the origin in the direction of the
       // collision line's normal, and checking which side of it the impact point
-      // is on.
+      // is on. Similarly, this may now be duplicated logic as we have
+      // get_vertices_and_geometries_for_rotate.
       y::world signed_distance = g_vec.dot(impact_rel);
       if ((rotation > 0) != (signed_distance > 0)) {
         return y::abs(rotation);
@@ -921,6 +939,39 @@ void Collision::get_vertices_and_geometries_for_move(
 
     bool last_keep = keep;
     keep = move.cross(b - a) > 0;
+    if (!i) {
+      first_keep = keep;
+    }
+
+    if (keep) {
+      geometry_output.push_back({a, b});
+    }
+    if (i && (keep || last_keep)) {
+      vertex_output.push_back(vertices[i]);
+    }
+  }
+  if (!vertices.empty() && (keep || first_keep)) {
+    vertex_output.push_back(vertices[0]);
+  }
+}
+
+void Collision::get_vertices_and_geometries_for_rotate(
+    y::vector<world_geometry>& geometry_output,
+    y::vector<y::wvec2>& vertex_output,
+    y::world rotate, const y::wvec2& origin,
+    const y::vector<y::wvec2>& vertices) const
+{
+  bool first_keep = false;
+  bool keep = false;
+
+  for (y::size i = 0; i < vertices.size(); ++i) {
+    const y::wvec2& a = vertices[i];
+    const y::wvec2& b = vertices[(1 + i) % vertices.size()];
+
+    bool last_keep = keep;
+    y::wvec2 v = (rotate < 0 ? b : a) - origin;
+    y::wvec2 rotate_normal{-v[yy], v[xx]};
+    keep = rotate_normal.cross(rotate < 0 ? a - b : b - a) > 0;
     if (!i) {
       first_keep = keep;
     }
