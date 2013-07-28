@@ -14,7 +14,9 @@ class Filesystem;
 class GameStage;
 class GlUtil;
 
-// Globs and loads resources. Requesting resources by invalid names returns
+// Finds and loads resources. Template parameter T is the resource type which
+// can be associated with string keys. The Dataset owns all resources and they
+// will persist for its lifetime. Requesting resources by invalid names returns
 // a reference to a standard missing resource.
 template<typename T>
 class Dataset : public y::no_copy {

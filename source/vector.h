@@ -18,6 +18,10 @@ namespace y {
     element_accessor() {}
   };
 
+  // Mathematical vector over components of type T with dimension N. When
+  // non_strict is true, includes functions that aren't strictly canon
+  // mathematically, but are nonetheless useful, for example componentwise
+  // multiplication of two vectors.
   template<typename T, y::size N, bool non_strict = true>
   class vec {
   public:

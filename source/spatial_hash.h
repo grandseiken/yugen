@@ -4,6 +4,9 @@
 #include "common.h"
 #include <boost/iterator/iterator_facade.hpp>
 
+// Container for fast lookup of objects in regions of space. T is the stored
+// object type, V is the type of the coordinate line, and V the dimensions; that
+// is, the coordinate system is defined in terms of y::vec<V, N>.
 template<typename T, typename V, y::size N>
 class SpatialHash {
 public:
@@ -52,7 +55,7 @@ public:
 
   };
 
-  // Find all objects which might overlap the given rectangle.
+  // Find all objects which overlap the given bounding box.
   void search(y::vector<T>& output,
               const coord& min, const coord& max) const;
   iterator search(const coord& min, const coord& max) const;

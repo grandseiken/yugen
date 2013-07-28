@@ -118,8 +118,8 @@ private:
 
 };
 
-// Stores objects associated with Scripts which are destroyed when the Script
-// is destroyed.
+// Associated objects with Scripts which are destroyed when the Script that
+// aossicated them is destroyed. T is the associated object type.
 template<typename T>
 class ScriptMap : public y::no_copy {
 public:
@@ -133,6 +133,8 @@ public:
   T* create_obj(Script& source);
   void destroy_obj(const Script& source, T* obj);
   void destroy_all(const Script& source);
+  // Cleans up and destroys the objects whose associated Scripts have been
+  // destroyed. Must be called periodically.
   void clean_up();
 
   const entry_list& get_list(const Script& source) const;

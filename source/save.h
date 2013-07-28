@@ -10,6 +10,9 @@ class Databank;
 
 namespace y {
 
+  // Template for writing / reading protobufs. Classes should derive from io<P>,
+  // where P is the corresponding protobuf type, and implement save_to_proto and
+  // load_from_proto.
   template<typename P>
   class io : public y::no_copy {
   public:
