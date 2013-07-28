@@ -305,9 +305,11 @@ y::wvec2 Collision::collider_move(y::vector<Body*>& push_body_output,
   if (recursive_move.length_squared() < block_move.length_squared()) {
     for (y::size i = 0; i < push_body_output.size(); ++i) {
       Body* b = push_body_output[i];
-      b->source.set_origin(recursive_move - block_move +
-                           b->source.get_origin());
-      push_amount_output[i] = recursive_move;
+      Body* ignore;
+      // Need to collider_move them back otherwise odd things can happen in
+      // more-than-two-body interactions.
+      push_amount_output[i] +=
+          collider_move(ignore, b->source, recursive_move - block_move);
     }
   }
 
@@ -733,7 +735,7 @@ y::world Collision::get_projection_ratio(
     const world_geometry& geometry,
     const y::wvec2& vertex, const y::wvec2& move, bool tolerance) const
 {
-  static const y::world tolerance_factor = 1.0 / 4096;
+  static const y::world tolerance_factor = 1.0 / 1024;
   world_geometry v{vertex, move + vertex};
   const world_geometry& g = geometry;
 
@@ -820,7 +822,7 @@ y::world Collision::get_arc_projection(
                           const y::wvec2& g_start, const y::wvec2& g_vec,
                           const y::wvec2& origin)
     {
-      static const y::world tolerance = 1.0 / 4096;
+      static const y::world tolerance = 1.0 / 1024;
       // Impact outside the line segment.
       if (t < 0 || t > 1) {
         return y::abs(rotation);
@@ -845,8 +847,10 @@ y::world Collision::get_arc_projection(
           ((rotation > 0) != (limiting_angle > initial_angle) ? 2 * y::pi : 0);
       // Because of trigonometric inaccuracies and the fact that if we are a
       // tiny bit out in the wrong direction the rotation will not be blocked
-      // at all, it's best to have a small amount of tolerance.
-      if (2 * y::pi - limiting_rotation < tolerance) {
+      // at all, it's best to have a small amount of tolerance. The tolerance
+      // must depend on the distance from the center of rotation, as the
+      // distances get bigger.
+      if (2 * y::pi - limiting_rotation < tolerance / impact_rel.length()) {
         return limiting_rotation - 2 * y::pi;
       }
       return limiting_rotation;
