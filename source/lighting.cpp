@@ -589,10 +589,9 @@ void Lighting::get_angular_relevant_geometry(
   // See Collision::collider_move for details.
   for (auto it = all_geometry.traverse(origin - bound,
                                        origin + bound); it; ++it) {
-    const Geometry& g = *it;
     // Translate to origin.
-    const y::wvec2 g_s = y::wvec2(g.start) - origin;
-    const y::wvec2 g_e = y::wvec2(g.end) - origin;
+    const y::wvec2 g_s = y::wvec2(it->start) - origin;
+    const y::wvec2 g_e = y::wvec2(it->end) - origin;
 
     // Check intersection.
     if (!y::line_intersects_rect(g_s, g_e, -bound, bound)) {
@@ -607,7 +606,7 @@ void Lighting::get_angular_relevant_geometry(
     }
 
     // We allow lights to shine in from outside the active window.
-    if (g.external) {
+    if (it->external) {
       continue;
     }
 
@@ -647,9 +646,8 @@ void Lighting::get_planar_relevant_geometry(
   // See above for details.
   for (auto it = all_geometry.traverse(origin + min_bound,
                                        origin + max_bound); it; ++it) {
-    const Geometry& g = *it;
-    const y::wvec2 g_s = y::wvec2(g.start) - origin;
-    const y::wvec2 g_e = y::wvec2(g.end) - origin;
+    const y::wvec2 g_s = y::wvec2(it->start) - origin;
+    const y::wvec2 g_e = y::wvec2(it->end) - origin;
 
     if (!y::line_intersects_rect(g_s, g_e, min_bound, max_bound)) {
       continue;
@@ -660,7 +658,7 @@ void Lighting::get_planar_relevant_geometry(
       continue;
     }
 
-    if (g.external) {
+    if (it->external) {
       continue;
     }
 

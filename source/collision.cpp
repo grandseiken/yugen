@@ -95,17 +95,13 @@ void Collision::render(
     RenderUtil& util,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
-  y::vector<RenderUtil::line> red;
   y::vector<RenderUtil::line> green;
   y::vector<RenderUtil::line> blue;
 
-  y::size i = 0;
   for (auto it = _world.get_geometry().traverse(camera_min,
                                                 camera_max); it; ++it) {
-    const Geometry& g = *it;
-    y::vector<RenderUtil::line>& v = ++i % 2 ? red : green;
-
-    v.emplace_back(RenderUtil::line{y::fvec2(g.start), y::fvec2(g.end)});
+    green.emplace_back(RenderUtil::line{y::fvec2(it->start),
+                                        y::fvec2(it->end)});
   }
 
   y::vector<Body*> bodies;
@@ -126,7 +122,6 @@ void Collision::render(
     }
   }
 
-  util.render_lines(red, {1.f, 0.f, 0.f, .5f});
   util.render_lines(green, {0.f, 1.f, 0.f, .5f});
   util.render_lines(blue, {0.f, 0.f, 1.f, .5f});
 }
@@ -163,9 +158,8 @@ y::wvec2 Collision::collider_move(
   // per-body basis. Incurs extra overhead though, and since most things will
   // have one body it's unlikely to be worth it.
   for (auto it = geometry.traverse(min_bound, max_bound); it; ++it) {
-    const Geometry& g = *it;
+    world_geometry wg{y::wvec2(it->start), y::wvec2(it->end)};
 
-    world_geometry wg{y::wvec2(g.start), y::wvec2(g.end)};
     // Skip geometry which is defined opposite the direction of movement..
     y::wvec2 g_vec = wg.end - wg.start;
     y::wvec2 normal{g_vec[yy], -g_vec[xx]};
@@ -357,13 +351,13 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
 
   // See collider_move for details.
   for (auto it = geometry.traverse(min_bound, max_bound); it; ++it) {
-    const Geometry& g = *it;
+    world_geometry wg{y::wvec2(it->start), y::wvec2(it->end)};
 
     // Check geometry orientation.
-    y::wvec2 v = y::wvec2(rotate > 0 ? g.end : g.start) - origin;
+    y::wvec2 v = (rotate > 0 ? wg.end : wg.start) - origin;
     y::wvec2 rotate_normal{-v[yy], v[xx]};
-    if (!rotate_normal.cross(y::wvec2(rotate > 0 ? g.start - g.end :
-                                                   g.end - g.start)) > 0) {
+    if (!rotate_normal.cross(rotate > 0 ? wg.start - wg.end :
+                                          wg.end - wg.start) > 0) {
       continue;
     }
 
@@ -372,7 +366,6 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
     // (plus offset).
     // Again, we project the first set of points forwards and the second set
     // of points backwards along the arcs.
-    world_geometry wg{y::wvec2(g.start), y::wvec2(g.end)};
 
     for (const auto& pointer : bodies) {
       const Body& b = *pointer;
@@ -468,9 +461,8 @@ bool Collision::body_check(const Script& source, const Body& body,
   // See collider_move for details.
   for (auto it = geometry.traverse(min_bound, max_bound);
        it && collide_mask & COLLIDE_RESV_WORLD; ++it) {
-    const Geometry& g = *it;
-    if (has_intersection(geometries, world_geometry{y::wvec2(g.start),
-                                                    y::wvec2(g.end)})) {
+    if (has_intersection(geometries, world_geometry{y::wvec2(it->start),
+                                                    y::wvec2(it->end)})) {
       return true;
     }
   }

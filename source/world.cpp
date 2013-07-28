@@ -55,7 +55,6 @@ OrderedGeometry::iterator::iterator(
   , _max(max)
   , _i(0)
 {
-  std::cout << "ITERATOR" << std::endl;
   if (_i < _g.buckets.size()) {
     _j = _g.buckets[_i].begin();
   }
