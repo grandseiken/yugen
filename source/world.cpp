@@ -306,94 +306,94 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
 
       switch (min_c) {
         case Tileset::COLLIDE_HALF_U:
-          list.emplace_back(Geometry(max + Tileset::r, min + Tileset::l));
+          list.emplace_back(max + Tileset::r, min + Tileset::l);
           break;
         case Tileset::COLLIDE_HALF_D:
-          list.emplace_back(Geometry(min + Tileset::l, max + Tileset::r));
+          list.emplace_back(min + Tileset::l, max + Tileset::r);
           break;
         case Tileset::COLLIDE_HALF_L:
-          list.emplace_back(Geometry(min + Tileset::u, max + Tileset::d));
+          list.emplace_back(min + Tileset::u, max + Tileset::d);
           break;
         case Tileset::COLLIDE_HALF_R:
-          list.emplace_back(Geometry(max + Tileset::d, min + Tileset::u));
+          list.emplace_back(max + Tileset::d, min + Tileset::u);
           break;
 
         case Tileset::COLLIDE_SLOPE1_UL:
-          list.emplace_back(Geometry(min + Tileset::ul, max + Tileset::dr));
+          list.emplace_back(min + Tileset::ul, max + Tileset::dr);
           break;
         case Tileset::COLLIDE_SLOPE1_UR:
-          list.emplace_back(Geometry(min + Tileset::dl, max + Tileset::ur));
+          list.emplace_back(min + Tileset::dl, max + Tileset::ur);
           break;
         case Tileset::COLLIDE_SLOPE1_DL:
-          list.emplace_back(Geometry(max + Tileset::ur, min + Tileset::dl));
+          list.emplace_back(max + Tileset::ur, min + Tileset::dl);
           break;
         case Tileset::COLLIDE_SLOPE1_DR:
-          list.emplace_back(Geometry(max + Tileset::dr, min + Tileset::ul));
+          list.emplace_back(max + Tileset::dr, min + Tileset::ul);
           break;
 
         case Tileset::COLLIDE_SLOPEH_UL_A:
         case Tileset::COLLIDE_SLOPEH_UL_B:
-          list.emplace_back(Geometry(
+          list.emplace_back(
               min + (min_c == Tileset::COLLIDE_SLOPEH_UL_A ? Tileset::l :
                                                              Tileset::ul),
               max + (max_c == Tileset::COLLIDE_SLOPEH_UL_B ? Tileset::r :
-                                                             Tileset::dr)));
+                                                             Tileset::dr));
           break;
         case Tileset::COLLIDE_SLOPEH_UR_A:
         case Tileset::COLLIDE_SLOPEH_UR_B:
-          list.emplace_back(Geometry(
+          list.emplace_back(
               min + (min_c == Tileset::COLLIDE_SLOPEH_UR_B ? Tileset::l :
                                                              Tileset::dl),
               max + (max_c == Tileset::COLLIDE_SLOPEH_UR_A ? Tileset::r :
-                                                             Tileset::ur)));
+                                                             Tileset::ur));
           break;
         case Tileset::COLLIDE_SLOPEH_DL_A:
         case Tileset::COLLIDE_SLOPEH_DL_B:
-          list.emplace_back(Geometry(
+          list.emplace_back(
               max + (max_c == Tileset::COLLIDE_SLOPEH_DL_B ? Tileset::r :
                                                              Tileset::ur),
               min + (min_c == Tileset::COLLIDE_SLOPEH_DL_A ? Tileset::l :
-                                                             Tileset::dl)));
+                                                             Tileset::dl));
           break;
         case Tileset::COLLIDE_SLOPEH_DR_A:
         case Tileset::COLLIDE_SLOPEH_DR_B:
-          list.emplace_back(Geometry(
+          list.emplace_back(
               max + (max_c == Tileset::COLLIDE_SLOPEH_DR_A ? Tileset::r :
                                                              Tileset::dr),
               min + (min_c == Tileset::COLLIDE_SLOPEH_DR_B ? Tileset::l :
-                                                             Tileset::ul)));
+                                                             Tileset::ul));
           break;
         case Tileset::COLLIDE_SLOPE2_UL_A:
         case Tileset::COLLIDE_SLOPE2_UL_B:
-          list.emplace_back(Geometry(
+          list.emplace_back(
               min + (min_c == Tileset::COLLIDE_SLOPE2_UL_B ? Tileset::u :
                                                              Tileset::ul),
               max + (max_c == Tileset::COLLIDE_SLOPE2_UL_A ? Tileset::d :
-                                                             Tileset::dr)));
+                                                             Tileset::dr));
           break;
         case Tileset::COLLIDE_SLOPE2_UR_A:
         case Tileset::COLLIDE_SLOPE2_UR_B:
-          list.emplace_back(Geometry(
+          list.emplace_back(
               min + (min_c == Tileset::COLLIDE_SLOPE2_UR_A ? Tileset::d :
                                                              Tileset::dl),
               max + (max_c == Tileset::COLLIDE_SLOPE2_UR_B ? Tileset::u :
-                                                             Tileset::ur)));
+                                                             Tileset::ur));
           break;
         case Tileset::COLLIDE_SLOPE2_DL_A:
         case Tileset::COLLIDE_SLOPE2_DL_B:
-          list.emplace_back(Geometry(
+          list.emplace_back(
               min + (min_c == Tileset::COLLIDE_SLOPE2_DL_A ? Tileset::u :
                                                              Tileset::ur),
               max + (max_c == Tileset::COLLIDE_SLOPE2_DL_B ? Tileset::d :
-                                                             Tileset::dl)));
+                                                             Tileset::dl));
           break;
         case Tileset::COLLIDE_SLOPE2_DR_A:
         case Tileset::COLLIDE_SLOPE2_DR_B:
-          list.emplace_back(Geometry(
+          list.emplace_back(
               max + (max_c == Tileset::COLLIDE_SLOPE2_DR_B ? Tileset::d :
                                                              Tileset::dr),
               min + (min_c == Tileset::COLLIDE_SLOPE2_DR_A ? Tileset::u :
-                                                             Tileset::ul)));
+                                                             Tileset::ul));
           break;
 
         default: {}
