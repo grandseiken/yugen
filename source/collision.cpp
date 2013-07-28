@@ -100,40 +100,29 @@ void Collision::render(
   y::vector<RenderUtil::line> blue;
 
   y::size i = 0;
-  for (const OrderedBucket& bucket : _world.get_geometry().buckets) {
-    for (const Geometry& g : bucket) {
-      y::vector<RenderUtil::line>& v = ++i % 2 ? red : green;
+  for (auto it = _world.get_geometry().traverse(camera_min,
+                                                camera_max); it; ++it) {
+    const Geometry& g = *it;
+    y::vector<RenderUtil::line>& v = ++i % 2 ? red : green;
 
-      const y::ivec2 max = y::max(g.start, g.end);
-      const y::ivec2 min = y::min(g.start, g.end);
-      if (y::wvec2(max) >= camera_min && y::wvec2(min) < camera_max) {
-        v.emplace_back(RenderUtil::line{y::fvec2(g.start), y::fvec2(g.end)});
-      }
-    }
+    v.emplace_back(RenderUtil::line{y::fvec2(g.start), y::fvec2(g.end)});
   }
 
-  source_list sources;
-  get_sources(sources);
-  for (const Script* s : sources) {
-    y::vector<y::wvec2> vertices;
+  y::vector<Body*> bodies;
+  _spatial_hash.search(bodies, camera_min, camera_max);
 
-    for (const entry& b : get_list(*s)) {
-      if (!b->collide_type && !b->collide_mask) {
-        continue;
-      }
+  y::vector<y::wvec2> vertices;
+  for (Body* b : bodies) {
+    if (!b->collide_type && !b->collide_mask) {
+      continue;
+    }
 
-      auto bounds = b->get_bounds(s->get_origin(), s->get_rotation());
-      if (!(bounds.second >= camera_min && bounds.first < camera_max)) {
-        continue;
-      }
-
-      vertices.clear();
-      b->get_vertices(vertices, s->get_origin(), s->get_rotation());
-      for (y::size i = 0; i < vertices.size(); ++i) {
-        blue.emplace_back(RenderUtil::line{
-            y::fvec2(vertices[i]),
-            y::fvec2(vertices[(i + 1) % vertices.size()])});
-      }
+    vertices.clear();
+    b->get_vertices(vertices, b->source.get_origin(), b->source.get_rotation());
+    for (y::size i = 0; i < vertices.size(); ++i) {
+      blue.emplace_back(RenderUtil::line{
+          y::fvec2(vertices[i]),
+          y::fvec2(vertices[(i + 1) % vertices.size()])});
     }
   }
 
@@ -170,64 +159,46 @@ y::wvec2 Collision::collider_move(
   y::vector<y::wvec2> vertices;
   y::vector<world_geometry> geometries;
 
-  // Eliminating geometry by bucket and order depends heavily on structure of
-  // OrderedGeometry.
-  for (y::size i = 0; i < geometry.buckets.size(); ++i) {
-    // Skip buckets we're completely outside. If this gets too slow, we can
-    // bucket by both x and y.
-    y::int32 g_max = geometry.get_max_for_bucket(i);
-    if (min_bound[xx] >= g_max) {
+  // By reversing the nesting of these loops we could skip geometry on a
+  // per-body basis. Incurs extra overhead though, and since most things will
+  // have one body it's unlikely to be worth it.
+  for (auto it = geometry.traverse(min_bound, max_bound); it; ++it) {
+    const Geometry& g = *it;
+
+    world_geometry wg{y::wvec2(g.start), y::wvec2(g.end)};
+    // Skip geometry which is defined opposite the direction of movement..
+    y::wvec2 g_vec = wg.end - wg.start;
+    y::wvec2 normal{g_vec[yy], -g_vec[xx]};
+    if (normal.dot(-move) <= 0) {
       continue;
     }
 
-    // By reversing the nesting of these loops we could skip geometry on a
-    // per-body basis. Incurs extra overhead though, and since most things will
-    // have one body it's unlikely to be worth it.
-    for (const Geometry& g : geometry.buckets[i]) {
-      y::wvec2 g_min = y::wvec2(y::min(g.start, g.end));
-      y::wvec2 g_max = y::wvec2(y::max(g.start, g.end));
-      // By ordering, once we see a high enough minimum we can break.
-      if (g_min[xx] >= max_bound[xx]) {
-        break;
-      }
-
-      world_geometry wg{y::wvec2(g.start), y::wvec2(g.end)};
-      // Skip geometry which is defined opposite the direction of movement, and
-      // geometry for which a general bounding-box check fails.
-      y::wvec2 g_vec = wg.end - wg.start;
-      y::wvec2 normal{g_vec[yy], -g_vec[xx]};
-      if (normal.dot(-move) <= 0 ||
-          !(g_min < max_bound && g_max > min_bound)) {
+    // Now: project each relevant (depending on direction of movement) vertex
+    // of each body by the movement vector to form a line. Find the minimum
+    // blocking ratio among each intersection of the geometry with these, and
+    // and also any endpoint of geometry contained within the projection of
+    // the entire shape.
+    // The pleasing symmetry is that checking the geometry endpoints is
+    // exactly the reverse of the same process, i.e., project the geometry
+    // backwards by the movement vector and take the minimum blocking ratio
+    // among intersections with the original shape.
+    for (const auto& pointer : bodies) {
+      const Body& b = *pointer;
+      if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
         continue;
       }
+      vertices_temp.clear();
+      vertices.clear();
+      geometries.clear();
 
-      // Now: project each relevant (depending on direction of movement) vertex
-      // of each body by the movement vector to form a line. Find the minimum
-      // blocking ratio among each intersection of the geometry with these, and
-      // and also any endpoint of geometry contained within the projection of
-      // the entire shape.
-      // The pleasing symmetry is that checking the geometry endpoints is
-      // exactly the reverse of the same process, i.e., project the geometry
-      // backwards by the movement vector and take the minimum blocking ratio
-      // among intersections with the original shape.
-      for (const auto& pointer : bodies) {
-        const Body& b = *pointer;
-        if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
-          continue;
-        }
-        vertices_temp.clear();
-        vertices.clear();
-        geometries.clear();
+      b.get_vertices(vertices_temp,
+                     source.get_origin(), source.get_rotation());
+      get_vertices_and_geometries_for_move(geometries, vertices,
+                                           move, vertices_temp);
 
-        b.get_vertices(vertices_temp,
-                       source.get_origin(), source.get_rotation());
-        get_vertices_and_geometries_for_move(geometries, vertices,
-                                             move, vertices_temp);
-
-        min_ratio = y::min(min_ratio, get_projection_ratio(wg, vertices, move));
-        min_ratio = y::min(min_ratio, get_projection_ratio(
-                        geometries, {wg.start, wg.end}, -move));
-      }
+      min_ratio = y::min(min_ratio, get_projection_ratio(wg, vertices, move));
+      min_ratio = y::min(min_ratio, get_projection_ratio(
+                      geometries, {wg.start, wg.end}, -move));
     }
   }
 
@@ -385,57 +356,43 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
   y::vector<world_geometry> geometries;
 
   // See collider_move for details.
-  for (y::size i = 0; i < geometry.buckets.size(); ++i) {
-    y::int32 g_max = geometry.get_max_for_bucket(i);
-    if (min_bound[xx] >= g_max) {
+  for (auto it = geometry.traverse(min_bound, max_bound); it; ++it) {
+    const Geometry& g = *it;
+
+    // Check geometry orientation.
+    y::wvec2 v = y::wvec2(rotate > 0 ? g.end : g.start) - origin;
+    y::wvec2 rotate_normal{-v[yy], v[xx]};
+    if (!rotate_normal.cross(y::wvec2(rotate > 0 ? g.start - g.end :
+                                                   g.end - g.start)) > 0) {
       continue;
     }
 
-    for (const Geometry& g : geometry.buckets[i]) {
-      y::wvec2 g_min = y::wvec2(y::min(g.start, g.end));
-      y::wvec2 g_max = y::wvec2(y::max(g.start, g.end));
-      if (g_min[xx] >= max_bound[xx]) {
-        break;
-      }
+    // Very similar strategy to collider_move, except we are projecting points
+    // along arcs of circles defined by the distance to the Script's origin
+    // (plus offset).
+    // Again, we project the first set of points forwards and the second set
+    // of points backwards along the arcs.
+    world_geometry wg{y::wvec2(g.start), y::wvec2(g.end)};
 
-      // Check bounding box and geometry orientation.
-      if (!(g_min < max_bound && g_max > min_bound)) {
+    for (const auto& pointer : bodies) {
+      const Body& b = *pointer;
+      if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
         continue;
       }
-      y::wvec2 v = y::wvec2(rotate > 0 ? g.end : g.start) - origin;
-      y::wvec2 rotate_normal{-v[yy], v[xx]};
-      if (!rotate_normal.cross(y::wvec2(rotate > 0 ? g.start - g.end :
-                                                     g.end - g.start)) > 0) {
-        continue;
-      }
+      vertices_temp.clear();
+      vertices.clear();
+      geometries.clear();
 
-      // Very similar strategy to collider_move, except we are projecting points
-      // along arcs of circles defined by the distance to the Script's origin
-      // (plus offset).
-      // Again, we project the first set of points forwards and the second set
-      // of points backwards along the arcs.
-      world_geometry wg{y::wvec2(g.start), y::wvec2(g.end)};
-
-      for (const auto& pointer : bodies) {
-        const Body& b = *pointer;
-        if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
-          continue;
-        }
-        vertices_temp.clear();
-        vertices.clear();
-        geometries.clear();
-
-        b.get_vertices(vertices_temp,
-                       source.get_origin(), source.get_rotation());
-        get_vertices_and_geometries_for_rotate(
-            geometries, vertices, rotate, origin, vertices_temp);
-        
-        limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                                wg, vertices, origin, rotate));
-        limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                                geometries, {wg.start, wg.end},
-                                origin, -rotate));
-      }
+      b.get_vertices(vertices_temp,
+                     source.get_origin(), source.get_rotation());
+      get_vertices_and_geometries_for_rotate(
+          geometries, vertices, rotate, origin, vertices_temp);
+      
+      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
+                              wg, vertices, origin, rotate));
+      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
+                              geometries, {wg.start, wg.end},
+                              origin, -rotate));
     }
   }
 
@@ -509,27 +466,12 @@ bool Collision::body_check(const Script& source, const Body& body,
   get_geometries(geometries, vertices);
 
   // See collider_move for details.
-  for (y::size i = 0; collide_mask & COLLIDE_RESV_WORLD &&
-                      i < geometry.buckets.size(); ++i) {
-    y::int32 g_max = geometry.get_max_for_bucket(i);
-    if (min_bound[xx] >= g_max) {
-      continue;
-    }
-
-    for (const Geometry& g : geometry.buckets[i]) {
-      y::wvec2 g_min = y::wvec2(y::min(g.start, g.end));
-      y::wvec2 g_max = y::wvec2(y::max(g.start, g.end));
-      if (g_min[xx] >= max_bound[xx]) {
-        break;
-      }
-      if (!(g_min < max_bound && g_max > min_bound)) {
-        continue;
-      }
-
-      if (has_intersection(geometries, world_geometry{y::wvec2(g.start),
-                                                      y::wvec2(g.end)})) {
-        return true;
-      }
+  for (auto it = geometry.traverse(min_bound, max_bound);
+       it && collide_mask & COLLIDE_RESV_WORLD; ++it) {
+    const Geometry& g = *it;
+    if (has_intersection(geometries, world_geometry{y::wvec2(g.start),
+                                                    y::wvec2(g.end)})) {
+      return true;
     }
   }
 

@@ -48,6 +48,80 @@ void OrderedGeometry::clear()
   }
 }
 
+OrderedGeometry::iterator::iterator(
+    const OrderedGeometry& g, const y::wvec2& min, const y::wvec2& max)
+  : _g(g)
+  , _min(min)
+  , _max(max)
+  , _i(0)
+{
+  std::cout << "ITERATOR" << std::endl;
+  if (_i < _g.buckets.size()) {
+    _j = _g.buckets[_i].begin();
+  }
+  seek_to_next();
+}
+
+void OrderedGeometry::iterator::seek_to_next()
+{
+  start:
+  // Eliminate geometry by bucket and order. Skip buckets we're completely
+  // outside.
+  while (_min[xx] >= _g.get_max_for_bucket(_i)) {
+    ++_i;
+    if (_i >= _g.buckets.size()) {
+      return;
+    }
+    _j = _g.buckets[_i].begin();
+  }
+
+  middle:
+  // Use ordering to break once we see a high enough minimum.
+  if (_j == _g.buckets[_i].end() ||
+      y::min(_j->start, _j->end)[xx] >= _max[xx]) {
+    ++_i;
+    if (_i >= _g.buckets.size()) {
+      return;
+    }
+    _j = _g.buckets[_i].begin();
+    goto start;
+  }
+
+  // Skip if general bounding-box check fails.
+  if (!(y::wvec2(y::min(_j->start, _j->end)) < _max &&
+        y::wvec2(y::max(_j->start, _j->end)) > _min)) {
+    ++_j;
+    goto middle;
+  }
+}
+
+OrderedGeometry::iterator::operator bool() const
+{
+  return _i < _g.buckets.size();
+}
+
+void OrderedGeometry::iterator::increment()
+{
+  ++_j;
+  seek_to_next();
+}
+
+bool OrderedGeometry::iterator::equal(const iterator& arg) const
+{
+  return _i == arg._i && _j == arg._j;
+}
+
+const Geometry& OrderedGeometry::iterator::dereference() const
+{
+  return *_j;
+}
+
+OrderedGeometry::iterator OrderedGeometry::traverse(const y::wvec2& min_x,
+                                                    const y::wvec2& max_x) const
+{
+  return iterator(*this, min_x, max_x);
+}
+
 y::int32 OrderedGeometry::get_max_for_bucket(y::size index) const
 {
   return (1 + index - WorldWindow::active_window_half_size) *

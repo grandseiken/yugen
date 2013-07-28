@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "cell.h"
+#include <boost/iterator/iterator_facade.hpp>
 
 // A collision boundary line. By convention geometry is stored in clockwise
 // order; that is, when facing from start to end the solid geometry lies on the
@@ -25,14 +26,47 @@ struct Geometry {
 // x-coordinate. The OrderedGeometry groups several buckets together, one per
 // x-cell, each bucket's elements having maximum x-coordinate in that cell.
 typedef y::ordered_set<Geometry, Geometry::order> OrderedBucket;
-struct OrderedGeometry : public y::no_copy {
+class OrderedGeometry : public y::no_copy {
+public:
+
   OrderedGeometry();
 
   void insert(const Geometry& g);
   void clear();
+
+  // Iterator for conveniently traversing all Geometries in a given range.
+  class iterator : public boost::iterator_facade<
+      iterator, const Geometry, boost::forward_traversal_tag> {
+  public:
+
+    iterator(const OrderedGeometry& g,
+             const y::wvec2& min, const y::wvec2& max);
+    explicit operator bool() const;
+
+  private:
+
+    friend class boost::iterator_core_access;
+
+    void seek_to_next();
+    void increment();
+    bool equal(const iterator& arg) const;
+    const Geometry& dereference() const;
+
+    const OrderedGeometry& _g;
+    y::wvec2 _min;
+    y::wvec2 _max;
+    y::size _i;
+    OrderedBucket::const_iterator _j;
+  };
+
+  iterator traverse(const y::wvec2& min_x, const y::wvec2& max_x) const;
+
+private:
+
   y::int32 get_max_for_bucket(y::size index) const;
 
   y::vector<OrderedBucket> buckets;
+
 };
 
 // Stores world geometry.

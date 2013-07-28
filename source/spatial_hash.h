@@ -19,6 +19,8 @@ public:
   void clear();
 
   // Find all objects which might overlap the given rectangle.
+  // TODO: have a search iterator. Once that is done, definitely replace
+  // OrderedGeometry with this.
   void search(y::vector<T>& output,
               const y::wvec2& min, const y::wvec2& max) const;
 

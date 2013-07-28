@@ -587,43 +587,33 @@ void Lighting::get_angular_relevant_geometry(
   y::wvec2 bound = y::wvec2{max_range, max_range};
 
   // See Collision::collider_move for details.
-  for (y::size i = 0; i < all_geometry.buckets.size(); ++i) {
-    y::int32 g_max = all_geometry.get_max_for_bucket(i);
-    if (origin[xx] - bound[xx] >= g_max) {
+  for (auto it = all_geometry.traverse(origin - bound,
+                                       origin + bound); it; ++it) {
+    const Geometry& g = *it;
+    // Translate to origin.
+    const y::wvec2 g_s = y::wvec2(g.start) - origin;
+    const y::wvec2 g_e = y::wvec2(g.end) - origin;
+
+    // Check intersection.
+    if (!y::line_intersects_rect(g_s, g_e, -bound, bound)) {
       continue;
     }
 
-    for (const Geometry& g : all_geometry.buckets[i]) {
-      // Translate to origin.
-      const y::wvec2 g_s = y::wvec2(g.start) - origin;
-      const y::wvec2 g_e = y::wvec2(g.end) - origin;
-
-      // Break by ordering.
-      if (y::min(g_s[xx], g_e[xx]) >= bound[xx]) {
-        break;
-      }
-
-      // Check intersection.
-      if (!y::line_intersects_rect(g_s, g_e, -bound, bound)) {
-        continue;
-      }
-
-      // Exclude geometries which are defined in the wrong direction, that is,
-      // check whether the line is going clockwise or anticlockwise around the
-      // origin.
-      if (g_e.cross(g_s) >= 0) {
-        continue;
-      }
-
-      // We allow lights to shine in from outside the active window.
-      if (g.external) {
-        continue;
-      }
-
-      geometry_output.emplace_back(g_s, g_e);
-      map_output[g_s].emplace_back(g_s, g_e);
-      map_output[g_e].emplace_back(g_s, g_e);
+    // Exclude geometries which are defined in the wrong direction, that is,
+    // check whether the line is going clockwise or anticlockwise around the
+    // origin.
+    if (g_e.cross(g_s) >= 0) {
+      continue;
     }
+
+    // We allow lights to shine in from outside the active window.
+    if (g.external) {
+      continue;
+    }
+
+    geometry_output.emplace_back(g_s, g_e);
+    map_output[g_s].emplace_back(g_s, g_e);
+    map_output[g_e].emplace_back(g_s, g_e);
   }
   for (const auto& pair : map_output) {
     vertex_output.emplace_back(pair.first);
@@ -655,37 +645,28 @@ void Lighting::get_planar_relevant_geometry(
                               y::max(v - offset, v + offset));
 
   // See above for details.
-  for (y::size i = 0; i < all_geometry.buckets.size(); ++i) {
-    y::int32 g_max = all_geometry.get_max_for_bucket(i);
-    if (origin[xx] + min_bound[xx] >= g_max) {
+  for (auto it = all_geometry.traverse(origin + min_bound,
+                                       origin + max_bound); it; ++it) {
+    const Geometry& g = *it;
+    const y::wvec2 g_s = y::wvec2(g.start) - origin;
+    const y::wvec2 g_e = y::wvec2(g.end) - origin;
+
+    if (!y::line_intersects_rect(g_s, g_e, min_bound, max_bound)) {
       continue;
     }
 
-    for (const Geometry& g : all_geometry.buckets[i]) {
-      const y::wvec2 g_s = y::wvec2(g.start) - origin;
-      const y::wvec2 g_e = y::wvec2(g.end) - origin;
-
-      if (y::min(g_s[xx], g_e[xx]) >= max_bound[xx]) {
-        break;
-      }
-
-      if (!y::line_intersects_rect(g_s, g_e, min_bound, max_bound)) {
-        continue;
-      }
-
-      // Exclude geometries which cross the light angle in the wrong direction.
-      if ((g_e - g_s).cross(v) >= 0) {
-        continue;
-      }
-
-      if (g.external) {
-        continue;
-      }
-
-      geometry_output.emplace_back(g_s, g_e);
-      map_output[g_s].emplace_back(g_s, g_e);
-      map_output[g_e].emplace_back(g_s, g_e);
+    // Exclude geometries which cross the light angle in the wrong direction.
+    if ((g_e - g_s).cross(v) >= 0) {
+      continue;
     }
+
+    if (g.external) {
+      continue;
+    }
+
+    geometry_output.emplace_back(g_s, g_e);
+    map_output[g_s].emplace_back(g_s, g_e);
+    map_output[g_e].emplace_back(g_s, g_e);
   }
   for (const auto& pair : map_output) {
     vertex_output.emplace_back(pair.first);

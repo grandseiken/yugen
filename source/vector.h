@@ -462,11 +462,6 @@ namespace y {
     {
     }
 
-    vec_iterator<T, N, non_strict> end()
-    {
-      return vec_iterator();
-    }
-
     explicit operator bool() const
     {
       return !_finished;
