@@ -1,60 +1,64 @@
 #include "lua.h"
 #include "collision.h"
 
-// Variadic push.
-lua_int push_all(lua_State* state)
-{
-  (void)state;
-  return 0;
-}
+namespace {
+  // Variadic push.
+  lua_int push_all(lua_State* state)
+  {
+    (void)state;
+    return 0;
+  }
 
-template<typename T, typename... U>
-lua_int push_all(lua_State* state, const T& arg, const U&... args)
-{
-  LuaType<T> t;
-  t.push(state, arg);
-  push_all(state, args...);
-  return 1 + sizeof...(U);
-}
+  template<typename T, typename... U>
+  lua_int push_all(lua_State* state, const T& arg, const U&... args)
+  {
+    LuaType<T> t;
+    t.push(state, arg);
+    push_all(state, args...);
+    return 1 + sizeof...(U);
+  }
 
-// Generic is and get functions.
-template<typename T>
-bool lua_is(lua_State* state, lua_int index)
-{
-  return LuaType<T>().is(state, index);
-}
+  // Generic is and get functions.
+  template<typename T>
+  bool lua_is(lua_State* state, lua_int index)
+  {
+    return LuaType<T>().is(state, index);
+  }
 
-template<typename T>
-auto lua_get(lua_State* state, lua_int index) ->
-    decltype(LuaType<T>().get(state, index))
-{
+  template<typename T>
+  auto lua_get(lua_State* state, lua_int index) ->
+      decltype(LuaType<T>().get(state, index))
+  {
 #ifdef LUA_DEBUG
-  luaL_argcheck(state, lua_is<T>(state, index), index,
-                (LuaType<T>::type_name + " expected").c_str());
+    luaL_argcheck(state, lua_is<T>(state, index), index,
+                  (LuaType<T>::type_name + " expected").c_str());
 #endif
-  return LuaType<T>().get(state, index);
-}
+    return LuaType<T>().get(state, index);
+  }
 
-// Lua assert.
-void lua_argassert(lua_State* state,
-                   bool condition, lua_int index, const y::string& message)
-{
+  // Lua assert.
+  void lua_argassert(lua_State* state,
+                     bool condition, lua_int index, const y::string& message)
+  {
 #ifdef LUA_DEBUG
-  luaL_argcheck(state, condition, index, message.c_str());
+    luaL_argcheck(state, condition, index, message.c_str());
 #else
-  (void)state;
-  (void)condition;
-  (void)message;
+    (void)state;
+    (void)condition;
+    (void)message;
 #endif
-}
+  }
 
-struct RegistryIndex {};
-static RegistryIndex stage_registry_index;
+  struct RegistryIndex {};
+  static RegistryIndex stage_registry_index;
+}
 
 /******************************************************************************/
 /**** Preprocessor magic for defining types and functions useable by Lua   ****/
 /**** in a style that sort of approximates C functions:                    ****/
 /******************************************************************************/
+/***/ #define y_namespace() namespace
+/***/
 /***/ #define y_ptrtypedef(T)                                                  \
 /***/ template<>                                                               \
 /***/ const y::string LuaType<T*>::type_name = "y." #T "*";                    \
@@ -161,6 +165,7 @@ static RegistryIndex stage_registry_index;
 /**** Preprocessor magic for enumerating the library of functions and      ****/
 /**** types and storing them in a Lua stack:                               ****/
 /******************************************************************************/
+/***/ #undef y_namespace
 /***/ #undef y_ptrtypedef
 /***/ #undef y_valtypedef
 /***/ #undef y_method
@@ -172,6 +177,8 @@ static RegistryIndex stage_registry_index;
 /***/ #undef y_assert
 /***/ #undef y_return
 /***/ #undef y_void
+/***/
+/***/ #define y_namespace()
 /***/
 /***/ #define y_ptrtypedef(T)                                                  \
 /***/   _y_api_##T::_y_typedef(_y_state);                                      \
@@ -234,12 +241,14 @@ static RegistryIndex stage_registry_index;
 /***/     }                                                                    \
 /***/   }; while (false) {(void)0
 /******************************************************************************/
-void y_register(lua_State* _y_state)
-{
+namespace {
+  void y_register(lua_State* _y_state)
+  {
 #include "lua_api.h"
+  }
 }
 /******************************************************************************/
-/***/ #undef y_opqptrtypedef
+/***/ #undef y_namespace
 /***/ #undef y_ptrtypedef
 /***/ #undef y_valtypedef
 /***/ #undef y_method
@@ -342,7 +351,7 @@ Script* ScriptReference::operator->()
 }
 
 ConstScriptReference::ConstScriptReference(const Script& script)
-: _script(&script)
+  : _script(&script)
 {
   script._const_reference_set.insert(this);
 }

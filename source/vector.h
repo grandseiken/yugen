@@ -557,6 +557,7 @@ namespace y {
   typedef vec<world, 2> wvec2;
 
   typedef vec_iterator<int32, 2, true> ivec2_iterator;
+  typedef vec_iterator<int32, 3, true> ivec3_iterator;
   typedef vec_iterator<float, 2, true> fvec2_iterator;
   typedef vec_iterator<float, 4, true> fvec4_iterator;
   typedef vec_iterator<world, 4, true> wvec2_iterator;

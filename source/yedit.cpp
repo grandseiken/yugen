@@ -132,42 +132,44 @@ void Yedit::update()
   }
 }
 
-bool used(const Tileset& tileset, const CellBlueprint& cell)
-{
-  return cell.is_tileset_used(tileset);
-}
-
-bool used(const Tileset& tileset, const CellMap& map)
-{
-  for (auto it = map.get_cartesian(); it; ++it) {
-    if (!map.is_coord_used(*it)) {
-      continue;
-    }
-    if (used(tileset, *map.get_coord(*it))) {
-      return true;
-    }
+namespace {
+  bool used(const Tileset& tileset, const CellBlueprint& cell)
+  {
+    return cell.is_tileset_used(tileset);
   }
-  return false;
-}
 
-bool used(const LuaFile& script, const CellMap& map)
-{
-  for (const ScriptBlueprint& s : map.get_scripts()) {
-    if (script.path == s.path) {
-      return true;
+  bool used(const Tileset& tileset, const CellMap& map)
+  {
+    for (auto it = map.get_cartesian(); it; ++it) {
+      if (!map.is_coord_used(*it)) {
+        continue;
+      }
+      if (used(tileset, *map.get_coord(*it))) {
+        return true;
+      }
     }
+    return false;
   }
-  return false;
-}
 
-bool used(const CellBlueprint& cell, const CellMap& map)
-{
-  for (auto it = map.get_cartesian(); it; ++it) {
-    if (map.get_coord(*it) == &cell) {
-      return true;
+  bool used(const LuaFile& script, const CellMap& map)
+  {
+    for (const ScriptBlueprint& s : map.get_scripts()) {
+      if (script.path == s.path) {
+        return true;
+      }
     }
+    return false;
   }
-  return false;
+
+  bool used(const CellBlueprint& cell, const CellMap& map)
+  {
+    for (auto it = map.get_cartesian(); it; ++it) {
+      if (map.get_coord(*it) == &cell) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 void Yedit::draw() const

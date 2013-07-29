@@ -8,110 +8,112 @@
 
 #include <SFML/Window.hpp>
 
-void render_collision(RenderUtil& util, const y::ivec2& pixels,
-                      y::int32 collision, const y::fvec4& colour)
-{
-  static const y::ivec2& t = Tileset::tile_size;
-  const y::ivec2 ul = pixels + Tileset::ul;
-  const y::ivec2 ur = pixels + Tileset::ur;
-  const y::ivec2 dl = pixels + Tileset::dl;
-  const y::ivec2 dr = pixels + Tileset::dr;
-  const y::ivec2 u = pixels + Tileset::u;
-  const y::ivec2 d = pixels + Tileset::d;
-  const y::ivec2 l = pixels + Tileset::l;
-  const y::ivec2 r = pixels + Tileset::r;
+namespace {
+  void render_collision(RenderUtil& util, const y::ivec2& pixels,
+                        y::int32 collision, const y::fvec4& colour)
+  {
+    static const y::ivec2& t = Tileset::tile_size;
+    const y::ivec2 ul = pixels + Tileset::ul;
+    const y::ivec2 ur = pixels + Tileset::ur;
+    const y::ivec2 dl = pixels + Tileset::dl;
+    const y::ivec2 dr = pixels + Tileset::dr;
+    const y::ivec2 u = pixels + Tileset::u;
+    const y::ivec2 d = pixels + Tileset::d;
+    const y::ivec2 l = pixels + Tileset::l;
+    const y::ivec2 r = pixels + Tileset::r;
 
-  switch (collision) {
-    case Tileset::COLLIDE_FULL:
-      util.irender_fill(pixels, t, colour);
-      break;
-    case Tileset::COLLIDE_HALF_U:
-      util.irender_fill(pixels, t / y::ivec2{1, 2}, colour);
-      break;
-    case Tileset::COLLIDE_HALF_D:
-      util.irender_fill(pixels + y::ivec2{0, t[yy] / 2},
-                        t / y::ivec2{1, 2}, colour);
-      break;
-    case Tileset::COLLIDE_HALF_L:
-      util.irender_fill(pixels, t / y::ivec2{2, 1}, colour);
-      break;
-    case Tileset::COLLIDE_HALF_R:
-      util.irender_fill(pixels + y::ivec2{t[xx] / 2, 0},
-                        t / y::ivec2{2, 1}, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE1_UL:
-      util.irender_fill(dl, ul, dr, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE1_UR:
-      util.irender_fill(dl, ur, dr, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE1_DL:
-      util.irender_fill(ul, dl, ur, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE1_DR:
-      util.irender_fill(ul, dr, ur, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE2_UL_A:
-      util.irender_fill(d, ul, dl, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE2_UR_A:
-      util.irender_fill(d, ur, dr, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE2_DL_A:
-      util.irender_fill(u, ul, dl, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE2_DR_A:
-      util.irender_fill(u, ur, dr, colour);
-      break;
-    case Tileset::COLLIDE_SLOPEH_UL_A:
-      util.irender_fill(l, dl, dr, colour);
-      break;
-    case Tileset::COLLIDE_SLOPEH_UR_A:
-      util.irender_fill(r, dl, dr, colour);
-      break;
-    case Tileset::COLLIDE_SLOPEH_DL_A:
-      util.irender_fill(l, ul, ur, colour);
-      break;
-    case Tileset::COLLIDE_SLOPEH_DR_A:
-      util.irender_fill(r, ul, ur, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE2_UL_B:
-      util.irender_fill(pixels, t / y::ivec2{2, 1}, colour);
-      util.irender_fill(dr, u, d, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE2_UR_B:
-      util.irender_fill(pixels + y::ivec2{t[xx] / 2, 0},
-                        t / y::ivec2{2, 1}, colour);
-      util.irender_fill(dl, u, d, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE2_DL_B:
-      util.irender_fill(pixels, t / y::ivec2{2, 1}, colour);
-      util.irender_fill(ur, u, d, colour);
-      break;
-    case Tileset::COLLIDE_SLOPE2_DR_B:
-      util.irender_fill(pixels + y::ivec2{t[xx] / 2, 0},
-                        t / y::ivec2{2, 1}, colour);
-      util.irender_fill(ul, u, d, colour);
-      break;
-    case Tileset::COLLIDE_SLOPEH_UL_B:
-      util.irender_fill(pixels + y::ivec2{0, t[yy] / 2},
-                        t / y::ivec2{1, 2}, colour);
-      util.irender_fill(ul, l, r, colour);
-      break;
-    case Tileset::COLLIDE_SLOPEH_UR_B:
-      util.irender_fill(pixels + y::ivec2{0, t[yy] / 2},
-                        t / y::ivec2{1, 2}, colour);
-      util.irender_fill(ur, l, r, colour);
-      break;
-    case Tileset::COLLIDE_SLOPEH_DL_B:
-      util.irender_fill(pixels, t / y::ivec2{1, 2}, colour);
-      util.irender_fill(dl, l, r, colour);
-      break;
-    case Tileset::COLLIDE_SLOPEH_DR_B:
-      util.irender_fill(pixels, t / y::ivec2{1, 2}, colour);
-      util.irender_fill(dr, l, r, colour);
-      break;
-    default: {}
+    switch (collision) {
+      case Tileset::COLLIDE_FULL:
+        util.irender_fill(pixels, t, colour);
+        break;
+      case Tileset::COLLIDE_HALF_U:
+        util.irender_fill(pixels, t / y::ivec2{1, 2}, colour);
+        break;
+      case Tileset::COLLIDE_HALF_D:
+        util.irender_fill(pixels + y::ivec2{0, t[yy] / 2},
+                          t / y::ivec2{1, 2}, colour);
+        break;
+      case Tileset::COLLIDE_HALF_L:
+        util.irender_fill(pixels, t / y::ivec2{2, 1}, colour);
+        break;
+      case Tileset::COLLIDE_HALF_R:
+        util.irender_fill(pixels + y::ivec2{t[xx] / 2, 0},
+                          t / y::ivec2{2, 1}, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE1_UL:
+        util.irender_fill(dl, ul, dr, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE1_UR:
+        util.irender_fill(dl, ur, dr, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE1_DL:
+        util.irender_fill(ul, dl, ur, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE1_DR:
+        util.irender_fill(ul, dr, ur, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE2_UL_A:
+        util.irender_fill(d, ul, dl, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE2_UR_A:
+        util.irender_fill(d, ur, dr, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE2_DL_A:
+        util.irender_fill(u, ul, dl, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE2_DR_A:
+        util.irender_fill(u, ur, dr, colour);
+        break;
+      case Tileset::COLLIDE_SLOPEH_UL_A:
+        util.irender_fill(l, dl, dr, colour);
+        break;
+      case Tileset::COLLIDE_SLOPEH_UR_A:
+        util.irender_fill(r, dl, dr, colour);
+        break;
+      case Tileset::COLLIDE_SLOPEH_DL_A:
+        util.irender_fill(l, ul, ur, colour);
+        break;
+      case Tileset::COLLIDE_SLOPEH_DR_A:
+        util.irender_fill(r, ul, ur, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE2_UL_B:
+        util.irender_fill(pixels, t / y::ivec2{2, 1}, colour);
+        util.irender_fill(dr, u, d, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE2_UR_B:
+        util.irender_fill(pixels + y::ivec2{t[xx] / 2, 0},
+                          t / y::ivec2{2, 1}, colour);
+        util.irender_fill(dl, u, d, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE2_DL_B:
+        util.irender_fill(pixels, t / y::ivec2{2, 1}, colour);
+        util.irender_fill(ur, u, d, colour);
+        break;
+      case Tileset::COLLIDE_SLOPE2_DR_B:
+        util.irender_fill(pixels + y::ivec2{t[xx] / 2, 0},
+                          t / y::ivec2{2, 1}, colour);
+        util.irender_fill(ul, u, d, colour);
+        break;
+      case Tileset::COLLIDE_SLOPEH_UL_B:
+        util.irender_fill(pixels + y::ivec2{0, t[yy] / 2},
+                          t / y::ivec2{1, 2}, colour);
+        util.irender_fill(ul, l, r, colour);
+        break;
+      case Tileset::COLLIDE_SLOPEH_UR_B:
+        util.irender_fill(pixels + y::ivec2{0, t[yy] / 2},
+                          t / y::ivec2{1, 2}, colour);
+        util.irender_fill(ur, l, r, colour);
+        break;
+      case Tileset::COLLIDE_SLOPEH_DL_B:
+        util.irender_fill(pixels, t / y::ivec2{1, 2}, colour);
+        util.irender_fill(dl, l, r, colour);
+        break;
+      case Tileset::COLLIDE_SLOPEH_DR_B:
+        util.irender_fill(pixels, t / y::ivec2{1, 2}, colour);
+        util.irender_fill(dr, l, r, colour);
+        break;
+      default: {}
+    }
   }
 }
 

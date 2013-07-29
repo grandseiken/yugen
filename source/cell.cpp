@@ -227,35 +227,38 @@ y::int32 Tile::get_collision() const
   return tileset->get_collision(index);
 }
 
-y::size to_internal_index(y::int32 layer, const y::ivec2& v)
-{
-  return v[yy] * Cell::cell_width + v[xx] +
-      (layer + Cell::background_layers) * Cell::cell_width * Cell::cell_height;
-}
-
-// Increment or decrement a value in a map, such that an entry exists iff its
-// value is nonzero.
-template<typename T, typename U>
-void change_by_one(y::map<T, U>& map, const T& t, bool increment)
-{
-  if (!t) {
-    return;
+namespace {
+  y::size to_internal_index(y::int32 layer, const y::ivec2& v)
+  {
+    return v[yy] * Cell::cell_width + v[xx] +
+        (layer + Cell::background_layers) *
+            Cell::cell_width * Cell::cell_height;
   }
 
-  auto it = map.find(t);
-  if (it != map.end()) {
-    if (increment) {
-      ++it->second;
+  // Increment or decrement a value in a map, such that an entry exists iff its
+  // value is nonzero.
+  template<typename T, typename U>
+  void change_by_one(y::map<T, U>& map, const T& t, bool increment)
+  {
+    if (!t) {
+      return;
     }
-    else {
-      --it->second;
+
+    auto it = map.find(t);
+    if (it != map.end()) {
+      if (increment) {
+        ++it->second;
+      }
+      else {
+        --it->second;
+      }
+      if (!it->second) {
+        map.erase(it);
+      }
     }
-    if (!it->second) {
-      map.erase(it);
+    else if (increment || T(-1) < T(0)) {
+      map[t] = increment ? 1 : -1;
     }
-  }
-  else if (increment || T(-1) < T(0)) {
-    map[t] = increment ? 1 : -1;
   }
 }
 
