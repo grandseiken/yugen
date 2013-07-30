@@ -110,60 +110,67 @@ private:
     y::wvec2 end;
   };
 
-  y::world get_projection_ratio(const y::vector<world_geometry>& geometry,
-                                const y::vector<y::wvec2>& vertices,
-                                const y::wvec2& move) const;
-  y::world get_projection_ratio(const world_geometry& geometry,
-                                const y::vector<y::wvec2>& vertices,
-                                const y::wvec2& move) const;
-  y::world get_projection_ratio(const world_geometry& geometry,
-                                const y::wvec2& vertex,
-                                const y::wvec2& move,
-                                bool tolerance) const;
+  static y::world get_projection_ratio(
+      const y::vector<world_geometry>& geometry,
+      const y::vector<y::wvec2>& vertices, const y::wvec2& move);
 
-  y::world get_arc_projection(const y::vector<world_geometry>& geometry,
-                              const y::vector<y::wvec2>& vertices,
-                              const y::wvec2& origin, y::world rotation) const;
-  y::world get_arc_projection(const world_geometry& geometry,
-                              const y::vector<y::wvec2>& vertices,
-                              const y::wvec2& origin, y::world rotation) const;
-  y::world get_arc_projection(const world_geometry& geometry,
-                              const y::wvec2& vertex,
-                              const y::wvec2& origin, y::world rotation) const;
+  static y::world get_projection_ratio(
+      const world_geometry& geometry,
+      const y::vector<y::wvec2>& vertices, const y::wvec2& move);
+
+  static y::world get_projection_ratio(
+      const world_geometry& geometry,
+      const y::wvec2& vertex, const y::wvec2& move, bool tolerance);
+
+  static y::world get_arc_projection(
+      const y::vector<world_geometry>& geometry,
+      const y::vector<y::wvec2>& vertices,
+      const y::wvec2& origin, y::world rotation);
+
+  static y::world get_arc_projection(
+      const world_geometry& geometry,
+      const y::vector<y::wvec2>& vertices,
+      const y::wvec2& origin, y::world rotation);
+
+  static y::world get_arc_projection(
+      const world_geometry& geometry,
+      const y::wvec2& vertex,
+      const y::wvec2& origin, y::world rotation);
 
   // Returns true if the line intersects the circle on more than a point.
   // Finds t for intersection points of the form start + t * (end - start).
   // Treats line as infinite; must check t in [0, 1] if the line is a segment.
-  bool line_intersects_circle(const y::wvec2& start, const y::wvec2& end,
-                              const y::wvec2& origin, y::world radius_sq,
-                              y::world& t_0, y::world& t_1) const;
+  static bool line_intersects_circle(const y::wvec2& start, const y::wvec2& end,
+                                     const y::wvec2& origin, y::world radius_sq,
+                                     y::world& t_0, y::world& t_1);
 
-  bool has_intersection(const y::vector<world_geometry>& a,
-                        const y::vector<world_geometry>& b) const;
-  bool has_intersection(const y::vector<world_geometry>& a,
-                        const world_geometry& b) const;
-  bool has_intersection(const world_geometry& a,
-                        const world_geometry& b) const;
+  static bool has_intersection(const y::vector<world_geometry>& a,
+                               const y::vector<world_geometry>& b);
+  static bool has_intersection(const y::vector<world_geometry>& a,
+                               const world_geometry& b);
+  static bool has_intersection(const world_geometry& a,
+                               const world_geometry& b);
 
-  Body::bounds get_bounds(const entry_list& bodies, y::int32 collide_mask,
-                          const y::wvec2& origin, y::world rotation) const;
-  Body::bounds get_full_rotation_bounds(
+  static Body::bounds get_bounds(
       const entry_list& bodies, y::int32 collide_mask,
-      const y::wvec2& origin, y::world rotation, const y::wvec2& offset) const;
+      const y::wvec2& origin, y::world rotation);
+  static Body::bounds get_full_rotation_bounds(
+      const entry_list& bodies, y::int32 collide_mask,
+      const y::wvec2& origin, y::world rotation, const y::wvec2& offset);
 
-  void get_geometries(y::vector<world_geometry>& output,
-                      const y::vector<y::wvec2>& vertices) const;
+  static void get_geometries(y::vector<world_geometry>& output,
+                      const y::vector<y::wvec2>& vertices);
   // Get only the vertices and geometries oriented in the direction of a move.
-  void get_vertices_and_geometries_for_move(
+  static void get_vertices_and_geometries_for_move(
       y::vector<world_geometry>& geometry_output,
       y::vector<y::wvec2>& vertex_output,
-      const y::wvec2& move, const y::vector<y::wvec2>& vertices) const;
+      const y::wvec2& move, const y::vector<y::wvec2>& vertices);
   // Similar for rotation.
-  void get_vertices_and_geometries_for_rotate(
+  static void get_vertices_and_geometries_for_rotate(
       y::vector<world_geometry>& geometry_output,
       y::vector<y::wvec2>& vertex_output,
       y::world rotate, const y::wvec2& origin,
-      const y::vector<y::wvec2>& vertices) const;
+      const y::vector<y::wvec2>& vertices);
 
   const WorldWindow& _world;
   SpatialHash<Body*, y::world, 2> _spatial_hash;

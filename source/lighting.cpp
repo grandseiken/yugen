@@ -563,7 +563,7 @@ y::size Lighting::world_geometry_hash::operator()(const world_geometry& g) const
 void Lighting::get_relevant_geometry(
     y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
     geometry_map& map_output, const Light& light, const y::wvec2& origin,
-    const WorldGeometry::geometry_hash& all_geometry, bool planar) const
+    const WorldGeometry::geometry_hash& all_geometry, bool planar)
 {
   if (planar) {
     get_planar_relevant_geometry(vertex_output, geometry_output, map_output,
@@ -578,7 +578,7 @@ void Lighting::get_relevant_geometry(
 void Lighting::get_angular_relevant_geometry(
     y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
     geometry_map& map_output, const Light& light, const y::wvec2& origin,
-    const WorldGeometry::geometry_hash& all_geometry) const
+    const WorldGeometry::geometry_hash& all_geometry)
 {
   // We could find only the vertices whose geometries intersect the circle
   // defined by origin and max_range, but that is way more expensive and
@@ -631,7 +631,7 @@ void Lighting::get_angular_relevant_geometry(
 void Lighting::get_planar_relevant_geometry(
     y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
     geometry_map& map_output, const Light& light, const y::wvec2& origin,
-    const WorldGeometry::geometry_hash& all_geometry) const
+    const WorldGeometry::geometry_hash& all_geometry)
 {
   // We find all the vertices whose geometries intersect the bounding box of the
   // plane-light parallelogram.
@@ -675,7 +675,7 @@ void Lighting::get_planar_relevant_geometry(
 }
 
 y::wvec2 Lighting::get_angular_point_on_geometry(
-    const y::wvec2& v, const world_geometry& geometry) const
+    const y::wvec2& v, const world_geometry& geometry)
 {
   // Calculates point on geometry at the given angle vector. Finds t such that
   // g(t) = g.start + t * (g.end - g.start) has g(t) cross v == 0.
@@ -692,7 +692,7 @@ y::wvec2 Lighting::get_angular_point_on_geometry(
 
 y::wvec2 Lighting::get_planar_point_on_geometry(
     const y::wvec2& normal_vec, const y::wvec2& v,
-    const world_geometry& geometry) const
+    const world_geometry& geometry)
 {
   const y::wvec2 g_vec = geometry.end - geometry.start;
   const y::world d = g_vec.cross(normal_vec);
@@ -708,7 +708,7 @@ y::wvec2 Lighting::get_planar_point_on_geometry(
 void Lighting::trace_light_geometry(light_trace& output, const Light& light,
                                     const y::vector<y::wvec2>& vertex_buffer,
                                     const geometry_entry& geometry_buffer,
-                                    const geometry_map& map, bool planar) const
+                                    const geometry_map& map, bool planar)
 {
   if (planar) {
     trace_planar_light_geometry(output, light,
@@ -724,13 +724,13 @@ void Lighting::trace_angular_light_geometry(
     light_trace& output, const Light& light,
     const y::vector<y::wvec2>& vertex_buffer,
     const geometry_entry& geometry_buffer,
-    const geometry_map& map) const
+    const geometry_map& map)
 {
   struct local {
     // Calculates closest point and geometry.
     static y::wvec2 get_closest(
         world_geometry& closest_geometry_output, y::world max_range,
-        const y::wvec2& v, const geometry_set& stack, const Lighting& lighting)
+        const y::wvec2& v, const geometry_set& stack)
     {
       // If the stack is empty, use the max-range square.
       if (stack.empty()) {
@@ -766,8 +766,7 @@ void Lighting::trace_angular_light_geometry(
           closest_geometry_output.end = y::wvec2();
         }
 
-        return lighting.get_angular_point_on_geometry(
-            v, closest_geometry_output);
+        return get_angular_point_on_geometry(v, closest_geometry_output);
       }
 
       const world_geometry* closest_geometry = y::null;
@@ -778,7 +777,7 @@ void Lighting::trace_angular_light_geometry(
       for (const world_geometry& g : stack) {
         // Distance is defined by the intersection of the geometry with the
         // line from the origin to the current vertex.
-        y::wvec2 point = lighting.get_angular_point_on_geometry(v, g);
+        y::wvec2 point = get_angular_point_on_geometry(v, g);
         y::world dist_sq = point.length_squared();
 
         if (first || dist_sq < min_dist_sq) {
@@ -814,7 +813,7 @@ void Lighting::trace_angular_light_geometry(
   // the vertex is the start or end point of the geometry.
   world_geometry prev_closest_geometry;
   local::get_closest(prev_closest_geometry, light.get_max_range(),
-                     first_vec, stack, *this);
+                     first_vec, stack);
   // If stack is empty, make sure the first vertex gets added.
   bool add_first = stack.empty();
 
@@ -847,7 +846,7 @@ void Lighting::trace_angular_light_geometry(
     world_geometry new_closest_geometry;
     y::wvec2 new_closest_point =
         local::get_closest(new_closest_geometry, light.get_max_range(),
-                           v, stack, *this);
+                           v, stack);
 
     // When nothing has changed, skip (with special-case for empty stack at the
     // beginning).
@@ -871,27 +870,25 @@ void Lighting::trace_planar_light_geometry(
     light_trace& output, const Light& light,
     const y::vector<y::wvec2>& vertex_buffer,
     const geometry_entry& geometry_buffer,
-    const geometry_map& map) const
+    const geometry_map& map)
 {
   struct local {
     // Calculates closest point and geometry.
     static y::wvec2 get_closest(
         world_geometry& closest_geometry_output, const Light& light,
-        const y::wvec2& v, const geometry_set& stack, const Lighting& lighting)
+        const y::wvec2& v, const geometry_set& stack)
     {
       const world_geometry* closest_geometry = y::null;
       y::wvec2 closest_point;
       // Point on light plane for comparison.
-      const y::wvec2 plane_point =
-          lighting.get_planar_point_on_geometry(
-              light.normal_vec, v,
-              world_geometry(-light.get_offset(), light.get_offset()));
+      const y::wvec2 plane_point = get_planar_point_on_geometry(
+          light.normal_vec, v,
+          world_geometry(-light.get_offset(), light.get_offset()));
 
       bool first = true;
       y::world min_dist_sq = 0;
       for (const world_geometry& g : stack) {
-        y::wvec2 point =
-            lighting.get_planar_point_on_geometry(light.normal_vec, v, g);
+        y::wvec2 point = get_planar_point_on_geometry(light.normal_vec, v, g);
         y::world dist_sq = (point - plane_point).length_squared();
 
         if (first || dist_sq < min_dist_sq) {
@@ -910,7 +907,7 @@ void Lighting::trace_planar_light_geometry(
         closest_geometry_output.start =
             light.normal_vec * light.get_max_range() + light.get_offset();
 
-        return lighting.get_planar_point_on_geometry(
+        return get_planar_point_on_geometry(
             light.normal_vec, v, closest_geometry_output);
       }
 
@@ -942,7 +939,7 @@ void Lighting::trace_planar_light_geometry(
   // Algorithm: same as the angular case, but sweeping along a plane. See above
   // for details.
   world_geometry prev_closest_geometry;
-  local::get_closest(prev_closest_geometry, light, first_vec, stack, *this);
+  local::get_closest(prev_closest_geometry, light, first_vec, stack);
   bool add_first = stack.empty();
 
   for (y::size i = 0; i < vertex_buffer.size(); ++i) {
@@ -971,7 +968,7 @@ void Lighting::trace_planar_light_geometry(
 
     world_geometry new_closest_geometry;
     y::wvec2 new_closest_point =
-        local::get_closest(new_closest_geometry, light, v, stack, *this);
+        local::get_closest(new_closest_geometry, light, v, stack);
 
     bool add_last = i == vertex_buffer.size() - 1 && stack.empty();
     if (new_closest_geometry == prev_closest_geometry &&
@@ -991,7 +988,7 @@ void Lighting::trace_planar_light_geometry(
 }
 
 void Lighting::make_cone_trace(light_trace& output, const light_trace& trace,
-                               y::world angle, y::world aperture) const
+                               y::world angle, y::world aperture)
 {
   y::world min_angle = y::angle(angle - aperture);
   y::world max_angle = y::angle(angle + aperture);

@@ -325,9 +325,8 @@ public:
 
   GlUnique(GlUnique&& u)
     : _gl(u._gl)
-    , _t(u._t)
   {
-    u._t._handle = 0;
+    std::swap(_t, u._t);
   }
 
   // Implemented in gl_util.h.

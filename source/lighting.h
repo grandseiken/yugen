@@ -142,49 +142,49 @@ private:
 
   // Pair of functions for finding all vertices and geometries that might
   // affect the light output in the angular and planar settings.
-  void get_relevant_geometry(
+  static void get_relevant_geometry(
       y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
       geometry_map& map_output, const Light& light, const y::wvec2& origin,
-      const WorldGeometry::geometry_hash& all_geometry, bool planar) const;
+      const WorldGeometry::geometry_hash& all_geometry, bool planar);
 
-  void get_angular_relevant_geometry(
+  static void get_angular_relevant_geometry(
       y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
       geometry_map& map_output, const Light& light, const y::wvec2& origin,
-      const WorldGeometry::geometry_hash& all_geometry) const;
+      const WorldGeometry::geometry_hash& all_geometry);
 
-  void get_planar_relevant_geometry(
+  static void get_planar_relevant_geometry(
       y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
       geometry_map& map_output, const Light& light, const y::wvec2& origin,
-      const WorldGeometry::geometry_hash& all_geometry) const;
+      const WorldGeometry::geometry_hash& all_geometry);
 
   // Helper functions.
-  y::wvec2 get_angular_point_on_geometry(
-      const y::wvec2& v, const world_geometry& geometry) const;
-  y::wvec2 get_planar_point_on_geometry(
+  static y::wvec2 get_angular_point_on_geometry(
+      const y::wvec2& v, const world_geometry& geometry);
+  static y::wvec2 get_planar_point_on_geometry(
       const y::wvec2& normal_vec, const y::wvec2& v,
-      const world_geometry& geometry) const;
+      const world_geometry& geometry);
 
   // Pair of functions for tracing angular and planar light geometry.
-  void trace_light_geometry(light_trace& output, const Light& light,
-                            const y::vector<y::wvec2>& vertex_buffer,
-                            const geometry_entry& geometry_buffer,
-                            const geometry_map& map, bool planar) const;
+  static void trace_light_geometry(light_trace& output, const Light& light,
+                                   const y::vector<y::wvec2>& vertex_buffer,
+                                   const geometry_entry& geometry_buffer,
+                                   const geometry_map& map, bool planar);
 
-  void trace_angular_light_geometry(
+  static void trace_angular_light_geometry(
       light_trace& output, const Light& light,
       const y::vector<y::wvec2>& vertex_buffer,
       const geometry_entry& geometry_buffer,
-      const geometry_map& map) const;
+      const geometry_map& map);
 
-  void trace_planar_light_geometry(
+  static void trace_planar_light_geometry(
       light_trace& output, const Light& light,
       const y::vector<y::wvec2>& vertex_buffer,
       const geometry_entry& geometry_buffer,
-      const geometry_map& map) const;
+      const geometry_map& map);
 
   // Converts a point-light trace into a cone-light trace.
-  void make_cone_trace(light_trace& output, const light_trace& trace,
-                       y::world angle, y::world aperture) const;
+  static void make_cone_trace(light_trace& output, const light_trace& trace,
+                              y::world angle, y::world aperture);
 
   const WorldWindow& _world;
   GlUtil& _gl;

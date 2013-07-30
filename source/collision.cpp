@@ -708,7 +708,7 @@ void Collision::on_destroy(const Script& source, Body* obj)
 
 y::world Collision::get_projection_ratio(
     const y::vector<world_geometry>& geometry,
-    const y::vector<y::wvec2>& vertices, const y::wvec2& move) const
+    const y::vector<y::wvec2>& vertices, const y::wvec2& move)
 {
   y::world min_ratio = 2;
   for (const world_geometry& g : geometry) {
@@ -721,7 +721,7 @@ y::world Collision::get_projection_ratio(
 
 y::world Collision::get_projection_ratio(
     const world_geometry& geometry,
-    const y::vector<y::wvec2>& vertices, const y::wvec2& move) const
+    const y::vector<y::wvec2>& vertices, const y::wvec2& move)
 {
   y::world min_ratio = 2;
   for (const y::wvec2& v : vertices) {
@@ -733,7 +733,7 @@ y::world Collision::get_projection_ratio(
 
 y::world Collision::get_projection_ratio(
     const world_geometry& geometry,
-    const y::wvec2& vertex, const y::wvec2& move, bool tolerance) const
+    const y::wvec2& vertex, const y::wvec2& move, bool tolerance)
 {
   static const y::world tolerance_factor = 1.0 / 1024;
   world_geometry v{vertex, move + vertex};
@@ -776,7 +776,7 @@ y::world Collision::get_projection_ratio(
 y::world Collision::get_arc_projection(
     const y::vector<world_geometry>& geometry,
     const y::vector<y::wvec2>& vertices,
-    const y::wvec2& origin, y::world rotation) const
+    const y::wvec2& origin, y::world rotation)
 {
   y::world limiting_rotation = y::abs(rotation);
   for (const world_geometry& g : geometry) {
@@ -791,7 +791,7 @@ y::world Collision::get_arc_projection(
 y::world Collision::get_arc_projection(
     const world_geometry& geometry,
     const y::vector<y::wvec2>& vertices,
-    const y::wvec2& origin, y::world rotation) const
+    const y::wvec2& origin, y::world rotation)
 {
   y::world limiting_rotation = y::abs(rotation);
   for (const y::wvec2& v : vertices) {
@@ -804,7 +804,7 @@ y::world Collision::get_arc_projection(
 y::world Collision::get_arc_projection(
     const world_geometry& geometry,
     const y::wvec2& vertex,
-    const y::wvec2& origin, y::world rotation) const
+    const y::wvec2& origin, y::world rotation)
 {
   const world_geometry& g = geometry;
   y::world t_0;
@@ -867,7 +867,7 @@ y::world Collision::get_arc_projection(
 bool Collision::line_intersects_circle(
     const y::wvec2& start, const y::wvec2& end,
     const y::wvec2& origin, y::world radius_sq,
-    y::world& t_0, y::world& t_1) const
+    y::world& t_0, y::world& t_1)
 {
   // Equation of line (for t in [0, 1]):
   // f(t) = start + t * (end - start)
@@ -897,7 +897,7 @@ bool Collision::line_intersects_circle(
 }
 
 bool Collision::has_intersection(const y::vector<world_geometry>& a,
-                                 const y::vector<world_geometry>& b) const
+                                 const y::vector<world_geometry>& b)
 {
   for (const world_geometry& g: b) {
     if (has_intersection(a, g)) {
@@ -908,7 +908,7 @@ bool Collision::has_intersection(const y::vector<world_geometry>& a,
 }
 
 bool Collision::has_intersection(const y::vector<world_geometry>& a,
-                                 const world_geometry& b) const
+                                 const world_geometry& b)
 {
   for (const world_geometry& g : a) {
     if (has_intersection(g, b)) {
@@ -919,7 +919,7 @@ bool Collision::has_intersection(const y::vector<world_geometry>& a,
 }
 
 bool Collision::has_intersection(const world_geometry& a,
-                                 const world_geometry& b) const
+                                 const world_geometry& b)
 {
   return get_projection_ratio(a, b.start, b.end - b.start, false) <= 1;
 }
@@ -928,7 +928,7 @@ bool Collision::has_intersection(const world_geometry& a,
 // collision will happen 'on a point'. Not a big deal.
 Body::bounds Collision::get_bounds(
     const entry_list& bodies, y::int32 collide_mask,
-    const y::wvec2& origin, y::world rotation) const
+    const y::wvec2& origin, y::world rotation)
 {
   y::wvec2 min;
   y::wvec2 max;
@@ -948,7 +948,7 @@ Body::bounds Collision::get_bounds(
 
 Body::bounds Collision::get_full_rotation_bounds(
     const entry_list& bodies, y::int32 collide_mask,
-    const y::wvec2& origin, y::world rotation, const y::wvec2& offset) const
+    const y::wvec2& origin, y::world rotation, const y::wvec2& offset)
 {
   y::wvec2 min;
   y::wvec2 max;
@@ -967,7 +967,7 @@ Body::bounds Collision::get_full_rotation_bounds(
 }
 
 void Collision::get_geometries(y::vector<world_geometry>& output,
-                               const y::vector<y::wvec2>& vertices) const
+                               const y::vector<y::wvec2>& vertices)
 {
   for (y::size i = 0; i < vertices.size(); ++i) {
     output.push_back({vertices[i], vertices[(1 + i) % vertices.size()]});
@@ -977,7 +977,7 @@ void Collision::get_geometries(y::vector<world_geometry>& output,
 void Collision::get_vertices_and_geometries_for_move(
     y::vector<world_geometry>& geometry_output,
     y::vector<y::wvec2>& vertex_output,
-    const y::wvec2& move, const y::vector<y::wvec2>& vertices) const
+    const y::wvec2& move, const y::vector<y::wvec2>& vertices)
 {
   bool first_keep = false;
   bool keep = false;
@@ -1008,7 +1008,7 @@ void Collision::get_vertices_and_geometries_for_rotate(
     y::vector<world_geometry>& geometry_output,
     y::vector<y::wvec2>& vertex_output,
     y::world rotate, const y::wvec2& origin,
-    const y::vector<y::wvec2>& vertices) const
+    const y::vector<y::wvec2>& vertices)
 {
   bool first_keep = false;
   bool keep = false;
