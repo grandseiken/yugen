@@ -55,7 +55,7 @@ Yugen::Yugen(RenderUtil& util, RunTiming& run_timing)
       "/shaders/upscale.f.glsl"}))
   , _bayer_texture(util.get_gl().make_unique_texture(
       y::ivec2{8, 8}, GL_R8, GL_RED, bayer_matrix, true))
-  , _bayer_frame(0)
+  , _dither_frame(0)
 {
 }
 
@@ -177,12 +177,12 @@ void Yugen::post_render(const GlFramebuffer& source,
   _post_program->bind_uniform("bayer", *_bayer_texture);
   _post_program->bind_uniform("bayer_res", _bayer_texture->get_size());
   _post_program->bind_uniform(
-      "bayer_off", _stage ?
+      "dither_off", _stage ?
           y::fvec2(_stage->get_camera().world_to_camera(y::wvec2())) :
           y::fvec2());
   _post_program->bind_uniform(
-      "bayer_rot", _stage ? float(_stage->get_camera().get_rotation()) : 0.f);
-  _post_program->bind_uniform("bayer_frame", y::int32(++_bayer_frame));
+      "dither_rot", _stage ? float(_stage->get_camera().get_rotation()) : 0.f);
+  _post_program->bind_uniform("dither_frame", y::int32(++_dither_frame));
   _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 

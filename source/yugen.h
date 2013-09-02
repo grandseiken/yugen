@@ -53,7 +53,7 @@ private:
   GlUnique<GlProgram> _post_program;
   GlUnique<GlProgram> _upscale_program;
   GlUnique<GlTexture2D> _bayer_texture;
-  mutable y::size _bayer_frame;
+  mutable y::size _dither_frame;
 
 };
 
