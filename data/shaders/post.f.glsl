@@ -1,13 +1,13 @@
 uniform sampler2D framebuffer;
-uniform sampler2D bayer;
+uniform sampler3D dither_matrix;
 uniform ivec2 native_res;
-uniform ivec2 bayer_res;
+uniform ivec2 dither_res;
 uniform vec2 dither_off;
 uniform float dither_rot;
 uniform int dither_frame;
 noperspective varying vec2 tex_coord;
 
-const int colours_per_channel = 16;
+const int colours_per_channel = 12;
 const float div = 1.0 / (colours_per_channel - 1);
 const float pi = 3.1415926536;
 // Make sure no direction aligns exactly with an axis.
@@ -15,47 +15,22 @@ const vec2 r_dir = vec2(sin(0.2), cos(0.2));
 const vec2 g_dir = vec2(sin(0.2 + 2 * pi / 3), cos(0.2 + 2 * pi / 3));
 const vec2 b_dir = vec2(sin(0.2 + 4 * pi / 3), cos(0.2 + 4 * pi / 3));
 
+const bool dithering_move = true;
 const float dithering_mix = 1.0;
-// Use "a dither" algorithm based on http://pippin.gimp.org/a_dither.
-// Implemented in hardware algorithm; should use a lookup-table as with
-// ordered bayer (which is used when this is false), since this is buggy
-// due to int-float conversion (I think).
-//
 // See also http://bisqwit.iki.fi/story/howto/dither/jy/ for the dithering
 // bible.
-const bool a_dither = false;
-
-vec3 bayer_lookup(vec2 coord, vec2 r, vec2 g, vec2 b)
+vec3 make_coord(vec2 coord, vec2 c_off, float c)
 {
-  vec2 bayer_div = 1.0 / vec2(bayer_res);
-  return
-      vec3(texture2D(bayer, (coord + r) * bayer_div).x,
-           texture2D(bayer, (coord + g) * bayer_div).x,
-           texture2D(bayer, (coord + b) * bayer_div).x);
+  return vec3((dithering_move ? coord + c_off :
+      coord + vec2(0.001) * dither_frame) / vec2(dither_res), c);
 }
 
-const int a_dither_pattern = 3;
-float a_dither_lookup(vec2 coord, int c)
-{
-  int x = int(0.5 + coord.x) - (coord.x < 0 ? 1 : 0);
-  int y = int(0.5 + coord.y) - (coord.y < 0 ? 1 : 0);
-  return
-      a_dither_pattern == 0 ?
-          ((x ^ y * 149) * 1234 & 511) / 511.0 :
-      a_dither_pattern == 1 ?
-          (((x + c * 17) ^ y * 149) * 1234 & 511) / 511.0 :
-      a_dither_pattern == 2 ?
-          ((x + y * 237) * 119 & 255) / 255.0 :
-      a_dither_pattern == 3 ?
-          (((x + c * 67) + y * 236) * 119 & 255) / 255.0 : 0.5;
-}
-
-vec3 a_dither_lookup(vec2 coord, vec2 r, vec2 g, vec2 b)
+vec3 matrix_lookup(vec2 coord, vec2 r, vec2 g, vec2 b)
 {
   return
-      vec3(a_dither_lookup(coord + r, 0),
-           a_dither_lookup(coord + g, 1),
-           a_dither_lookup(coord + b, 2));
+      vec3(texture3D(dither_matrix, make_coord(coord, r, 0.0)).x,
+           texture3D(dither_matrix, make_coord(coord, g, 1.0 / 3)).x,
+           texture3D(dither_matrix, make_coord(coord, b, 2.0 / 3)).x);
 }
 
 void main()
@@ -78,9 +53,7 @@ void main()
                   -sin(dither_rot), cos(dither_rot));
 
   vec2 dither_coord = tex_coord * vec2(native_res) - rot * off;
-  vec3 dither_val = a_dither ?
-      a_dither_lookup(dither_coord, r_off, g_off, b_off) :
-      bayer_lookup(dither_coord, r_off, g_off, b_off);
+  vec3 dither_val = matrix_lookup(dither_coord, r_off, g_off, b_off);
 
   vec4 adjusted = raw +
       mix(vec4(0.5 * div), vec4(dither_val * div, 0.0), dithering_mix);

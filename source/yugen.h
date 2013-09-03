@@ -52,7 +52,8 @@ private:
   GlUnique<GlProgram> _crop_program;
   GlUnique<GlProgram> _post_program;
   GlUnique<GlProgram> _upscale_program;
-  GlUnique<GlTexture2D> _bayer_texture;
+  GlUnique<GlTexture3D> _bayer_texture;
+  GlUnique<GlTexture3D> _a_dither_texture;
   mutable y::size _dither_frame;
 
 };
