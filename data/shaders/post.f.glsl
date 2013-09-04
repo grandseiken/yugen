@@ -41,12 +41,15 @@ void main()
   vec2 g_off = 0.07 * g_dir * dither_frame;
   vec2 b_off = 0.11 * b_dir * dither_frame;
 
-  // To preserve the straightness of the dithering, the dithering must be
-  // shifted either when rotating or when moving a rotated camera. This
-  // is controlled by the presence of the rot multiplier. Not sure which
-  // will be the most common case to optimise for, but right now the dithering
-  // going a bit mad when rotating looks less weird.
-  // (This depends on order of operations of the rotate and translate.)
+  // We attempt to preserve the dithering so that it looks right when the
+  // camera moves, rather than being an obvious overlay.
+  // However, it isn't possible to provide this consistently for both movement
+  // and rotation: the dithering will appear to shift relative to the world
+  // either when the camera rotates or when a rotated camera moves. (This
+  // depends on the presence of the rot multiplier.) It seems like moving a
+  // rotated camera is the common case, and the dithering going mad when
+  // rotating looks a bit less weird.
+  // TODO: it must be possible to do this properly.
   vec2 off = vec2(dither_off.x, -dither_off.y) + 0.5;
   off = off - mod(off, 1.0);
   mat2 rot = mat2(cos(dither_rot), sin(dither_rot),

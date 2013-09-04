@@ -28,9 +28,10 @@ struct Body : y::no_copy {
   y::wvec2 offset;
   y::wvec2 size;
 
-  // Bodies are blocked by any bodies whose collide_mask matches their
-  // collide_type. Collide_mask only affects what the body will be blocked
-  // by when moving or rotating.
+  // Bodies are blocked by any bodies whose collide_type matches their
+  // collide_mask. Collide_mask only affects what the body will be blocked
+  // by when moving or rotating; lookup and filtering functions are based
+  // on the collide_type.
   y::int32 collide_type;
   y::int32 collide_mask;
 };
