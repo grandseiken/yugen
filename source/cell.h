@@ -8,8 +8,8 @@
 class CellBlueprint;
 class Tileset;
 namespace proto {
-  class CellMap;
   class CellBlueprint;
+  class CellMap;
 }
 
 // A script path with associated region. For simplicity with the common
