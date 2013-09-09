@@ -44,7 +44,7 @@ namespace {
     }
     else if (proto.type() == proto::ARRAY) {
       value.type = LuaValue::ARRAY;
-      while (value.array.size() < proto.array_value_size()) {
+      while (y::int32(value.array.size()) < proto.array_value_size()) {
         value.array.emplace_back(0.0);
       }
       for (y::int32 i = 0; i < proto.array_value_size(); ++i) {
@@ -55,7 +55,7 @@ namespace {
 
 }
 
-void Savegame::Savegame()
+Savegame::Savegame()
   : _default_value(false)
 {
 }
@@ -71,7 +71,7 @@ const LuaValue& Savegame::get(const y::string& key) const
   if (it == _map.end()) {
     return _default_value;
   }
-  return it->first;
+  return it->second;
 }
 
 void Savegame::put(const y::string& key, const LuaValue& value)
@@ -87,7 +87,8 @@ void Savegame::put(const y::string& key, const LuaValue& value)
 
 void Savegame::save_to_proto(const Databank& bank, proto::Savegame& proto) const
 {
-  for (auto auto& pair : _map) {
+  (void)bank;
+  for (const auto& pair : _map) {
     auto entry = proto.add_entries();
     entry->set_key(pair.first);
     ::save_to_proto(pair.second, *entry->mutable_value());
@@ -96,6 +97,7 @@ void Savegame::save_to_proto(const Databank& bank, proto::Savegame& proto) const
 
 void Savegame::load_from_proto(Databank& bank, const proto::Savegame& proto)
 {
+  (void)bank;
   clear();
 
   for (y::int32 i = 0; i < proto.entries_size(); ++i) {

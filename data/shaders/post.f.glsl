@@ -7,7 +7,7 @@ uniform float dither_rot;
 uniform int dither_frame;
 noperspective varying vec2 tex_coord;
 
-const int colours_per_channel = 12;
+const int colours_per_channel = 16;
 const float div = 1.0 / (colours_per_channel - 1);
 const float pi = 3.1415926536;
 // Make sure no direction aligns exactly with an axis.

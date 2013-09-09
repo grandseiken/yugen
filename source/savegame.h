@@ -9,7 +9,7 @@ class Filesystem;
 namespace proto {
   class Value;
   class Savegame;
-};
+}
 
 // Savegames are slightly different to the usual serialisable objects we deal
 // with, in that we may want to save and load them arbitrarily during one
