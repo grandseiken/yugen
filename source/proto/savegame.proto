@@ -1,0 +1,30 @@
+package proto;
+
+// Saved game states are used primarily from Lua. Thus, the possible values
+// should correspond to the possible kinds of LuaValue defined in lua_types.h
+// (with the exception of userdata).
+enum Type {
+  WORLD = 0;
+  BOOLEAN = 1;
+  STRING = 2;
+  ARRAY = 3;
+};
+
+// Value with slots to store the types defined in the Type enumeration.
+message Value {
+  required Type type = 1;
+
+  optional double world_value = 2;
+  optional bool boolean_value = 3;
+  optional string string_value = 4;
+  repeated Value array_value = 5;
+};
+
+message Entry {
+  required string key = 1;
+  required Value value = 2;
+};
+
+message Savegame {
+  repeated Entry entries = 1;
+};
