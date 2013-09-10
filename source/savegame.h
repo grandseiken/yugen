@@ -16,13 +16,17 @@ namespace proto {
 // execution of the game (rather than simply load everything to immutable
 // objects once at the start and never care again outside of the editor).
 //
-// The Databank parameters to the io baseclass save and load functions are also
-// probably useless for this reason, as the Savegame will not need to save or
-// load any dependent objects. We may as well just pass the databank in, though.
+// For this reason, the Savegame should not need to save or load any dependent
+// objects, so we provide convenience functions to save and load without a
+// Databank.
 class Savegame : public y::io<proto::Savegame> {
 public:
 
   Savegame();
+  void save(Filesystem& filesystem,
+            const y::string& path, bool human_readable = false) const;
+  void load(const Filesystem& filesystem,
+            const y::string& path, bool human_readable = false);
 
   void clear();
   const LuaValue& get(const y::string& key) const;

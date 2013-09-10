@@ -486,6 +486,25 @@ y_api(get_camera_rotation)
   y_return(stage.get_camera().get_rotation());
 }
 
+y_api(savegame_put)
+    y_arg(y::string, key) y_arg(LuaValue, value)
+{
+  stage.get_savegame().put(key, value);
+  y_void();
+}
+
+y_api(savegame_get)
+    y_arg(y::string, key)
+{
+  y_return(stage.get_savegame().get(key));
+}
+
+y_api(savegame_save)
+{
+  stage.save_game();
+  y_void();
+}
+
 /******************************************************************************/
 // Rendering API
 /******************************************************************************/

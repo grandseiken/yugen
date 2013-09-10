@@ -635,11 +635,12 @@ y::world Camera::get_rotation() const
   return _rotation;
 }
 
-GameStage::GameStage(const Databank& bank,
+GameStage::GameStage(const Databank& bank, Filesystem& save_filesystem,
                      RenderUtil& util, const GlFramebuffer& framebuffer,
                      const y::string& source_key, const y::wvec2& coord,
                      bool fake)
   : _bank(bank)
+  , _save_filesystem(save_filesystem)
   , _active_source_key(source_key)
   , _world(get_source(source_key),
            y::ivec2(coord + y::wvec2{.5, .5}).euclidean_div(
@@ -674,11 +675,24 @@ GameStage::GameStage(const Databank& bank,
   _key_map[KEY_DOWN] = {sf::Keyboard::S, sf::Keyboard::Down};
   _key_map[KEY_LEFT] = {sf::Keyboard::A, sf::Keyboard::Left};
   _key_map[KEY_RIGHT] = {sf::Keyboard::D, sf::Keyboard::Right};
+
+  // TODO: need a proper save system, but use this temporary thing for now.
+  _savegame.load(save_filesystem, "/tmp.sav");
 }
 
 const Databank& GameStage::get_bank() const
 {
   return _bank;
+}
+
+const Savegame& GameStage::get_savegame() const
+{
+  return _savegame;
+}
+
+Savegame& GameStage::get_savegame()
+{
+  return _savegame;
 }
 
 const ScriptBank& GameStage::get_scripts() const
@@ -866,6 +880,11 @@ bool GameStage::is_key_down(y::int32 key) const
     }
   }
   return false;
+}
+
+void GameStage::save_game() const
+{
+  _savegame.save(_save_filesystem, "/tmp.sav");
 }
 
 void GameStage::script_maps_clean_up()

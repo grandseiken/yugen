@@ -1,11 +1,12 @@
 #include "savegame.h"
+#include "databank.h"
 #include "proto/savegame.pb.h"
 
 // Possibly these two functions should be in lua_types.h, but they're unlikely
 // to be useful in any other context.
 namespace {
 
-  void save_to_proto(const LuaValue& value, proto::Value proto)
+  void save_to_proto(const LuaValue& value, proto::Value& proto)
   {
     if (value.type == LuaValue::WORLD) {
       proto.set_type(proto::WORLD);
@@ -25,6 +26,9 @@ namespace {
         auto proto_v = proto.add_array_value();
         save_to_proto(v, *proto_v);
       }
+    }
+    else {
+      std::cerr << "Saving savegame value with invalid type" << std::endl;
     }
   }
 
@@ -51,6 +55,9 @@ namespace {
         load_from_proto(value.array[i], proto.array_value(i));
       }
     }
+    else {
+      std::cerr << "Loading savegame value with invalid type" << std::endl;
+    }
   }
 
 }
@@ -58,6 +65,20 @@ namespace {
 Savegame::Savegame()
   : _default_value(false)
 {
+}
+
+void Savegame::save(Filesystem& filesystem,
+                    const y::string& path, bool human_readable) const
+{
+  Databank temp;
+  y::io<proto::Savegame>::save(filesystem, temp, path, human_readable);
+}
+
+void Savegame::load(const Filesystem& filesystem,
+                    const y::string& path, bool human_readable)
+{
+  Databank temp;
+  y::io<proto::Savegame>::load(filesystem, temp, path, human_readable);
 }
 
 void Savegame::clear()
@@ -82,6 +103,7 @@ void Savegame::put(const y::string& key, const LuaValue& value)
     std::cerr << "Tried to write userdata into savegame" << std::endl;
     return;
   }
+  _map.erase(key);
   _map.insert(y::make_pair(key, value));
 }
 

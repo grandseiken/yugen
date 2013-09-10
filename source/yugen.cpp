@@ -308,12 +308,12 @@ y::int32 main(y::int32 argc, char** argv)
 
   Window window("Crunk Yugen", 24, RenderUtil::native_size,
                 args.empty(), !args.empty());
-  PhysicalFilesystem filesystem("data");
-  GlUtil gl(filesystem, window);
+  PhysicalFilesystem data_filesystem("data");
+  GlUtil gl(data_filesystem, window);
   if (!gl) {
     return 1;
   }
-  Databank databank(filesystem, gl);
+  Databank databank(data_filesystem, gl);
   RenderUtil util(gl);
 
   y::string map = databank.maps.get_names()[0];
@@ -331,9 +331,11 @@ y::int32 main(y::int32 argc, char** argv)
   run_timing.target_updates_per_second = 60.f;
   run_timing.target_draws_per_second = 60.f;
   Yugen* yugen = new Yugen(util, run_timing);
+
+  PhysicalFilesystem save_filesystem("save");
   GameStage* stage = new GameStage(
-      databank, util, yugen->get_framebuffer(),
-      map, world);
+      databank, save_filesystem,
+      util, yugen->get_framebuffer(), map, world);
   yugen->set_stage(stage);
 
   ModalStack stack;

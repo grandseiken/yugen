@@ -39,6 +39,23 @@ local jump_stage = JUMP_STAGE_NONE
 local wall_jump_timer = 0
 local wall_jump_left = false
 
+-- Load/save data.
+local has_loaded = false
+local function load_origin()
+  if has_loaded then
+    return
+  end
+  has_loaded = true
+  self:set_origin(vec(savegame_get("player_x") or 0.0,
+                      savegame_get("player_y") or 0.0))
+  set_camera(self:get_origin())
+end
+local function save_origin()
+  savegame_put("player_x", self:get_origin():x())
+  savegame_put("player_y", self:get_origin():y())
+  savegame_save()
+end
+
 -- Events.
 function on_submerge(amount, water, v)
   light:set_layer_value(.2 + .05 * amount)
@@ -240,6 +257,9 @@ function update()
   local move = self:collider_move(vec(0, try_move), COLLIDE_PUSHABLE, 2)
   up_check_prev = try_move < 0 and math.abs(move:y()) < math.abs(try_move)
   jump_timer_logic(down_check_now)
+
+  load_origin()
+  save_origin()
 end
 
 function key(k)

@@ -3,8 +3,20 @@
 #include "game_stage.h"
 #include "gl_util.h"
 #include "lua.h"
+#include "physical_filesystem.h"
 #include "proto/cell.pb.h"
 #include "render_util.h"
+
+Databank::Databank()
+  : _default_script{"/yedit/missing.lua", "", y::fvec4{1.f, 1.f, 1.f, 1.f}}
+  , _default_tileset(_default_sprite)
+  , scripts(_default_script)
+  , sprites(_default_sprite)
+  , tilesets(_default_tileset)
+  , cells(_default_cell)
+  , maps(_default_map)
+{
+}
 
 Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
                    bool load_yedit_data)
@@ -95,7 +107,8 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     RenderUtil fake_util(gl);
     GlUnique<GlFramebuffer> fake_framebuffer(
         gl.make_unique_framebuffer(y::ivec2{128, 128}, false, false));
-    GameStage fake_stage(*this, fake_util, *fake_framebuffer,
+    PhysicalFilesystem fake_filesystem("fake");
+    GameStage fake_stage(*this, fake_filesystem, fake_util, *fake_framebuffer,
                          maps.get_names()[0], y::wvec2(), true);
     for (y::size i = 0; i < scripts.size(); ++i) {
       make_lua_file(scripts.get(i), fake_stage);

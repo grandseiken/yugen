@@ -7,6 +7,7 @@
 #include "lighting.h"
 #include "lua.h"
 #include "modal.h"
+#include "savegame.h"
 #include "spatial_hash.h"
 #include "render_util.h"
 #include "world.h"
@@ -15,6 +16,7 @@
 
 class Camera;
 class CellMap;
+class Filesystem;
 class RenderUtil;
 struct LuaFile;
 
@@ -266,13 +268,16 @@ public:
 
   // Set fake to true to avoid expensive initialisation computations when
   // we're only using this as a fake to access Scripts from the editor.
-  GameStage(const Databank& bank,
+  GameStage(const Databank& bank, Filesystem& save_filesystem,
             RenderUtil& util, const GlFramebuffer& framebuffer,
             const y::string& source_key, const y::wvec2& coord,
             bool fake = false);
   ~GameStage() override {};
 
   const Databank& get_bank() const;
+
+  const Savegame& get_savegame() const;
+  /***/ Savegame& get_savegame();
 
   const ScriptBank& get_scripts() const;
   /***/ ScriptBank& get_scripts();
@@ -307,18 +312,21 @@ public:
   void set_player(Script* script);
   Script* get_player() const;
   bool is_key_down(y::int32 key) const;
+  void save_game() const;
 
 private:
 
   void script_maps_clean_up();
 
   const Databank& _bank;
+  Filesystem& _save_filesystem;
 
   typedef y::map<y::string, y::unique<const WorldSource>> source_map;
   mutable source_map _source_map;
   y::string _active_source_key;
-
   WorldWindow _world;
+
+  Savegame _savegame;
   ScriptBank _scripts;
   GameRenderer _renderer;
   Camera _camera;

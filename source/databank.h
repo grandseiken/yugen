@@ -98,6 +98,7 @@ class Databank : public y::no_copy {
 
 public:
 
+  Databank();
   Databank(const Filesystem& filesystem, GlUtil& gl,
            bool load_yedit_data = false);
   void reload_cells_and_maps(const Filesystem& filesystem);
