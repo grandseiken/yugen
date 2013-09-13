@@ -95,13 +95,10 @@ void Body::get_vertices(y::vector<y::wvec2>& output,
     output.emplace_back(origin + dl);
   }
   else {
-    const y::wvec2 row_0(cos(rotation), -sin(rotation));
-    const y::wvec2 row_1(sin(rotation), cos(rotation));
-
-    output.emplace_back(origin + y::wvec2{ul.dot(row_0), ul.dot(row_1)});
-    output.emplace_back(origin + y::wvec2{ur.dot(row_0), ur.dot(row_1)});
-    output.emplace_back(origin + y::wvec2{dr.dot(row_0), dr.dot(row_1)});
-    output.emplace_back(origin + y::wvec2{dl.dot(row_0), dl.dot(row_1)});
+    output.emplace_back(origin + ul.rotate(rotation));
+    output.emplace_back(origin + ur.rotate(rotation));
+    output.emplace_back(origin + dr.rotate(rotation));
+    output.emplace_back(origin + dl.rotate(rotation));
   }
 }
 
@@ -151,21 +148,10 @@ void Collision::create_constraint(
 {
   // Transform points from world coordinates into reference frames of the
   // Scripts.
-  y::wvec2 source_offset = source_origin - source.get_origin();
-  y::wvec2 target_offset = target_origin - target.get_origin();
-
-  y::world source_rotation = -source.get_rotation();
-  y::world target_rotation = -target.get_rotation();
-
-  const y::wvec2 source_row_0(cos(source_rotation), -sin(source_rotation));
-  const y::wvec2 source_row_1(sin(source_rotation), cos(source_rotation));
-  const y::wvec2 target_row_0(cos(target_rotation), -sin(target_rotation));
-  const y::wvec2 target_row_1(sin(target_rotation), cos(target_rotation));
-
-  source_offset = y::wvec2{source_row_0.dot(source_offset),
-                           source_row_1.dot(source_offset)};
-  target_offset = y::wvec2{target_row_0.dot(target_offset),
-                           target_row_1.dot(target_offset)};
+  y::wvec2 source_offset =
+      (source_origin - source.get_origin()).rotate(-source.get_rotation());
+  y::wvec2 target_offset =
+      (target_origin - target.get_origin()).rotate(-target.get_rotation());
 
   Constraint* constraint = new Constraint(
       source, target, source_offset, target_offset, distance, tag);
@@ -477,11 +463,7 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
     static y::wvec2 origin_displace(const y::wvec2& origin_offset,
                                     y::world rotation)
     {
-      const y::wvec2 row_0(cos(rotation), -sin(rotation));
-      const y::wvec2 row_1(sin(rotation), cos(rotation));
-
-      return origin_offset -
-          y::wvec2{origin_offset.dot(row_0), origin_offset.dot(row_1)};
+      return origin_offset - origin_offset.rotate(rotation);
     }
   };
 

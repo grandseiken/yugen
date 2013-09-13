@@ -299,6 +299,17 @@ namespace y {
     }
 
     template<
+      typename U = T,
+      typename std::enable_if<N == 2 &&
+                              std::is_same<T, U>::value, bool>::type = 0>
+    V rotate(T angle) const
+    {
+      const V row_0(cos(angle), -sin(angle));
+      const V row_1(sin(angle), cos(angle));
+      return V{dot(row_0), dot(row_1)};
+    }
+
+    template<
         typename U = T,
         typename std::enable_if<N == 2 &&
                                 std::is_same<T, U>::value, bool>::type = 0>
