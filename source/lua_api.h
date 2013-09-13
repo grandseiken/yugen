@@ -286,6 +286,50 @@ y_api(script__destroy_bodies)
   y_void();
 }
 
+y_api(script__create_constraint)
+    y_arg(Script*, script) y_arg(Script*, target)
+    y_arg(const y::wvec2, origin) y_arg(const y::wvec2, target_origin)
+    y_arg(y::world, distance) y_optarg(y::int32, tag)
+{
+  stage.get_collision().create_constraint(
+      *script, *target, origin, target_origin, distance,
+      tag_defined ? tag : 0);
+  y_void();
+}
+
+y_api(script__has_constraint)
+    y_arg(Script*, script) y_optarg(y::int32, tag)
+{
+  y_return(tag_defined ?
+      stage.get_collision().has_constraint(*script, tag) :
+      stage.get_collision().has_constraint(*script));
+}
+
+y_api(script__get_constraints)
+    y_arg(Script*, script) y_optarg(y::int32, tag)
+{
+  y::vector<Script*> result;
+  if (tag_defined) {
+    stage.get_collision().get_constraints(result, *script, tag);
+  }
+  else {
+    stage.get_collision().get_constraints(result, *script);
+  }
+  y_return(result);
+}
+
+y_api(script__destroy_constraints)
+    y_arg(Script*, script) y_optarg(y::int32, tag)
+{
+  if (tag_defined) {
+    stage.get_collision().destroy_constraints(*script, tag);
+  }
+  else {
+    stage.get_collision().destroy_constraints(*script);
+  }
+  y_void();
+}
+
 y_api(script__collider_move)
     y_arg(Script*, script) y_arg(const y::wvec2, move)
     y_optarg(y::int32, push_mask) y_optarg(y::int32, push_max)
@@ -364,6 +408,10 @@ y_ptrtypedef(Script) {
   y_method("send_message", script__send_message);
   y_method("create_body", script__create_body);
   y_method("destroy_bodies", script__destroy_bodies);
+  y_method("create_constraint", script__create_constraint);
+  y_method("has_constraint", script__has_constraint);
+  y_method("get_constraints", script__get_constraints);
+  y_method("destroy_constraints", script__destroy_constraints);
   y_method("collider_move", script__collider_move);
   y_method("collider_rotate", script__collider_rotate);
   y_method("in_region", script__in_region);

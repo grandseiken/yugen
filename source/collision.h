@@ -6,8 +6,34 @@
 #include "spatial_hash.h"
 #include "vector.h"
 
+struct Body;
 class RenderUtil;
 class WorldWindow;
+
+// A Constraint links two Scripts such that the distance between them cannot
+// exceed some amount. For simplicity, constraints to the world itself should
+// be implemented using dummy target Scripts.
+struct Constraint {
+  Constraint(Script& source, Script& target,
+             const y::wvec2& source_offset, const y::wvec2& target_offset,
+             y::world distance, y::int32 tag);
+
+  // Set invalidated to true in order to destroy the Constraint.
+  bool is_valid() const;
+  bool invalidated;
+  
+  ScriptReference source;
+  ScriptReference target;
+
+  // Positions of endpoints relative to source and target reference frames.
+  y::wvec2 source_offset;
+  y::wvec2 target_offset;
+
+  y::world distance;
+
+  // The tag is an arbitrary value that can be used for lookup.
+  y::int32 tag;
+};
 
 // A Body is, thus far, a rectangular area of some size, whose center
 // is offset some amount from the origin of the source Script.
@@ -46,6 +72,30 @@ public:
   void render(RenderUtil& util,
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
+  // Creates a Constraint between two bodies. The source and target parameters
+  // are given in world coordinates and transformed automatically.
+  void create_constraint(
+      Script& source, Script& target,
+      const y::wvec2& source_origin, const y::wvec2& target_origin,
+      y::world distance, y::int32 tag);
+
+  // Check if a Script has any constraints, optionally having the given tag.
+  bool has_constraint(const Script& source) const;
+  bool has_constraint(const Script& source, y::int32 tag) const;
+
+  // Returns the other Scripts involved in any constraints, optionally having
+  // the given tag.
+  void get_constraints(y::vector<Script*>& output, const Script& source) const;
+  void get_constraints(y::vector<Script*>& output, const Script& source,
+                       y::int32 tag) const;
+
+  // Destroys all constraints, optionally having the given tag.
+  void destroy_constraints(const Script& source);
+  void destroy_constraints(const Script& source, y::int32 tag);
+
+  // Must be called every so often to clean up Constraints.
+  void clean_up_constraints();
+
   // Primitive move function. Moves the collider as far as it can go and stops.
   y::wvec2 collider_move(Body*& first_blocker_output,
                          Script& source, const y::wvec2& move) const;
@@ -57,7 +107,9 @@ public:
                          Script& source, const y::wvec2& move,
                          y::int32 push_mask, y::int32 push_max) const;
 
-  // Rotation currently doesn't support higher-level abstractions like pushing.
+  // Rotation is currently somewhat of a second-class citizen. Rotations cannot
+  // push other Bodies (they will always be blocked), and Scripts with any
+  // constraints cannot rotate at all.
   y::world collider_rotate(Script& source, y::world rotate,
                            const y::wvec2& origin_offset) const;
 
@@ -100,8 +152,11 @@ public:
   // order to update the bodies in the spatial hash.
   void update_spatial_hash(const Script& source);
   void clear_spatial_hash();
+
+protected:
+
   virtual void on_create(const Script& source, Body* obj) override;
-  virtual void on_destroy(const Script& source, Body* obj) override;
+  virtual void on_destroy(Body* obj) override;
 
 private:
 
@@ -173,8 +228,15 @@ private:
       y::world rotate, const y::wvec2& origin,
       const y::vector<y::wvec2>& vertices);
 
+  // Spatial hash for fast lookup.
   const WorldWindow& _world;
   SpatialHash<Body*, y::world, 2> _spatial_hash;
+
+  // Data structures for storing Constraints.
+  typedef y::vector<y::unique<Constraint>> constraint_list;
+  typedef y::map<const Script*, y::set<Constraint*>> constraint_map;
+  constraint_list _constraint_list;
+  constraint_map _constraint_map;
 
 };
 

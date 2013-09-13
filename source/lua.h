@@ -140,9 +140,11 @@ public:
   const entry_list& get_list(const Script& source) const;
   void get_sources(source_list& output) const;
 
+protected:
+
   // Override for custom behaviour extension.
   virtual void on_create(const Script& source, T* obj);
-  virtual void on_destroy(const Script& source, T* obj);
+  virtual void on_destroy(T* obj);
 
 private:
 
@@ -192,7 +194,7 @@ void ScriptMap<T>::destroy_obj(const Script& source, T* obj)
       _map.erase(it);
     }
   }
-  on_destroy(source, obj);
+  on_destroy(obj);
 }
 
 template<typename T>
@@ -201,7 +203,7 @@ void ScriptMap<T>::destroy_all(const Script& source)
   auto it = _map.find(const_cast<Script*>(&source));
   if (it != _map.end()) {
     for (auto jt = it->second.list.begin(); jt != it->second.list.end(); ++jt) {
-      on_destroy(source, jt->get());
+      on_destroy(jt->get());
     }
     _map.erase(it);
   }
@@ -217,7 +219,7 @@ void ScriptMap<T>::clean_up()
     else {
       for (auto jt = it->second.list.begin();
            jt != it->second.list.end(); ++jt) {
-        on_destroy(*it->first, jt->get());
+        on_destroy(jt->get());
       }
       it = _map.erase(it);
     }
@@ -253,9 +255,8 @@ void ScriptMap<T>::on_create(const Script& source, T* obj)
 }
 
 template<typename T>
-void ScriptMap<T>::on_destroy(const Script& source, T* obj)
+void ScriptMap<T>::on_destroy(T* obj)
 {
-  (void)source;
   (void)obj;
 }
 

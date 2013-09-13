@@ -11,6 +11,26 @@ enum CollideMaskReserved {
   COLLIDE_RESV_2 = 8,
 };
 
+Constraint::Constraint(
+    Script& source, Script& target,
+    const y::wvec2& source_offset, const y::wvec2& target_offset,
+    y::world distance, y::int32 tag)
+  : invalidated(false)
+  , source(source)
+  , target(target)
+  , source_offset(source_offset)
+  , target_offset(target_offset)
+  , distance(distance)
+  , tag(tag)
+{
+}
+
+bool Constraint::is_valid() const
+{
+  return source.is_valid() && target.is_valid() &&
+      !invalidated && source.get() != target.get();
+}
+
 Body::Body(Script& source)
   : source(source)
   , collide_type(COLLIDE_RESV_NONE)
@@ -122,6 +142,132 @@ void Collision::render(
 
   util.render_lines(green, {0.f, 1.f, 0.f, .5f});
   util.render_lines(blue, {0.f, 0.f, 1.f, .5f});
+}
+
+void Collision::create_constraint(
+    Script& source, Script& target,
+    const y::wvec2& source_origin, const y::wvec2& target_origin,
+    y::world distance, y::int32 tag)
+{
+  // Transform points from world coordinates into reference frames of the
+  // Scripts.
+  y::wvec2 source_offset = source_origin - source.get_origin();
+  y::wvec2 target_offset = target_origin - target.get_origin();
+
+  y::world source_rotation = -source.get_rotation();
+  y::world target_rotation = -target.get_rotation();
+
+  const y::wvec2 source_row_0(cos(source_rotation), -sin(source_rotation));
+  const y::wvec2 source_row_1(sin(source_rotation), cos(source_rotation));
+  const y::wvec2 target_row_0(cos(target_rotation), -sin(target_rotation));
+  const y::wvec2 target_row_1(sin(target_rotation), cos(target_rotation));
+
+  source_offset = y::wvec2{source_row_0.dot(source_offset),
+                           source_row_1.dot(source_offset)};
+  target_offset = y::wvec2{target_row_0.dot(target_offset),
+                           target_row_1.dot(target_offset)};
+
+  Constraint* constraint = new Constraint(
+      source, target, source_offset, target_offset, distance, tag);
+  _constraint_list.emplace_back(constraint);
+  _constraint_map[&source].emplace(constraint);
+  _constraint_map[&target].emplace(constraint);
+}
+
+bool Collision::has_constraint(const Script& source) const
+{
+  auto it = _constraint_map.find(&source);
+  if (it == _constraint_map.end()) {
+    return false;
+  }
+  for (Constraint* c : it->second) {
+    if (c->is_valid()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Collision::has_constraint(const Script& source, y::int32 tag) const
+{
+  auto it = _constraint_map.find(&source);
+  if (it == _constraint_map.end()) {
+    return false;
+  }
+  for (Constraint* c : it->second) {
+    if (c->is_valid() && c->tag == tag) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Collision::get_constraints(
+    y::vector<Script*>& output, const Script& source) const
+{
+  auto it = _constraint_map.find(&source);
+  if (it == _constraint_map.end()) {
+    return;
+  }
+  for (Constraint* c : it->second) {
+    if (c->is_valid()) {
+      output.emplace_back(&source == c->source.get() ?
+                          c->target.get() : c->source.get());
+    }
+  }
+}
+
+void Collision::get_constraints(
+    y::vector<Script*>& output, const Script& source, y::int32 tag) const
+{
+  auto it = _constraint_map.find(&source);
+  if (it == _constraint_map.end()) {
+    return;
+  }
+  for (Constraint* c : it->second) {
+    if (c->is_valid() && c->tag == tag) {
+      output.emplace_back(&source == c->source.get() ?
+                          c->target.get() : c->source.get());
+    }
+  }
+}
+
+void Collision::destroy_constraints(const Script& source)
+{
+  auto it = _constraint_map.find(&source);
+  if (it == _constraint_map.end()) {
+    return;
+  }
+  for (Constraint* c : it->second) {
+    c->invalidated = true;
+  }
+}
+
+void Collision::destroy_constraints(const Script& source, y::int32 tag)
+{
+  auto it = _constraint_map.find(&source);
+  if (it == _constraint_map.end()) {
+    return;
+  }
+  for (Constraint* c : _constraint_map[&source]) {
+    if (c->tag == tag) {
+      c->invalidated = true;
+    }
+  } 
+}
+
+void Collision::clean_up_constraints()
+{
+  for (auto it = _constraint_list.begin(); it != _constraint_list.end();) {
+    if ((*it)->is_valid()) {
+      ++it;
+      continue;
+    }
+    Constraint& constraint = **it;
+    _constraint_map[constraint.source.get()].erase(&constraint);
+    _constraint_map[constraint.target.get()].erase(&constraint);
+    it = _constraint_list.erase(it);
+  }
 }
 
 y::wvec2 Collision::collider_move(
@@ -700,9 +846,8 @@ void Collision::on_create(const Script& source, Body* obj)
   _spatial_hash.update(obj, bounds.first, bounds.second);
 }
 
-void Collision::on_destroy(const Script& source, Body* obj)
+void Collision::on_destroy(Body* obj)
 {
-  (void)source;
   _spatial_hash.remove(obj);
 }
 
