@@ -291,7 +291,7 @@ y_api(script__create_constraint)
     y_arg(const y::wvec2, origin) y_arg(const y::wvec2, target_origin)
     y_arg(y::world, distance) y_optarg(y::int32, tag)
 {
-  stage.get_collision().get_data().create_constraint(
+  stage.get_collision().get_constraints().create_constraint(
       *script, *target, origin, target_origin, distance,
       tag_defined ? tag : 0);
   y_void();
@@ -301,8 +301,8 @@ y_api(script__has_constraint)
     y_arg(Script*, script) y_optarg(y::int32, tag)
 {
   y_return(tag_defined ?
-      stage.get_collision().get_data().has_constraint(*script, tag) :
-      stage.get_collision().get_data().has_constraint(*script));
+      stage.get_collision().get_constraints().has_constraint(*script, tag) :
+      stage.get_collision().get_constraints().has_constraint(*script));
 }
 
 y_api(script__get_constraints)
@@ -310,10 +310,12 @@ y_api(script__get_constraints)
 {
   y::vector<Script*> result;
   if (tag_defined) {
-    stage.get_collision().get_data().get_constraints(result, *script, tag);
+    stage.get_collision().get_constraints().get_constraints(
+        result, *script, tag);
   }
   else {
-    stage.get_collision().get_data().get_constraints(result, *script);
+    stage.get_collision().get_constraints().get_constraints(
+        result, *script);
   }
   y_return(result);
 }
@@ -322,10 +324,10 @@ y_api(script__destroy_constraints)
     y_arg(Script*, script) y_optarg(y::int32, tag)
 {
   if (tag_defined) {
-    stage.get_collision().get_data().destroy_constraints(*script, tag);
+    stage.get_collision().get_constraints().destroy_constraints(*script, tag);
   }
   else {
-    stage.get_collision().get_data().destroy_constraints(*script);
+    stage.get_collision().get_constraints().destroy_constraints(*script);
   }
   y_void();
 }

@@ -884,7 +884,7 @@ void GameStage::save_game() const
 
 void GameStage::script_maps_clean_up()
 {
-  _collision.get_data().clean_up_constraints();
+  _collision.get_constraints().clean_up();
   _collision.get_data().clean_up();
   _lighting.clean_up();
 }

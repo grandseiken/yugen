@@ -62,11 +62,9 @@ struct Body : y::no_copy {
   y::int32 collide_mask;
 };
 
-class CollisionData : public ScriptMap<Body> {
+// Data structures for storing Constraints.
+class ConstraintData {
 public:
-
-  CollisionData();
-  ~CollisionData() override {}
 
   // Creates a Constraint between two bodies. The source and target parameters
   // are given in world coordinates and transformed automatically.
@@ -90,7 +88,22 @@ public:
   void destroy_constraints(const Script& source, y::int32 tag);
 
   // Must be called every so often to clean up Constraints.
-  void clean_up_constraints();
+  void clean_up();
+
+private:
+
+  typedef y::vector<y::unique<Constraint>> constraint_list;
+  typedef y::map<const Script*, y::set<Constraint*>> constraint_map;
+  constraint_list _constraint_list;
+  constraint_map _constraint_map;
+
+};
+
+class CollisionData : public ScriptMap<Body> {
+public:
+
+  CollisionData();
+  ~CollisionData() override {}
 
   typedef y::vector<Body*> result;
 
@@ -137,12 +150,6 @@ private:
   // Spatial hash for fast lookup.
   spatial_hash _spatial_hash;
 
-  // Data structures for storing Constraints.
-  typedef y::vector<y::unique<Constraint>> constraint_list;
-  typedef y::map<const Script*, y::set<Constraint*>> constraint_map;
-  constraint_list _constraint_list;
-  constraint_map _constraint_map;
-
 };
 
 // Keeps a record of Bodies and handles sweeping and collision.
@@ -153,6 +160,9 @@ public:
 
   const CollisionData& get_data() const;
   /***/ CollisionData& get_data();
+
+  const ConstraintData& get_constraints() const;
+  /***/ ConstraintData& get_constraints();
 
   void render(RenderUtil& util,
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
@@ -186,6 +196,7 @@ private:
 
   const WorldWindow& _world;
   CollisionData _data;
+  ConstraintData _constraints;
 
 };
 

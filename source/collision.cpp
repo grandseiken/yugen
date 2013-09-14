@@ -452,12 +452,7 @@ void Body::get_vertices(y::vector<y::wvec2>& output,
   }
 }
 
-CollisionData::CollisionData()
-  : _spatial_hash(256)
-{
-}
-
-void CollisionData::create_constraint(
+void ConstraintData::create_constraint(
     Script& source, Script& target,
     const y::wvec2& source_origin, const y::wvec2& target_origin,
     y::world distance, y::int32 tag)
@@ -476,7 +471,7 @@ void CollisionData::create_constraint(
   _constraint_map[&target].emplace(constraint);
 }
 
-bool CollisionData::has_constraint(const Script& source) const
+bool ConstraintData::has_constraint(const Script& source) const
 {
   auto it = _constraint_map.find(&source);
   if (it == _constraint_map.end()) {
@@ -490,7 +485,7 @@ bool CollisionData::has_constraint(const Script& source) const
   return false;
 }
 
-bool CollisionData::has_constraint(const Script& source, y::int32 tag) const
+bool ConstraintData::has_constraint(const Script& source, y::int32 tag) const
 {
   auto it = _constraint_map.find(&source);
   if (it == _constraint_map.end()) {
@@ -504,7 +499,7 @@ bool CollisionData::has_constraint(const Script& source, y::int32 tag) const
   return false;
 }
 
-void CollisionData::get_constraints(
+void ConstraintData::get_constraints(
     y::vector<Script*>& output, const Script& source) const
 {
   auto it = _constraint_map.find(&source);
@@ -519,7 +514,7 @@ void CollisionData::get_constraints(
   }
 }
 
-void CollisionData::get_constraints(
+void ConstraintData::get_constraints(
     y::vector<Script*>& output, const Script& source, y::int32 tag) const
 {
   auto it = _constraint_map.find(&source);
@@ -534,7 +529,7 @@ void CollisionData::get_constraints(
   }
 }
 
-void CollisionData::destroy_constraints(const Script& source)
+void ConstraintData::destroy_constraints(const Script& source)
 {
   auto it = _constraint_map.find(&source);
   if (it == _constraint_map.end()) {
@@ -545,7 +540,7 @@ void CollisionData::destroy_constraints(const Script& source)
   }
 }
 
-void CollisionData::destroy_constraints(const Script& source, y::int32 tag)
+void ConstraintData::destroy_constraints(const Script& source, y::int32 tag)
 {
   auto it = _constraint_map.find(&source);
   if (it == _constraint_map.end()) {
@@ -558,7 +553,7 @@ void CollisionData::destroy_constraints(const Script& source, y::int32 tag)
   }
 }
 
-void CollisionData::clean_up_constraints()
+void ConstraintData::clean_up()
 {
   for (auto it = _constraint_list.begin(); it != _constraint_list.end();) {
     if ((*it)->is_valid()) {
@@ -570,6 +565,11 @@ void CollisionData::clean_up_constraints()
     _constraint_map[constraint.target.get()].erase(&constraint);
     it = _constraint_list.erase(it);
   }
+}
+
+CollisionData::CollisionData()
+  : _spatial_hash(256)
+{
 }
 
 void CollisionData::get_bodies_in_region(
@@ -778,6 +778,16 @@ const CollisionData& Collision::get_data() const
 CollisionData& Collision::get_data()
 {
   return _data;
+}
+
+const ConstraintData& Collision::get_constraints() const
+{
+  return _constraints;
+}
+
+ConstraintData& Collision::get_constraints()
+{
+  return _constraints;
 }
 
 void Collision::render(
