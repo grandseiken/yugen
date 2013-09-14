@@ -217,8 +217,8 @@ function update()
   -- the 'standing on platform' issue, for instance, and makes it impossible to
   -- push two boxes out from under a whole stack of boxes).
   -- It has some downsides, particularly we can't move objects into spaces
-  -- exactly as high as them. We may want to consider alternative approaches too,
-  -- for example using the NYI sliding recursion collision. 
+  -- exactly as high as them. We may want to consider alternative approaches
+  -- too, for example using the NYI sliding recursion collision.
   local amount, bodies, amounts =
       self:collider_move(vec(v, step_amount), COLLIDE_PUSHABLE, 2)
   -- Undo the diagonal step.

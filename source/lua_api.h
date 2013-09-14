@@ -273,7 +273,7 @@ y_api(script__create_body)
     y_arg(Script*, script)
     y_arg(const y::wvec2, offset) y_arg(const y::wvec2, size)
 {
-  Body* body = stage.get_collision().create_obj(*script);
+  Body* body = stage.get_collision().get_data().create_obj(*script);
   body->offset = offset;
   body->size = size;
   y_return(body);
@@ -282,7 +282,7 @@ y_api(script__create_body)
 y_api(script__destroy_bodies)
     y_arg(const Script*, script)
 {
-  stage.get_collision().destroy_all(*script);
+  stage.get_collision().get_data().destroy_all(*script);
   y_void();
 }
 
@@ -291,7 +291,7 @@ y_api(script__create_constraint)
     y_arg(const y::wvec2, origin) y_arg(const y::wvec2, target_origin)
     y_arg(y::world, distance) y_optarg(y::int32, tag)
 {
-  stage.get_collision().create_constraint(
+  stage.get_collision().get_data().create_constraint(
       *script, *target, origin, target_origin, distance,
       tag_defined ? tag : 0);
   y_void();
@@ -301,8 +301,8 @@ y_api(script__has_constraint)
     y_arg(Script*, script) y_optarg(y::int32, tag)
 {
   y_return(tag_defined ?
-      stage.get_collision().has_constraint(*script, tag) :
-      stage.get_collision().has_constraint(*script));
+      stage.get_collision().get_data().has_constraint(*script, tag) :
+      stage.get_collision().get_data().has_constraint(*script));
 }
 
 y_api(script__get_constraints)
@@ -310,10 +310,10 @@ y_api(script__get_constraints)
 {
   y::vector<Script*> result;
   if (tag_defined) {
-    stage.get_collision().get_constraints(result, *script, tag);
+    stage.get_collision().get_data().get_constraints(result, *script, tag);
   }
   else {
-    stage.get_collision().get_constraints(result, *script);
+    stage.get_collision().get_data().get_constraints(result, *script);
   }
   y_return(result);
 }
@@ -322,10 +322,10 @@ y_api(script__destroy_constraints)
     y_arg(Script*, script) y_optarg(y::int32, tag)
 {
   if (tag_defined) {
-    stage.get_collision().destroy_constraints(*script, tag);
+    stage.get_collision().get_data().destroy_constraints(*script, tag);
   }
   else {
-    stage.get_collision().destroy_constraints(*script);
+    stage.get_collision().get_data().destroy_constraints(*script);
   }
   y_void();
 }
@@ -355,7 +355,7 @@ y_api(script__in_region)
     y_arg(Script*, script) y_arg(y::wvec2, origin) y_arg(y::wvec2, region)
     y_optarg(y::int32, source_collide_mask)
 {
-  y_return(stage.get_collision().source_in_region(
+  y_return(stage.get_collision().get_data().source_in_region(
       *script, origin, region,
       source_collide_mask_defined ? source_collide_mask : 0));
 }
@@ -364,7 +364,7 @@ y_api(script__in_radius)
     y_arg(Script*, script) y_arg(y::wvec2, origin) y_arg(y::world, radius)
     y_optarg(y::int32, source_collide_mask)
 {
-  y_return(stage.get_collision().source_in_radius(
+  y_return(stage.get_collision().get_data().source_in_radius(
       *script, origin, radius,
       source_collide_mask_defined ? source_collide_mask : 0));
 }
@@ -465,8 +465,8 @@ y_api(get_bodies_in_region)
     y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
     y_optarg(y::int32, collide_mask)
 {
-  Collision::result result;
-  stage.get_collision().get_bodies_in_region(
+  CollisionData::result result;
+  stage.get_collision().get_data().get_bodies_in_region(
       result, origin, region, collide_mask_defined ? collide_mask : 0);
   y_return(result);
 }
@@ -475,8 +475,8 @@ y_api(get_bodies_in_radius)
     y_arg(const y::wvec2, origin) y_arg(y::world, radius)
     y_optarg(y::int32, collide_mask)
 {
-  Collision::result result;
-  stage.get_collision().get_bodies_in_radius(
+  CollisionData::result result;
+  stage.get_collision().get_data().get_bodies_in_radius(
       result, origin, radius, collide_mask_defined ? collide_mask : 0);
   y_return(result);
 }
@@ -732,13 +732,15 @@ y_api(body__get_source)
 y_api(body__in_region)
     y_arg(Body*, body) y_arg(y::wvec2, origin) y_arg(y::wvec2, region)
 {
-  y_return(stage.get_collision().body_in_region(body, origin, region));
+  y_return(stage.get_collision().get_data().body_in_region(
+      body, origin, region));
 }
 
 y_api(body__in_radius)
     y_arg(Body*, body) y_arg(y::wvec2, origin) y_arg(y::world, radius)
 {
-  y_return(stage.get_collision().body_in_radius(body, origin, radius));
+  y_return(stage.get_collision().get_data().body_in_radius(
+      body, origin, radius));
 }
 
 y_api(body__body_check)
@@ -750,8 +752,8 @@ y_api(body__body_check)
 y_api(body__get_bodies_in_body)
     y_arg(Body*, body) y_optarg(y::int32, collide_mask)
 {
-  Collision::result result;
-  stage.get_collision().get_bodies_in_body(
+  CollisionData::result result;
+  stage.get_collision().get_data().get_bodies_in_body(
       result, body, collide_mask_defined ? collide_mask : 0);
   y_return(result);
 }
@@ -759,7 +761,7 @@ y_api(body__get_bodies_in_body)
 y_api(body__destroy)
     y_arg(Body*, body)
 {
-  stage.get_collision().destroy_obj(body->source, body);
+  stage.get_collision().get_data().destroy_obj(body->source, body);
   y_void();
 }
 

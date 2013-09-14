@@ -75,7 +75,7 @@ void CellMap::remove_script(const ScriptBlueprint& blueprint)
     else {
       ++it;
     }
-  } 
+  }
 }
 
 const CellMap::script_list& CellMap::get_scripts() const

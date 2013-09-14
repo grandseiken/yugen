@@ -532,14 +532,14 @@ void Script::set_region(const y::wvec2& region)
 void Script::set_origin(const y::wvec2& origin)
 {
   _origin = origin;
-  _stage.get_collision().update_spatial_hash(*this);
+  _stage.get_collision().get_data().update_spatial_hash(*this);
   _stage.get_scripts().update_spatial_hash(*this);
 }
 
 void Script::set_rotation(y::world rotation)
 {
   _rotation = rotation;
-  _stage.get_collision().update_spatial_hash(*this);
+  _stage.get_collision().get_data().update_spatial_hash(*this);
   _stage.get_scripts().update_spatial_hash(*this);
 }
 

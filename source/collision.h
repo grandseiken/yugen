@@ -62,15 +62,11 @@ struct Body : y::no_copy {
   y::int32 collide_mask;
 };
 
-// Keeps a record of Bodies and handles sweeping and collision.
-class Collision : public ScriptMap<Body> {
+class CollisionData : public ScriptMap<Body> {
 public:
 
-  Collision(const WorldWindow& world);
-  ~Collision() override {}
-
-  void render(RenderUtil& util,
-              const y::wvec2& camera_min, const y::wvec2& camera_max) const;
+  CollisionData();
+  ~CollisionData() override {}
 
   // Creates a Constraint between two bodies. The source and target parameters
   // are given in world coordinates and transformed automatically.
@@ -96,6 +92,71 @@ public:
   // Must be called every so often to clean up Constraints.
   void clean_up_constraints();
 
+  typedef y::vector<Body*> result;
+
+  // Finds all bodies that currently overlap the given region, radius, or body,
+  // with an optional mask on thier collide_type.
+  void get_bodies_in_region(
+      result& output, const y::wvec2& origin, const y::wvec2& region,
+      y::int32 collide_mask) const;
+  void get_bodies_in_radius(
+      result& output, const y::wvec2& origin, y::world radius,
+      y::int32 collide_mask) const;
+  void get_bodies_in_body(
+      result& output, const Body* body, y::int32 collide_mask) const;
+
+  // Returns true iff any of the source's bodies overlap the region or radius.
+  bool source_in_region(
+      const Script& source, const y::wvec2& origin, const y::wvec2& region,
+      y::int32 source_collide_mask) const;
+  bool source_in_radius(
+      const Script& source, const y::wvec2& origin, y::world radius,
+      y::int32 source_collide_mask) const;
+
+  // Returns true iff the given body overlaps the region or radius.
+  bool body_in_region(
+      const Body* body, const y::wvec2& origin, const y::wvec2& region) const;
+  bool body_in_radius(
+      const Body* body, const y::wvec2& origin, y::world radius) const;
+
+  // This must be called whenever a Script's position or rotation changes in
+  // order to update the bodies in the spatial hash.
+  void update_spatial_hash(const Script& source);
+  void clear_spatial_hash();
+
+  typedef SpatialHash<Body*, y::world, 2> spatial_hash;
+  const spatial_hash& get_spatial_hash() const;
+
+protected:
+
+  virtual void on_create(const Script& source, Body* obj) override;
+  virtual void on_destroy(Body* obj) override;
+
+private:
+
+  // Spatial hash for fast lookup.
+  spatial_hash _spatial_hash;
+
+  // Data structures for storing Constraints.
+  typedef y::vector<y::unique<Constraint>> constraint_list;
+  typedef y::map<const Script*, y::set<Constraint*>> constraint_map;
+  constraint_list _constraint_list;
+  constraint_map _constraint_map;
+
+};
+
+// Keeps a record of Bodies and handles sweeping and collision.
+class Collision {
+public:
+
+  Collision(const WorldWindow& world);
+
+  const CollisionData& get_data() const;
+  /***/ CollisionData& get_data();
+
+  void render(RenderUtil& util,
+              const y::wvec2& camera_min, const y::wvec2& camera_max) const;
+
   // Primitive move function. Moves the collider as far as it can go and stops.
   y::wvec2 collider_move(Body*& first_blocker_output,
                          Script& source, const y::wvec2& move) const;
@@ -113,130 +174,18 @@ public:
   y::world collider_rotate(Script& source, y::world rotate,
                            const y::wvec2& origin_offset) const;
 
-  typedef y::vector<Body*> result;
-
-  // Finds all bodies that currently overlap the given region, radius, or body,
-  // with an optional mask on thier collide_type.
-  void get_bodies_in_region(
-      result& output, const y::wvec2& origin, const y::wvec2& region,
-      y::int32 collide_mask) const;
-  void get_bodies_in_radius(
-      result& output, const y::wvec2& origin, y::world radius,
-      y::int32 collide_mask) const;
-  void get_bodies_in_body(
-      result& output, const Body* body, y::int32 collide_mask) const;
-
-  // Returns true iff any of the source's bodies overlap the region or radius
-  // or collide_mask.
-  bool source_in_region(
-      const Script& source, const y::wvec2& origin, const y::wvec2& region,
-      y::int32 source_collide_mask) const;
-  bool source_in_radius(
-      const Script& source, const y::wvec2& origin, y::world radius,
-      y::int32 source_collide_mask) const;
+  // Check if a body or source overlaps a collide mask.
   bool source_check(
       const Script& source,
       y::int32 source_collide_mask,
       y::int32 target_collide_mask) const;
-
-  // Returns true iff the given body overlaps the region or radius or
-  // collide_mask.
-  bool body_in_region(
-      const Body* body, const y::wvec2& origin, const y::wvec2& region) const;
-  bool body_in_radius(
-      const Body* body, const y::wvec2& origin, y::world radius) const;
   bool body_check(
       const Body* body, y::int32 collide_mask) const;
 
-  // This must be called whenever a Script's position or rotation changes in
-  // order to update the bodies in the spatial hash.
-  void update_spatial_hash(const Script& source);
-  void clear_spatial_hash();
-
-protected:
-
-  virtual void on_create(const Script& source, Body* obj) override;
-  virtual void on_destroy(Body* obj) override;
-
 private:
 
-  // Internal collision functions.
-  struct world_geometry {
-    y::wvec2 start;
-    y::wvec2 end;
-  };
-
-  static y::world get_projection_ratio(
-      const y::vector<world_geometry>& geometry,
-      const y::vector<y::wvec2>& vertices, const y::wvec2& move);
-
-  static y::world get_projection_ratio(
-      const world_geometry& geometry,
-      const y::vector<y::wvec2>& vertices, const y::wvec2& move);
-
-  static y::world get_projection_ratio(
-      const world_geometry& geometry,
-      const y::wvec2& vertex, const y::wvec2& move, bool tolerance);
-
-  static y::world get_arc_projection(
-      const y::vector<world_geometry>& geometry,
-      const y::vector<y::wvec2>& vertices,
-      const y::wvec2& origin, y::world rotation);
-
-  static y::world get_arc_projection(
-      const world_geometry& geometry,
-      const y::vector<y::wvec2>& vertices,
-      const y::wvec2& origin, y::world rotation);
-
-  static y::world get_arc_projection(
-      const world_geometry& geometry,
-      const y::wvec2& vertex,
-      const y::wvec2& origin, y::world rotation);
-
-  // Returns true if the line intersects the circle on more than a point.
-  // Finds t for intersection points of the form start + t * (end - start).
-  // Treats line as infinite; must check t in [0, 1] if the line is a segment.
-  static bool line_intersects_circle(const y::wvec2& start, const y::wvec2& end,
-                                     const y::wvec2& origin, y::world radius_sq,
-                                     y::world& t_0, y::world& t_1);
-
-  static bool has_intersection(const y::vector<world_geometry>& a,
-                               const y::vector<world_geometry>& b);
-  static bool has_intersection(const y::vector<world_geometry>& a,
-                               const world_geometry& b);
-  static bool has_intersection(const world_geometry& a,
-                               const world_geometry& b);
-
-  static Body::bounds get_bounds(
-      const entry_list& bodies, y::int32 collide_mask,
-      const y::wvec2& origin, y::world rotation);
-  static Body::bounds get_full_rotation_bounds(
-      const entry_list& bodies, y::int32 collide_mask,
-      const y::wvec2& origin, y::world rotation, const y::wvec2& offset);
-
-  static void get_geometries(y::vector<world_geometry>& output,
-                      const y::vector<y::wvec2>& vertices);
-  // Get only the vertices and geometries oriented in the direction of a move.
-  static void get_vertices_and_geometries_for_move(
-      y::vector<world_geometry>& geometry_output,
-      y::vector<y::wvec2>& vertex_output,
-      const y::wvec2& move, const y::vector<y::wvec2>& vertices);
-  // Similar for rotation.
-  static void get_vertices_and_geometries_for_rotate(
-      y::vector<world_geometry>& geometry_output,
-      y::vector<y::wvec2>& vertex_output,
-      y::world rotate, const y::wvec2& origin,
-      const y::vector<y::wvec2>& vertices);
-
-  // Spatial hash for fast lookup.
   const WorldWindow& _world;
-  SpatialHash<Body*, y::world, 2> _spatial_hash;
-
-  // Data structures for storing Constraints.
-  typedef y::vector<y::unique<Constraint>> constraint_list;
-  typedef y::map<const Script*, y::set<Constraint*>> constraint_map;
-  constraint_list _constraint_list;
-  constraint_map _constraint_map;
+  CollisionData _data;
 
 };
 

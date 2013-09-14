@@ -59,7 +59,7 @@ public:
   void search(y::vector<T>& output,
               const coord& min, const coord& max) const;
   iterator search(const coord& min, const coord& max) const;
-    
+
 private:
 
 

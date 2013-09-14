@@ -98,7 +98,7 @@ void ScriptBank::move_all(const y::wvec2& move, Collision& collision)
 {
   // We clear the spatial hashes since we're going to reinsert everything
   // anyway.
-  collision.clear_spatial_hash();
+  collision.get_data().clear_spatial_hash();
   _spatial_hash.clear();
   for (const auto& script : _scripts) {
     script->set_origin(script->get_origin() + move);
@@ -884,7 +884,7 @@ void GameStage::save_game() const
 
 void GameStage::script_maps_clean_up()
 {
-  _collision.clean_up_constraints();
-  _collision.clean_up();
+  _collision.get_data().clean_up_constraints();
+  _collision.get_data().clean_up();
   _lighting.clean_up();
 }
