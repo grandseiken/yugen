@@ -13,7 +13,7 @@ class WorldWindow;
 // A Constraint links two Scripts such that the distance between them cannot
 // exceed some amount. For simplicity, constraints to the world itself should
 // be implemented using dummy target Scripts.
-struct Constraint {
+struct Constraint : y::no_copy {
   Constraint(Script& source, Script& target,
              const y::wvec2& source_offset, const y::wvec2& target_offset,
              y::world distance, y::int32 tag);
