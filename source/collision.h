@@ -21,6 +21,10 @@ struct Constraint : y::no_copy {
   // Set invalidated to true in order to destroy the Constraint.
   bool is_valid() const;
   bool invalidated;
+
+  // Get the other Script if we know one of them.
+  const Script& other(const Script& script) const;
+  /***/ Script& other(const Script& script);
   
   ScriptReference source;
   ScriptReference target;
@@ -179,8 +183,8 @@ public:
                          y::int32 push_mask, y::int32 push_max) const;
 
   // Rotation is currently somewhat of a second-class citizen. Rotations cannot
-  // push other Bodies (they will always be blocked), and Scripts with any
-  // constraints cannot rotate at all.
+  // push other Bodies (they will always be blocked), and nor can they affect
+  // other Scripts via Constraints.
   y::world collider_rotate(Script& source, y::world rotate,
                            const y::wvec2& origin_offset) const;
 

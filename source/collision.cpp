@@ -381,6 +381,16 @@ bool Constraint::is_valid() const
       !invalidated && source.get() != target.get();
 }
 
+const Script& Constraint::other(const Script& script) const
+{
+  return &script == source.get() ? *target : *source;
+}
+
+Script& Constraint::other(const Script& script)
+{
+  return &script == source.get() ? *target : *source;
+}
+
 Body::Body(Script& source)
   : source(source)
   , collide_type(COLLIDE_RESV_NONE)
@@ -508,8 +518,7 @@ void ConstraintData::get_constraints(
   }
   for (Constraint* c : it->second) {
     if (c->is_valid()) {
-      output.emplace_back(&source == c->source.get() ?
-                          c->target.get() : c->source.get());
+      output.emplace_back(&c->other(source));
     }
   }
 }
@@ -523,8 +532,7 @@ void ConstraintData::get_constraints(
   }
   for (Constraint* c : it->second) {
     if (c->is_valid() && c->tag == tag) {
-      output.emplace_back(&source == c->source.get() ?
-                          c->target.get() : c->source.get());
+      output.emplace_back(&c->other(source));
     }
   }
 }
@@ -1034,6 +1042,12 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
       return origin_offset - origin_offset.rotate(rotation);
     }
   };
+
+  // TODO: at least allow rotations which do not require any target Constraints
+  // to be moved.
+  if (_constraints.has_constraint(source)) {
+    return 0.;
+  }
 
   const entry_list& bodies = _data.get_list(source);
   if (bodies.empty() || rotate == 0.) {
