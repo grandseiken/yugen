@@ -171,10 +171,6 @@ public:
   void render(RenderUtil& util,
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
-  // Primitive move function. Moves the collider as far as it can go and stops.
-  y::wvec2 collider_move(Body*& first_blocker_output,
-                         Script& source, const y::wvec2& move) const;
-
   // Push_mask controls the type of objects that can be pushed out of the way,
   // and push_max the maximum number that can be pushed at once.
   y::wvec2 collider_move(y::vector<Body*>& push_bodies_output,
@@ -197,6 +193,16 @@ public:
       const Body* body, y::int32 collide_mask) const;
 
 private:
+
+  // Primitive move function. Moves the collider as far as it can go and stops.
+  y::wvec2 collider_move_raw(Body*& first_blocker_output,
+                             Script& source, const y::wvec2& move) const;
+
+  // Move function with pushing.
+  y::wvec2 collider_move_internal(y::vector<Body*>& push_bodies_output,
+                                  y::vector<y::wvec2>& push_amount_output,
+                                  Script& source, const y::wvec2& move,
+                                  y::int32 push_mask, y::int32 push_max) const;
 
   const WorldWindow& _world;
   CollisionData _data;

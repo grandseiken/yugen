@@ -832,200 +832,13 @@ void Collision::render(
   util.render_lines(blue, {0.f, 0.f, 1.f, .5f});
 }
 
-y::wvec2 Collision::collider_move(
-    Body*& first_block_output, Script& source, const y::wvec2& move) const
-{
-  first_block_output = y::null;
-  const entry_list& bodies = _data.get_list(source);
-  if (bodies.empty() || move == y::wvec2()) {
-    source.set_origin(source.get_origin() + move);
-    return move;
-  }
-  // TODO: need some kind of 'pulling' mechanism. If a platform moves with
-  // something on top of it, the thing on top should also move. This should be
-  // a joint system: attach a joint at the object's feet every frame if it's
-  // standing on something. The same system can be used for other joints, like
-  // ropes and chains.
-
-  // Bounding boxes of the source Bodies.
-  auto bounds = get_bounds(bodies, COLLIDE_RESV_WORLD,
-                           source.get_origin(), source.get_rotation());
-  y::wvec2 min_bound = y::min(bounds.first, move + bounds.first);
-  y::wvec2 max_bound = y::max(bounds.second, move + bounds.second);
-
-  y::world min_ratio = 1;
-  y::vector<y::wvec2> vertices_temp;
-  y::vector<y::wvec2> vertices;
-  y::vector<world_geometry> geometries;
-
-  // By reversing the nesting of these loops we could skip geometry on a
-  // per-body basis. Incurs extra overhead though, and since most things will
-  // have one body it's unlikely to be worth it.
-  for (auto it = _world.get_geometry().search(min_bound, max_bound); it; ++it) {
-    world_geometry wg{y::wvec2(it->start), y::wvec2(it->end)};
-
-    // Skip geometry which is defined opposite the direction of movement..
-    y::wvec2 g_vec = wg.end - wg.start;
-    y::wvec2 normal{g_vec[yy], -g_vec[xx]};
-    if (normal.dot(-move) <= 0) {
-      continue;
-    }
-
-    // Now: project each relevant (depending on direction of movement) vertex
-    // of each body by the movement vector to form a line. Find the minimum
-    // blocking ratio among each intersection of the geometry with these, and
-    // and also any endpoint of geometry contained within the projection of
-    // the entire shape.
-    // The pleasing symmetry is that checking the geometry endpoints is
-    // exactly the reverse of the same process, i.e., project the geometry
-    // backwards by the movement vector and take the minimum blocking ratio
-    // among intersections with the original shape.
-    for (const auto& pointer : bodies) {
-      const Body& b = *pointer;
-      if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
-        continue;
-      }
-      vertices_temp.clear();
-      vertices.clear();
-      geometries.clear();
-
-      b.get_vertices(vertices_temp,
-                     source.get_origin(), source.get_rotation());
-      get_vertices_and_geometries_for_move(geometries, vertices,
-                                           move, vertices_temp);
-
-      min_ratio = y::min(min_ratio, get_projection_ratio(wg, vertices, move));
-      min_ratio = y::min(min_ratio, get_projection_ratio(
-                      geometries, {wg.start, wg.end}, -move));
-    }
-  }
-
-  // Now do the exact same for bodies.
-  bounds = get_bounds(bodies, 0,
-                      source.get_origin(), source.get_rotation());
-  min_bound = y::min(bounds.first, move + bounds.first);
-  max_bound = y::max(bounds.second, move + bounds.second);
-
-  y::vector<Body*> blocking_bodies;
-  _data.get_spatial_hash().search(blocking_bodies, min_bound, max_bound);
-
-  y::vector<y::wvec2> block_vertices;
-  y::vector<world_geometry> block_geometries;
-
-  for (const auto& pointer : bodies) {
-    vertices_temp.clear();
-    vertices.clear();
-    geometries.clear();
-
-    const Body& b = *pointer;
-    b.get_vertices(vertices_temp,
-                   source.get_origin(), source.get_rotation());
-    get_vertices_and_geometries_for_move(
-        geometries, vertices, move, vertices_temp);
-
-    for (Body* block : blocking_bodies) {
-      if (&block->source == &source ||
-          !(b.collide_mask & block->collide_type)) {
-        continue;
-      }
-
-      vertices_temp.clear();
-      block_vertices.clear();
-      block_geometries.clear();
-
-      block->get_vertices(vertices_temp,
-                          block->source.get_origin(),
-                          block->source.get_rotation());
-      get_vertices_and_geometries_for_move(
-          block_geometries, block_vertices, -move, vertices_temp);
-
-      // Save the lowest block_ratio body so we can try to push it.
-      y::world block_ratio =
-          y::min(get_projection_ratio(block_geometries, vertices, move),
-                 get_projection_ratio(geometries, block_vertices, -move));
-      if (block_ratio < min_ratio) {
-        first_block_output = block;
-        min_ratio = block_ratio;
-      }
-    }
-  }
-
-  // Limit the movement to the minimum blocking ratio (i.e., least 0 <= t <= 1
-  // such that moving by t * move is blocked), and recurse in any free unblocked
-  // direction.
-  const y::wvec2 limited_move = min_ratio * move;
-  source.set_origin(limited_move + source.get_origin());
-  return limited_move;
-}
-
 y::wvec2 Collision::collider_move(y::vector<Body*>& push_body_output,
                                   y::vector<y::wvec2>& push_amount_output,
                                   Script& source, const y::wvec2& move,
                                   y::int32 push_mask, y::int32 push_max) const
 {
-  // TODO: (optionally) recurse against the blocked direction, i.e. slide down
-  // a wall if we can? Doesn't matter for 'characters' who walk about through
-  // very specific moves, for probably does for dumb physics-y objects.
-  Body* first_block;
-  y::wvec2 limited_move = collider_move(first_block, source, move);
-
-  if (!first_block || !push_mask || push_max <= 0 ||
-      !(push_mask & first_block->collide_type)) {
-    return limited_move;
-  }
-
-  // Push it. I am the pusher robot. We are here to protect you from the
-  // terrible secret of space.
-  Script& block_source = first_block->source;
-  y::wvec2 remaining_move = move - limited_move;
-
-  // Attempt to push the blocker.
-  y::vector<Body*> push_bodies;
-  y::vector<y::wvec2> push_amounts;
-  y::wvec2 block_move = collider_move(push_bodies, push_amounts,
-                                      block_source, remaining_move,
-                                      push_mask, push_max - 1);
-  // If it didn't move, we're stuck, continue as normal.
-  if (block_move == y::wvec2()) {
-    return limited_move;
-  }
-
-  // Store the output data recursively.
-  push_body_output.emplace_back(first_block);
-  push_amount_output.emplace_back(block_move);
-
-  push_body_output.insert(push_body_output.end(),
-                          push_bodies.begin(), push_bodies.end());
-  push_amount_output.insert(push_amount_output.end(),
-                            push_amounts.begin(), push_amounts.end());
-  push_bodies.clear();
-  push_amounts.clear();
-
-  // Otherwise, try to move us again. We need to subtract the number
-  // of objects we already pushed otherwise ordering can mean we push
-  // more than push_max in general.
-  y::wvec2 recursive_move = collider_move(
-      push_bodies, push_amounts, source, block_move,
-      push_mask, push_max - push_body_output.size());
-
-  // If we got stuck closer than the blocked object, move the blockers we
-  // already pushed back to where we got stuck.
-  if (recursive_move.length_squared() < block_move.length_squared()) {
-    for (y::size i = 0; i < push_body_output.size(); ++i) {
-      Body* b = push_body_output[i];
-      Body* ignore;
-      // Need to collider_move them back otherwise odd things can happen in
-      // more-than-two-body interactions.
-      push_amount_output[i] +=
-          collider_move(ignore, b->source, recursive_move - block_move);
-    }
-  }
-
-  push_body_output.insert(push_body_output.end(),
-                          push_bodies.begin(), push_bodies.end());
-  push_amount_output.insert(push_amount_output.end(),
-                            push_amounts.begin(), push_amounts.end());
-  return limited_move + recursive_move;
+  return collider_move_internal(
+      push_body_output, push_amount_output, source, move, push_mask, push_max);
 }
 
 y::world Collision::collider_rotate(Script& source, y::world rotate,
@@ -1227,3 +1040,202 @@ bool Collision::body_check(const Body* body, y::int32 collide_mask) const
 
   return false;
 }
+
+y::wvec2 Collision::collider_move_raw(
+    Body*& first_block_output, Script& source, const y::wvec2& move) const
+{
+  first_block_output = y::null;
+  const entry_list& bodies = _data.get_list(source);
+  if (bodies.empty() || move == y::wvec2()) {
+    source.set_origin(source.get_origin() + move);
+    return move;
+  }
+  // TODO: need some kind of 'pulling' mechanism. If a platform moves with
+  // something on top of it, the thing on top should also move. This should be
+  // a joint system: attach a joint at the object's feet every frame if it's
+  // standing on something. The same system can be used for other joints, like
+  // ropes and chains.
+
+  // Bounding boxes of the source Bodies.
+  auto bounds = get_bounds(bodies, COLLIDE_RESV_WORLD,
+                           source.get_origin(), source.get_rotation());
+  y::wvec2 min_bound = y::min(bounds.first, move + bounds.first);
+  y::wvec2 max_bound = y::max(bounds.second, move + bounds.second);
+
+  y::world min_ratio = 1;
+  y::vector<y::wvec2> vertices_temp;
+  y::vector<y::wvec2> vertices;
+  y::vector<world_geometry> geometries;
+
+  // By reversing the nesting of these loops we could skip geometry on a
+  // per-body basis. Incurs extra overhead though, and since most things will
+  // have one body it's unlikely to be worth it.
+  for (auto it = _world.get_geometry().search(min_bound, max_bound); it; ++it) {
+    world_geometry wg{y::wvec2(it->start), y::wvec2(it->end)};
+
+    // Skip geometry which is defined opposite the direction of movement..
+    y::wvec2 g_vec = wg.end - wg.start;
+    y::wvec2 normal{g_vec[yy], -g_vec[xx]};
+    if (normal.dot(-move) <= 0) {
+      continue;
+    }
+
+    // Now: project each relevant (depending on direction of movement) vertex
+    // of each body by the movement vector to form a line. Find the minimum
+    // blocking ratio among each intersection of the geometry with these, and
+    // and also any endpoint of geometry contained within the projection of
+    // the entire shape.
+    // The pleasing symmetry is that checking the geometry endpoints is
+    // exactly the reverse of the same process, i.e., project the geometry
+    // backwards by the movement vector and take the minimum blocking ratio
+    // among intersections with the original shape.
+    for (const auto& pointer : bodies) {
+      const Body& b = *pointer;
+      if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
+        continue;
+      }
+      vertices_temp.clear();
+      vertices.clear();
+      geometries.clear();
+
+      b.get_vertices(vertices_temp,
+                     source.get_origin(), source.get_rotation());
+      get_vertices_and_geometries_for_move(geometries, vertices,
+                                           move, vertices_temp);
+
+      min_ratio = y::min(min_ratio, get_projection_ratio(wg, vertices, move));
+      min_ratio = y::min(min_ratio, get_projection_ratio(
+                      geometries, {wg.start, wg.end}, -move));
+    }
+  }
+
+  // Now do the exact same for bodies.
+  bounds = get_bounds(bodies, 0,
+                      source.get_origin(), source.get_rotation());
+  min_bound = y::min(bounds.first, move + bounds.first);
+  max_bound = y::max(bounds.second, move + bounds.second);
+
+  y::vector<Body*> blocking_bodies;
+  _data.get_spatial_hash().search(blocking_bodies, min_bound, max_bound);
+
+  y::vector<y::wvec2> block_vertices;
+  y::vector<world_geometry> block_geometries;
+
+  for (const auto& pointer : bodies) {
+    vertices_temp.clear();
+    vertices.clear();
+    geometries.clear();
+
+    const Body& b = *pointer;
+    b.get_vertices(vertices_temp,
+                   source.get_origin(), source.get_rotation());
+    get_vertices_and_geometries_for_move(
+        geometries, vertices, move, vertices_temp);
+
+    for (Body* block : blocking_bodies) {
+      if (&block->source == &source ||
+          !(b.collide_mask & block->collide_type)) {
+        continue;
+      }
+
+      vertices_temp.clear();
+      block_vertices.clear();
+      block_geometries.clear();
+
+      block->get_vertices(vertices_temp,
+                          block->source.get_origin(),
+                          block->source.get_rotation());
+      get_vertices_and_geometries_for_move(
+          block_geometries, block_vertices, -move, vertices_temp);
+
+      // Save the lowest block_ratio body so we can try to push it.
+      y::world block_ratio =
+          y::min(get_projection_ratio(block_geometries, vertices, move),
+                 get_projection_ratio(geometries, block_vertices, -move));
+      if (block_ratio < min_ratio) {
+        first_block_output = block;
+        min_ratio = block_ratio;
+      }
+    }
+  }
+
+  // Limit the movement to the minimum blocking ratio (i.e., least 0 <= t <= 1
+  // such that moving by t * move is blocked), and recurse in any free unblocked
+  // direction.
+  const y::wvec2 limited_move = min_ratio * move;
+  source.set_origin(limited_move + source.get_origin());
+  return limited_move;
+}
+
+y::wvec2 Collision::collider_move_internal(
+    y::vector<Body*>& push_body_output,
+    y::vector<y::wvec2>& push_amount_output,
+    Script& source, const y::wvec2& move,
+    y::int32 push_mask, y::int32 push_max) const
+{
+  // TODO: (optionally) recurse against the blocked direction, i.e. slide down
+  // a wall if we can? Doesn't matter for 'characters' who walk about through
+  // very specific moves, for probably does for dumb physics-y objects.
+  Body* first_block;
+  y::wvec2 limited_move = collider_move_raw(first_block, source, move);
+
+  if (!first_block || !push_mask || push_max <= 0 ||
+      !(push_mask & first_block->collide_type)) {
+    return limited_move;
+  }
+
+  // Push it. I am the pusher robot. We are here to protect you from the
+  // terrible secret of space.
+  Script& block_source = first_block->source;
+  y::wvec2 remaining_move = move - limited_move;
+
+  // Attempt to push the blocker.
+  y::vector<Body*> push_bodies;
+  y::vector<y::wvec2> push_amounts;
+  y::wvec2 block_move = collider_move_internal(push_bodies, push_amounts,
+                                               block_source, remaining_move,
+                                               push_mask, push_max - 1);
+  // If it didn't move, we're stuck, continue as normal.
+  if (block_move == y::wvec2()) {
+    return limited_move;
+  }
+
+  // Store the output data recursively.
+  push_body_output.emplace_back(first_block);
+  push_amount_output.emplace_back(block_move);
+
+  push_body_output.insert(push_body_output.end(),
+                          push_bodies.begin(), push_bodies.end());
+  push_amount_output.insert(push_amount_output.end(),
+                            push_amounts.begin(), push_amounts.end());
+  push_bodies.clear();
+  push_amounts.clear();
+
+  // Otherwise, try to move us again. We need to subtract the number
+  // of objects we already pushed otherwise ordering can mean we push
+  // more than push_max in general.
+  y::wvec2 recursive_move = collider_move_internal(
+      push_bodies, push_amounts, source, block_move,
+      push_mask, push_max - push_body_output.size());
+
+  // If we got stuck closer than the blocked object, move the blockers we
+  // already pushed back to where we got stuck.
+  if (recursive_move.length_squared() < block_move.length_squared()) {
+    for (y::size i = 0; i < push_body_output.size(); ++i) {
+      Body* b = push_body_output[i];
+      Body* ignore;
+      // Need to collider_move them back otherwise odd things can happen in
+      // more-than-two-body interactions.
+      push_amount_output[i] +=
+          collider_move_raw(ignore, b->source, recursive_move - block_move);
+    }
+  }
+
+  push_body_output.insert(push_body_output.end(),
+                          push_bodies.begin(), push_bodies.end());
+  push_amount_output.insert(push_amount_output.end(),
+                            push_amounts.begin(), push_amounts.end());
+  return limited_move + recursive_move;
+}
+
+
