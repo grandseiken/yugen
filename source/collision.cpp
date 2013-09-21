@@ -350,6 +350,18 @@ namespace {
     }
   }
 
+  // Limit a move vector to keep within given distance of the origin.
+  y::world anchor_limited_move(
+      const y::wvec2& v, const y::wvec2& move, y::world distance)
+  {
+    // We find 0 < t < 1 such that |v + t * move|^2 = distance^2.
+    y::world a = move.length_squared();
+    y::world b = move.dot(v);
+    y::world c = v.length_squared() - distance * distance;
+
+    return (sqrt(b * b - a * c) - b) / a;
+  }
+
 }
 
 // Must be kept in sync with collide.lua.
@@ -364,6 +376,7 @@ enum CollideMaskReserved {
 Constraint::Constraint(
     Script& source, Script& target,
     const y::wvec2& source_offset, const y::wvec2& target_offset,
+    bool source_fixed, bool target_fixed,
     y::world distance, y::int32 tag)
   : invalidated(false)
   , source(source)
@@ -371,6 +384,8 @@ Constraint::Constraint(
   , source_offset(source_offset)
   , target_offset(target_offset)
   , distance(distance)
+  , source_fixed(source_fixed)
+  , target_fixed(target_fixed)
   , tag(tag)
 {
 }
@@ -389,6 +404,16 @@ const Script& Constraint::other(const Script& script) const
 Script& Constraint::other(const Script& script)
 {
   return &script == source.get() ? *target : *source;
+}
+
+const y::wvec2& Constraint::offset(const Script& script) const
+{
+  return &script == source.get() ? source_offset : target_offset;
+}
+
+bool Constraint::fixed(const Script& script) const
+{
+  return &script == source.get() ? source_fixed : target_fixed;
 }
 
 Body::Body(Script& source)
@@ -465,6 +490,7 @@ void Body::get_vertices(y::vector<y::wvec2>& output,
 void ConstraintData::create_constraint(
     Script& source, Script& target,
     const y::wvec2& source_origin, const y::wvec2& target_origin,
+    bool source_fixed, bool target_fixed,
     y::world distance, y::int32 tag)
 {
   // Transform points from world coordinates into reference frames of the
@@ -475,10 +501,18 @@ void ConstraintData::create_constraint(
       (target_origin - target.get_origin()).rotate(-target.get_rotation());
 
   Constraint* constraint = new Constraint(
-      source, target, source_offset, target_offset, distance, tag);
+      source, target, source_offset, target_offset,
+      source_fixed, target_fixed, distance, tag);
   _constraint_list.emplace_back(constraint);
   _constraint_map[&source].emplace(constraint);
   _constraint_map[&target].emplace(constraint);
+}
+
+const ConstraintData::constraint_set& ConstraintData::get_constraint_set(
+    const Script& source) const
+{
+  auto it = _constraint_map.find(&source);
+  return it != _constraint_map.end() ? it->second : _no_constraints;
 }
 
 bool ConstraintData::has_constraint(const Script& source) const
@@ -837,8 +871,39 @@ y::wvec2 Collision::collider_move(y::vector<Body*>& push_body_output,
                                   Script& source, const y::wvec2& move,
                                   y::int32 push_mask, y::int32 push_max) const
 {
+  y::world limited_move = 1.;
+
+  // Check each Constraint the source is involved with.
+  const auto& constraints = _constraints.get_constraint_set(source);
+  for (Constraint* constraint : constraints) {
+    const y::wvec2& offset = constraint->offset(source);
+
+    Script& other = constraint->other(source);
+    const y::wvec2& other_offset = constraint->offset(other);
+
+    y::wvec2 v = source.get_origin() + offset.rotate(source.get_rotation());
+    y::wvec2 other_v = other.get_origin() +
+        other_offset.rotate(other.get_rotation());
+
+    // If the move doesn't violate the distance Constraint, we're fine.
+    if ((v + limited_move * move - other_v).length_squared() <
+        constraint->distance * constraint->distance) {
+      continue;
+    }
+
+    // If the other script is fixed, limit move to the distance.
+    if (constraint->fixed(other)) {
+      limited_move = y::min(limited_move, anchor_limited_move(
+          v - other_v, move, constraint->distance));
+      continue;
+    }
+    
+    // TODO: attempt to pull the other Script; limit if it is blocked.
+  }
+
   return collider_move_internal(
-      push_body_output, push_amount_output, source, move, push_mask, push_max);
+      push_body_output, push_amount_output,
+      source, limited_move * move, push_mask, push_max);
 }
 
 y::world Collision::collider_rotate(Script& source, y::world rotate,

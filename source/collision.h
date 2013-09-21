@@ -16,6 +16,7 @@ class WorldWindow;
 struct Constraint : y::no_copy {
   Constraint(Script& source, Script& target,
              const y::wvec2& source_offset, const y::wvec2& target_offset,
+             bool source_fixed, bool target_fixed,
              y::world distance, y::int32 tag);
 
   // Set invalidated to true in order to destroy the Constraint.
@@ -25,6 +26,10 @@ struct Constraint : y::no_copy {
   // Get the other Script if we know one of them.
   const Script& other(const Script& script) const;
   /***/ Script& other(const Script& script);
+
+  // Get the offset or fixing corresponding to one of the Scripts.
+  const y::wvec2& offset(const Script& script) const;
+  bool fixed(const Script& script) const;
   
   ScriptReference source;
   ScriptReference target;
@@ -33,7 +38,11 @@ struct Constraint : y::no_copy {
   y::wvec2 source_offset;
   y::wvec2 target_offset;
 
+  // Maximum distance, and whether the source and target are fixed (can't be
+  // pulled by this Constraint).
   y::world distance;
+  bool source_fixed;
+  bool target_fixed;
 
   // The tag is an arbitrary value that can be used for lookup.
   y::int32 tag;
@@ -75,7 +84,11 @@ public:
   void create_constraint(
       Script& source, Script& target,
       const y::wvec2& source_origin, const y::wvec2& target_origin,
+      bool source_fixed, bool target_fixed,
       y::world distance, y::int32 tag);
+
+  typedef y::set<Constraint*> constraint_set;
+  const constraint_set& get_constraint_set(const Script& source) const;
 
   // Check if a Script has any constraints, optionally having the given tag.
   bool has_constraint(const Script& source) const;
@@ -97,9 +110,10 @@ public:
 private:
 
   typedef y::vector<y::unique<Constraint>> constraint_list;
-  typedef y::map<const Script*, y::set<Constraint*>> constraint_map;
+  typedef y::map<const Script*, constraint_set> constraint_map;
   constraint_list _constraint_list;
   constraint_map _constraint_map;
+  constraint_set _no_constraints;
 
 };
 

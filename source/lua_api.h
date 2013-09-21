@@ -289,10 +289,11 @@ y_api(script__destroy_bodies)
 y_api(script__create_constraint)
     y_arg(Script*, script) y_arg(Script*, target)
     y_arg(const y::wvec2, origin) y_arg(const y::wvec2, target_origin)
+    y_arg(bool, fixed) y_arg(bool, target_fixed)
     y_arg(y::world, distance) y_optarg(y::int32, tag)
 {
   stage.get_collision().get_constraints().create_constraint(
-      *script, *target, origin, target_origin, distance,
+      *script, *target, origin, target_origin, fixed, target_fixed, distance,
       tag_defined ? tag : 0);
   y_void();
 }
