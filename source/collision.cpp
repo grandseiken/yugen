@@ -1457,6 +1457,7 @@ y::world Collision::collider_move_constrained(
     constraint_push_scripts.clear();
     constraint_push_amounts.clear();
 
+    // TODO: this doesn't work either.
     relevant_set.clear();
     return 0;
 
