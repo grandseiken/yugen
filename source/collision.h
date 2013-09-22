@@ -30,7 +30,7 @@ struct Constraint : y::no_copy {
   // Get the offset or fixing corresponding to one of the Scripts.
   const y::wvec2& offset(const Script& script) const;
   bool fixed(const Script& script) const;
-  
+
   ScriptReference source;
   ScriptReference target;
 

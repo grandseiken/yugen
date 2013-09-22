@@ -661,6 +661,7 @@ GameStage::GameStage(const Databank& bank, Filesystem& save_filesystem,
     KEY_DOWN,
     KEY_LEFT,
     KEY_RIGHT,
+    KEY_ACTION,
   };
 
   // Setup key bindings.
@@ -670,6 +671,7 @@ GameStage::GameStage(const Databank& bank, Filesystem& save_filesystem,
   _key_map[KEY_DOWN] = {sf::Keyboard::S, sf::Keyboard::Down};
   _key_map[KEY_LEFT] = {sf::Keyboard::A, sf::Keyboard::Left};
   _key_map[KEY_RIGHT] = {sf::Keyboard::D, sf::Keyboard::Right};
+  _key_map[KEY_ACTION] = {sf::Keyboard::Space};
 
   // TODO: need a proper save system, but use this temporary thing for now.
   _savegame.load(save_filesystem, "/tmp.sav");

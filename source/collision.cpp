@@ -357,10 +357,13 @@ namespace {
   {
     // We find 0 < t < 1 such that |v + t * move|^2 = distance^2.
     y::world a = move.length_squared();
+    if (a == 0) {
+      return 1.;
+    }
     y::world b = move.dot(v);
     y::world c = v.length_squared() - distance * distance;
 
-    return (sqrt(b * b - a * c) - b) / a;
+    return y::max(0., y::min(1., (sqrt(b * b - a * c) - b) / a));
   }
 
   // Solves the problem:
@@ -369,7 +372,7 @@ namespace {
   //   |    ----
   //   |        ----
   // B +--------B'-----+ T
-  //     
+  //
   // If B attempts to move T but is blocked at B', where is the point A' that
   // a moves to along AT such that |A' - B'| = |A - B|?
   //
@@ -625,14 +628,28 @@ void ConstraintData::destroy_constraints(const Script& source, y::int32 tag)
 
 void ConstraintData::clean_up()
 {
+  for (auto it = _constraint_map.begin(); it != _constraint_map.end();) {
+    auto& pair = *it;
+    for (auto jt = pair.second.begin(); jt != pair.second.end();) {
+      if ((*jt)->is_valid()) {
+        ++jt;
+        continue;
+      }
+      jt = pair.second.erase(jt);
+    }
+    if (pair.second.empty()) {
+      it = _constraint_map.erase(it);
+    }
+    else {
+      ++it;
+    }
+  }
+
   for (auto it = _constraint_list.begin(); it != _constraint_list.end();) {
     if ((*it)->is_valid()) {
       ++it;
       continue;
     }
-    Constraint& constraint = **it;
-    _constraint_map[constraint.source.get()].erase(&constraint);
-    _constraint_map[constraint.target.get()].erase(&constraint);
     it = _constraint_list.erase(it);
   }
 }
@@ -1114,12 +1131,6 @@ y::world Collision::collider_move_raw(
     source.set_origin(source.get_origin() + move);
     return 1.;
   }
-  // TODO: need some kind of 'pulling' mechanism. If a platform moves with
-  // something on top of it, the thing on top should also move. This should be
-  // a joint system: attach a joint at the object's feet every frame if it's
-  // standing on something. The same system can be used for other joints, like
-  // ropes and chains.
-
   // Bounding boxes of the source Bodies.
   auto bounds = get_bounds(bodies, COLLIDE_RESV_WORLD,
                            source.get_origin(), source.get_rotation());
@@ -1317,7 +1328,7 @@ y::world Collision::collider_move_constrained(
   const auto& constraints = _constraints.get_constraint_set(source);
   y::vector<y::pair<Constraint*, y::wvec2>> relevant_set;
   for (Constraint* constraint : constraints) {
-    if (ignored_constraints.count(constraint)) {
+    if (!constraint->is_valid() || ignored_constraints.count(constraint)) {
       continue;
     }
 
@@ -1361,6 +1372,7 @@ y::world Collision::collider_move_constrained(
     }
   };
 
+  // Move the source and store results.
   y::vector<Script*> source_push_scripts;
   y::vector<y::wvec2> source_push_amounts;
   y::world move_ratio = collider_move_push(
@@ -1368,14 +1380,13 @@ y::world Collision::collider_move_constrained(
       source, limited_move * move, push_mask, push_max);
   y::wvec2 target = source.get_origin();
 
-  // Attempt to move each constrained Script towards us until the distance
-  // is satsified again.
   y::vector<y::wvec2> constraint_moves;
   y::vector<y::vector<Script*>> constraint_push_scripts;
   y::vector<y::vector<y::wvec2>> constraint_push_amounts;
 
-  ConstraintData::constraint_set new_ignored_set;
-  y::world limit_ratio = 1.;
+  // Attempt to move each constrained Script towards us until the distance
+  // is satsified again.
+  y::world limit_ratio = 2.;
   for (const auto& c : relevant_set) {
     Constraint* constraint = c.first;
 
@@ -1383,15 +1394,18 @@ y::world Collision::collider_move_constrained(
     Script& other = constraint->other(source);
     const y::wvec2& other_offset = constraint->offset(other);
 
-    y::wvec2 v = target + offset.rotate(source.get_rotation());
-    y::wvec2 other_v = other.get_origin() +
+    // Get anchor points on constrained sources.
+    y::wvec2 target_v = target + offset.rotate(source.get_rotation());
+    y::wvec2 start_v = other.get_origin() +
         other_offset.rotate(other.get_rotation());
 
-    y::world distance_fraction = 
-        1 - (constraint->distance / (v - other_v).length());
-    y::wvec2 other_move = distance_fraction * (v - other_v);
+    // Calculate fraction of vector move needed to satisfy distance constraint.
+    y::world distance_fraction =
+        1 - (constraint->distance / (target_v - start_v).length());
+    y::wvec2 other_move = distance_fraction * (target_v - start_v);
 
-    new_ignored_set.clear();
+    // Move constrained Script and store results.
+    ConstraintData::constraint_set new_ignored_set;
     new_ignored_set.insert(ignored_constraints.begin(),
                            ignored_constraints.end());
     new_ignored_set.insert(constraint);
@@ -1402,13 +1416,32 @@ y::world Collision::collider_move_constrained(
         other, other_move, push_mask, push_max, new_ignored_set);
     constraint_moves.emplace_back(other_move_ratio * other_move);
 
-    limit_ratio = y::min(limit_ratio, anchor_pull_move(
-        other_v - c.second, v - c.second,
-        other_move_ratio * distance_fraction, true));
+    // If the constraint couldn't move the whole way, calculate how far the
+    // source is allowed to go.
+    if (other_move_ratio < 1) {
+      const y::wvec2& origin = c.second;
+
+      // The free ratio is how much of the source's origin move-vector is inside
+      // the original constraint distance anyway.
+      y::world free_ratio = anchor_limited_move(
+          origin - start_v, target_v - origin, constraint->distance);
+      y::wvec2 free_point = free_ratio * target_v + (1 - free_ratio) * origin;
+
+      // Non-free ratio gives how much of the non-free part of the move-vector
+      // is inside the new constraint distance.
+      y::world allowed_ratio = anchor_pull_move(
+          start_v - free_point, target_v - free_point,
+          other_move_ratio * distance_fraction, true);
+
+      // Limit move to this amount.
+      limit_ratio = y::min(limit_ratio,
+          free_ratio + (1 - free_ratio) * allowed_ratio);
+    }
   }
 
   // If any couldn't move far enough, reverse the whole thing and try again.
   if (limit_ratio < 1) {
+    // Undo the moves in reverse order.
     for (y::int32 i = relevant_set.size() - 1; i >= 0; --i) {
       local::reverse_move(*this, relevant_set[i].first->other(source),
                           constraint_moves[i], constraint_push_scripts[i],
@@ -1433,19 +1466,30 @@ y::world Collision::collider_move_constrained(
       }
       Constraint* constraint = c.first;
 
+      // Find the anchors again.
       const y::wvec2& offset = constraint->offset(source);
       Script& other = constraint->other(source);
       const y::wvec2& other_offset = constraint->offset(other);
 
-      y::wvec2 v = target + offset.rotate(source.get_rotation());
-      y::wvec2 other_v = other.get_origin() +
+      y::wvec2 target_v = target + offset.rotate(source.get_rotation());
+      y::wvec2 start_v = other.get_origin() +
           other_offset.rotate(other.get_rotation());
 
+      // Reverse calculations to find the allowed ratio relative to this
+      // constraint, so we can calculate how much the constraint actually needs
+      // to move.
+      const y::wvec2& origin = c.second;
+      y::world free_ratio = anchor_limited_move(
+          origin - start_v, target_v - origin, constraint->distance);
+      y::wvec2 free_point = free_ratio * target_v + (1 - free_ratio) * origin;
+      y::world allowed_ratio = (limit_ratio - free_ratio) / (1 - free_ratio);
       y::world distance_fraction =
-          anchor_pull_move(c.second - other_v, v - other_v, limit_ratio, false);
-      y::wvec2 other_move = distance_fraction * (v - other_v);
+          anchor_pull_move(free_point - start_v, target_v - start_v,
+                           allowed_ratio, false);
+      y::wvec2 other_move = distance_fraction * (target_v - start_v);
 
-      new_ignored_set.clear();
+      // Do the move.
+      ConstraintData::constraint_set new_ignored_set;
       new_ignored_set.insert(ignored_constraints.begin(),
                              ignored_constraints.end());
       new_ignored_set.insert(constraint);
@@ -1456,6 +1500,9 @@ y::world Collision::collider_move_constrained(
           other, other_move, push_mask, push_max, new_ignored_set);
       constraint_moves.emplace_back(other_move_ratio * other_move);
     }
+  }
+  else {
+    limit_ratio = 1.;
   }
 
   // Collapse move lists and return.
@@ -1475,6 +1522,5 @@ y::world Collision::collider_move_constrained(
         push_amount_output.end(),
         constraint_push_amounts[i].begin(), constraint_push_amounts[i].end());
   }
-
   return move_ratio * limit_ratio * limited_move;
 }

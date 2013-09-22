@@ -343,6 +343,19 @@ y_api(script__collider_move)
       push_scripts, push_amounts,
       *script, move, push_mask_defined ? push_mask : 0,
       push_max_defined && push_max >= 0 ? push_max : 64);
+  y_return(moved);
+}
+
+y_api(script__collider_move_detail)
+    y_arg(Script*, script) y_arg(const y::wvec2, move)
+    y_optarg(y::int32, push_mask) y_optarg(y::int32, push_max)
+{
+  y::vector<Script*> push_scripts;
+  y::vector<y::wvec2> push_amounts;
+  y::wvec2 moved = stage.get_collision().collider_move(
+      push_scripts, push_amounts,
+      *script, move, push_mask_defined ? push_mask : 0,
+      push_max_defined && push_max >= 0 ? push_max : 64);
   y_return(moved, push_scripts, push_amounts);
 }
 
@@ -374,7 +387,7 @@ y_api(script__in_radius)
 
 y_api(script__source_check)
     y_arg(Script*, script)
-  y_arg(y::int32, source_collide_mask)
+    y_arg(y::int32, source_collide_mask)
     y_arg(y::int32, target_collide_mask)
 {
   y_return(stage.get_collision().source_check(*script, source_collide_mask,
@@ -416,6 +429,7 @@ y_ptrtypedef(Script) {
   y_method("get_constraints", script__get_constraints);
   y_method("destroy_constraints", script__destroy_constraints);
   y_method("collider_move", script__collider_move);
+  y_method("collider_move_detail", script__collider_move_detail);
   y_method("collider_rotate", script__collider_rotate);
   y_method("in_region", script__in_region);
   y_method("in_radius", script__in_radius);

@@ -12,6 +12,10 @@ body:set_collide_mask(collide_mask)
 local up_check, down_check, left_check, right_check =
     create_all_checks(self, bs, bo)
 
+-- Script references.
+local player_hook_script = get_script("/scripts/game/player_hook.lua")
+local hook_ref = nil
+
 -- Test light.
 local light = self:create_light(128, 128)
 light:set_colour(1, 1, 1)
@@ -180,6 +184,19 @@ local function is_jumping()
   return jump_stage ~= JUMP_STAGE_NONE
 end
 
+-- Controls hook shot.
+local function hook_logic()
+  if hook_ref == nil or not hook_ref:valid() then
+    return
+  end
+  local hook = hook_ref:get()
+  if not self:has_constraint(0) and hook:source_check(0, COLLIDE_WORLD) then
+    self:create_constraint(
+        hook, self:get_origin(), hook:get_origin(), true, false,
+        8 + (self:get_origin() - hook:get_origin()):length(), 0)
+  end
+end
+
 -- Movement constants.
 local GRAVITY = 4
 local MOVE_SPEED = 2.5
@@ -220,7 +237,7 @@ function update()
   -- exactly as high as them. We may want to consider alternative approaches
   -- too, for example using the NYI sliding recursion collision.
   local amount, scripts, amounts =
-      self:collider_move(vec(v, step_amount), COLLIDE_PUSHABLE, 2)
+      self:collider_move_detail(vec(v, step_amount), COLLIDE_PUSHABLE, 2)
   -- Undo the diagonal step.
   self:collider_move(vec(0, -amount:y()))
   for i, s in ipairs(scripts) do
@@ -258,13 +275,21 @@ function update()
   up_check_prev = try_move < 0 and math.abs(move:y()) < math.abs(try_move)
   jump_timer_logic(down_check_now)
 
-  load_origin()
-  save_origin()
+  -- load_origin()
+  -- save_origin()
+  hook_logic()
 end
 
 function key(k)
   if k == KEY_UP then
     jump_input()
+  end
+  if k == KEY_ACTION then
+    if hook_ref == nil or not hook_ref:valid() then
+      hook_ref = ref(create_script(player_hook_script, self:get_origin()))
+    else
+      hook_ref:get():destroy()
+    end
   end
 end
 
