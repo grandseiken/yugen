@@ -1386,6 +1386,7 @@ y::world Collision::collider_move_constrained(
 
   // Attempt to move each constrained Script towards us until the distance
   // is satsified again.
+  // TODO: this doesn't really work all that well.
   y::world limit_ratio = 2.;
   for (const auto& c : relevant_set) {
     Constraint* constraint = c.first;
@@ -1456,14 +1457,14 @@ y::world Collision::collider_move_constrained(
     constraint_push_scripts.clear();
     constraint_push_amounts.clear();
 
+    relevant_set.clear();
+    return 0;
+
     move_ratio = collider_move_push(
       source_push_scripts, source_push_amounts,
       source, limit_ratio * limited_move * move, push_mask, push_max);
 
     for (const auto& c : relevant_set) {
-      if (limit_ratio <= 0) {
-        continue;
-      }
       Constraint* constraint = c.first;
 
       // Find the anchors again.
@@ -1495,10 +1496,15 @@ y::world Collision::collider_move_constrained(
       new_ignored_set.insert(constraint);
       constraint_push_scripts.emplace_back();
       constraint_push_amounts.emplace_back();
-      y::world other_move_ratio = collider_move_constrained(
-          *constraint_push_scripts.rbegin(), *constraint_push_amounts.rbegin(),
-          other, other_move, push_mask, push_max, new_ignored_set);
-      constraint_moves.emplace_back(other_move_ratio * other_move);
+      if (limit_ratio > 0) {
+        y::world other_move_ratio = collider_move_constrained(
+            *constraint_push_scripts.rbegin(), *constraint_push_amounts.rbegin(),
+            other, other_move, push_mask, push_max, new_ignored_set);
+        constraint_moves.emplace_back(other_move_ratio * other_move);
+      }
+      else {
+        constraint_moves.emplace_back();
+      }
     }
   }
   else {
@@ -1513,14 +1519,12 @@ y::world Collision::collider_move_constrained(
       push_amount_output.end(),
       source_push_amounts.begin(), source_push_amounts.end());
   for (y::size i = 0; i < relevant_set.size(); ++i) {
-    push_script_output.emplace_back(&relevant_set[i].first->other(source));
-    push_amount_output.emplace_back(constraint_moves[i]);
-    push_script_output.insert(
-        push_script_output.end(),
-        constraint_push_scripts[i].begin(), constraint_push_scripts[i].end());
-    push_amount_output.insert(
-        push_amount_output.end(),
-        constraint_push_amounts[i].begin(), constraint_push_amounts[i].end());
+    push_script_output.push_back(&relevant_set[i].first->other(source));
+    push_amount_output.push_back(constraint_moves[i]);
+    for (y::size j = 0; j < constraint_push_scripts[i].size(); ++j) {
+      push_script_output.push_back(constraint_push_scripts[i][j]);
+      push_amount_output.push_back(constraint_push_amounts[i][j]);
+    }
   }
   return move_ratio * limit_ratio * limited_move;
 }

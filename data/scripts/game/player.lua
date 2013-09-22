@@ -14,6 +14,8 @@ local up_check, down_check, left_check, right_check =
 
 -- Script references.
 local player_hook_script = get_script("/scripts/game/player_hook.lua")
+local player_hook_chain_script =
+    get_script("/scripts/game/player_hook_chain.lua")
 local hook_ref = nil
 
 -- Test light.
@@ -190,11 +192,26 @@ local function hook_logic()
     return
   end
   local hook = hook_ref:get()
-  if not self:has_constraint(0) and hook:source_check(0, COLLIDE_WORLD) then
-    self:create_constraint(
-        hook, self:get_origin(), hook:get_origin(), true, false,
-        8 + (self:get_origin() - hook:get_origin()):length(), 0)
+  if self:has_constraint(0) or not hook:source_check(0, COLLIDE_WORLD) then
+    return
   end
+
+  local first = self:get_origin()
+  local last = hook:get_origin()
+  local chains = {}
+  for i = 1, 7 do
+    pos = vec(first:x() + (last:x() - first:x()) * (i / 8),
+              first:y() + (last:y() - first:y()) * (i / 8))
+    chains[i] = create_script(player_hook_chain_script, pos)
+
+    local t = i > 1 and chains[i - 1] or self
+    t:create_constraint(
+        chains[i], t:get_origin(), chains[i]:get_origin(), false, false,
+        4 + (t:get_origin() - chains[i]:get_origin()):length(), 0)
+  end
+  chains[7]:create_constraint(
+      hook, chains[7]:get_origin(), hook:get_origin(), false, true,
+      4 + (chains[7]:get_origin() - hook:get_origin()):length(), 0)
 end
 
 -- Movement constants.
@@ -289,6 +306,7 @@ function key(k)
       hook_ref = ref(create_script(player_hook_script, self:get_origin()))
     else
       hook_ref:get():destroy()
+      self:destroy_constraints(0)
     end
   end
 end
