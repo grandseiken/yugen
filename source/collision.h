@@ -187,7 +187,7 @@ public:
 
   // Push_mask controls the type of objects that can be pushed out of the way,
   // and push_max the maximum number that can be pushed at once.
-  y::wvec2 collider_move(y::vector<Body*>& push_bodies_output,
+  y::wvec2 collider_move(y::vector<Script*>& push_script_output,
                          y::vector<y::wvec2>& push_amount_output,
                          Script& source, const y::wvec2& move,
                          y::int32 push_mask, y::int32 push_max) const;
@@ -209,14 +209,22 @@ public:
 private:
 
   // Primitive move function. Moves the collider as far as it can go and stops.
-  y::wvec2 collider_move_raw(Body*& first_blocker_output,
+  y::world collider_move_raw(Body*& first_blocker_output,
                              Script& source, const y::wvec2& move) const;
 
   // Move function with pushing.
-  y::wvec2 collider_move_internal(y::vector<Body*>& push_bodies_output,
-                                  y::vector<y::wvec2>& push_amount_output,
-                                  Script& source, const y::wvec2& move,
-                                  y::int32 push_mask, y::int32 push_max) const;
+  y::world collider_move_push(y::vector<Script*>& push_script_output,
+                              y::vector<y::wvec2>& push_amount_output,
+                              Script& source, const y::wvec2& move,
+                              y::int32 push_mask, y::int32 push_max) const;
+
+  // Move function respecting constraints.
+  y::world collider_move_constrained(
+      y::vector<Script*>& push_script_output,
+      y::vector<y::wvec2>& push_amount_output,
+      Script& source, const y::wvec2& move,
+      y::int32 push_mask, y::int32 push_max,
+      const ConstraintData::constraint_set& ignored_constraints) const;
 
   const WorldWindow& _world;
   CollisionData _data;

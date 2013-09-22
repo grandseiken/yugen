@@ -219,12 +219,12 @@ function update()
   -- It has some downsides, particularly we can't move objects into spaces
   -- exactly as high as them. We may want to consider alternative approaches
   -- too, for example using the NYI sliding recursion collision.
-  local amount, bodies, amounts =
+  local amount, scripts, amounts =
       self:collider_move(vec(v, step_amount), COLLIDE_PUSHABLE, 2)
   -- Undo the diagonal step.
   self:collider_move(vec(0, -amount:y()))
-  for i, b in ipairs(bodies) do
-    b:get_source():collider_move(vec(0, -amounts[i]:y()))
+  for i, s in ipairs(scripts) do
+    s:collider_move(vec(0, -amounts[i]:y()))
   end
   -- Undo the straight step.
   if step_amount ~= 0 then
