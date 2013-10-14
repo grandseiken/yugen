@@ -1,6 +1,7 @@
 #include "collision.h"
 #include "render_util.h"
 #include "world.h"
+#include <algorithm>
 
 // Internal collision functions.
 namespace {
@@ -350,49 +351,6 @@ namespace {
     }
   }
 
-  // Limit a move vector to keep within given distance of the origin. Value
-  // returned is a multiplier for the move vector.
-  y::world anchor_limited_move(
-      const y::wvec2& v, const y::wvec2& move, y::world distance)
-  {
-    // We find 0 < t < 1 such that |v + t * move|^2 = distance^2.
-    y::world a = move.length_squared();
-    if (a == 0) {
-      return 1.;
-    }
-    y::world b = move.dot(v);
-    y::world c = v.length_squared() - distance * distance;
-
-    return y::max(0., y::min(1., (sqrt(b * b - a * c) - b) / a));
-  }
-
-  // Solves the problem:
-  // A (Origin)
-  //   +----A'
-  //   |    ----
-  //   |        ----
-  // B +--------B'-----+ T
-  //
-  // If B attempts to move T but is blocked at B', where is the point A' that
-  // a moves to along AT such that |A' - B'| = |A - B|?
-  //
-  // There are two answers, one behind and one in front (controlled by plus
-  // parameter). Blocked parameter expresses B' as a fraction of BT; value
-  // returned is a fraction of AT = T.
-  y::world anchor_pull_move(
-      const y::wvec2& body, const y::wvec2& target, y::world blocked, bool plus)
-  {
-    if (target == y::wvec2()) {
-      return 1.;
-    }
-    y::wvec2 b_prime = (1 - blocked) * body + blocked * target;
-    y::world cross = target.cross(b_prime);
-    y::world rhs = sqrt(target.length_squared() * body.length_squared() -
-                        cross * cross);
-    rhs = rhs * (plus ? 1 : -1);
-    return (target.dot(b_prime) + rhs) / target.length_squared();
-  }
-
 }
 
 // Must be kept in sync with collide.lua.
@@ -406,15 +364,10 @@ enum CollideMaskReserved {
 
 Constraint::Constraint(
     Script& source, Script& target,
-    const y::wvec2& source_offset, const y::wvec2& target_offset,
-    bool source_fixed, bool target_fixed,
-    y::world distance, y::int32 tag)
+    bool source_fixed, bool target_fixed, y::int32 tag)
   : invalidated(false)
   , source(source)
   , target(target)
-  , source_offset(source_offset)
-  , target_offset(target_offset)
-  , distance(distance)
   , source_fixed(source_fixed)
   , target_fixed(target_fixed)
   , tag(tag)
@@ -435,11 +388,6 @@ const Script& Constraint::other(const Script& script) const
 Script& Constraint::other(const Script& script)
 {
   return &script == source.get() ? *target : *source;
-}
-
-const y::wvec2& Constraint::offset(const Script& script) const
-{
-  return &script == source.get() ? source_offset : target_offset;
 }
 
 bool Constraint::fixed(const Script& script) const
@@ -520,20 +468,10 @@ void Body::get_vertices(y::vector<y::wvec2>& output,
 
 void ConstraintData::create_constraint(
     Script& source, Script& target,
-    const y::wvec2& source_origin, const y::wvec2& target_origin,
-    bool source_fixed, bool target_fixed,
-    y::world distance, y::int32 tag)
+    bool source_fixed, bool target_fixed, y::int32 tag)
 {
-  // Transform points from world coordinates into reference frames of the
-  // Scripts.
-  y::wvec2 source_offset =
-      (source_origin - source.get_origin()).rotate(-source.get_rotation());
-  y::wvec2 target_offset =
-      (target_origin - target.get_origin()).rotate(-target.get_rotation());
-
   Constraint* constraint = new Constraint(
-      source, target, source_offset, target_offset,
-      source_fixed, target_fixed, distance, tag);
+      source, target, source_fixed, target_fixed, tag);
   _constraint_list.emplace_back(constraint);
   _constraint_map[&source].emplace(constraint);
   _constraint_map[&target].emplace(constraint);
@@ -916,10 +854,9 @@ y::wvec2 Collision::collider_move(y::vector<Script*>& push_script_output,
                                   Script& source, const y::wvec2& move,
                                   y::int32 push_mask, y::int32 push_max) const
 {
-  ConstraintData::constraint_set empty_ignore_set;
   return move * collider_move_constrained(
       push_script_output, push_amount_output,
-      source, move, push_mask, push_max, empty_ignore_set);
+      source, move, push_mask, push_max);
 }
 
 y::world Collision::collider_rotate(Script& source, y::world rotate,
@@ -937,8 +874,7 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
     }
   };
 
-  // TODO: at least allow rotations which do not require any target Constraints
-  // to be moved.
+  // TODO: rotations should probably work with Constraints.
   if (_constraints.has_constraint(source)) {
     return 0.;
   }
@@ -1246,8 +1182,7 @@ y::world Collision::collider_move_push(
     y::vector<Script*>& push_script_output,
     y::vector<y::wvec2>& push_amount_output,
     Script& source, const y::wvec2& move,
-    y::int32 push_mask, y::int32 push_max,
-    const ConstraintData::constraint_set& ignored_constraints) const
+    y::int32 push_mask, y::int32 push_max) const
 {
   // TODO: (optionally) recurse against the blocked direction, i.e. slide down
   // a wall if we can? Doesn't matter for 'characters' who walk about through
@@ -1270,7 +1205,7 @@ y::world Collision::collider_move_push(
   y::vector<y::wvec2> push_amounts;
   y::world block_move_ratio = collider_move_constrained(
       push_scripts, push_amounts, block_source, remaining_move,
-      push_mask, push_max - 1, ignored_constraints);
+      push_mask, push_max - 1);
   // If it didn't move, we're stuck, continue as normal.
   if (block_move_ratio <= 0) {
     return move_ratio;
@@ -1293,7 +1228,7 @@ y::world Collision::collider_move_push(
   // more than push_max in general.
   y::world recursive_ratio = collider_move_push(
       push_scripts, push_amounts, source, block_move,
-      push_mask, push_max - push_script_output.size(), ignored_constraints);
+      push_mask, push_max - push_script_output.size());
 
   // If we got stuck closer than the blocked object, move the blockers we
   // already pushed back to where we got stuck.
@@ -1320,44 +1255,69 @@ y::world Collision::collider_move_constrained(
     y::vector<Script*>& push_script_output,
     y::vector<y::wvec2>& push_amount_output,
     Script& source, const y::wvec2& move,
-    y::int32 push_mask, y::int32 push_max,
-    const ConstraintData::constraint_set& ignored_constraints) const
+    y::int32 push_mask, y::int32 push_max) const
 {
-  y::world limited_move = 1.;
+  y::set<Script*> linked_scripts;
+  linked_scripts.insert(&source);
 
-  // Check each Constraint the source is involved with.
-  const auto& constraints = _constraints.get_constraint_set(source);
-  y::vector<y::pair<Constraint*, y::wvec2>> relevant_set;
-  for (Constraint* constraint : constraints) {
-    if (!constraint->is_valid() || ignored_constraints.count(constraint)) {
-      continue;
+  y::vector<y::pair<Script*, bool>> stack;
+  stack.emplace_back(&source, false);
+
+  // Traverse the constraint graph to find all Scripts linked to the source.
+  y::set<Constraint*> used_constraints;
+  while (!stack.empty()) {
+    Script& node = *stack.rbegin()->first;
+    bool node_traverse_from_fixed = stack.rbegin()->second;
+    stack.erase(stack.end() - 1);
+
+    const auto& constraints = _constraints.get_constraint_set(node);
+    for (Constraint* constraint : constraints) {
+      if (!constraint->is_valid() || used_constraints.count(constraint)) {
+        continue;
+      }
+      used_constraints.insert(constraint);
+
+      Script& other = constraint->other(node);
+      bool seen_other = linked_scripts.count(&other);
+      bool traverse_from_fixed =
+          node_traverse_from_fixed || constraint->fixed(node);
+
+      // If we see a constraint fixed on the other end, we can't move it. To
+      // ensure consistent behaviour with cyclic constraint graphs, we also need
+      // to check that constraints fixed on this side don't eventually link back
+      // up to a node we've already seen.
+      if (constraint->fixed(other) ||
+          (traverse_from_fixed && seen_other)) {
+        return 0.;
+      }
+
+      if (!seen_other) {
+        linked_scripts.insert(&other);
+        stack.emplace_back(&other, traverse_from_fixed);
+      }
     }
-
-    const y::wvec2& offset = constraint->offset(source);
-    Script& other = constraint->other(source);
-    const y::wvec2& other_offset = constraint->offset(other);
-
-    y::wvec2 v = source.get_origin() + offset.rotate(source.get_rotation());
-    y::wvec2 other_v = other.get_origin() +
-        other_offset.rotate(other.get_rotation());
-
-    // If the move doesn't violate the distance Constraint, we're fine.
-    if ((v + limited_move * move - other_v).length_squared() <
-        constraint->distance * constraint->distance) {
-      continue;
-    }
-
-    // If the other script is fixed, limit move to the distance.
-    if (constraint->fixed(other)) {
-      limited_move = y::min(limited_move, anchor_limited_move(
-          v - other_v, move, constraint->distance));
-      continue;
-    }
-
-    // Store the constraint so we can attempt to pull it afterwards.
-    relevant_set.emplace_back(constraint, v);
   }
 
+  // Sorts objects in the direction of the movement vector.
+  struct direction_order {
+    y::wvec2 move_vec;
+
+    bool operator()(const Script* a, const Script* b) const
+    {
+      y::wvec2 normal_vec{move_vec[yy], -move_vec[xx]};
+      y::world a_dot = a->get_origin().dot(move_vec);
+      y::world b_dot = b->get_origin().dot(move_vec);
+
+      // If dot-products are equal, points line up on projection, so fall back
+      // to the signed distance from the line.
+      return a_dot < b_dot ||
+          (a_dot == b_dot &&
+           a->get_origin().dot(normal_vec) < b->get_origin().dot(normal_vec));
+    }
+  };
+
+  // Reverses an entire move chain. Since pushes come out in reverse order,
+  // doing this forwards is really the correct way.
   struct local {
     static void reverse_move(
         const Collision& collision,
@@ -1373,176 +1333,55 @@ y::world Collision::collider_move_constrained(
     }
   };
 
-  // Move the source and store results.
-  y::vector<Script*> source_push_scripts;
-  y::vector<y::wvec2> source_push_amounts;
-  y::world move_ratio = collider_move_push(
-      source_push_scripts, source_push_amounts,
-      source, limited_move * move, push_mask, push_max, ignored_constraints);
-  y::wvec2 target = source.get_origin();
+  y::vector<Script*> scripts;
+  scripts.insert(scripts.end(), linked_scripts.begin(), linked_scripts.end());
+  y::vector<y::vector<Script*>> push_scripts;
+  y::vector<y::vector<y::wvec2>> push_amounts;
+  y::vector<y::wvec2> moves;
+  y::world limited_move = 1.;
 
-  y::vector<y::wvec2> constraint_moves;
-  y::vector<y::vector<Script*>> constraint_push_scripts;
-  y::vector<y::vector<y::wvec2>> constraint_push_amounts;
-
-  // Attempt to move each constrained Script towards us until the distance
-  // is satsified again.
-  // TODO: this doesn't really work all that well.
-  y::world limit_ratio = 2.;
-  for (const auto& c : relevant_set) {
-    Constraint* constraint = c.first;
-
-    const y::wvec2& offset = constraint->offset(source);
-    Script& other = constraint->other(source);
-    const y::wvec2& other_offset = constraint->offset(other);
-
-    // Get anchor points on constrained sources.
-    y::wvec2 target_v = target + offset.rotate(source.get_rotation());
-    y::wvec2 start_v = other.get_origin() +
-        other_offset.rotate(other.get_rotation());
-
-    // Calculate fraction of vector move needed to satisfy distance constraint.
-    y::world distance_fraction =
-        1 - (constraint->distance / (target_v - start_v).length());
-    y::wvec2 other_move = distance_fraction * (target_v - start_v);
-
-    // Move constrained Script and store results.
-    ConstraintData::constraint_set new_ignored_set;
-    new_ignored_set.insert(ignored_constraints.begin(),
-                           ignored_constraints.end());
-    new_ignored_set.insert(constraint);
-    constraint_push_scripts.emplace_back();
-    constraint_push_amounts.emplace_back();
-    y::world other_move_ratio = collider_move_constrained(
-        *constraint_push_scripts.rbegin(), *constraint_push_amounts.rbegin(),
-        other, other_move, push_mask, push_max, new_ignored_set);
-    constraint_moves.emplace_back(other_move_ratio * other_move);
-
-    // If the constraint couldn't move the whole way, calculate how far the
-    // source is allowed to go.
-    if (other_move_ratio < 1) {
-      const y::wvec2& origin = c.second;
-
-      // The free ratio is how much of the source's origin move-vector is inside
-      // the original constraint distance anyway.
-      y::world free_ratio = anchor_limited_move(
-          origin - start_v, target_v - origin, constraint->distance);
-      y::wvec2 free_point = free_ratio * target_v + (1 - free_ratio) * origin;
-
-      // Non-free ratio gives how much of the non-free part of the move-vector
-      // is inside the new constraint distance.
-      y::world allowed_ratio = anchor_pull_move(
-          start_v - free_point, target_v - free_point,
-          other_move_ratio * distance_fraction, true);
-
-      // Limit move to this amount.
-      limit_ratio = y::min(limit_ratio,
-          free_ratio + (1 - free_ratio) * allowed_ratio);
-    }
+  // Move each script in order of the move direction. Sorting is important so
+  // that the Scripts at the back aren't blocked by the ones in front before
+  // they've moved.
+  direction_order order;
+  order.move_vec = move;
+  std::sort(scripts.rbegin(), scripts.rend(), order);
+  for (Script* script : scripts) {
+    push_scripts.emplace_back();
+    push_amounts.emplace_back();
+    y::world move_ratio = collider_move_push(
+        *push_scripts.rbegin(), *push_amounts.rbegin(),
+        *script, move, push_mask, push_max);
+    move_ratio = y::max(0., move_ratio);
+    limited_move = y::min(move_ratio, limited_move);
+    moves.push_back(move_ratio * move);
   }
 
-  // If any couldn't move far enough, reverse the whole thing and try again.
-  if (limit_ratio < 1) {
-    // Special case for only one constraint: we can simply move the source
-    // back.
-    if (relevant_set.size() == 1) {
-      source_push_scripts.clear();
-      source_push_amounts.clear();
-      local::reverse_move(*this, source, move_ratio * limited_move * move,
-                          source_push_scripts, source_push_amounts);
-      move_ratio = collider_move_push(
-        source_push_scripts, source_push_amounts, source,
-        limit_ratio * limited_move * move, push_mask, push_max,
-        ignored_constraints);
+  // If any were blocked, reverse everything and move again.
+  if (limited_move < 1.) {
+    for (y::int32 i = scripts.size() - 1; i >= 0; i--) {
+      local::reverse_move(*this, *scripts[i], moves[i],
+                          push_scripts[i], push_amounts[i]);
     }
-    else {
-
-      // Undo the moves in reverse order.
-      for (y::int32 i = relevant_set.size() - 1; i >= 0; --i) {
-        local::reverse_move(*this, relevant_set[i].first->other(source),
-                            constraint_moves[i], constraint_push_scripts[i],
-                            constraint_push_amounts[i]);
-      }
-      local::reverse_move(*this, source, move_ratio * limited_move * move,
-                          source_push_scripts, source_push_amounts);
-
-      source_push_scripts.clear();
-      source_push_amounts.clear();
-      constraint_moves.clear();
-      constraint_push_scripts.clear();
-      constraint_push_amounts.clear();
-
-      // TODO: this doesn't really work either. At least it can loop indefinitely.
-      return 0;
-
-      move_ratio = collider_move_push(
-        source_push_scripts, source_push_amounts, source,
-        limit_ratio * limited_move * move, push_mask, push_max,
-        ignored_constraints);
-
-      for (const auto& c : relevant_set) {
-        Constraint* constraint = c.first;
-
-        // Find the anchors again.
-        const y::wvec2& offset = constraint->offset(source);
-        Script& other = constraint->other(source);
-        const y::wvec2& other_offset = constraint->offset(other);
-
-        y::wvec2 target_v = target + offset.rotate(source.get_rotation());
-        y::wvec2 start_v = other.get_origin() +
-            other_offset.rotate(other.get_rotation());
-
-        // Reverse calculations to find the allowed ratio relative to this
-        // constraint, so we can calculate how much the constraint actuall
-        // needs to move.
-        const y::wvec2& origin = c.second;
-        y::world free_ratio = anchor_limited_move(
-            origin - start_v, target_v - origin, constraint->distance);
-        y::wvec2 free_point = free_ratio * target_v + (1 - free_ratio) * origin;
-        y::world allowed_ratio = (limit_ratio - free_ratio) / (1 - free_ratio);
-        y::world distance_fraction =
-            anchor_pull_move(free_point - start_v, target_v - start_v,
-                             allowed_ratio, false);
-        y::wvec2 other_move = distance_fraction * (target_v - start_v);
-
-        // Do the move.
-        ConstraintData::constraint_set new_ignored_set;
-        new_ignored_set.insert(ignored_constraints.begin(),
-                               ignored_constraints.end());
-        new_ignored_set.insert(constraint);
-        constraint_push_scripts.emplace_back();
-        constraint_push_amounts.emplace_back();
-        if (limit_ratio > 0) {
-          y::world other_move_ratio = collider_move_constrained(
-              *constraint_push_scripts.rbegin(),
-              *constraint_push_amounts.rbegin(),
-              other, other_move, push_mask, push_max, new_ignored_set);
-          constraint_moves.emplace_back(other_move_ratio * other_move);
-        }
-        else {
-          constraint_moves.emplace_back();
-        }
+    push_scripts.clear();
+    push_amounts.clear();
+    if (limited_move > 0.) {
+      for (Script* script : scripts) {
+        push_scripts.emplace_back();
+        push_amounts.emplace_back();
+        collider_move_push(
+            *push_scripts.rbegin(), *push_amounts.rbegin(),
+            *script, limited_move * move, push_mask, push_max);
       }
     }
-  }
-  else {
-    limit_ratio = 1.;
   }
 
   // Collapse move lists and return.
-  push_script_output.insert(
-      push_script_output.end(),
-      source_push_scripts.begin(), source_push_scripts.end());
-  push_amount_output.insert(
-      push_amount_output.end(),
-      source_push_amounts.begin(), source_push_amounts.end());
-  for (y::size i = 0; i < relevant_set.size(); ++i) {
-    push_script_output.push_back(&relevant_set[i].first->other(source));
-    push_amount_output.push_back(constraint_moves[i]);
-    for (y::size j = 0; j < constraint_push_scripts[i].size(); ++j) {
-      push_script_output.push_back(constraint_push_scripts[i][j]);
-      push_amount_output.push_back(constraint_push_amounts[i][j]);
+  for (y::size i = 0; i < scripts.size(); ++i) {
+    for (y::size j = 0; j < push_scripts[i].size(); ++j) {
+      push_script_output.push_back(push_scripts[i][j]);
+      push_amount_output.push_back(push_amounts[i][j]);
     }
   }
-  return move_ratio * limit_ratio * limited_move;
+  return limited_move;
 }

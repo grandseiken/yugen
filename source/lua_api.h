@@ -288,13 +288,10 @@ y_api(script__destroy_bodies)
 
 y_api(script__create_constraint)
     y_arg(Script*, script) y_arg(Script*, target)
-    y_arg(const y::wvec2, origin) y_arg(const y::wvec2, target_origin)
-    y_arg(bool, fixed) y_arg(bool, target_fixed)
-    y_arg(y::world, distance) y_optarg(y::int32, tag)
+    y_arg(bool, fixed) y_arg(bool, target_fixed) y_optarg(y::int32, tag)
 {
   stage.get_collision().get_constraints().create_constraint(
-      *script, *target, origin, target_origin, fixed, target_fixed, distance,
-      tag_defined ? tag : 0);
+      *script, *target, fixed, target_fixed, tag_defined ? tag : 0);
   y_void();
 }
 
@@ -795,7 +792,7 @@ y_ptrtypedef(Body) {
   y_method("in_region", body__in_region);
   y_method("in_radius", body__in_radius);
   y_method("body_check", body__body_check);
-  y_method("bodies_check_list", body__get_bodies_in_body);
+  y_method("get_bodies_in_body", body__get_bodies_in_body);
   y_method("destroy", body__destroy);
 } y_endtypedef();
 

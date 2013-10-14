@@ -771,7 +771,8 @@ const WorldSource& GameStage::get_source(const y::string& source_key) const
 
 void GameStage::event(const sf::Event& e)
 {
-  if (e.type != sf::Event::KeyPressed) {
+  if (e.type != sf::Event::KeyPressed &&
+      e.type != sf::Event::KeyReleased) {
     return;
   }
 
@@ -786,6 +787,7 @@ void GameStage::event(const sf::Event& e)
     if (b && get_player()->has_function("key")) {
       y::vector<LuaValue> args;
       args.emplace_back(y::world(pair.first));
+      args.emplace_back(e.type == sf::Event::KeyPressed);
       get_player()->call("key", args);
     }
   }

@@ -10,14 +10,12 @@ struct Body;
 class RenderUtil;
 class WorldWindow;
 
-// A Constraint links two Scripts such that the distance between them cannot
-// exceed some amount. For simplicity, constraints to the world itself should
-// be implemented using dummy target Scripts.
+// A Constraint fixes two Scripts relative to each other such that they must
+// move as one. If a Script involved is fixed, it cannot be moved by other
+// Scripts involved with the Constraint (but it may move them).
 struct Constraint : y::no_copy {
   Constraint(Script& source, Script& target,
-             const y::wvec2& source_offset, const y::wvec2& target_offset,
-             bool source_fixed, bool target_fixed,
-             y::world distance, y::int32 tag);
+             bool source_fixed, bool target_fixed, y::int32 tag);
 
   // Set invalidated to true in order to destroy the Constraint.
   bool is_valid() const;
@@ -27,20 +25,14 @@ struct Constraint : y::no_copy {
   const Script& other(const Script& script) const;
   /***/ Script& other(const Script& script);
 
-  // Get the offset or fixing corresponding to one of the Scripts.
-  const y::wvec2& offset(const Script& script) const;
+  // Get the fixing corresponding to one of the Scripts.
   bool fixed(const Script& script) const;
 
   ScriptReference source;
   ScriptReference target;
 
-  // Positions of endpoints relative to source and target reference frames.
-  y::wvec2 source_offset;
-  y::wvec2 target_offset;
-
   // Maximum distance, and whether the source and target are fixed (can't be
   // pulled by this Constraint).
-  y::world distance;
   bool source_fixed;
   bool target_fixed;
 
@@ -79,13 +71,10 @@ struct Body : y::no_copy {
 class ConstraintData {
 public:
 
-  // Creates a Constraint between two bodies. The source and target parameters
-  // are given in world coordinates and transformed automatically.
+  // Creates a Constraint between two bodies.
   void create_constraint(
       Script& source, Script& target,
-      const y::wvec2& source_origin, const y::wvec2& target_origin,
-      bool source_fixed, bool target_fixed,
-      y::world distance, y::int32 tag);
+      bool source_fixed, bool target_fixed, y::int32 tag);
 
   typedef y::set<Constraint*> constraint_set;
   const constraint_set& get_constraint_set(const Script& source) const;
@@ -217,16 +206,14 @@ private:
       y::vector<Script*>& push_script_output,
       y::vector<y::wvec2>& push_amount_output,
       Script& source, const y::wvec2& move,
-      y::int32 push_mask, y::int32 push_max,
-      const ConstraintData::constraint_set& ignored_constraints) const;
+      y::int32 push_mask, y::int32 push_max) const;
 
   // Move function respecting constraints.
   y::world collider_move_constrained(
       y::vector<Script*>& push_script_output,
       y::vector<y::wvec2>& push_amount_output,
       Script& source, const y::wvec2& move,
-      y::int32 push_mask, y::int32 push_max,
-      const ConstraintData::constraint_set& ignored_constraints) const;
+      y::int32 push_mask, y::int32 push_max) const;
 
   const WorldWindow& _world;
   CollisionData _data;

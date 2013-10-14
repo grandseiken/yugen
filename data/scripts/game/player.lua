@@ -13,10 +13,6 @@ local up_check, down_check, left_check, right_check =
     create_all_checks(self, bs, bo)
 
 -- Script references.
-local player_hook_script = get_script("/scripts/game/player_hook.lua")
-local player_hook_chain_script =
-    get_script("/scripts/game/player_hook_chain.lua")
-local hook_ref = nil
 
 -- Test light.
 local light = self:create_light(128, 128)
@@ -186,34 +182,6 @@ local function is_jumping()
   return jump_stage ~= JUMP_STAGE_NONE
 end
 
--- Controls hook shot.
-local function hook_logic()
-  if hook_ref == nil or not hook_ref:valid() then
-    return
-  end
-  local hook = hook_ref:get()
-  if self:has_constraint(0) or not hook:source_check(0, COLLIDE_WORLD) then
-    return
-  end
-
-  local first = self:get_origin()
-  local last = hook:get_origin()
-  local chains = {}
-  for i = 1, 7 do
-    pos = vec(first:x() + (last:x() - first:x()) * (i / 8),
-              first:y() + (last:y() - first:y()) * (i / 8))
-    chains[i] = create_script(player_hook_chain_script, pos)
-
-    local t = i > 1 and chains[i - 1] or self
-    t:create_constraint(
-        chains[i], t:get_origin(), chains[i]:get_origin(), false, false,
-        4 + (t:get_origin() - chains[i]:get_origin()):length(), 0)
-  end
-  chains[7]:create_constraint(
-      hook, chains[7]:get_origin(), hook:get_origin(), false, true,
-      4 + (chains[7]:get_origin() - hook:get_origin()):length(), 0)
-end
-
 -- Movement constants.
 local GRAVITY = 4
 local MOVE_SPEED = 2.5
@@ -294,19 +262,25 @@ function update()
 
   -- load_origin()
   -- save_origin()
-  hook_logic()
 end
 
-function key(k)
+function key(k, down)
   if k == KEY_UP then
     jump_input()
   end
   if k == KEY_ACTION then
-    if hook_ref == nil or not hook_ref:valid() then
-      hook_ref = ref(create_script(player_hook_script, self:get_origin()))
-    else
-      hook_ref:get():destroy()
-      self:destroy_constraints(0)
+    self:destroy_constraints()
+    if down then
+      local left = left_check:get_bodies_in_body(COLLIDE_OBJECT)
+      local right = right_check:get_bodies_in_body(COLLIDE_OBJECT)
+      for _, v in ipairs(left) do
+        self:create_constraint(v:get_source(), true, false)
+        break
+      end
+      for _, v in ipairs(right) do
+        self:create_constraint(v:get_source(), true, false)
+        break
+      end
     end
   end
 end
