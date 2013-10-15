@@ -27,8 +27,6 @@ noperspective varying float reflect_dist;
 // towards the edge of the source framebuffer.
 const float source_edge_fade_dist = 0.2;
 
-// TODO: also refract the light inside the reflection. This requires being
-// able to draw shaders to the lightbuffer after the light is rendered.
 void main()
 {
   // Skip to form waves.
