@@ -69,7 +69,7 @@ function draw()
       region = r,
       tex_offset = vec(frame / 16, 0),
       frame = frame / 16,
-      colour = colour(.1, .6, .8, .3),
+      colour = colour(.3, .6, .8, .3),
       reflect_mix = .5,
       normal_scaling = .1,
       normal_scaling_reflect = .2,
