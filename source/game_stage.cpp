@@ -361,7 +361,9 @@ bool GameRenderer::draw_pass_is_normal() const
          pass == DRAW_OVERLAY0_NORMAL ||
          pass == DRAW_SPECULAR0_NORMAL ||
          pass == DRAW_OVERLAY1_NORMAL ||
-         pass == DRAW_SPECULAR1_NORMAL;
+         pass == DRAW_SPECULAR1_NORMAL ||
+         pass == DRAW_OVERLAY2_NORMAL ||
+         pass == DRAW_SPECULAR2_NORMAL;
 }
 
 bool GameRenderer::draw_pass_is_layer(draw_layer layer) const
@@ -382,14 +384,26 @@ bool GameRenderer::draw_pass_is_layer(draw_layer layer) const
       return pass == DRAW_OVERLAY0_NORMAL || pass == DRAW_OVERLAY0_COLOUR;
     case DRAW_SPECULAR0:
       return pass == DRAW_SPECULAR0_NORMAL || pass == DRAW_SPECULAR0_COLOUR;
+    case DRAW_MULTIPLY0:
+      return pass == DRAW_MULTIPLY0_COLOUR;
     case DRAW_FULLBRIGHT0:
       return pass == DRAW_FULLBRIGHT0_COLOUR;
     case DRAW_OVERLAY1:
       return pass == DRAW_OVERLAY1_NORMAL || pass == DRAW_OVERLAY1_COLOUR;
     case DRAW_SPECULAR1:
       return pass == DRAW_SPECULAR1_NORMAL || pass == DRAW_SPECULAR1_COLOUR;
+    case DRAW_MULTIPLY1:
+      return pass == DRAW_MULTIPLY1_COLOUR;
     case DRAW_FULLBRIGHT1:
       return pass == DRAW_FULLBRIGHT1_COLOUR;
+    case DRAW_OVERLAY2:
+      return pass == DRAW_OVERLAY2_NORMAL || pass == DRAW_OVERLAY2_COLOUR;
+    case DRAW_SPECULAR2:
+      return pass == DRAW_SPECULAR2_NORMAL || pass == DRAW_SPECULAR2_COLOUR;
+    case DRAW_MULTIPLY2:
+      return pass == DRAW_MULTIPLY2_COLOUR;
+    case DRAW_FULLBRIGHT2:
+      return pass == DRAW_FULLBRIGHT2_COLOUR;
     default:
       return false;
   }
@@ -471,11 +485,14 @@ GameRenderer::layer_light_type GameRenderer::draw_pass_light_type() const
 {
   draw_pass pass = _current_draw_pass;
   if (pass == DRAW_SPECULAR0_NORMAL || pass == DRAW_SPECULAR0_COLOUR ||
-      pass == DRAW_SPECULAR1_NORMAL || pass == DRAW_SPECULAR1_COLOUR) {
+      pass == DRAW_SPECULAR1_NORMAL || pass == DRAW_SPECULAR1_COLOUR ||
+      pass == DRAW_SPECULAR2_NORMAL || pass == DRAW_SPECULAR2_COLOUR) {
     return LIGHT_TYPE_SPECULAR;
   }
-  if (pass == DRAW_FULLBRIGHT0_COLOUR || pass == DRAW_FULLBRIGHT1_COLOUR ||
-      pass == DRAW_PARALLAX0_COLOUR || pass == DRAW_PARALLAX1_COLOUR) {
+  if (pass == DRAW_PARALLAX0_COLOUR || pass == DRAW_PARALLAX1_COLOUR ||
+      pass == DRAW_MULTIPLY0_COLOUR || pass == DRAW_MULTIPLY1_COLOUR ||
+      pass == DRAW_MULTIPLY2_COLOUR || pass == DRAW_FULLBRIGHT0_COLOUR ||
+      pass == DRAW_FULLBRIGHT1_COLOUR || pass == DRAW_FULLBRIGHT2_COLOUR) {
     return LIGHT_TYPE_FULLBRIGHT;
   }
   return LIGHT_TYPE_NORMAL;

@@ -8,10 +8,16 @@ local DRAW_UNDERLAY1 = 3
 local DRAW_WORLD = 4
 local DRAW_OVERLAY0 = 5
 local DRAW_SPECULAR0 = 6
-local DRAW_FULLBRIGHT0 = 7
-local DRAW_OVERLAY1 = 8
-local DRAW_SPECULAR1 = 9
-local DRAW_FULLBRIGHT1 = 10
+local DRAW_MULTIPLY0 = 7
+local DRAW_FULLBRIGHT0 = 8
+local DRAW_OVERLAY1 = 9
+local DRAW_SPECULAR1 = 10
+local DRAW_MULTIPLY1 = 11
+local DRAW_FULLBRIGHT1 = 12
+local DRAW_OVERLAY2 = 13
+local DRAW_SPECULAR2 = 14
+local DRAW_MULTIPLY2 = 15
+local DRAW_FULLBRIGHT2 = 16
 
 -- Convenience functions to call the rendering API functions with keyword
 -- arguments stored in a table.

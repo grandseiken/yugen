@@ -63,7 +63,7 @@ function draw()
   local r = self:get_region()
 
   table = {
-      layer = DRAW_FULLBRIGHT0,
+      layer = DRAW_MULTIPLY1,
       layering_value = 0.3,
       origin = o,
       region = r,
@@ -84,7 +84,7 @@ function draw()
 
   render_reflect_table(table)
 
-  table.layer = DRAW_SPECULAR1
+  table.layer = DRAW_SPECULAR2
   table.layering_value = 0.2
   table.colour = colour(1, 1, 1, .2)
   table.reflect_mix = 0

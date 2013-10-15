@@ -12,7 +12,7 @@ end
 
 function draw()
   render_fog_table({
-      layer = DRAW_OVERLAY0,
+      layer = DRAW_OVERLAY1,
       layering_value = 0.7,
       origin = self:get_origin(),
       region = self:get_region(),
