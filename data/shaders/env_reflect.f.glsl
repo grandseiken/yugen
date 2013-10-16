@@ -49,8 +49,8 @@ void main()
   // Lookup reflected and refracted. Reflected is the colour taken from the
   // point opposite the reflection axis (like sky mirrored in water), whereas
   // refracted is the colour coming through from behind.
-  vec4 reflect = texture2D(source, reflect_v);
-  vec4 refract = texture2D(source, refract_v);
+  vec3 reflect = texture2D(source, reflect_v);
+  vec3 refract = texture2D(source, refract_v);
 
   // Calculate reflection coefficient based on distance.
   float reflect_dist_mix =
@@ -69,13 +69,15 @@ void main()
   // to prevent such water being unnaturally bright, we modulate the colour by
   // the overall brightness behind (but only as much as the refraction is mixed
   // in).
+  // TODO: instead of this, try just passing the lightbuffer directly to this
+  // shader.
   float refract_brightness = (refract.r + refract.g + refract.b) / 3.0;
-  vec4 colour_modulated = mix(colour, refract_brightness * colour,
+  vec3 colour_modulated = mix(colour, refract_brightness * colour,
                               light_passthrough);
 
   // Mix everything together.
-  vec4 c = mix(colour_modulated, reflect,
+  vec3 c = mix(colour_modulated, reflect,
                reflect_mix * reflect_dist_mix * edge_fade);
   c = mix(refract, c, colour.a);
-  gl_FragColor = vec4(c.rgb, 1.0);
+  gl_FragColor = vec4(c, 1.0);
 }

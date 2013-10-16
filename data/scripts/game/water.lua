@@ -67,7 +67,7 @@ function draw()
       tex_offset = vec(frame / 16, 0),
       frame = frame / 16,
       colour = colour(.3, .6, .8, .4),
-      light_passthrough = .6,
+      light_passthrough = .8,
       reflect_mix = .5,
       normal_scaling = .1,
       normal_scaling_reflect = .2,
