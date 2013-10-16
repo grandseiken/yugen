@@ -46,7 +46,7 @@ local function render_reflect_table(table)
       table.origin, table.region,
       table.tex_offset, table.frame,
       table.colour.r, table.colour.g, table.colour.b, table.colour.a,
-      table.reflect_mix, table.normal_scaling,
+      table.reflect_mix, table.light_passthrough, table.normal_scaling,
       table.normal_scaling_reflect, table.normal_scaling_refract,
       table.reflect_fade_start, table.reflect_fade_end,
       table.flip_x, table.flip_y, table.flip_axes,

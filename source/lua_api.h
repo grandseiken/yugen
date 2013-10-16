@@ -639,6 +639,7 @@ y_api(render_reflect)
     y_arg(const y::wvec2, tex_offset) y_arg(y::world, frame)
     y_arg(y::world, r) y_arg(y::world, g) y_arg(y::world, b)
     y_arg(y::world, a) y_arg(y::world, reflect_mix)
+    y_arg(y::world, light_passthrough)
     y_arg(y::world, normal_scaling)
     y_arg(y::world, normal_scaling_reflect)
     y_arg(y::world, normal_scaling_refract)
@@ -654,6 +655,7 @@ y_api(render_reflect)
   params.frame = frame;
   params.colour = y::fvec4{float(r), float(g), float(b), float(a)};
   params.reflect_mix = reflect_mix;
+  params.light_passthrough = light_passthrough;
   params.normal_scaling = normal_scaling;
   params.normal_scaling_reflect = normal_scaling_reflect;
   params.normal_scaling_refract = normal_scaling_refract;

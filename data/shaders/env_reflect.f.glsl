@@ -5,6 +5,7 @@ uniform sampler3D perlin;
 uniform sampler2D source;
 uniform float frame;
 uniform float reflect_mix;
+uniform float light_passthrough;
 uniform float normal_scaling_reflect;
 uniform float normal_scaling_refract;
 uniform float reflect_fade_start;
@@ -69,7 +70,8 @@ void main()
   // the overall brightness behind (but only as much as the refraction is mixed
   // in).
   float refract_brightness = (refract.r + refract.g + refract.b) / 3.0;
-  vec4 colour_modulated = mix(refract_brightness * colour, colour, colour.a);
+  vec4 colour_modulated = mix(colour, refract_brightness * colour,
+                              light_passthrough);
 
   // Mix everything together.
   vec4 c = mix(colour_modulated, reflect,
