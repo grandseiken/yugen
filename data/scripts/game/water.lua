@@ -67,6 +67,7 @@ function draw()
       tex_offset = vec(frame / 16, 0),
       frame = frame / 16,
       colour = colour(.3, .6, .8, .4),
+      light_passthrough = .6,
       reflect_mix = .5,
       normal_scaling = .1,
       normal_scaling_reflect = .2,
@@ -84,6 +85,7 @@ function draw()
   table.layer = DRAW_SPECULAR2
   table.layering_value = 0.2
   table.colour = colour(1, 1, 1, .2)
+  table.light_passthrough = 0
   table.reflect_mix = 0
   table.normal_scaling = .75
   table.normal_scaling_reflect = 0

@@ -27,6 +27,7 @@ public:
 
     y::fvec4 colour;
     y::world reflect_mix;
+    y::world light_passthrough;
 
     y::world normal_scaling;
     y::world normal_scaling_reflect;
