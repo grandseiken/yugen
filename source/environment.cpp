@@ -97,8 +97,6 @@ void Environment::render_reflect_colour(
   _reflect_program->bind_uniform("frame", float(params.frame));
   _reflect_program->bind_uniform("colour", params.colour);
   _reflect_program->bind_uniform("reflect_mix", float(params.reflect_mix));
-  _reflect_program->bind_uniform("light_passthrough",
-                                 float(params.light_passthrough));
 
   _reflect_program->bind_uniform("normal_scaling_reflect",
                                  float(params.normal_scaling_reflect));
