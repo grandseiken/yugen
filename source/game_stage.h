@@ -142,15 +142,12 @@ public:
     DRAW_WORLD,
     DRAW_OVERLAY0,
     DRAW_SPECULAR0,
-    DRAW_MULTIPLY0,
     DRAW_FULLBRIGHT0,
     DRAW_OVERLAY1,
     DRAW_SPECULAR1,
-    DRAW_MULTIPLY1,
     DRAW_FULLBRIGHT1,
     DRAW_OVERLAY2,
     DRAW_SPECULAR2,
-    DRAW_MULTIPLY2,
     DRAW_FULLBRIGHT2,
   };
 
@@ -197,19 +194,16 @@ private:
     DRAW_OVERLAY0_COLOUR,
     DRAW_SPECULAR0_NORMAL,
     DRAW_SPECULAR0_COLOUR,
-    DRAW_MULTIPLY0_COLOUR,
     DRAW_FULLBRIGHT0_COLOUR,
     DRAW_OVERLAY1_NORMAL,
     DRAW_OVERLAY1_COLOUR,
     DRAW_SPECULAR1_NORMAL,
     DRAW_SPECULAR1_COLOUR,
-    DRAW_MULTIPLY1_COLOUR,
     DRAW_FULLBRIGHT1_COLOUR,
     DRAW_OVERLAY2_NORMAL,
     DRAW_OVERLAY2_COLOUR,
     DRAW_SPECULAR2_NORMAL,
     DRAW_SPECULAR2_COLOUR,
-    DRAW_MULTIPLY2_COLOUR,
     DRAW_FULLBRIGHT2_COLOUR,
     DRAW_PASS_MAX,
   };
@@ -231,7 +225,7 @@ private:
       const Camera& camera, const WorldWindow& world) const;
 
   // Combine the various buffers and render the output of a layer.
-  void render_scene(bool enable_blend, bool specular) const;
+  void render_scene(layer_light_type light_type) const;
 
   RenderUtil& _util;
   const GlFramebuffer& _framebuffer;

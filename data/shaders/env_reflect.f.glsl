@@ -45,7 +45,9 @@ void main()
   vec2 reflect_v = reflect_coord + normal_scaling_reflect * reflect_dist * p;
   vec2 refract_v = refract_coord - normal_scaling_refract * p;
 
-  // Mix reflected, refracted and colour.
+  // Lookup reflected and refracted. Reflected is the colour taken from the
+  // point opposite the reflection axis (like sky mirrored in water), whereas
+  // refracted is the colour coming through from behind.
   vec4 reflect = texture2D(source, reflect_v);
   vec4 refract = texture2D(source, refract_v);
 
@@ -61,7 +63,17 @@ void main()
       min(1.0 - reflect_v.x, 1.0 - reflect_v.y));
   float edge_fade = clamp(edge_dist / source_edge_fade_dist, 0.0, 1.0);
 
-  vec4 c = mix(colour, reflect, reflect_mix * reflect_dist_mix * edge_fade);
+  // Reflections like water are typically drawn on a FULLBRIGHT layer, so the
+  // main lighting effects come from the environment behind the water. In order
+  // to prevent such water being unnaturally bright, we modulate the colour by
+  // the overall brightness behind (but only as much as the refraction is mixed
+  // in).
+  float refract_brightness = (refract.r + refract.g + refract.b) / 3.0;
+  vec4 colour_modulated = mix(refract_brightness * colour, colour, colour.a);
+
+  // Mix everything together.
+  vec4 c = mix(colour_modulated, reflect,
+               reflect_mix * reflect_dist_mix * edge_fade);
   c = mix(refract, c, colour.a);
   gl_FragColor = vec4(c.rgb, 1.0);
 }

@@ -53,23 +53,20 @@ function update()
   frame = 1 + frame
 end
 
--- Water needs to be drawn on a fullbright layer for the lighting inside to be
--- properly distorted. On the other hand, this makes the colour unnaturally
--- bright.
--- TODO: this can probably be fixed with some other blending mode; i.e. take
--- into account the brightness of the colour behind the water and tint it.
+-- Water needs to be drawn on a FULLBRIGHT layer for the lighting inside to be
+-- properly distorted.
 function draw()
   local o = self:get_origin()
   local r = self:get_region()
 
   table = {
-      layer = DRAW_MULTIPLY1,
+      layer = DRAW_FULLBRIGHT1,
       layering_value = 0.3,
       origin = o,
       region = r,
       tex_offset = vec(frame / 16, 0),
       frame = frame / 16,
-      colour = colour(.3, .6, .8, .3),
+      colour = colour(.3, .6, .8, .4),
       reflect_mix = .5,
       normal_scaling = .1,
       normal_scaling_reflect = .2,
