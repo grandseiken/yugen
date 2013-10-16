@@ -237,6 +237,7 @@ namespace {
 /***/   }; while (false) {(void)0
 /***/
 /***/ #define y_void()                                                         \
+/***/         ;                                                                \
 /***/       }                                                                  \
 /***/     }                                                                    \
 /***/   }; while (false) {(void)0

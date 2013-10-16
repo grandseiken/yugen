@@ -69,8 +69,6 @@ void main()
   // to prevent such water being unnaturally bright, we modulate the colour by
   // the overall brightness behind (but only as much as the refraction is mixed
   // in).
-  // TODO: instead of this, try just passing the lightbuffer directly to this
-  // shader.
   float refract_brightness = (refract.r + refract.g + refract.b) / 3.0;
   vec3 colour_modulated = mix(colour, refract_brightness * colour,
                               light_passthrough);

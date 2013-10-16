@@ -18,6 +18,8 @@ public:
     y::fvec4 colour;
     y::world fog_min;
     y::world fog_max;
+
+    bool normal_only;
   };
 
   struct reflect_params {
@@ -41,6 +43,8 @@ public:
 
     y::world wave_height;
     y::world wave_scale;
+
+    bool normal_only;
   };
 
   Environment(GlUtil& util, bool fake);

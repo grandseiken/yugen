@@ -432,6 +432,9 @@ void GameRenderer::render(
     if (draw_pass_is_layer(DRAW_WORLD)) {
       render_tiles(camera, world);
     }
+    _util.render_batch(_current_batch);
+
+    _current_batch.clear();
     scripts.render_all(camera);
     _util.render_batch(_current_batch);
 

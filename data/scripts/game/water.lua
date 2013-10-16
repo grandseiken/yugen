@@ -59,9 +59,10 @@ function draw()
   local o = self:get_origin()
   local r = self:get_region()
 
+  -- The main water layer.
   table = {
       layer = DRAW_FULLBRIGHT1,
-      layering_value = 0.3,
+      layering_value = .3,
       origin = o,
       region = r,
       tex_offset = vec(frame / 16, 0),
@@ -82,14 +83,25 @@ function draw()
 
   render_reflect_table(table)
 
+  -- Mess with the normals a bit underwater to simulate light passing through
+  -- liquid.
+  table.layer = DRAW_WORLD
+  table.layering_value = .5
+  table.normal_scaling = .2
+  table.normal_only = true
+
+  render_reflect_table(table)
+
+  -- Specular overlay.
   table.layer = DRAW_SPECULAR2
-  table.layering_value = 0.2
+  table.layering_value = .2
   table.colour = colour(1, 1, 1, .2)
   table.light_passthrough = 0
   table.reflect_mix = 0
   table.normal_scaling = .75
   table.normal_scaling_reflect = 0
   table.normal_scaling_refract = 0
+  table.normal_only = false
 
   render_reflect_table(table)
 end

@@ -75,7 +75,8 @@ void Environment::render_fog_normal(
     const fog_params& params) const
 {
   util.render_fill(y::fvec2(origin - region / 2), y::fvec2(region),
-                   y::fvec4{.5f, .5f, float(params.layering_value), 1.f});
+                   y::fvec4{.5f, .5f, float(params.layering_value),
+                            params.normal_only ? params.colour[aa] : 1.f});
 }
 
 void Environment::render_reflect_colour(
@@ -126,7 +127,7 @@ void Environment::render_reflect_normal(
     const reflect_params& params) const
 {
   util.get_gl().enable_depth(false);
-  util.get_gl().enable_blend(false);
+  util.get_gl().enable_blend(params.normal_only);
   auto pixel_buffer = make_rect_buffer(util, origin, region);
 
   _reflect_normal_program->bind();
@@ -138,6 +139,7 @@ void Environment::render_reflect_normal(
   _reflect_normal_program->bind_uniform("tex_offset",
                                         -y::fvec2(params.tex_offset + origin));
   _reflect_normal_program->bind_uniform("frame", float(params.frame));
+  _reflect_normal_program->bind_uniform("colour", params.colour);
   _reflect_normal_program->bind_uniform("normal_scaling",
                                         float(params.normal_scaling));
 

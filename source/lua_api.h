@@ -609,6 +609,7 @@ y_api(render_fog)
     y_arg(y::world, r) y_arg(y::world, g) y_arg(y::world, b)
     y_arg(y::world, a)
     y_arg(y::world, fog_min) y_arg(y::world, fog_max)
+    y_optarg(bool, normal_only)
 {
   const GameRenderer& renderer = stage.get_renderer();
   Environment::fog_params params;
@@ -618,6 +619,7 @@ y_api(render_fog)
   params.colour = y::fvec4{float(r), float(g), float(b), float(a)};
   params.fog_min = fog_min;
   params.fog_max = fog_max;
+  params.normal_only = normal_only_defined && normal_only;
 
   if (renderer.draw_pass_is_layer(GameRenderer::draw_layer(layer))) {
     renderer.set_current_draw_any();
@@ -626,10 +628,14 @@ y_api(render_fog)
           renderer.get_util(), origin, region, params);
     }
     else {
+      if (normal_only) {
+        goto end;
+      }
       stage.get_environment().render_fog_colour(
           renderer.get_util(), origin, region, params);
     }
   }
+end:
   y_void();
 }
 
@@ -647,6 +653,7 @@ y_api(render_reflect)
     y_arg(bool, flip_x) y_arg(bool, flip_y)
     y_arg(const y::wvec2, flip_axes)
     y_arg(y::world, wave_height) y_arg(y::world, wave_scale)
+    y_optarg(bool, normal_only)
 {
   const GameRenderer& renderer = stage.get_renderer();
   Environment::reflect_params params;
@@ -666,6 +673,7 @@ y_api(render_reflect)
   params.flip_axes = flip_axes;
   params.wave_height = wave_height;
   params.wave_scale = wave_scale;
+  params.normal_only = normal_only_defined && normal_only;
 
   if (renderer.draw_pass_is_layer(GameRenderer::draw_layer(layer))) {
     renderer.set_current_draw_any();
@@ -674,11 +682,15 @@ y_api(render_reflect)
           renderer.get_util(), origin, region, params);
     }
     else {
+      if (normal_only) {
+        goto end;
+      }
       stage.get_environment().render_reflect_colour(
           renderer.get_util(), origin, region, params,
           renderer.get_framebuffer());
     }
   }
+end:
   y_void();
 }
 

@@ -233,6 +233,7 @@ private:
   GlUnique<GlFramebuffer> _colourbuffer;
   GlUnique<GlFramebuffer> _normalbuffer;
   GlUnique<GlFramebuffer> _lightbuffer;
+
   GlUnique<GlProgram> _scene_program;
   GlUnique<GlProgram> _scene_specular_program;
   mutable RenderBatch _current_batch;
