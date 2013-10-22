@@ -862,136 +862,7 @@ y::wvec2 Collision::collider_move(y::vector<Script*>& push_script_output,
 y::world Collision::collider_rotate(Script& source, y::world rotate,
                                     const y::wvec2& origin_offset) const
 {
-  // TODO: rotation still seems to be a little bit inconsistent as to
-  // when a thing touching a surface at a point will rotate. Seems like
-  // it always will for the first half of the rotation, but won't for the
-  // second half (for the player, at least).
-  struct local {
-    static y::wvec2 origin_displace(const y::wvec2& origin_offset,
-                                    y::world rotation)
-    {
-      return origin_offset - origin_offset.rotate(rotation);
-    }
-  };
-
-  // TODO: rotations should probably work with Constraints.
-  if (_constraints.has_constraint(source)) {
-    return 0.;
-  }
-
-  const entry_list& bodies = _data.get_list(source);
-  if (bodies.empty() || rotate == 0.) {
-    source.set_rotation(y::angle(rotate + source.get_rotation()));
-    source.set_origin(source.get_origin() +
-                      local::origin_displace(origin_offset, rotate));
-    return rotate;
-  }
-  y::wvec2 origin = source.get_origin() + origin_offset;
-
-  // Bounding boxes of the source Bodies.
-  auto bounds = get_full_rotation_bounds(
-      bodies, COLLIDE_RESV_WORLD,
-      source.get_origin(), source.get_rotation(), origin_offset);
-  y::wvec2 min_bound = bounds.first;
-  y::wvec2 max_bound = bounds.second;
-
-  y::world limiting_rotation = y::abs(rotate);
-  y::vector<y::wvec2> vertices_temp;
-  y::vector<y::wvec2> vertices;
-  y::vector<world_geometry> geometries;
-
-  // See collider_move for details.
-  for (auto it = _world.get_geometry().search(min_bound, max_bound); it; ++it) {
-    world_geometry wg{y::wvec2(it->start), y::wvec2(it->end)};
-
-    // Check geometry orientation.
-    y::wvec2 v = (rotate > 0 ? wg.end : wg.start) - origin;
-    y::wvec2 rotate_normal{-v[yy], v[xx]};
-    if (!rotate_normal.cross(rotate > 0 ? wg.start - wg.end :
-                                          wg.end - wg.start) > 0) {
-      continue;
-    }
-
-    // Very similar strategy to collider_move, except we are projecting points
-    // along arcs of circles defined by the distance to the Script's origin
-    // (plus offset).
-    // Again, we project the first set of points forwards and the second set
-    // of points backwards along the arcs.
-
-    for (const auto& pointer : bodies) {
-      const Body& b = *pointer;
-      if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
-        continue;
-      }
-      vertices_temp.clear();
-      vertices.clear();
-      geometries.clear();
-
-      b.get_vertices(vertices_temp,
-                     source.get_origin(), source.get_rotation());
-      get_vertices_and_geometries_for_rotate(
-          geometries, vertices, rotate, origin, vertices_temp);
-
-      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                              wg, vertices, origin, rotate));
-      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                              geometries, {wg.start, wg.end},
-                              origin, -rotate));
-    }
-  }
-
-  bounds = get_full_rotation_bounds(
-      bodies, 0, source.get_origin(), source.get_rotation(), origin_offset);
-  min_bound = bounds.first;
-  max_bound = bounds.second;
-
-  y::vector<Body*> blocking_bodies;
-  _data.get_spatial_hash().search(blocking_bodies, min_bound, max_bound);
-
-  y::vector<y::wvec2> block_vertices;
-  y::vector<world_geometry> block_geometries;
-  for (const auto& pointer : bodies) {
-    vertices_temp.clear();
-    vertices.clear();
-    geometries.clear();
-
-    const Body& b = *pointer;
-    b.get_vertices(vertices_temp,
-                   source.get_origin(), source.get_rotation());
-    get_vertices_and_geometries_for_rotate(
-        geometries, vertices, rotate, origin, vertices_temp);
-
-    for (Body* block : blocking_bodies) {
-      if (&block->source == &source ||
-          !(b.collide_mask & block->collide_type)) {
-        continue;
-      }
-
-      vertices_temp.clear();
-      block_vertices.clear();
-      block_geometries.clear();
-
-      block->get_vertices(vertices_temp,
-                          block->source.get_origin(),
-                          block->source.get_rotation());
-      get_vertices_and_geometries_for_rotate(
-          block_geometries, block_vertices, -rotate, origin, vertices_temp);
-
-      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                              block_geometries, vertices, origin, rotate));
-      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                              geometries, block_vertices, origin, -rotate));
-    }
-  }
-
-  // Rotate.
-  const y::world limited_rotation = limiting_rotation * (rotate > 0 ? 1 : -1);
-  source.set_rotation(
-      y::angle(limited_rotation + source.get_rotation()));
-  source.set_origin(
-      source.get_origin() +
-      local::origin_displace(origin_offset, limited_rotation));
-  return limited_rotation;
+  return collider_rotate_constrained(source, rotate, origin_offset);
 }
 
 bool Collision::source_check(
@@ -1178,6 +1049,136 @@ y::world Collision::collider_move_raw(
   return min_ratio;
 }
 
+y::world Collision::collider_rotate_raw(Script& source, y::world rotate,
+                                        const y::wvec2& origin_offset) const
+{
+  // TODO: rotation still seems to be a little bit inconsistent as to
+  // when a thing touching a surface at a point will rotate. Seems like
+  // it always will for the first half of the rotation, but won't for the
+  // second half (for the player, at least).
+  struct local {
+    static y::wvec2 origin_displace(const y::wvec2& origin_offset,
+                                    y::world rotation)
+    {
+      return origin_offset - origin_offset.rotate(rotation);
+    }
+  };
+
+  const entry_list& bodies = _data.get_list(source);
+  if (bodies.empty() || rotate == 0.) {
+    source.set_rotation(y::angle(rotate + source.get_rotation()));
+    source.set_origin(source.get_origin() +
+                      local::origin_displace(origin_offset, rotate));
+    return rotate;
+  }
+  y::wvec2 origin = source.get_origin() + origin_offset;
+
+  // Bounding boxes of the source Bodies.
+  auto bounds = get_full_rotation_bounds(
+      bodies, COLLIDE_RESV_WORLD,
+      source.get_origin(), source.get_rotation(), origin_offset);
+  y::wvec2 min_bound = bounds.first;
+  y::wvec2 max_bound = bounds.second;
+
+  y::world limiting_rotation = y::abs(rotate);
+  y::vector<y::wvec2> vertices_temp;
+  y::vector<y::wvec2> vertices;
+  y::vector<world_geometry> geometries;
+
+  // See collider_move for details.
+  for (auto it = _world.get_geometry().search(min_bound, max_bound); it; ++it) {
+    world_geometry wg{y::wvec2(it->start), y::wvec2(it->end)};
+
+    // Check geometry orientation.
+    y::wvec2 v = (rotate > 0 ? wg.end : wg.start) - origin;
+    y::wvec2 rotate_normal{-v[yy], v[xx]};
+    if (!rotate_normal.cross(rotate > 0 ? wg.start - wg.end :
+                                          wg.end - wg.start) > 0) {
+      continue;
+    }
+
+    // Very similar strategy to collider_move, except we are projecting points
+    // along arcs of circles defined by the distance to the Script's origin
+    // (plus offset).
+    // Again, we project the first set of points forwards and the second set
+    // of points backwards along the arcs.
+
+    for (const auto& pointer : bodies) {
+      const Body& b = *pointer;
+      if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
+        continue;
+      }
+      vertices_temp.clear();
+      vertices.clear();
+      geometries.clear();
+
+      b.get_vertices(vertices_temp,
+                     source.get_origin(), source.get_rotation());
+      get_vertices_and_geometries_for_rotate(
+          geometries, vertices, rotate, origin, vertices_temp);
+
+      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
+                              wg, vertices, origin, rotate));
+      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
+                              geometries, {wg.start, wg.end},
+                              origin, -rotate));
+    }
+  }
+
+  bounds = get_full_rotation_bounds(
+      bodies, 0, source.get_origin(), source.get_rotation(), origin_offset);
+  min_bound = bounds.first;
+  max_bound = bounds.second;
+
+  y::vector<Body*> blocking_bodies;
+  _data.get_spatial_hash().search(blocking_bodies, min_bound, max_bound);
+
+  y::vector<y::wvec2> block_vertices;
+  y::vector<world_geometry> block_geometries;
+  for (const auto& pointer : bodies) {
+    vertices_temp.clear();
+    vertices.clear();
+    geometries.clear();
+
+    const Body& b = *pointer;
+    b.get_vertices(vertices_temp,
+                   source.get_origin(), source.get_rotation());
+    get_vertices_and_geometries_for_rotate(
+        geometries, vertices, rotate, origin, vertices_temp);
+
+    for (Body* block : blocking_bodies) {
+      if (&block->source == &source ||
+          !(b.collide_mask & block->collide_type)) {
+        continue;
+      }
+
+      vertices_temp.clear();
+      block_vertices.clear();
+      block_geometries.clear();
+
+      block->get_vertices(vertices_temp,
+                          block->source.get_origin(),
+                          block->source.get_rotation());
+      get_vertices_and_geometries_for_rotate(
+          block_geometries, block_vertices, -rotate, origin, vertices_temp);
+
+      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
+                              block_geometries, vertices, origin, rotate));
+      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
+                              geometries, block_vertices, origin, -rotate));
+    }
+  }
+
+  // Rotate.
+  const y::world limited_rotation = limiting_rotation * (rotate > 0 ? 1 : -1);
+  source.set_rotation(
+      y::angle(limited_rotation + source.get_rotation()));
+  source.set_origin(
+      source.get_origin() +
+      local::origin_displace(origin_offset, limited_rotation));
+  return limited_rotation;
+}
+
 y::world Collision::collider_move_push(
     y::vector<Script*>& push_script_output,
     y::vector<y::wvec2>& push_amount_output,
@@ -1258,44 +1259,8 @@ y::world Collision::collider_move_constrained(
     y::int32 push_mask, y::int32 push_max) const
 {
   y::set<Script*> linked_scripts;
-  linked_scripts.insert(&source);
-
-  y::vector<y::pair<Script*, bool>> stack;
-  stack.emplace_back(&source, false);
-
-  // Traverse the constraint graph to find all Scripts linked to the source.
-  y::set<Constraint*> used_constraints;
-  while (!stack.empty()) {
-    Script& node = *stack.rbegin()->first;
-    bool node_traverse_from_fixed = stack.rbegin()->second;
-    stack.erase(stack.end() - 1);
-
-    const auto& constraints = _constraints.get_constraint_set(node);
-    for (Constraint* constraint : constraints) {
-      if (!constraint->is_valid() || used_constraints.count(constraint)) {
-        continue;
-      }
-      used_constraints.insert(constraint);
-
-      Script& other = constraint->other(node);
-      bool seen_other = linked_scripts.count(&other);
-      bool traverse_from_fixed =
-          node_traverse_from_fixed || constraint->fixed(node);
-
-      // If we see a constraint fixed on the other end, we can't move it. To
-      // ensure consistent behaviour with cyclic constraint graphs, we also need
-      // to check that constraints fixed on this side don't eventually link back
-      // up to a node we've already seen.
-      if (constraint->fixed(other) ||
-          (traverse_from_fixed && seen_other)) {
-        return 0.;
-      }
-
-      if (!seen_other) {
-        linked_scripts.insert(&other);
-        stack.emplace_back(&other, traverse_from_fixed);
-      }
-    }
+  if (!walk_constraint_graph(linked_scripts, source)) {
+    return 0.;
   }
 
   // Sorts objects in the direction of the movement vector.
@@ -1384,4 +1349,87 @@ y::world Collision::collider_move_constrained(
     }
   }
   return limited_move;
+}
+
+y::world Collision::collider_rotate_constrained(
+    Script& source, y::world rotate, const y::wvec2& origin_offset) const
+{
+  y::set<Script*> linked_scripts;
+  if (!walk_constraint_graph(linked_scripts, source)) {
+    return 0.;
+  }
+
+  // This function is currently considerably simpler than the corresponding
+  // movement function, since rotations can't push (so we don't need to reverse
+  // anything).
+  // TODO: need to figure out a sort order that makes sure we rotate in the
+  // correct order (at least for most cases). Imagine a character standing on
+  // a cog shape, for instace.
+  y::vector<Script*> scripts;
+  for (Script* script : linked_scripts) {
+    scripts.emplace_back(script);
+  }
+
+  y::world limited_rotation = rotate;
+  for (Script* script : scripts) {
+    y::world r = collider_rotate_raw(*script, rotate, origin_offset);
+    limited_rotation = y::max(0., y::min(r, limited_rotation));
+  }
+
+  if (limited_rotation < rotate) {
+    for (y::int32 i = scripts.size() - 1; i >= 0; i--) {
+      collider_rotate_raw(*scripts[i], -rotate, origin_offset);
+    }
+    if (limited_rotation > 0.) {
+      for (Script* script : scripts) {
+        collider_rotate_raw(*script, limited_rotation, origin_offset);
+      }
+    }
+  }
+
+  return limited_rotation;
+}
+
+bool Collision::walk_constraint_graph(
+    y::set<Script*>& linked_scripts_output, Script& source) const
+{
+  linked_scripts_output.insert(&source);
+
+  y::vector<y::pair<Script*, bool>> stack;
+  stack.emplace_back(&source, false);
+
+  y::set<Constraint*> used_constraints;
+  while (!stack.empty()) {
+    Script& node = *stack.rbegin()->first;
+    bool node_traverse_from_fixed = stack.rbegin()->second;
+    stack.erase(stack.end() - 1);
+
+    const auto& constraints = _constraints.get_constraint_set(node);
+    for (Constraint* constraint : constraints) {
+      if (!constraint->is_valid() || used_constraints.count(constraint)) {
+        continue;
+      }
+      used_constraints.insert(constraint);
+
+      Script& other = constraint->other(node);
+      bool seen_other = linked_scripts_output.count(&other);
+      bool traverse_from_fixed =
+          node_traverse_from_fixed || constraint->fixed(node);
+
+      // If we see a constraint fixed on the other end, we can't move it. To
+      // ensure consistent behaviour with cyclic constraint graphs, we also need
+      // to check that constraints fixed on this side don't eventually link back
+      // up to a node we've already seen.
+      if (constraint->fixed(other) ||
+          (traverse_from_fixed && seen_other)) {
+        return false;
+      }
+
+      if (!seen_other) {
+        linked_scripts_output.insert(&other);
+        stack.emplace_back(&other, traverse_from_fixed);
+      }
+    }
+  }
+  return true;
 }

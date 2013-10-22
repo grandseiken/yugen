@@ -181,9 +181,8 @@ public:
                          Script& source, const y::wvec2& move,
                          y::int32 push_mask, y::int32 push_max) const;
 
-  // Rotation is currently somewhat of a second-class citizen. Rotations cannot
-  // push other Bodies (they will always be blocked), and nor can they affect
-  // other Scripts via Constraints.
+  // Rotation is currently somewhat of a second-class citizen. Rotations
+  // currently cannot push other Bodies (they will always be blocked).
   y::world collider_rotate(Script& source, y::world rotate,
                            const y::wvec2& origin_offset) const;
 
@@ -201,6 +200,10 @@ private:
   y::world collider_move_raw(Body*& first_blocker_output,
                              Script& source, const y::wvec2& move) const;
 
+  // Likewise for rotation.
+  y::world collider_rotate_raw(Script& source, y::world rotate,
+                               const y::wvec2& origin_offset) const;
+
   // Move function with pushing.
   y::world collider_move_push(
       y::vector<Script*>& push_script_output,
@@ -214,6 +217,16 @@ private:
       y::vector<y::wvec2>& push_amount_output,
       Script& source, const y::wvec2& move,
       y::int32 push_mask, y::int32 push_max) const;
+
+  // Likewise for rotation.
+  y::world collider_rotate_constrained(Script& source, y::world rotate,
+                                       const y::wvec2& origin_offset) const;
+
+  // Traverses the Constraint graph on a Script to find the complete set of
+  // linked Scripts (including source). Returns false if the Script can't
+  // currently move due to Constraints.
+  bool walk_constraint_graph(
+      y::set<Script*>& linked_scripts_output, Script& source) const;
 
   const WorldWindow& _world;
   CollisionData _data;
