@@ -1050,7 +1050,8 @@ y::world Collision::collider_move_raw(
 }
 
 y::world Collision::collider_rotate_raw(Script& source, y::world rotate,
-                                        const y::wvec2& origin_offset) const
+                                        const y::wvec2& origin_offset,
+                                        y::set<Script*> excluded_set) const
 {
   // TODO: rotation still seems to be a little bit inconsistent as to
   // when a thing touching a surface at a point will rotate. Seems like
@@ -1102,7 +1103,6 @@ y::world Collision::collider_rotate_raw(Script& source, y::world rotate,
     // (plus offset).
     // Again, we project the first set of points forwards and the second set
     // of points backwards along the arcs.
-
     for (const auto& pointer : bodies) {
       const Body& b = *pointer;
       if (!(b.collide_mask & COLLIDE_RESV_WORLD)) {
@@ -1146,9 +1146,11 @@ y::world Collision::collider_rotate_raw(Script& source, y::world rotate,
     get_vertices_and_geometries_for_rotate(
         geometries, vertices, rotate, origin, vertices_temp);
 
+    // Ignore bodies whose source Script lies in the exluded set.
     for (Body* block : blocking_bodies) {
       if (&block->source == &source ||
-          !(b.collide_mask & block->collide_type)) {
+          !(b.collide_mask & block->collide_type) ||
+          excluded_set.count(&block->source)) {
         continue;
       }
 
@@ -1362,9 +1364,12 @@ y::world Collision::collider_rotate_constrained(
   // This function is currently considerably simpler than the corresponding
   // movement function, since rotations can't push (so we don't need to reverse
   // anything).
-  // TODO: need to figure out a sort order that makes sure we rotate in the
-  // correct order (at least for most cases). Imagine a character standing on
-  // a cog shape, for instace.
+  // Furthermore, we use a different strategy to the sort order trick to make
+  // sure the rotating bodies don't block each other. The corresponding sort
+  // for rotation is a hard problem (at least, I don't know how to do it).
+  // Instead, since there's no pushing, and therefore no recursion, we can
+  // simply treat everything involved as one unifed object and ignore linked
+  // scripts while doing the rotation.
   y::vector<Script*> scripts;
   for (Script* script : linked_scripts) {
     scripts.emplace_back(script);
@@ -1372,17 +1377,19 @@ y::world Collision::collider_rotate_constrained(
 
   y::world limited_rotation = rotate;
   for (Script* script : scripts) {
-    y::world r = collider_rotate_raw(*script, rotate, origin_offset);
+    y::world r = collider_rotate_raw(*script, rotate,
+                                     origin_offset, linked_scripts);
     limited_rotation = y::max(0., y::min(r, limited_rotation));
   }
 
   if (limited_rotation < rotate) {
     for (y::int32 i = scripts.size() - 1; i >= 0; i--) {
-      collider_rotate_raw(*scripts[i], -rotate, origin_offset);
+      collider_rotate_raw(*scripts[i], -rotate, origin_offset, linked_scripts);
     }
     if (limited_rotation > 0.) {
       for (Script* script : scripts) {
-        collider_rotate_raw(*script, limited_rotation, origin_offset);
+        collider_rotate_raw(*script, limited_rotation,
+                            origin_offset, linked_scripts);
       }
     }
   }

@@ -174,6 +174,9 @@ public:
   void render(RenderUtil& util,
               const y::wvec2& camera_min, const y::wvec2& camera_max) const;
 
+  // Moving a collider natively supports pushing; theoretically, this could
+  // probably be achieved with Constraints, but the native system is far easier
+  // to use for common cases.
   // Push_mask controls the type of objects that can be pushed out of the way,
   // and push_max the maximum number that can be pushed at once.
   y::wvec2 collider_move(y::vector<Script*>& push_script_output,
@@ -182,7 +185,8 @@ public:
                          y::int32 push_mask, y::int32 push_max) const;
 
   // Rotation is currently somewhat of a second-class citizen. Rotations
-  // currently cannot push other Bodies (they will always be blocked).
+  // currently don't have a pushing system built in (they will always be
+  // blocked by non-Constrained blockers).
   y::world collider_rotate(Script& source, y::world rotate,
                            const y::wvec2& origin_offset) const;
 
@@ -202,7 +206,8 @@ private:
 
   // Likewise for rotation.
   y::world collider_rotate_raw(Script& source, y::world rotate,
-                               const y::wvec2& origin_offset) const;
+                               const y::wvec2& origin_offset,
+                               y::set<Script*> excluded_set) const;
 
   // Move function with pushing.
   y::world collider_move_push(
