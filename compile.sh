@@ -14,9 +14,9 @@ targets[0]="yugen"
 targets[1]="yedit"
 targets_size=2
 
-cflag="-I./depend/boost_1_53_0/include -I./depend/sfml_2_0/include -I./depend/luajit_2_0_2/include -I./depend/protobuf_2_5_0/include"
+cflag="-isystem ./depend/boost_1_53_0/include -isystem ./depend/sfml_2_0/include -isystem ./depend/luajit_2_0_2/include -isystem ./depend/protobuf_2_5_0/include"
 lflag="-L./depend/boost_1_53_0/lib -L./depend/sfml_2_0/lib -L./depend/luajit_2_0_2/lib -L./depend/protobuf_2_5_0/lib"
-libs="-Wl,-Bstatic -lboost_filesystem -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lprotobuf -lluajit-5.1 -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
+libs="-Wl,-Bstatic -lboost_filesystem -lboost_iostreams -lboost_system -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lprotobuf -lluajit-5.1 -lz -lbz2 -Wl,-Bdynamic -lGLEW -lGL -lX11 -lXrandr -ljpeg"
 
 # Grab compiler options.
 first=0

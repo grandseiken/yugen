@@ -50,10 +50,10 @@ public:
   // Returns all but the last component of a path.
   /*****/ bool dirname(y::string& output, const y::string& path) const;
 
-  // Returns the extension of a path.
+  // Returns the extension of a path (without dot).
   /*****/ bool extension(y::string& output, const y::string& path) const;
 
-  // Returns all but the extension of a path.
+  // Returns all but the extension of a path (without dot).
   /*****/ bool barename(y::string& output, const y::string& path) const;
 
 protected:

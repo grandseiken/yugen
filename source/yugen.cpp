@@ -3,6 +3,7 @@
 #include "databank.h"
 #include "game_stage.h"
 #include "gl_util.h"
+#include "compressed_filesystem.h"
 #include "physical_filesystem.h"
 #include "render_util.h"
 #include "window.h"
@@ -332,7 +333,11 @@ y::int32 main(y::int32 argc, char** argv)
   run_timing.target_draws_per_second = 60.f;
   Yugen* yugen = new Yugen(util, run_timing);
 
-  PhysicalFilesystem save_filesystem("save");
+  PhysicalFilesystem save_filesystem_temp("save");
+  CompressedFilesystem save_filesystem(
+      save_filesystem_temp, CompressedFilesystem::BZIP2);
+  save_filesystem.add_compressed_extension("sav");
+
   GameStage* stage = new GameStage(
       databank, save_filesystem,
       util, yugen->get_framebuffer(), map, world);
