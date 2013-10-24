@@ -235,7 +235,7 @@ void Yugen::post_render(const GlFramebuffer& source,
       dither->get_size()[xx], dither->get_size()[yy]});
   _post_program->bind_uniform(
       "dither_off", _stage ?
-          y::fvec2(_stage->get_camera().world_to_camera(y::wvec2())) :
+          y::fvec2(_stage->get_camera().camera_to_world(y::wvec2())) :
           y::fvec2());
   _post_program->bind_uniform(
       "dither_rot", _stage ? float(_stage->get_camera().get_rotation()) : 0.f);
