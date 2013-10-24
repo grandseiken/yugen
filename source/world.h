@@ -129,6 +129,9 @@ private:
 
 // Sliding window into a Cell source. The source can be changed to simulate
 // non-planar geometry.
+// TODO: geometry seems to sometimes incorrectly generate odd empty (no drawing)
+// copies of existing cells where there should be no cell. Suspect bug with the
+// cell-swapping optimisations.
 class WorldWindow : public y::no_copy {
 public:
 

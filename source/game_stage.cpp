@@ -9,7 +9,7 @@
 ScriptBank::ScriptBank(GameStage& stage)
   : _stage(stage)
   , _spatial_hash(128)
-  , _uid_counter(0)
+  , _uid_unused({0})
 {
 }
 
@@ -47,13 +47,22 @@ void ScriptBank::get_in_radius(result& output,
 
 y::int32 ScriptBank::get_uid(const Script* script) const
 {
-  // TODO: this is really naive, but works for now.
   auto it = _uid_map.find(script);
   if (it != _uid_map.end()) {
     return it->second;
   }
-  _uid_map.insert(y::make_pair(script, _uid_counter));
-  return _uid_counter++;
+  // Algorithm for generating UIDs with reuse: keep a set of unused UIDs,
+  // except truncated (i.e., it contains only the first element of the final
+  // infinite run of unused UIDs).
+  // Maintaining this invariant allows efficient generation and release of UIDs.
+  auto min = _uid_unused.begin();
+  y::size uid = *min;
+  _uid_map.insert(y::make_pair(script, uid));
+  _uid_unused.erase(min);
+  if (_uid_unused.empty()) {
+    _uid_unused.insert(1 + uid);
+  }
+  return uid;
 }
 
 void ScriptBank::send_message(Script* script, const y::string& function_name,
@@ -65,11 +74,6 @@ void ScriptBank::send_message(Script* script, const y::string& function_name,
 void ScriptBank::update_spatial_hash(Script& source)
 {
   _spatial_hash.update(&source, source.get_origin(), source.get_origin());
-}
-
-void ScriptBank::remove_spatial_hash(Script& source)
-{
-  _spatial_hash.remove(&source);
 }
 
 void ScriptBank::update_all() const
@@ -142,20 +146,15 @@ void ScriptBank::clean_out_of_bounds(
     const Script& player, const y::wvec2& lower, const y::wvec2& upper)
 {
   struct local {
-    spatial_hash& spatial;
-    bool all_cells_preserved;
-    const WorldWindow::cell_list& preserved_cells;
+    ScriptBank& script_bank;
     const Script* player;
 
     const y::wvec2& lower;
     const y::wvec2& upper;
 
-    local(spatial_hash& spatial, bool all_cells_preserved,
-          const WorldWindow::cell_list& preserved_cells,
-          const Script* player, const y::wvec2& lower, const y::wvec2& upper)
-      : spatial(spatial)
-      , all_cells_preserved(all_cells_preserved)
-      , preserved_cells(preserved_cells)
+    local(ScriptBank& script_bank, const Script* player,
+          const y::wvec2& lower, const y::wvec2& upper)
+      : script_bank(script_bank)
       , player(player)
       , lower(lower)
       , upper(upper)
@@ -174,7 +173,7 @@ void ScriptBank::clean_out_of_bounds(
       const y::wvec2& region = s->get_region();
 
       bool overlaps_preserved = false;
-      for (const y::ivec2& cell : preserved_cells) {
+      for (const y::ivec2& cell : script_bank._preserved_cells) {
         if (origin + region / 2 >= y::wvec2(
                 cell * Tileset::tile_size * Cell::cell_size) &&
             origin - region / 2 < y::wvec2(
@@ -184,42 +183,41 @@ void ScriptBank::clean_out_of_bounds(
           break;
         }
       }
-      if (all_cells_preserved) {
+      if (script_bank._all_cells_preserved) {
         overlaps_preserved = origin + region / 2 >= lower &&
                              origin - region / 2 < upper;
       }
       if (!overlaps_preserved) {
-        spatial.remove(s.get());
+        script_bank.cleanup_script(s.get());
       }
       return !overlaps_preserved;
     }
   };
 
-  local is_out_of_bounds(_spatial_hash, _all_cells_preserved, _preserved_cells,
-                         &player, lower, upper);
+  local is_out_of_bounds(*this, &player, lower, upper);
   _scripts.remove_if(is_out_of_bounds);
 }
 
 void ScriptBank::clean_destroyed()
 {
   struct local {
-    spatial_hash& spatial;
+    ScriptBank& script_bank;
 
-    local(spatial_hash& spatial)
-      : spatial(spatial)
+    local(ScriptBank& script_bank)
+      : script_bank(script_bank)
     {
     }
 
     bool operator()(const y::unique<Script>& s)
     {
       if (s->is_destroyed()) {
-        spatial.remove(s.get());
+        script_bank.cleanup_script(s.get());
       }
       return s->is_destroyed();
     }
   };
 
-  local is_destroyed(_spatial_hash);
+  local is_destroyed(*this);
   _scripts.remove_if(is_destroyed);
   // Remove all the script map entries where the references have been
   // invalidated.
@@ -230,6 +228,21 @@ void ScriptBank::clean_destroyed()
     else {
       ++it;
     }
+  }
+
+  // Clean up unnecessary elements in the unused UID list (leaving no chain
+  // of consecutive elements at the end).
+  for (auto it = _uid_unused.rbegin(); true;) {
+    auto next = it;
+    ++next;
+    if (next == _uid_unused.rend() || 1 + *next != *it) {
+      // Once it and next don't point to sequential elements, it is pointing to
+      // the first element of the last sequence, so this erases all but that
+      // first element.
+      _uid_unused.erase(it.base(), _uid_unused.end());
+      break;
+    }
+    it = next;
   }
 }
 
@@ -286,6 +299,20 @@ void ScriptBank::add_script(y::unique<Script> script)
   update_spatial_hash(*script);
   _scripts.emplace_back();
   (_scripts.rbegin())->swap(script);
+}
+
+void ScriptBank::cleanup_script(Script* script)
+{
+  // Remove from spatial hash.
+  _spatial_hash.remove(script);
+
+  // Release UID.
+  auto it = _uid_map.find(script);
+  if (it == _uid_map.end()) {
+    return;
+  }
+  _uid_unused.insert(it->second);
+  _uid_map.erase(it);
 }
 
 bool ScriptBank::script_map_key::operator==(const script_map_key& key) const

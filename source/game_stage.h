@@ -55,9 +55,9 @@ public:
   // Functions below here should only be called by GameStage or GameRenderer,
   // not from the Lua API.
 
-  // Update the spatial hash.
+  // Update the spatial hash. Must be called when the Script moves or changes
+  // geometry.
   void update_spatial_hash(Script& source);
-  void remove_spatial_hash(Script& source);
 
   // Functions for updating/rendering all the Scripts.
   void update_all() const;
@@ -80,6 +80,7 @@ public:
 private:
 
   void add_script(y::unique<Script> script);
+  void cleanup_script(Script* script);
 
   GameStage& _stage;
 
@@ -105,7 +106,7 @@ private:
   script_map _script_map;
 
   mutable y::map<const Script*, y::size> _uid_map;
-  mutable y::int32 _uid_counter;
+  mutable y::ordered_set<y::size> _uid_unused;
 
   struct message {
     Script* script;

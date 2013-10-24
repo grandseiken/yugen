@@ -16,7 +16,7 @@ const vec2 b_dir = vec2(sin(0.2 + 4 * pi / 3), cos(0.2 + 4 * pi / 3));
 // Whether dithering moves around (based on per-colour directions above).
 const bool dithering_move = true;
 // How much to mix in dithering versus true colouring.
-const float dithering_mix = 1.0;
+const float dithering_mix = 1.;
 // See also http://bisqwit.iki.fi/story/howto/dither/jy/ for the dithering
 // bible.
 vec3 make_coord(vec2 coord, vec2 c_off, float c)

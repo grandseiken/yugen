@@ -763,6 +763,17 @@ bool CollisionData::body_in_radius(
 
 void CollisionData::update_spatial_hash(const Script& source)
 {
+  // TODO: segmentation fault here on get_list(source).
+  // Not sure what's going on. Seems to occur only when constrained and pushing
+  // at the same time.
+  // Backtrace:
+  //   y::map<Script, y::unique<Body>>::find
+  //   ScriptMap<Body>::get_list
+  //   CollisionData::update_spatial_hash
+  //   Script::set_origin
+  //   Collision::collider_move_raw [inside first no bodies or move == 0 check]
+  //   Collision::collider_move_push
+  //   Collision::collider_move_constrained
   for (const entry& body : get_list(source)) {
     auto bounds = body->get_bounds(source.get_origin(), source.get_rotation());
     _spatial_hash.update(body.get(), bounds.first, bounds.second);
