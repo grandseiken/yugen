@@ -1266,6 +1266,9 @@ y::world Collision::collider_move_constrained(
   }
 
   // Sorts objects in the direction of the movement vector.
+  // TODO: sorting by origin only is incorrect. We need to either consider
+  // maximum among body vertices, or use the "ignore linked scripts" method
+  // as in rotation.
   struct direction_order {
     y::wvec2 move_vec;
 
@@ -1376,20 +1379,29 @@ y::world Collision::collider_rotate_constrained(
   }
 
   y::world limited_rotation = rotate;
+  y::vector<y::world> rotations;
   for (Script* script : scripts) {
-    y::world r = collider_rotate_raw(*script, rotate,
-                                     origin_offset, linked_scripts);
+    y::world r = collider_rotate_raw(
+        *script, rotate,
+        origin_offset - script->get_origin() + source.get_origin(),
+        linked_scripts);
+    rotations.push_back(r);
     limited_rotation = y::max(0., y::min(r, limited_rotation));
   }
 
   if (limited_rotation < rotate) {
     for (y::int32 i = scripts.size() - 1; i >= 0; i--) {
-      collider_rotate_raw(*scripts[i], -rotate, origin_offset, linked_scripts);
+      collider_rotate_raw(
+          *scripts[i], -rotations[i],
+          origin_offset - scripts[i]->get_origin() + source.get_origin(),
+          linked_scripts);
     }
     if (limited_rotation > 0.) {
       for (Script* script : scripts) {
-        collider_rotate_raw(*script, limited_rotation,
-                            origin_offset, linked_scripts);
+        collider_rotate_raw(
+            *script, limited_rotation,
+            origin_offset - script->get_origin() + source.get_origin(),
+            linked_scripts);
       }
     }
   }
