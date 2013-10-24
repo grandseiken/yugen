@@ -17,9 +17,11 @@ public:
 
   ScriptReference(Script& script);
   ScriptReference(const ScriptReference& script);
+  ScriptReference(ScriptReference&& script) = delete;
   ~ScriptReference();
 
   ScriptReference& operator=(const ScriptReference& arg);
+  ScriptReference& operator=(ScriptReference&& arg) = delete;
   bool operator==(const ScriptReference& arg) const;
   bool operator!=(const ScriptReference& arg) const;
 
@@ -48,9 +50,11 @@ public:
   ConstScriptReference(const Script& script);
   ConstScriptReference(const ScriptReference& script);
   ConstScriptReference(const ConstScriptReference& script);
+  ConstScriptReference(ConstScriptReference&& script) = delete;
   ~ConstScriptReference();
 
   ConstScriptReference& operator=(const ConstScriptReference& arg);
+  ConstScriptReference& operator=(ConstScriptReference&& arg) = delete;
   bool operator==(const ConstScriptReference& arg) const;
   bool operator!=(const ConstScriptReference& arg) const;
 
@@ -151,6 +155,10 @@ private:
   // We hold a weak reference to each Script so that we can destroy the objects
   // whose source Scripts no longer exist.
   struct map_entry {
+    map_entry(const Script& script)
+      : ref(script)
+    {}
+
     ConstScriptReference ref;
     y::vector<entry> list;
   };
@@ -171,8 +179,7 @@ T* ScriptMap<T>::create_obj(Script& source)
     it = _map.end();
   }
   if (it == _map.end()) {
-    it = _map.insert(y::make_pair(&source, map_entry{
-             ConstScriptReference(source), y::vector<entry>()})).first;
+    it = _map.emplace(&source, source).first;
   }
   it->second.list.emplace_back(obj);
   on_create(source, obj);
