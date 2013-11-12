@@ -1,5 +1,5 @@
 #include "vector.h"
-#include "proto/common.pb.h"
+#include "../gen/proto/common.pb.h"
 
 namespace y {
 

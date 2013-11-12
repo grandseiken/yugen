@@ -2,7 +2,7 @@
 #include "cell.h"
 #include "tileset.h"
 
-#include "../proto/cell.pb.h"
+#include "../../gen/proto/cell.pb.h"
 
 CellMap::CellMap()
   : _min(0, 0)

@@ -2,36 +2,64 @@
 # ./deps.sh depfile buildfile outdir file
 DEPFILE=$1
 BUILDFILE=$2
-OUTDIR=$3
-FILE=$4
-DIR=$(dirname $FILE)
+FILE=$3
 
-# Extract the filenames in lines that look like:
-#   #include "foo.h"
-LIST=$( \
-    grep -ho '^#include \+\"[^"]\+\"' $FILE | \
-    sed "s/#include \+\"\([^\"]\+\)\"/\1/g")
+# Get include dependencies from a single file.
+get_deps() {
+  DIR=$(dirname $1)
+  # Extract the filenames in lines that look like:
+  #   #include "foo.h"
+  LIST=$( \
+      grep -ho '^#include \+\"[^"]\+\"' $1 | \
+      sed "s/#include \+\"\([^\"]\+\)\"/\1/g")
+
+  DEPS=""
+  for DEP in $LIST; do
+    # Prefix directory and collapse pathname.
+    DEP="$DIR/$DEP"
+    DEP=$(echo $DEP | \
+        sed ":repeat; s/[^/]\+\/\(\.\.\/\)*\.\.\//\1/; t repeat")
+    DEPS+=" $DEP" 2> /dev/null
+  done
+
+  echo $DEPS
+}
+
+# Get dependencies from a set of files that are not contained in a list of
+# known dependencies.
+get_new_deps() {
+  # Find dependencies in first list.
+  DEPS=""
+  for FILE in $1; do
+    T=$(get_deps $FILE)
+    DEPS+=" $T" 2> /dev/null
+  done
+ 
+  # Deduplicate and filter these new dependencies by second list.
+  NEW_DEPS=""
+  ANY=1
+  for DEP in $DEPS; do
+    echo "$2 $NEW_DEPS" | fgrep $DEP > /dev/null
+    if [ $? -ne 0 ]; then
+      NEW_DEPS+=" $DEP" 2> /dev/null
+      ANY=0
+    fi
+  done
+
+  echo $NEW_DEPS
+  return $ANY
+}
 
 DEPS=""
-for DEP in $LIST; do
-  # Prefix directory and collapse pathname. We don't need to support e.g
-  # ../../foo.h since we only have one level of source directory nesting right
-  # now.
-  DEP=$(echo ./$DIR/$DEP | sed "s/[^/.]\+\/..\///g" | \
-      sed "s/\/source\//\/$OUTDIR\//g")
-  DEPS="$DEPS $DEP.BUILD"
+NEW_DEPS="$FILE"
+ANY=0
+while [ $ANY -eq 0 ]; do
+  DEPS+=" $NEW_DEPS" 2> /dev/null
+  NEW_DEPS=$(get_new_deps "$NEW_DEPS" "$DEPS")
+  ANY=$?
 done
 
-# Write dependency file.
-rm -f $DEPFILE
-# Explicitly mark generated protobuf files as intermediate so that they will be
-# deleted afterwards.
-echo $FILE | grep '\.pb\.[^.]*$' > /dev/null
-if [ $? -eq 0 ]; then
-  echo ".INTERMEDIATE: $FILE\n" >> $DEPFILE
-fi
-# The .BUILD target depends on the corresponding file, and the .BUILD targets
-# of the include dependencies of that file. We use double-colon rules to
-# suppress target override warnings.
-echo ".INTERMEDIATE: $BUILDFILE" >> $DEPFILE
-echo "$BUILDFILE:: $FILE $DEPS\n\t@touch $BUILDFILE\n" >> $DEPFILE
+# Write dependency file. The .BUILD target depends on the corresponding file and
+# its include dependencies. We use double-colon rules to suppress target
+# override warnings.
+echo "$BUILDFILE::$DEPS\n\t@touch $BUILDFILE" >> $DEPFILE
