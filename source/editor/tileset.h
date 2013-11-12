@@ -1,8 +1,8 @@
 #ifndef TILESET_EDITOR_H
 #define TILESET_EDITOR_H
 
-#include "common.h"
-#include "modal.h"
+#include "../common.h"
+#include "../modal.h"
 
 class Databank;
 class Filesystem;

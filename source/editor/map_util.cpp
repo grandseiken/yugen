@@ -1,9 +1,9 @@
-#include "map_editor_util.h"
+#include "map_util.h"
 
-#include "databank.h"
-#include "tileset.h"
-#include "render_util.h"
-#include "window.h"
+#include "../databank.h"
+#include "../tileset.h"
+#include "../render_util.h"
+#include "../window.h"
 
 #include <SFML/Window.hpp>
 

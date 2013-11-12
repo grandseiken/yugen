@@ -1,9 +1,9 @@
 #ifndef YEDIT_H
 #define YEDIT_H
 
-#include "common.h"
-#include "modal.h"
-#include "ui_util.h"
+#include "../common.h"
+#include "../modal.h"
+#include "../ui_util.h"
 
 class Databank;
 class Filesystem;

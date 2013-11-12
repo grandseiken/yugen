@@ -61,7 +61,7 @@ SOURCES= \
 	$(wildcard ./source/*/*.cc) \
 	$(PROTO_SOURCES)
 YUGEN_SOURCES= \
-	$(filter-out ./source/yedit.cpp,$(SOURCES))
+	$(filter-out ./source/editor/yedit.cpp,$(SOURCES))
 YEDIT_SOURCES= \
 	$(filter-out ./source/yugen.cpp,$(SOURCES))
 YUGEN_OBJECTS= \

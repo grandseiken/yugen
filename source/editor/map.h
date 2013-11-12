@@ -1,11 +1,12 @@
 #ifndef MAP_EDITOR_H
 #define MAP_EDITOR_H
 
-#include "common.h"
-#include "gl_handle.h"
-#include "map_editor_util.h"
-#include "modal.h"
-#include "vector.h"
+#include "map_util.h"
+
+#include "../common.h"
+#include "../gl_handle.h"
+#include "../modal.h"
+
 #include <random>
 
 class CellMap;

@@ -1,11 +1,10 @@
 #ifndef MAP_EDITOR_UTIL_H
 #define MAP_EDITOR_UTIL_H
 
-#include "cell.h"
-#include "common.h"
-#include "modal.h"
-#include "ui_util.h"
-#include "vector.h"
+#include "../cell.h"
+#include "../common.h"
+#include "../modal.h"
+#include "../ui_util.h"
 
 class CellMap;
 class Databank;
