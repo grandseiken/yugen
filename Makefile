@@ -100,4 +100,5 @@ $(OUTDIR)/.out:
 	@mkdir $(OUTDIR); mkdir $(subst source/,$(OUTDIR)/,$(SUBDIRS)); touch $@
 
 clean:
+	@echo Removing $(OUTDIR)
 	@rm -rf ./$(OUTDIR)

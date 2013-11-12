@@ -412,7 +412,9 @@ bool ModalStack::empty() const
 
 void ModalStack::run(Window& window, RunTiming& run_timing)
 {
-  // TODO: mess with this some more? It's not very smart.
+  // TODO: mess with this some more? It's not very smart. It does seem to
+  // correctly never drop below target FPS on a powerful enough GPU, but
+  // has somewhat odd oscillating behaviour.
   typedef std::chrono::high_resolution_clock hrclock;
 
   hrclock clock;
