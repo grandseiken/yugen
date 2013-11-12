@@ -1,8 +1,19 @@
+# Targets:
+#   yugen - the Yugen game binary
+#   yedit - the Yedit editor binary
+#   clean - delete all outputs
+# Pass DBG=1 to make for debug binaries.
+
+# Compilers and interpreters.
+SHELL= \
+	/bin/sh
 CXX= \
 	g++-4.8
 PROTOC= \
 	./depend/protobuf_2_5_0/bin/protoc
+.SUFFIXES:
 
+# Final outputs.
 ifeq ($(DBG), 1)
 OUTDIR=dbg
 else
@@ -13,6 +24,7 @@ YUGEN= \
 YEDIT= \
 	./$(OUTDIR)/yedit
 
+# Compiler flags.
 CFLAGS= \
 	-isystem ./depend/boost_1_53_0/include \
 	-isystem ./depend/sfml_2_0/include \
@@ -46,10 +58,12 @@ CFLAGS += -Og \
 	-DLUA_DEBUG -DGL_DEBUG
 endif
 
+# File listings.
 SUBDIRS= \
 	$(shell find source/* -type d)
 SUBDIR_OUTS= \
-	$(subst source/,$(OUTDIR)/,$(addsuffix /.out,$(addprefix ./,$(SUBDIRS))))
+	$(subst source/,$(OUTDIR)/, \
+	$(addsuffix /.out,$(addprefix ./,$(SUBDIRS))))
 PROTOS= \
 	$(wildcard ./source/proto/*.proto)
 PROTO_SOURCES= \
@@ -62,6 +76,13 @@ SOURCES= \
 	$(wildcard ./source/*.cc) \
 	$(wildcard ./source/*/*.cc) \
 	$(PROTO_SOURCES)
+HEADERS= \
+	$(wildcard ./source/*.h) \
+	$(wildcard ./source/*/*.h) \
+	$(PROTO_HEADERS)
+DEPFILES= \
+  $(subst /source/,/$(OUTDIR)/, \
+	$(addsuffix .deps,$(SOURCES) $(HEADERS)))
 OBJECTS= \
 	$(subst /source/,/$(OUTDIR)/, \
 	$(patsubst %.cc,%.cc.o,$(patsubst %.cpp,%.cpp.o,$(SOURCES))))
@@ -70,22 +91,40 @@ YUGEN_OBJECTS= \
 YEDIT_OBJECTS= \
 	$(filter-out ./$(OUTDIR)/yugen.cpp.o,$(OBJECTS))
 
+# Master targets.
+# Note: .INTERMEDIATE does not function correctly in GNU make 3.81. This isn't
+# a huge problem, but it leaves generated proto files around, which sometimes
+# causes extra dependency-generation. As a workaround, we delete them in each
+# of the main targets.
+.PHONY: all
 all: \
-	yugen yedit
+	$(YUGEN) $(YEDIT)
+	@rm -rf ./source/proto/*.pb.*
+.PHONY: yugen
 yugen: \
 	$(YUGEN)
+	@rm -rf ./source/proto/*.pb.*
+.PHONY: yedit
 yedit: \
 	$(YEDIT)
-deps: \
-	$(OUTDIR)/.out
-	@echo Generating dependencies
-	@./deps.sh $(OUTDIR)
+	@rm -rf ./source/proto/*.pb.*
+.PHONY: clean
+clean:
+	@echo Removing $(OUTDIR)
+	@rm -rf ./$(OUTDIR)
+	@rm -rf ./source/proto/*.pb.*
 
-# TODO: integrate this better.
-# Also, proto files no longer intermediate.
-# Also, proto header file depedencies ain't working?
-include $(OBJECTS:.o=.deps)
+# Dependency generation.
+./$(OUTDIR)/%.deps: \
+	./source/% $(OUTDIR)/.out
+	@echo Generating dependencies for $<
+	@./deps.sh $@ $(@:.deps=.BUILD) $(OUTDIR) $<
 
+ifneq ('$(MAKECMDGOALS)', 'clean')
+-include $(DEPFILES)
+endif
+
+# Build steps.
 $(YUGEN): \
 	$(YUGEN_OBJECTS)
 	@echo Linking yugen
@@ -94,27 +133,25 @@ $(YEDIT): \
 	$(YEDIT_OBJECTS)
 	@echo Linking yedit
 	@$(CXX) -o $@ $^ $(LFLAGS)
-$(OUTDIR)/%.o: \
-	source/%
-	@echo Compiling $<
-	@$(CXX) -c $(CFLAGS) -o $@ $<
+./$(OUTDIR)/%.o: \
+	./$(OUTDIR)/%.BUILD $(OUTDIR)/.out
+	@echo Compiling $(subst $(OUTDIR)/,source/,$(<:.BUILD=))
+	@$(CXX) -c $(CFLAGS) -o $@ $(subst $(OUTDIR)/,source/,$(<:.BUILD=))
 ./source/proto/%.pb.h: \
 	./source/proto/%.pb.cc
 	@# Noop for intermediate file
+	@touch $@ $<
 ./source/proto/%.pb.cc: \
 	./source/proto/%.proto
 	@echo Compiling $<
 	@$(PROTOC) $(PFLAGS) $<
-$(OUTDIR)/.out: \
+./$(OUTDIR)/.out: \
 	$(SUBDIR_OUTS)
 	@echo Creating $(OUTDIR)/
 	@mkdir -p ./$(OUTDIR)/
 	@touch ./$(OUTDIR)/.out
-$(OUTDIR)/%/.out:
+./$(OUTDIR)/%/.out:
 	@echo Creating $(dir $@)
 	@mkdir -p $(dir $@)
 	@touch $@
 
-clean:
-	@echo Removing $(OUTDIR)
-	@rm -rf ./$(OUTDIR)
