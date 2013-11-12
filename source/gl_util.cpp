@@ -1,5 +1,5 @@
 #include "gl_util.h"
-#include "filesystem.h"
+#include "filesystem/filesystem.h"
 #include "window.h"
 
 #include <algorithm>

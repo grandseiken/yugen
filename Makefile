@@ -48,6 +48,8 @@ endif
 
 SUBDIRS= \
 	$(shell find source/* -type d)
+SUBDIR_OUTS= \
+	$(subst source/,$(OUTDIR)/,$(addsuffix /.out,$(addprefix ./,$(SUBDIRS))))
 PROTOS= \
 	$(wildcard ./source/proto/*.proto)
 PROTO_SOURCES= \
@@ -95,9 +97,15 @@ source/proto/%.pb.h: \
 	source/proto/%.proto
 	@echo Compiling $<
 	@$(PROTOC) $(PFLAGS) $<
-$(OUTDIR)/.out:
-	@echo Creating $(OUTDIR)
-	@mkdir $(OUTDIR); mkdir $(subst source/,$(OUTDIR)/,$(SUBDIRS)); touch $@
+$(OUTDIR)/.out: \
+	$(SUBDIR_OUTS)
+	@echo Creating $(OUTDIR)/
+	@mkdir -p $(OUTDIR)/
+	@touch $(OUTDIR)/.out
+$(OUTDIR)/%/.out:
+	@echo Creating $(dir $@)
+	@mkdir -p $(dir $@)
+	@touch $@
 
 clean:
 	@echo Removing $(OUTDIR)

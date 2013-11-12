@@ -2,9 +2,9 @@
 
 #include "databank.h"
 #include "game_stage.h"
+#include "filesystem/physical.h"
+#include "filesystem/compressed.h"
 #include "gl_util.h"
-#include "compressed_filesystem.h"
-#include "physical_filesystem.h"
 #include "render_util.h"
 #include "window.h"
 

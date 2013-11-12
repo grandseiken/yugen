@@ -1,4 +1,4 @@
-#include "compressed_filesystem.h"
+#include "compressed.h"
 
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_stream.hpp>

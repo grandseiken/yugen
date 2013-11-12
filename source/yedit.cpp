@@ -1,9 +1,9 @@
 #include "yedit.h"
 
 #include "databank.h"
+#include "filesystem/physical.h"
 #include "gl_util.h"
 #include "map_editor.h"
-#include "physical_filesystem.h"
 #include "render_util.h"
 #include "tileset_editor.h"
 #include "window.h"

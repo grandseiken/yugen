@@ -1,9 +1,9 @@
 #include "databank.h"
-#include "filesystem.h"
+#include "filesystem/filesystem.h"
+#include "filesystem/physical.h"
 #include "game_stage.h"
 #include "gl_util.h"
 #include "lua.h"
-#include "physical_filesystem.h"
 #include "proto/cell.pb.h"
 #include "render_util.h"
 
