@@ -1,9 +1,10 @@
 #ifndef GL_UTIL_H
 #define GL_UTIL_H
 
-#include "common.h"
 #include "gl_handle.h"
-#include "vector.h"
+
+#include "../common.h"
+#include "../vector.h"
 
 #include <GL/glew.h>
 

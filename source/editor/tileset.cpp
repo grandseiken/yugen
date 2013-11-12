@@ -2,9 +2,9 @@
 
 #include "../databank.h"
 #include "../proto/cell.pb.h"
-#include "../render_util.h"
+#include "../render/util.h"
+#include "../render/window.h"
 #include "../tileset.h"
-#include "../window.h"
 
 #include <SFML/Window.hpp>
 

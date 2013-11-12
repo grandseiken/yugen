@@ -1,9 +1,10 @@
 #ifndef RENDER_UTIL_H
 #define RENDER_UTIL_H
 
-#include "common.h"
 #include "gl_handle.h"
-#include "vector.h"
+
+#include "../common.h"
+#include "../vector.h"
 
 class GlUtil;
 

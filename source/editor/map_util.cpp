@@ -2,8 +2,8 @@
 
 #include "../databank.h"
 #include "../tileset.h"
-#include "../render_util.h"
-#include "../window.h"
+#include "../render/util.h"
+#include "../render/window.h"
 
 #include <SFML/Window.hpp>
 

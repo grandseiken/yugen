@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include "cell.h"
-#include "gl_handle.h"
+#include "render/gl_handle.h"
 #include "tileset.h"
 
 #include <algorithm>

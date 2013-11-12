@@ -2,7 +2,7 @@
 #define ENVIRONMENT_H
 
 #include "common.h"
-#include "gl_handle.h"
+#include "render/gl_handle.h"
 
 class GlUtil;
 class RenderUtil;

@@ -4,9 +4,9 @@
 #include "game_stage.h"
 #include "filesystem/physical.h"
 #include "filesystem/compressed.h"
-#include "gl_util.h"
-#include "render_util.h"
-#include "window.h"
+#include "render/gl_util.h"
+#include "render/util.h"
+#include "render/window.h"
 
 #include <iomanip>
 #include <SFML/Graphics.hpp>

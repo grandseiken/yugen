@@ -5,7 +5,7 @@
 #include "collision.h"
 #include "databank.h"
 #include "game_stage.h"
-#include "render_util.h"
+#include "render/util.h"
 #endif
 
 // Anonymous namespace.

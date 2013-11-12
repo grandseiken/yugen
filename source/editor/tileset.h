@@ -3,6 +3,7 @@
 
 #include "../common.h"
 #include "../modal.h"
+#include "../vector.h"
 
 class Databank;
 class Filesystem;

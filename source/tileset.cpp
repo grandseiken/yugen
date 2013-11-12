@@ -1,7 +1,7 @@
 #include "tileset.h"
 
-#include "gl_util.h"
 #include "proto/cell.pb.h"
+#include "render/gl_util.h"
 
 const y::ivec2 Tileset::tile_size{Tileset::tile_width, Tileset::tile_height};
 const y::ivec2 Tileset::ul{0, 0};

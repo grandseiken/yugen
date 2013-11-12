@@ -1,8 +1,8 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include "common.h"
-#include "vector.h"
+#include "../common.h"
+#include "../vector.h"
 
 struct Resolution {
   Resolution();

@@ -4,9 +4,9 @@
 
 #include "../databank.h"
 #include "../filesystem/physical.h"
-#include "../gl_util.h"
-#include "../render_util.h"
-#include "../window.h"
+#include "../render/gl_util.h"
+#include "../render/util.h"
+#include "../render/window.h"
 
 #include <SFML/Window.hpp>
 

@@ -2,10 +2,10 @@
 #include "filesystem/filesystem.h"
 #include "filesystem/physical.h"
 #include "game_stage.h"
-#include "gl_util.h"
 #include "lua.h"
 #include "proto/cell.pb.h"
-#include "render_util.h"
+#include "render/gl_util.h"
+#include "render/util.h"
 
 Databank::Databank()
   : _default_script{"/yedit/missing.lua", "", y::fvec4{1.f, 1.f, 1.f, 1.f}}

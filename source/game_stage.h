@@ -7,9 +7,9 @@
 #include "lighting.h"
 #include "lua.h"
 #include "modal.h"
+#include "render/util.h"
 #include "savegame.h"
 #include "spatial_hash.h"
-#include "render_util.h"
 #include "world.h"
 
 #include <SFML/Window.hpp>

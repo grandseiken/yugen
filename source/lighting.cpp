@@ -1,6 +1,6 @@
 #include "lighting.h"
-#include "gl_util.h"
-#include "render_util.h"
+#include "render/gl_util.h"
+#include "render/util.h"
 #include "world.h"
 
 #include <algorithm>

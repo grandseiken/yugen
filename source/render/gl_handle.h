@@ -1,8 +1,8 @@
 #ifndef GL_HANDLE_H
 #define GL_HANDLE_H
 
-#include "common.h"
-#include "vector.h"
+#include "../common.h"
+#include "../vector.h"
 
 #include <GL/glew.h>
 

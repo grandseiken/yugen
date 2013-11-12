@@ -5,6 +5,7 @@
 #include "../common.h"
 #include "../modal.h"
 #include "../ui_util.h"
+#include "../vector.h"
 
 class CellMap;
 class Databank;

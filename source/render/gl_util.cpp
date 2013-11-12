@@ -1,6 +1,7 @@
 #include "gl_util.h"
-#include "filesystem/filesystem.h"
 #include "window.h"
+
+#include "../filesystem/filesystem.h"
 
 #include <algorithm>
 #include <SFML/Graphics.hpp>

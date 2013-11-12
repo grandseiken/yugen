@@ -1,9 +1,9 @@
 #include "map.h"
 
 #include "../databank.h"
-#include "../gl_util.h"
 #include "../proto/cell.pb.h"
-#include "../window.h"
+#include "../render/gl_util.h"
+#include "../render/window.h"
 
 #include <chrono>
 #include <SFML/Window.hpp>

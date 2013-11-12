@@ -2,7 +2,7 @@
 #define LIGHTING_H
 
 #include "common.h"
-#include "gl_handle.h"
+#include "render/gl_handle.h"
 #include "lua.h"
 #include "world.h"
 #include "vector.h"

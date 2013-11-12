@@ -1,9 +1,10 @@
 #include "game_stage.h"
 
 #include "databank.h"
-#include "gl_util.h"
+#include "render/gl_util.h"
+#include "render/window.h"
 #include "tileset.h"
-#include "window.h"
+
 #include <boost/functional/hash.hpp>
 
 ScriptBank::ScriptBank(GameStage& stage)

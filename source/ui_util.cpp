@@ -1,5 +1,5 @@
 #include "ui_util.h"
-#include "window.h"
+#include "render/window.h"
 
 #include <SFML/Window.hpp>
 

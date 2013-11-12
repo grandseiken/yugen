@@ -4,8 +4,9 @@
 #include "map_util.h"
 
 #include "../common.h"
-#include "../gl_handle.h"
 #include "../modal.h"
+#include "../render/gl_handle.h"
+#include "../vector.h"
 
 #include <random>
 
