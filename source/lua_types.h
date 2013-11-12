@@ -1,5 +1,5 @@
-#ifndef LUA_TYPES
-#define LUA_TYPES
+#ifndef LUA_TYPES_H
+#define LUA_TYPES_H
 
 #include "common.h"
 #include <lua/lua.hpp>

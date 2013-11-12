@@ -1,5 +1,5 @@
-#ifndef MAP_EDITOR_H
-#define MAP_EDITOR_H
+#ifndef EDITOR__MAP_H
+#define EDITOR__MAP_H
 
 #include "map_util.h"
 

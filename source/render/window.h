@@ -1,5 +1,5 @@
-#ifndef WINDOW_H
-#define WINDOW_H
+#ifndef RENDER__WINDOW_H
+#define RENDER__WINDOW_H
 
 #include "../common.h"
 #include "../vector.h"

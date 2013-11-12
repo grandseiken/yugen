@@ -1,5 +1,5 @@
-#ifndef GL_UTIL_H
-#define GL_UTIL_H
+#ifndef RENDER__GL_UTIL_H
+#define RENDER__GL_UTIL_H
 
 #include "gl_handle.h"
 

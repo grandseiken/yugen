@@ -1,5 +1,5 @@
-#ifndef COMPRESSED_FILESYSTEM_H
-#define COMPRESSED_FILESYSTEM_H
+#ifndef FILESYSTEM__COMPRESSED_H
+#define FILESYSTEM__COMPRESSED_H
 
 #include "filesystem.h"
 

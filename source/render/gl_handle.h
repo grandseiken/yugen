@@ -1,5 +1,5 @@
-#ifndef GL_HANDLE_H
-#define GL_HANDLE_H
+#ifndef RENDER__GL_HANDLE_H
+#define RENDER__GL_HANDLE_H
 
 #include "../common.h"
 #include "../vector.h"

@@ -1,6 +1,6 @@
 #include "collision.h"
 #include "render/util.h"
-#include "world.h"
+#include "world/world.h"
 #include <algorithm>
 
 // Internal collision functions.
