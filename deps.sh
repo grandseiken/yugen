@@ -19,7 +19,7 @@ get_deps() {
     DEP="$DIR/$DEP"
     DEP=$(echo $DEP | \
         sed ":repeat; s/[^/]\+\/\(\.\.\/\)*\.\.\//\1/; t repeat")
-    DEPS+=" $DEP" 2> /dev/null
+    DEPS="$DEPS $DEP"
   done
 
   echo $DEPS
@@ -32,7 +32,7 @@ get_new_deps() {
   DEPS=""
   for FILE in $1; do
     T=$(get_deps $FILE)
-    DEPS+=" $T" 2> /dev/null
+    DEPS="$DEPS $T"
   done
  
   # Deduplicate and filter these new dependencies by second list.
@@ -41,7 +41,7 @@ get_new_deps() {
   for DEP in $DEPS; do
     echo "$2 $NEW_DEPS" | fgrep $DEP > /dev/null
     if [ $? -ne 0 ]; then
-      NEW_DEPS+=" $DEP" 2> /dev/null
+      NEW_DEPS="$NEW_DEPS $DEP"
       ANY=0
     fi
   done
@@ -54,7 +54,7 @@ DEPS=""
 NEW_DEPS="$FILE"
 ANY=0
 while [ $ANY -eq 0 ]; do
-  DEPS+=" $NEW_DEPS" 2> /dev/null
+  DEPS="$DEPS $NEW_DEPS"
   NEW_DEPS=$(get_new_deps "$NEW_DEPS" "$DEPS")
   ANY=$?
 done
@@ -62,4 +62,4 @@ done
 # Write dependency file. The .BUILD target depends on the corresponding file and
 # its include dependencies. We use double-colon rules to suppress target
 # override warnings.
-echo "$BUILDFILE::$DEPS\n\t@touch $BUILDFILE" >> $DEPFILE
+echo "$BUILDFILE::$DEPS\n\t@touch $BUILDFILE" > $DEPFILE
