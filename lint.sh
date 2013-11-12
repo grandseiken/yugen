@@ -39,7 +39,7 @@ function lint_cstyle
 }
 
 # TODO: lint things on adjacent lines (for indent checking).
-for file in source/*.* source/*/*.*; do
+for file in source/*.* source/*/*; do
   echo Linting: $file
   lint_common
   lint_cstyle

@@ -7,7 +7,7 @@ cat data/shaders/*.glsl | wc
 echo Lua:
 cat data/scripts/*.lua data/scripts/*/*.lua | wc
 echo C++:
-cat source/*.* source/proto/*.proto | wc
+cat source/*.* source/*/* | wc
 echo Total:
 cat Makefile notes.txt *.sh data/shaders/*.glsl \
-  data/scripts/*.lua data/scripts/*/*.lua source/*.* source/proto/*.proto | wc
+  data/scripts/*.lua data/scripts/*/*.lua source/*.* source/*/* | wc
