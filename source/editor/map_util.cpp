@@ -1,7 +1,7 @@
 #include "map_util.h"
 
-#include "../databank.h"
-#include "../tileset.h"
+#include "../data/bank.h"
+#include "../data/tileset.h"
 #include "../render/util.h"
 #include "../render/window.h"
 

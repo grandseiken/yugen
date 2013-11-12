@@ -1,9 +1,9 @@
-#include "game_stage.h"
+#include "stage.h"
 
-#include "databank.h"
-#include "render/gl_util.h"
-#include "render/window.h"
-#include "tileset.h"
+#include "../data/bank.h"
+#include "../data/tileset.h"
+#include "../render/gl_util.h"
+#include "../render/window.h"
 
 #include <boost/functional/hash.hpp>
 

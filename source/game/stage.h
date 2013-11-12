@@ -1,16 +1,17 @@
-#ifndef GAME_STAGE_H
-#define GAME_STAGE_H
+#ifndef GAME__STAGE_H
+#define GAME__STAGE_H
 
 #include "collision.h"
-#include "common.h"
 #include "environment.h"
 #include "lighting.h"
-#include "lua.h"
-#include "modal.h"
-#include "render/util.h"
 #include "savegame.h"
-#include "spatial_hash.h"
 #include "world.h"
+
+#include "../common.h"
+#include "../lua.h"
+#include "../modal.h"
+#include "../render/util.h"
+#include "../spatial_hash.h"
 
 #include <SFML/Window.hpp>
 

@@ -2,7 +2,7 @@
 #include "map.h"
 #include "tileset.h"
 
-#include "../databank.h"
+#include "../data/bank.h"
 #include "../filesystem/physical.h"
 #include "../render/gl_util.h"
 #include "../render/util.h"

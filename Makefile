@@ -54,29 +54,37 @@ PROTOS= \
 	$(wildcard ./source/proto/*.proto)
 PROTO_SOURCES= \
 	$(PROTOS:.proto=.pb.cc)
+PROTO_HEADERS= \
+	$(PROTOS:.proto=.pb.h)
 SOURCES= \
 	$(wildcard ./source/*.cpp) \
 	$(wildcard ./source/*/*.cpp) \
 	$(wildcard ./source/*.cc) \
 	$(wildcard ./source/*/*.cc) \
 	$(PROTO_SOURCES)
-YUGEN_SOURCES= \
-	$(filter-out ./source/editor/yedit.cpp,$(SOURCES))
-YEDIT_SOURCES= \
-	$(filter-out ./source/yugen.cpp,$(SOURCES))
+OBJECTS= \
+	$(subst /source/,/$(OUTDIR)/, \
+	$(patsubst %.cc,%.cc.o,$(patsubst %.cpp,%.cpp.o,$(SOURCES))))
 YUGEN_OBJECTS= \
-	$(subst /source/,/$(OUTDIR)/, \
-	$(patsubst %.cc,%.cc.o,$(patsubst %.cpp,%.cpp.o,$(YUGEN_SOURCES))))
+	$(filter-out ./$(OUTDIR)/editor/yedit.cpp.o,$(OBJECTS))
 YEDIT_OBJECTS= \
-	$(subst /source/,/$(OUTDIR)/, \
-	$(patsubst %.cc,%.cc.o,$(patsubst %.cpp,%.cpp.o,$(YEDIT_SOURCES))))
+	$(filter-out ./$(OUTDIR)/yugen.cpp.o,$(OBJECTS))
 
 all: \
-	$(YUGEN) $(YEDIT)
+	yugen yedit
 yugen: \
 	$(YUGEN)
 yedit: \
 	$(YEDIT)
+deps: \
+	$(OUTDIR)/.out
+	@echo Generating dependencies
+	@./deps.sh $(OUTDIR)
+
+# TODO: integrate this better.
+# Also, proto files no longer intermediate.
+# Also, proto header file depedencies ain't working?
+include $(OBJECTS:.o=.deps)
 
 $(YUGEN): \
 	$(YUGEN_OBJECTS)
@@ -87,21 +95,21 @@ $(YEDIT): \
 	@echo Linking yedit
 	@$(CXX) -o $@ $^ $(LFLAGS)
 $(OUTDIR)/%.o: \
-	source/% $(PROTO_SOURCES) $(OUTDIR)/.out
+	source/%
 	@echo Compiling $<
 	@$(CXX) -c $(CFLAGS) -o $@ $<
-source/proto/%.pb.cc: \
-	source/proto/%.pb.h
+./source/proto/%.pb.h: \
+	./source/proto/%.pb.cc
 	@# Noop for intermediate file
-source/proto/%.pb.h: \
-	source/proto/%.proto
+./source/proto/%.pb.cc: \
+	./source/proto/%.proto
 	@echo Compiling $<
 	@$(PROTOC) $(PFLAGS) $<
 $(OUTDIR)/.out: \
 	$(SUBDIR_OUTS)
 	@echo Creating $(OUTDIR)/
-	@mkdir -p $(OUTDIR)/
-	@touch $(OUTDIR)/.out
+	@mkdir -p ./$(OUTDIR)/
+	@touch ./$(OUTDIR)/.out
 $(OUTDIR)/%/.out:
 	@echo Creating $(dir $@)
 	@mkdir -p $(dir $@)

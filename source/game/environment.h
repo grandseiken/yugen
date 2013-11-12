@@ -1,8 +1,8 @@
-#ifndef ENVIRONMENT_H
-#define ENVIRONMENT_H
+#ifndef GAME__ENVIRONMENT_H
+#define GAME__ENVIRONMENT_H
 
-#include "common.h"
-#include "render/gl_handle.h"
+#include "../common.h"
+#include "../render/gl_handle.h"
 
 class GlUtil;
 class RenderUtil;

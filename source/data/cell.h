@@ -1,9 +1,9 @@
-#ifndef CELL_H
-#define CELL_H
+#ifndef DATA__CELL_H
+#define DATA__CELL_H
 
-#include "common.h"
-#include "save.h"
-#include "vector.h"
+#include "../common.h"
+#include "../save.h"
+#include "../vector.h"
 
 class CellBlueprint;
 class Tileset;

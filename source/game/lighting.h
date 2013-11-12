@@ -1,11 +1,12 @@
-#ifndef LIGHTING_H
-#define LIGHTING_H
+#ifndef GAME__LIGHTING_H
+#define GAME__LIGHTING_H
 
-#include "common.h"
-#include "render/gl_handle.h"
-#include "lua.h"
 #include "world.h"
-#include "vector.h"
+
+#include "../common.h"
+#include "../render/gl_handle.h"
+#include "../lua.h"
+#include "../vector.h"
 
 class GlUtil;
 class RenderUtil;

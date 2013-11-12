@@ -1,9 +1,9 @@
-#ifndef WORLD_H
-#define WORLD_H
+#ifndef GAME__WORLD_H
+#define GAME__WORLD_H
 
-#include "common.h"
-#include "cell.h"
-#include "spatial_hash.h"
+#include "../common.h"
+#include "../data/cell.h"
+#include "../spatial_hash.h"
 
 // A collision boundary line. By convention geometry is stored in clockwise
 // order; that is, when facing from start to end the solid geometry lies on the

@@ -2,9 +2,9 @@
 // defined here with the y_* macros are automatically exposed to Lua.
 #ifndef LUA_API_H
 #define LUA_API_H
-#include "collision.h"
-#include "databank.h"
-#include "game_stage.h"
+#include "data/bank.h"
+#include "game/collision.h"
+#include "game/stage.h"
 #include "render/util.h"
 #endif
 

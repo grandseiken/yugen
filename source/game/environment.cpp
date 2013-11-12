@@ -1,7 +1,8 @@
 #include "environment.h"
-#include "perlin.h"
-#include "render/gl_util.h"
-#include "render/util.h"
+
+#include "../perlin.h"
+#include "../render/gl_util.h"
+#include "../render/util.h"
 
 Environment::Environment(GlUtil& gl, bool fake)
   : _fog_program(gl.make_unique_program({

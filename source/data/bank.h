@@ -1,10 +1,11 @@
-#ifndef DATABANK_H
-#define DATABANK_H
+#ifndef DATA__BANK_H
+#define DATA__BANK_H
 
-#include "common.h"
 #include "cell.h"
-#include "render/gl_handle.h"
 #include "tileset.h"
+
+#include "../common.h"
+#include "../render/gl_handle.h"
 
 #include <algorithm>
 #include <iostream>

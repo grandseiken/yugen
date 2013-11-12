@@ -1,7 +1,7 @@
 #ifndef EDITOR__MAP_UTIL_H
 #define EDITOR__MAP_UTIL_H
 
-#include "../cell.h"
+#include "../data/cell.h"
 #include "../common.h"
 #include "../modal.h"
 #include "../ui_util.h"

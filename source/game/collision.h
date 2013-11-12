@@ -1,10 +1,10 @@
-#ifndef COLLISION_H
-#define COLLISION_H
+#ifndef GAME__COLLISION_H
+#define GAME__COLLISION_H
 
-#include "common.h"
-#include "lua.h"
-#include "spatial_hash.h"
-#include "vector.h"
+#include "../common.h"
+#include "../lua.h"
+#include "../spatial_hash.h"
+#include "../vector.h"
 
 struct Body;
 class RenderUtil;

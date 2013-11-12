@@ -1,6 +1,6 @@
 #include "world.h"
 
-#include "tileset.h"
+#include "../data/tileset.h"
 #include <boost/functional/hash.hpp>
 
 Geometry::Geometry(const y::ivec2& start, const y::ivec2& end, bool external)

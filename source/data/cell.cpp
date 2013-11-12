@@ -1,7 +1,8 @@
+#include "bank.h"
 #include "cell.h"
-#include "databank.h"
-#include "proto/cell.pb.h"
 #include "tileset.h"
+
+#include "../proto/cell.pb.h"
 
 CellMap::CellMap()
   : _min(0, 0)

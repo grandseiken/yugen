@@ -1,7 +1,8 @@
 #include "lighting.h"
-#include "render/gl_util.h"
-#include "render/util.h"
 #include "world.h"
+
+#include "../render/gl_util.h"
+#include "../render/util.h"
 
 #include <algorithm>
 #include <boost/functional/hash.hpp>

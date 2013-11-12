@@ -1,5 +1,5 @@
 #include "lua.h"
-#include "collision.h"
+#include "game/collision.h"
 
 namespace {
   // Variadic push.

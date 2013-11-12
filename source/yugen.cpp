@@ -1,9 +1,9 @@
 #include "yugen.h"
 
-#include "databank.h"
-#include "game_stage.h"
+#include "data/bank.h"
 #include "filesystem/physical.h"
 #include "filesystem/compressed.h"
+#include "game/stage.h"
 #include "render/gl_util.h"
 #include "render/util.h"
 #include "render/window.h"

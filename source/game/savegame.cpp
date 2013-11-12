@@ -1,6 +1,7 @@
 #include "savegame.h"
-#include "databank.h"
-#include "proto/savegame.pb.h"
+
+#include "../data/bank.h"
+#include "../proto/savegame.pb.h"
 
 // Possibly these two functions should be in lua_types.h, but they're unlikely
 // to be useful in any other context.

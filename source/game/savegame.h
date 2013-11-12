@@ -1,9 +1,9 @@
-#ifndef SAVEGAME_H
-#define SAVEGAME_H
+#ifndef GAME__SAVEGAME_H
+#define GAME__SAVEGAME_H
 
-#include "common.h"
-#include "lua_types.h"
-#include "save.h"
+#include "../common.h"
+#include "../lua_types.h"
+#include "../save.h"
 
 class Filesystem;
 namespace proto {
