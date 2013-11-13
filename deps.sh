@@ -1,3 +1,4 @@
+#!/bin/sh
 # Usage:
 # ./deps.sh depfile buildfile outdir file
 DEPFILE=$1

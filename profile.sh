@@ -1,3 +1,4 @@
+#!/bin/bash
 rm callgrind.out*
 rm callgrind.anno*
 valgrind --tool=callgrind --instr-atstart=no bin/yugen
