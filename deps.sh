@@ -51,6 +51,7 @@ get_new_deps() {
   return $ANY
 }
 
+# Extract deps until we have them all.
 DEPS=""
 NEW_DEPS="$FILE"
 ANY=0
