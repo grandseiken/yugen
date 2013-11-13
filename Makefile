@@ -46,7 +46,7 @@ LFLAGS= \
 	-lz -lbz2 \
 	\
 	-Wl,-Bdynamic \
-	-lGLEW -lGL -lX11	-lXrandr -ljpeg	-lpthread -ldl
+	-lGLEW -lGL -lX11 -lXrandr -ljpeg -lpthread -ldl
 PFLAGS= \
 	-I=./source/proto \
 	--cpp_out=./gen/proto
