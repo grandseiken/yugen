@@ -17,8 +17,8 @@ get_deps() {
   DEPS=""
   for DEP in $LIST; do
     # Prefix directory and collapse pathname.
-    DEP="$DIR/$DEP"
-    DEP=$(echo $DEP | \
+    DEP=$(
+        echo "$DIR/$DEP" | \
         sed ":repeat; s/[^/]\+\/\(\.\.\/\)*\.\.\//\1/; t repeat")
     DEPS="$DEPS $DEP"
   done
