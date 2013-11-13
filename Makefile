@@ -114,10 +114,10 @@ clean:
 # When the specific .build target doesn't exist, the default causes everything
 # to be generated.
 ./$(OUTDIR)/%.deps: \
-	./$(OUTDIR)/%.build ./$(OUTDIR)/%.mkdir ./deps.sh
+	./$(OUTDIR)/%.build ./$(OUTDIR)/%.mkdir ./Makedeps
 	@SOURCE_FILE=$(subst ./$(OUTDIR)/,,./$(@:.deps=)); \
 	    echo Generating dependencies for $$SOURCE_FILE; \
-	    ./deps.sh $@ $< $$SOURCE_FILE
+	    ./Makedeps $@ $< $$SOURCE_FILE
 .PRECIOUS: ./$(OUTDIR)/%.build
 ./$(OUTDIR)/%.build: \
 	./% $(HEADERS) ./$(OUTDIR)/%.mkdir
