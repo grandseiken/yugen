@@ -9,14 +9,3 @@ MILESTONES
  + Space, weather, lightning, snow, etc
  + Physics, hook shot, long shot, morph ball, etc
  + Terrain modification?
-
-DEPENDENCIES
-
- - Bash
- - Boost
- - C++
- - GLSL
- - LuaJIT
- - Protobuf
- - SFML
- - OpenGL

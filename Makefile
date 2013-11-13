@@ -3,6 +3,17 @@
 #   yedit - the Yedit editor binary
 #   clean - delete all outputs
 # Pass DBG=1 to make for debug binaries.
+#
+# External package dependencies:
+#   make
+#   libz-dev libbz2-dev
+#   libglew-dev libgl-dev libx11-dev libjpeg-dev
+# For SFML:
+#   cmake
+#   build-essential mesa-common-dev
+#   libx11-dev libxrandr-dev libgl1-mesa-dev
+#   libglu1-mesa-dev libfreetype6-dev
+#   libopenal-dev libsndfile1-dev
 .SUFFIXES:
 
 # Compilers and interpreters.
@@ -65,16 +76,16 @@ PROTO_SOURCES= \
 	$(subst ./source/,./gen/,$(PROTOS:.proto=.pb.cc))
 PROTO_HEADERS= \
 	$(subst ./source/,./gen/,$(PROTOS:.proto=.pb.h))
-SOURCES= \
+SOURCE_FILES= \
 	$(wildcard ./source/*.cpp) \
-	$(wildcard ./source/*/*.cpp) \
-	$(wildcard ./source/*.cc) \
-	$(wildcard ./source/*/*.cc) \
-	$(PROTO_SOURCES)
-HEADERS= \
+	$(wildcard ./source/*/*.cpp)
+SOURCES= \
+	$(SOURCE_FILES) $(PROTO_SOURCES)
+HEADER_FILES= \
 	$(wildcard ./source/*.h) \
-	$(wildcard ./source/*/*.h) \
-	$(PROTO_HEADERS)
+	$(wildcard ./source/*/*.h)
+HEADERS= \
+	$(HEADER_FILES) $(PROTO_HEADERS)
 DEPFILES= \
   $(addprefix ./$(OUTDIR)/,\
 	$(addsuffix .deps,$(SOURCES)))
@@ -86,20 +97,50 @@ YUGEN_OBJECTS= \
 	$(filter-out ./%/yedit.cpp.o,$(OBJECTS))
 YEDIT_OBJECTS= \
 	$(filter-out ./%/yugen.cpp.o,$(OBJECTS))
+GLSL_FILES= \
+	$(wildcard ./data/shaders/*.glsl) \
+	$(wildcard ./data/shaders/*/*.glsl)
+LUA_FILES= \
+	$(wildcard ./data/scripts/*.lua) \
+	$(wildcard ./data/scripts/*/*.lua)
+DATA_FILES= \
+	$(wildcard ./data/tiles/*) \
+	$(wildcard ./data/world/*)
+SCRIPT_FILES= \
+  Makefile Makedeps README ./*.sh
 
 # Master targets.
 .PHONY: all
 all: \
 	$(YUGEN) $(YEDIT)
-.PHONY: proto
-proto: \
-	$(PROTO_SOURCES) $(PROTO_HEADERS)
 .PHONY: yugen
 yugen: \
 	$(YUGEN)
 .PHONY: yedit
 yedit: \
 	$(YEDIT)
+.PHONY: add
+add:
+	@git add $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
+	    $(SOURCE_FILES) $(HEADER_FILES) $(DATA_FILES)
+.PHONY: todo
+todo:
+	@grep --color -n "T[O]D[O]" \
+	    $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
+	    $(SOURCE_FILES) $(HEADER_FILES)
+.PHONY: wc
+wc:
+	@echo Scripts and docs:
+	@cat $(SCRIPT_FILES) | wc
+	@echo GLSL:
+	@cat $(GLSL_FILES) | wc
+	@echo Lua:
+	@cat $(LUA_FILES) | wc
+	@echo C++:
+	@cat $(SOURCE_FILES) $(HEADER_FILES) | wc
+	@echo Total:
+	@cat $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
+	    $(SOURCE_FILES) $(HEADER_FILES) | wc
 .PHONY: clean
 clean:
 	@rm -rf ./$(OUTDIR)

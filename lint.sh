@@ -1,5 +1,6 @@
 #!/bin/bash
 # Usage: lint.sh
+# TODO: rewrite this as a YACC linter.
 cd "$(dirname "$0")"
 
 function lint
@@ -38,7 +39,6 @@ function lint_cstyle
   lint_highlight '\} *else' 'Line \1 else line'
 }
 
-# TODO: lint things on adjacent lines (for indent checking).
 for file in source/*.* source/*/*; do
   echo Linting: $file
   lint_common
