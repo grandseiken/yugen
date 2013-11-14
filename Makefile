@@ -51,26 +51,33 @@ PROTOBUF_DIR= \
 	./depend/protobuf_2_5_0
 SFML_DIR= \
 	./depend/sfml_2_1
+# Boost compiled libraries we depend on.
+BOOST_LIBRARIES= \
+	filesystem iostreams system
+
+DEPENDENCY_DIRS= \
+	$(BOOST_DIR) $(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
+DEPENDENCY_CFLAGS= \
+	$(addprefix -isystem ,\
+	$(addsuffix /include,$(DEPENDENCY_DIRS)))
+DEPENDENCY_LFLAGS= \
+	$(addsuffix /lib,\
+	$(addprefix -L,$(DEPENDENCY_DIRS)))
+BOOST_LIBRARIES_LFLAGS= \
+	$(addprefix -lboost_,$(BOOST_LIBRARIES))
 
 # Compiler flags.
 CFLAGS= \
-	-isystem $(BOOST_DIR)/include \
-	-isystem $(SFML_DIR)/include \
-	-isystem $(LUAJIT_DIR)/include \
-	-isystem $(PROTOBUF_DIR)/include \
-	\
-	-std=c++11
+	-std=c++11 \
+	$(DEPENDENCY_CFLAGS)
 LFLAGS= \
-	-L$(BOOST_DIR)/lib \
-	-L$(SFML_DIR)/lib \
-	-L$(LUAJIT_DIR)/lib \
-	-L$(PROTOBUF_DIR)/lib \
+	$(DEPENDENCY_LFLAGS) \
 	\
 	-Wl,-Bstatic \
-	-lboost_filesystem -lboost_iostreams -lboost_system \
-	-lsfml-graphics-s -lsfml-window-s -lsfml-system-s \
-	-lprotobuf \
+	$(BOOST_LIBRARIES_LFLAGS) \
 	-lluajit-5.1 \
+	-lprotobuf \
+	-lsfml-graphics-s -lsfml-window-s -lsfml-system-s \
 	-lz -lbz2 \
 	\
 	-Wl,-Bdynamic \
@@ -240,9 +247,7 @@ $(YEDIT): \
 BOOST_CONFIGURE_FLAGS= \
 	--toolset=$(notdir $(CC)) \
 	--prefix=$(CURDIR)/$(BOOST_DIR) \
-	--with-filesystem \
-	--with-iostreams \
-	--with-system
+	$(addprefix --with-,$(BOOST_LIBRARIES))
 LUAJIT_MAKE_FLAGS= \
   PREFIX=$(CURDIR)/$(LUAJIT_DIR) \
 	INSTALL_INC=$(CURDIR)/$(LUAJIT_DIR)/include/lua
@@ -253,6 +258,7 @@ PROTOBUF_CONFIGURE_FLAGS= \
 CMAKE= \
 	cmake
 CMAKE_FLAGS= \
+	-DCMAKE_CC_COMPILER=$(CC) \
   -DCMAKE_CXX_COMPILER=$(CXX) \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX=. \
