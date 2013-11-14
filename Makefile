@@ -2,7 +2,13 @@
 #   yugen - the Yugen game binary
 #   yedit - the Yedit editor binary
 #   clean - delete all outputs
+#   clean_all - delete all outputs and clean dependencies
 # Pass DBG=1 to make for debug binaries.
+#
+# Utilities:
+#   todo - print todo lines in all code files
+#   add - run git add on all code files
+#   wc - print line counts of all code files
 #
 # External package dependencies:
 #   make
@@ -168,9 +174,15 @@ clean_all: \
 	./% $(HEADERS) ./$(OUTDIR)/%.mkdir
 	touch $@
 
+ifneq ('$(MAKECMDGOALS)', 'add')
+ifneq ('$(MAKECMDGOALS)', 'todo')
+ifneq ('$(MAKECMDGOALS)', 'wc')
 ifneq ('$(MAKECMDGOALS)', 'clean')
 ifneq ('$(MAKECMDGOALS)', 'clean_all')
 -include $(DEPFILES)
+endif
+endif
+endif
 endif
 endif
 
@@ -181,11 +193,11 @@ endif
 
 # Binaries.
 $(YUGEN): \
-	depend.build $(YUGEN_OBJECTS)
+	./depend.build $(YUGEN_OBJECTS)
 	@echo Linking ./$@
 	$(CXX) -o ./$@ $(YUGEN_OBJECTS) $(LFLAGS)
 $(YEDIT): \
-	depend.build $(YEDIT_OBJECTS)
+	./depend.build $(YEDIT_OBJECTS)
 	@echo Linking ./$@
 	$(CXX) -o ./$@ $(YEDIT_OBJECTS) $(LFLAGS)
 
@@ -206,7 +218,7 @@ $(YEDIT): \
 	./gen/proto/%.pb.h
 	touch $@ $<
 ./gen/proto/%.pb.h: \
-	./source/proto/%.proto ./gen/proto/.mkdir
+	./source/proto/%.proto ./gen/proto/.mkdir ./depend.build
 	@echo Compiling ./$<
 	$(PROTOC) $(PFLAGS) ./$<
 

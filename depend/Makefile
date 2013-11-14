@@ -22,19 +22,33 @@ SFML_CMAKE_FLAGS= \
 	-DSFML_BUILD_EXAMPLES=FALSE \
 	-DSFML_INSTALL_PKGCONFIG_FILES=FALSE
 
+PROTOBUF_CONFIGURE_FLAGS= \
+  --prefix=$(CURDIR)/$(PROTOBUF_DIR)
+
 .PHONY: all
 all: \
+	./protobuf.build \
 	./sfml.build
 
-# Build SFML. CMake seems to fail the first time and work the second time.
-# I can't work out why.
+# Build protobuf.
+./protobuf.build:
+	@echo Building protobuf
+	cd $(PROTOBUF_DIR) && \
+		  alias chmod='echo chmod' && \
+	    ./configure $(PROTOBUF_CONFIGURE_FLAGS)
+	cd $(PROTOBUF_DIR) && $(MAKE)
+	cd $(PROTOBUF_DIR) && $(MAKE) check
+	cd $(PROTOBUF_DIR) && $(MAKE) install
+	touch ./protobuf.build
+
+# Build SFML.
 ./sfml.build:
 	@echo Building SFML
-	-cd $(SFML_DIR) && $(CMAKE) $(SFML_CMAKE_FLAGS)
 	cd $(SFML_DIR) && $(CMAKE) $(SFML_CMAKE_FLAGS)
 	cd $(SFML_DIR) && $(MAKE)
 	touch ./sfml.build
 
 clean:
 	rm -f ./*.build
+	-cd $(PROTOBUF_DIR) && [ -f ./Makefile ] && $(MAKE) clean
 	-cd $(SFML_DIR) && [ -f ./Makefile ] && $(MAKE) clean
