@@ -29,5 +29,5 @@ all: \
 	touch ./sfml.build
 
 clean:
-	cd $(SFML_DIR) && $(MAKE) clean
 	rm -f ./*.build
+	-cd $(SFML_DIR) && [ -f ./Makefile ] && $(MAKE) clean
