@@ -16,11 +16,11 @@
 .SUFFIXES:
 
 # Compilers and interpreters.
-SHELL= \
+export SHELL= \
 	/bin/sh
-CXX= \
-	g++-4.8
-PROTOC= \
+export CXX= \
+	/usr/bin/g++-4.8
+export PROTOC= \
 	./depend/protobuf_2_5_0/bin/protoc
 
 # Final outputs.
@@ -61,11 +61,11 @@ PFLAGS= \
 	-I=./source/proto \
 	--cpp_out=./gen/proto
 ifeq ($(DBG), 1)
-CFLAGS += -O3
-else
 CFLAGS += -Og \
 	-Werror -Wall -Wextra -Wpedantic \
 	-DLUA_DEBUG -DGL_DEBUG
+else
+CFLAGS += -O3
 endif
 
 # File listings.
