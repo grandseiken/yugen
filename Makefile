@@ -24,6 +24,8 @@
 # Compilers and interpreters.
 export SHELL= \
 	/bin/sh
+export CC= \
+	/usr/bin/gcc-4.8
 export CXX= \
 	/usr/bin/g++-4.8
 export PROTOC= \
@@ -67,7 +69,7 @@ PFLAGS= \
 	-I=./source/proto \
 	--cpp_out=./gen/proto
 ifeq ($(DBG), 1)
-CFLAGS += -Og \
+CFLAGS += -Og -g -ggdb \
 	-Werror -Wall -Wextra -Wpedantic \
 	-DLUA_DEBUG -DGL_DEBUG
 else
@@ -196,7 +198,8 @@ $(YEDIT): \
 # and any header files it needs. The extra level of indirection makes the
 # autogeneration much nicer.
 ./$(OUTDIR)/%.o: \
-	./$(OUTDIR)/%.build ./$(OUTDIR)/%.mkdir
+	./$(OUTDIR)/%.build ./$(OUTDIR)/%.mkdir \
+	./depend/protobuf.build ./depend/luajit.build
 	SOURCE_FILE=$(subst ./$(OUTDIR)/,,./$(<:.build=)); \
 	    echo Compiling $$SOURCE_FILE; \
 	    $(CXX) -c $(CFLAGS) -o $@ $$SOURCE_FILE
@@ -228,6 +231,12 @@ PROTOBUF_DIR= \
 SFML_DIR= \
 	./depend/sfml_2_1
 
+LUAJIT_MAKE_FLAGS= \
+  PREFIX=$(CURDIR)/$(LUAJIT_DIR) \
+	INSTALL_INC=$(CURDIR)/$(LUAJIT_DIR)/include/lua
+PROTOBUF_CONFIGURE_FLAGS= \
+  --prefix=$(CURDIR)/$(PROTOBUF_DIR)
+
 # CMake variables.
 CMAKE= \
 	cmake
@@ -242,14 +251,19 @@ SFML_CMAKE_FLAGS= \
 	-DSFML_BUILD_EXAMPLES=FALSE \
 	-DSFML_INSTALL_PKGCONFIG_FILES=FALSE
 
-PROTOBUF_CONFIGURE_FLAGS= \
-  --prefix=$(CURDIR)/$(PROTOBUF_DIR)
-
 # Dependencies.
 ./depend/.build: \
+	./depend/luajit.build \
 	./depend/protobuf.build \
 	./depend/sfml.build
-	touch ./depend.build
+	touch ./depend/.build
+
+# Build LuaJIT.
+./depend/luajit.build:
+	@echo Building LuaJIT
+	cd $(LUAJIT_DIR) && $(MAKE) $(LUAJIT_MAKE_FLAGS)
+	cd $(LUAJIT_DIR) && $(MAKE) install $(LUAJIT_MAKE_FLAGS)
+	touch ./depend/luajit.build
 
 # Build protobuf.
 ./depend/protobuf.build:
@@ -275,3 +289,5 @@ clean_all: \
 	rm -f ./depend/*.build
 	-cd $(PROTOBUF_DIR) && [ -f ./Makefile ] && $(MAKE) clean
 	-cd $(SFML_DIR) && [ -f ./Makefile ] && $(MAKE) clean
+	cd $(LUAJIT_DIR) && $(MAKE) $(LUAJIT_MAKE_FLAGS) uninstall
+	cd $(LUAJIT_DIR) && $(MAKE) $(LUAJIT_MAKE_FLAGS) clean
