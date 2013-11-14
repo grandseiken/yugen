@@ -111,10 +111,10 @@ HEADER_FILES= \
 HEADERS= \
 	$(HEADER_FILES) $(PROTO_HEADERS)
 DEPFILES= \
-  $(addprefix ./$(OUTDIR)/,\
+	$(addprefix ./$(OUTDIR)/,\
 	$(addsuffix .deps,$(SOURCES)))
 OBJECTS= \
-  $(addprefix ./$(OUTDIR)/,\
+	$(addprefix ./$(OUTDIR)/,\
 	$(patsubst %.cc,%.cc.o,\
 	$(patsubst %.cpp,%.cpp.o,$(SOURCES))))
 YUGEN_OBJECTS= \
@@ -230,7 +230,8 @@ $(YEDIT): \
 	./gen/proto/%.pb.h
 	touch $@ $<
 ./gen/proto/%.pb.h: \
-	./source/proto/%.proto ./gen/proto/.mkdir ./depend/protobuf.build
+	./source/proto/%.proto ./gen/proto/.mkdir \
+	./depend/protobuf.build
 	@echo Compiling ./$<
 	$(PROTOC) $(PFLAGS) ./$<
 
@@ -249,17 +250,17 @@ BOOST_CONFIGURE_FLAGS= \
 	--prefix=$(CURDIR)/$(BOOST_DIR) \
 	$(addprefix --with-,$(BOOST_LIBRARIES))
 LUAJIT_MAKE_FLAGS= \
-  PREFIX=$(CURDIR)/$(LUAJIT_DIR) \
+	PREFIX=$(CURDIR)/$(LUAJIT_DIR) \
 	INSTALL_INC=$(CURDIR)/$(LUAJIT_DIR)/include/lua
 PROTOBUF_CONFIGURE_FLAGS= \
-  --prefix=$(CURDIR)/$(PROTOBUF_DIR)
+	--prefix=$(CURDIR)/$(PROTOBUF_DIR)
 
 # CMake variables.
 CMAKE= \
 	cmake
 CMAKE_FLAGS= \
 	-DCMAKE_CC_COMPILER=$(CC) \
-  -DCMAKE_CXX_COMPILER=$(CXX) \
+	-DCMAKE_CXX_COMPILER=$(CXX) \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX=. \
 	-DBUILD_SHARED_LIBS=FALSE
