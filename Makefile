@@ -112,7 +112,7 @@ DATA_FILES= \
 	$(wildcard ./data/tiles/*) \
 	$(wildcard ./data/world/*)
 SCRIPT_FILES= \
-  Makefile Makedeps README ./depend/Makefile ./*.sh
+  Makefile Makedeps README ./*.sh
 
 # Master targets.
 .PHONY: all
@@ -150,11 +150,6 @@ wc:
 clean:
 	rm -rf ./$(OUTDIR)
 	rm -rf ./gen
-.PHONY: clean_all
-clean_all: \
-	clean
-	rm -f ./depend.build
-	cd ./depend && $(MAKE) clean
 
 # Dependency generation. Each source file generates a corresponding .deps file
 # (a Makefile containing a .build target), which is then included. Inclusion
@@ -186,18 +181,13 @@ endif
 endif
 endif
 
-# Dependencies.
-./depend.build:
-	cd ./depend && $(MAKE)
-	touch ./depend.build
-
 # Binaries.
 $(YUGEN): \
-	./depend.build $(YUGEN_OBJECTS)
+	./depend/.build $(YUGEN_OBJECTS)
 	@echo Linking ./$@
 	$(CXX) -o ./$@ $(YUGEN_OBJECTS) $(LFLAGS)
 $(YEDIT): \
-	./depend.build $(YEDIT_OBJECTS)
+	./depend/.build $(YEDIT_OBJECTS)
 	@echo Linking ./$@
 	$(CXX) -o ./$@ $(YEDIT_OBJECTS) $(LFLAGS)
 
@@ -218,7 +208,7 @@ $(YEDIT): \
 	./gen/proto/%.pb.h
 	touch $@ $<
 ./gen/proto/%.pb.h: \
-	./source/proto/%.proto ./gen/proto/.mkdir ./depend.build
+	./source/proto/%.proto ./gen/proto/.mkdir ./depend/protobuf.build
 	@echo Compiling ./$<
 	$(PROTOC) $(PFLAGS) ./$<
 
@@ -227,3 +217,61 @@ $(YEDIT): \
 ./%.mkdir:
 	mkdir -p $(dir $@)
 	touch $@
+	
+# Makefile for dependencies below here.
+BOOST_DIR= \
+	./depend/boost_1_53_0
+LUAJIT_DIR= \
+	./depend/luajit_2_0_2
+PROTOBUF_DIR= \
+	./depend/protobuf_2_5_0
+SFML_DIR= \
+	./depend/sfml_2_1
+
+# CMake variables.
+CMAKE= \
+	cmake
+CMAKE_FLAGS= \
+  -DCMAKE_CXX_COMPILER=$(CXX) \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_INSTALL_PREFIX=. \
+	-DBUILD_SHARED_LIBS=FALSE
+SFML_CMAKE_FLAGS= \
+	$(CMAKE_FLAGS) \
+	-DSFML_BUILD_DOC=FALSE \
+	-DSFML_BUILD_EXAMPLES=FALSE \
+	-DSFML_INSTALL_PKGCONFIG_FILES=FALSE
+
+PROTOBUF_CONFIGURE_FLAGS= \
+  --prefix=$(CURDIR)/$(PROTOBUF_DIR)
+
+# Dependencies.
+./depend/.build: \
+	./depend/protobuf.build \
+	./depend/sfml.build
+	touch ./depend.build
+
+# Build protobuf.
+./depend/protobuf.build:
+	@echo Building protobuf
+	cd $(PROTOBUF_DIR) && \
+		  alias chmod='echo chmod' && \
+	    ./configure $(PROTOBUF_CONFIGURE_FLAGS)
+	cd $(PROTOBUF_DIR) && $(MAKE)
+	cd $(PROTOBUF_DIR) && $(MAKE) check
+	cd $(PROTOBUF_DIR) && $(MAKE) install
+	touch ./depend/protobuf.build
+
+# Build SFML.
+./depend/sfml.build:
+	@echo Building SFML
+	cd $(SFML_DIR) && $(CMAKE) $(SFML_CMAKE_FLAGS)
+	cd $(SFML_DIR) && $(MAKE)
+	touch ./depend/sfml.build
+
+.PHONY: clean_all
+clean_all: \
+	clean
+	rm -f ./depend/*.build
+	-cd $(PROTOBUF_DIR) && [ -f ./Makefile ] && $(MAKE) clean
+	-cd $(SFML_DIR) && [ -f ./Makefile ] && $(MAKE) clean
