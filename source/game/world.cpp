@@ -819,7 +819,7 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
   y::unique<bool[]> used(new bool[(1 + 2 * half_size) * (1 + 2 * half_size)]);
   // Stores which cells in the new active window have been filled.
   y::unique<bool[]> done(new bool[(1 + 2 * half_size) * (1 + 2 * half_size)]);
-  // We swap the geometry by offsetting it.
+  // We swap the geometry by offsetting it. This is fucking retarded.
   y::ivec2 geometry_swap{1 + 2 * active_window_half_size, 0};
 
   // Copy the active window into the temporary copy.
@@ -868,6 +868,9 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
     _active_window[internal_index].cell = y::move_unique(new_cell);
     if (new_blueprint) {
       _active_geometry.merge_geometry(*new_blueprint, *it);
+    }
+    else {
+      _active_geometry.clear_geometry(*it);
     }
     _active_geometry.clear_geometry(*it + geometry_swap);
   }
@@ -978,3 +981,4 @@ WorldWindow::active_window_entry::active_window_entry()
   , cell(y::null)
 {
 }
+
