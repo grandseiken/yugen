@@ -770,12 +770,14 @@ void CollisionData::update_spatial_hash(const Script& source)
   // at the same time.
   // Backtrace:
   //   y::map<Script, y::unique<Body>>::find
-  //   ScriptMap<Body>::get_list
-  //   CollisionData::update_spatial_hash
-  //   Script::set_origin
-  //   Collision::collider_move_raw [inside first no bodies or move == 0 check]
-  //   Collision::collider_move_push
-  //   Collision::collider_move_constrained
+  //   ScriptMap<Body>::get_list unordered_map.h:547
+  //   CollisionData::update_spatial_hash collision.cpp:779
+  //   Script::set_origin lua.cpp:536
+  //   Collision::collider_move_raw collision.cpp:951
+  //   Collision::collider_move_push collision.cpp:1207
+  //   Collision::collider_move_constrained collision.cpp:1337
+  //   Collision::collider_move collision.cpp:872
+  //   [lua]...
   for (const entry& body : get_list(source)) {
     auto bounds = body->get_bounds(source.get_origin(), source.get_rotation());
     _spatial_hash.update(body.get(), bounds.first, bounds.second);

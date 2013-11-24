@@ -21,6 +21,36 @@
 #   libopenal-dev libsndfile1-dev
 .SUFFIXES:
 
+# Final outputs.
+ifeq ($(DBG), 1)
+OUTDIR=./dbg
+else
+OUTDIR=./bin
+endif
+YUGEN= \
+	$(OUTDIR)/yugen
+YEDIT= \
+	$(OUTDIR)/yedit
+GEN= \
+	./gen
+SOURCE= \
+	./source
+
+# Dependency directories.
+DEPEND_DIR= \
+	./depend
+BOOST_DIR= \
+	$(DEPEND_DIR)/boost_1_55_0
+LUAJIT_DIR= \
+	$(DEPEND_DIR)/luajit_2_0_2
+PROTOBUF_DIR= \
+	$(DEPEND_DIR)/protobuf_2_5_0
+SFML_DIR= \
+	$(DEPEND_DIR)/sfml_2_1
+# Boost compiled libraries we depend on.
+BOOST_LIBRARIES= \
+	filesystem iostreams system
+
 # Compilers and interpreters.
 export SHELL= \
 	/bin/sh
@@ -29,31 +59,7 @@ export CC= \
 export CXX= \
 	/usr/bin/g++-4.8
 export PROTOC= \
-	./depend/protobuf_2_5_0/bin/protoc
-
-# Final outputs.
-ifeq ($(DBG), 1)
-OUTDIR=dbg
-else
-OUTDIR=bin
-endif
-YUGEN= \
-	./$(OUTDIR)/yugen
-YEDIT= \
-	./$(OUTDIR)/yedit
-
-# Dependency directories.
-BOOST_DIR= \
-	./depend/boost_1_55_0
-LUAJIT_DIR= \
-	./depend/luajit_2_0_2
-PROTOBUF_DIR= \
-	./depend/protobuf_2_5_0
-SFML_DIR= \
-	./depend/sfml_2_1
-# Boost compiled libraries we depend on.
-BOOST_LIBRARIES= \
-	filesystem iostreams system
+	$(PROTOBUF_DIR)/bin/protoc
 
 DEPENDENCY_DIRS= \
 	$(BOOST_DIR) $(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
@@ -83,8 +89,8 @@ LFLAGS= \
 	-Wl,-Bdynamic \
 	-lGLEW -lGL -lX11 -lXrandr -ljpeg -lpthread -ldl
 PFLAGS= \
-	-I=./source/proto \
-	--cpp_out=./gen/proto
+	-I=$(SOURCE)/proto \
+	--cpp_out=$(GEN)/proto
 ifeq ($(DBG), 1)
 CFLAGS += -Og -g -ggdb \
 	-Werror -Wall -Wextra -Wpedantic \
@@ -95,26 +101,26 @@ endif
 
 # File listings.
 PROTOS= \
-	$(wildcard ./source/proto/*.proto)
+	$(wildcard $(SOURCE)/proto/*.proto)
 PROTO_SOURCES= \
-	$(subst ./source/,./gen/,$(PROTOS:.proto=.pb.cc))
+	$(subst $(SOURCE)/,$(GEN)/,$(PROTOS:.proto=.pb.cc))
 PROTO_HEADERS= \
-	$(subst ./source/,./gen/,$(PROTOS:.proto=.pb.h))
+	$(subst $(SOURCE)/,$(GEN)/,$(PROTOS:.proto=.pb.h))
 SOURCE_FILES= \
-	$(wildcard ./source/*.cpp) \
-	$(wildcard ./source/*/*.cpp)
+	$(wildcard $(SOURCE)/*.cpp) \
+	$(wildcard $(SOURCE)/*/*.cpp)
 SOURCES= \
 	$(SOURCE_FILES) $(PROTO_SOURCES)
 HEADER_FILES= \
-	$(wildcard ./source/*.h) \
-	$(wildcard ./source/*/*.h)
+	$(wildcard $(SOURCE)/*.h) \
+	$(wildcard $(SOURCE)/*/*.h)
 HEADERS= \
 	$(HEADER_FILES) $(PROTO_HEADERS)
 DEPFILES= \
-	$(addprefix ./$(OUTDIR)/,\
+	$(addprefix $(OUTDIR)/,\
 	$(addsuffix .deps,$(SOURCES)))
 OBJECTS= \
-	$(addprefix ./$(OUTDIR)/,\
+	$(addprefix $(OUTDIR)/,\
 	$(patsubst %.cc,%.cc.o,\
 	$(patsubst %.cpp,%.cpp.o,$(SOURCES))))
 YUGEN_OBJECTS= \
@@ -167,8 +173,8 @@ wc:
 	    $(SOURCE_FILES) $(HEADER_FILES) | wc
 .PHONY: clean
 clean:
-	rm -rf ./$(OUTDIR)
-	rm -rf ./gen
+	rm -rf $(OUTDIR)
+	rm -rf $(GEN)
 
 # Dependency generation. Each source file generates a corresponding .deps file
 # (a Makefile containing a .build target), which is then included. Inclusion
@@ -178,14 +184,14 @@ clean:
 # This means we only need to regenerate dependencies when a dependency changes.
 # When the specific .build target doesn't exist, the default causes everything
 # to be generated.
-./$(OUTDIR)/%.deps: \
-	./$(OUTDIR)/%.build ./$(OUTDIR)/%.mkdir ./Makedeps
-	SOURCE_FILE=$(subst ./$(OUTDIR)/,,./$(@:.deps=)); \
+$(OUTDIR)/%.deps: \
+	$(OUTDIR)/%.build $(OUTDIR)/%.mkdir ./Makedeps
+	SOURCE_FILE=$(subst $(OUTDIR)/,,./$(@:.deps=)); \
 	    echo Generating dependencies for $$SOURCE_FILE; \
 	    ./Makedeps $@ $< $$SOURCE_FILE
-.PRECIOUS: ./$(OUTDIR)/%.build
-./$(OUTDIR)/%.build: \
-	./% $(HEADERS) ./$(OUTDIR)/%.mkdir
+.PRECIOUS: $(OUTDIR)/%.build
+$(OUTDIR)/%.build: \
+	./% $(HEADERS) $(OUTDIR)/%.mkdir
 	touch $@
 
 ifneq ('$(MAKECMDGOALS)', 'add')
@@ -216,21 +222,21 @@ $(YEDIT): \
 # autogeneration much nicer.
 # We depend on the projects whose include directories are not created until they
 # are built.
-./$(OUTDIR)/%.o: \
-	./$(OUTDIR)/%.build ./$(OUTDIR)/%.mkdir \
+$(OUTDIR)/%.o: \
+	$(OUTDIR)/%.build $(OUTDIR)/%.mkdir \
 	./depend/boost.build ./depend/luajit.build ./depend/protobuf.build
-	SOURCE_FILE=$(subst ./$(OUTDIR)/,,./$(<:.build=)); \
+	SOURCE_FILE=$(subst $(OUTDIR)/,,./$(<:.build=)); \
 	    echo Compiling $$SOURCE_FILE; \
 	    $(CXX) -c $(CFLAGS) -o $@ $$SOURCE_FILE
 
 # Proto files. These are generated in pairs, so we have a little bit of trickery
 # to make that work right.
 .PRECIOUS: $(PROTO_HEADERS) $(PROTO_SOURCES)
-./gen/proto/%.pb.cc: \
-	./gen/proto/%.pb.h
+$(GEN)/proto/%.pb.cc: \
+	$(GEN)/proto/%.pb.h
 	touch $@ $<
-./gen/proto/%.pb.h: \
-	./source/proto/%.proto ./gen/proto/.mkdir \
+$(GEN)/proto/%.pb.h: \
+	$(SOURCE)/proto/%.proto $(GEN)/proto/.mkdir \
 	./depend/protobuf.build
 	@echo Compiling ./$<
 	$(PROTOC) $(PFLAGS) ./$<

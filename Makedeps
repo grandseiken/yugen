@@ -1,6 +1,6 @@
 #!/bin/sh
 # Usage:
-# ./deps.sh depfile buildfile outdir file
+# ./deps.sh depfile buildfile file
 DEPFILE=$1
 BUILDFILE=$2
 FILE=$3
