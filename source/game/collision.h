@@ -202,26 +202,29 @@ private:
 
   // Primitive move function. Moves the collider as far as it can go and stops.
   y::world collider_move_raw(Body*& first_blocker_output,
-                             Script& source, const y::wvec2& move) const;
+                             Script& source, const y::wvec2& move,
+                             const y::set<Script*>& excluded_set) const;
 
   // Likewise for rotation.
   y::world collider_rotate_raw(Script& source, y::world rotate,
                                const y::wvec2& origin_offset,
-                               y::set<Script*> excluded_set) const;
+                               const y::set<Script*>& excluded_set) const;
 
   // Move function with pushing.
   y::world collider_move_push(
       y::vector<Script*>& push_script_output,
       y::vector<y::wvec2>& push_amount_output,
       Script& source, const y::wvec2& move,
-      y::int32 push_mask, y::int32 push_max) const;
+      y::int32 push_mask, y::int32 push_max,
+      const y::set<Script*>& excluded_set) const;
 
   // Move function respecting constraints.
   y::world collider_move_constrained(
       y::vector<Script*>& push_script_output,
       y::vector<y::wvec2>& push_amount_output,
       Script& source, const y::wvec2& move,
-      y::int32 push_mask, y::int32 push_max) const;
+      y::int32 push_mask, y::int32 push_max,
+      const y::set<Script*>& initial_excluded_set) const;
 
   // Likewise for rotation.
   y::world collider_rotate_constrained(Script& source, y::world rotate,

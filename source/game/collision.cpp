@@ -858,7 +858,7 @@ y::wvec2 Collision::collider_move(y::vector<Script*>& push_script_output,
 {
   return move * collider_move_constrained(
       push_script_output, push_amount_output,
-      source, move, push_mask, push_max);
+      source, move, push_mask, push_max, {});
 }
 
 y::world Collision::collider_rotate(Script& source, y::world rotate,
@@ -932,7 +932,8 @@ bool Collision::body_check(const Body* body, y::int32 collide_mask) const
 }
 
 y::world Collision::collider_move_raw(
-    Body*& first_block_output, Script& source, const y::wvec2& move) const
+    Body*& first_block_output, Script& source, const y::wvec2& move,
+    const y::set<Script*>& excluded_set) const
 {
   first_block_output = y::null;
   const entry_list& bodies = _data.get_list(source);
@@ -1016,9 +1017,11 @@ y::world Collision::collider_move_raw(
     get_vertices_and_geometries_for_move(
         geometries, vertices, move, vertices_temp);
 
+    // Ignore bodies whose source Script lies in the exluded set.
     for (Body* block : blocking_bodies) {
       if (&block->source == &source ||
-          !(b.collide_mask & block->collide_type)) {
+          !(b.collide_mask & block->collide_type) ||
+          excluded_set.count(&block->source)) {
         continue;
       }
 
@@ -1051,9 +1054,9 @@ y::world Collision::collider_move_raw(
   return min_ratio;
 }
 
-y::world Collision::collider_rotate_raw(Script& source, y::world rotate,
-                                        const y::wvec2& origin_offset,
-                                        y::set<Script*> excluded_set) const
+y::world Collision::collider_rotate_raw(
+    Script& source, y::world rotate,
+    const y::wvec2& origin_offset, const y::set<Script*>& excluded_set) const
 {
   // TODO: rotation still seems to be a little bit inconsistent as to
   // when a thing touching a surface at a point will rotate. Seems like
@@ -1148,7 +1151,6 @@ y::world Collision::collider_rotate_raw(Script& source, y::world rotate,
     get_vertices_and_geometries_for_rotate(
         geometries, vertices, rotate, origin, vertices_temp);
 
-    // Ignore bodies whose source Script lies in the exluded set.
     for (Body* block : blocking_bodies) {
       if (&block->source == &source ||
           !(b.collide_mask & block->collide_type) ||
@@ -1187,13 +1189,15 @@ y::world Collision::collider_move_push(
     y::vector<Script*>& push_script_output,
     y::vector<y::wvec2>& push_amount_output,
     Script& source, const y::wvec2& move,
-    y::int32 push_mask, y::int32 push_max) const
+    y::int32 push_mask, y::int32 push_max,
+    const y::set<Script*>& excluded_set) const
 {
   // TODO: (optionally) recurse against the blocked direction, i.e. slide down
   // a wall if we can? Doesn't matter for 'characters' who walk about through
   // very specific moves, for probably does for dumb physics-y objects.
   Body* first_block;
-  y::world move_ratio = collider_move_raw(first_block, source, move);
+  y::world move_ratio = collider_move_raw(
+      first_block, source, move, excluded_set);
 
   if (!first_block || !push_mask || push_max <= 0 ||
       !(push_mask & first_block->collide_type)) {
@@ -1205,12 +1209,14 @@ y::world Collision::collider_move_push(
   Script& block_source = first_block->source;
   y::wvec2 remaining_move = move * (1 - move_ratio);
 
-  // Attempt to push the blocker.
+  // Attempt to push the blocker. Whether blocker push should preserve the
+  // excluded set is debatable; behaves incorrectly in different situations
+  // either way (I think).
   y::vector<Script*> push_scripts;
   y::vector<y::wvec2> push_amounts;
   y::world block_move_ratio = collider_move_constrained(
       push_scripts, push_amounts, block_source, remaining_move,
-      push_mask, push_max - 1);
+      push_mask, push_max - 1, excluded_set);
   // If it didn't move, we're stuck, continue as normal.
   if (block_move_ratio <= 0) {
     return move_ratio;
@@ -1233,7 +1239,7 @@ y::world Collision::collider_move_push(
   // more than push_max in general.
   y::world recursive_ratio = collider_move_push(
       push_scripts, push_amounts, source, block_move,
-      push_mask, push_max - push_script_output.size());
+      push_mask, push_max - push_script_output.size(), excluded_set);
 
   // If we got stuck closer than the blocked object, move the blockers we
   // already pushed back to where we got stuck.
@@ -1245,7 +1251,7 @@ y::world Collision::collider_move_push(
       // more-than-two-body interactions.
       y::wvec2 recursive_move = block_move * (recursive_ratio - 1.);
       push_amount_output[i] += recursive_move *
-          collider_move_raw(ignore, *s, recursive_move);
+          collider_move_raw(ignore, *s, recursive_move, excluded_set);
     }
   }
 
@@ -1260,33 +1266,20 @@ y::world Collision::collider_move_constrained(
     y::vector<Script*>& push_script_output,
     y::vector<y::wvec2>& push_amount_output,
     Script& source, const y::wvec2& move,
-    y::int32 push_mask, y::int32 push_max) const
+    y::int32 push_mask, y::int32 push_max,
+    const y::set<Script*>& initial_excluded_set) const
 {
   y::set<Script*> linked_scripts;
   if (!walk_constraint_graph(linked_scripts, source)) {
     return 0.;
   }
-
-  // Sorts objects in the direction of the movement vector.
-  // TODO: sorting by origin only is incorrect. We need to either consider
-  // maximum among body vertices, or use the "ignore linked scripts" method
-  // as in rotation.
-  struct direction_order {
-    y::wvec2 move_vec;
-
-    bool operator()(const Script* a, const Script* b) const
-    {
-      y::wvec2 normal_vec{move_vec[yy], -move_vec[xx]};
-      y::world a_dot = a->get_origin().dot(move_vec);
-      y::world b_dot = b->get_origin().dot(move_vec);
-
-      // If dot-products are equal, points line up on projection, so fall back
-      // to the signed distance from the line.
-      return a_dot < b_dot ||
-          (a_dot == b_dot &&
-           a->get_origin().dot(normal_vec) < b->get_origin().dot(normal_vec));
-    }
-  };
+  // So that chained Scripts at the back aren't blocked by ones at the front
+  // before they've moved, keep a set of Scripts to exclude from collision
+  // checks and move them all as one unified object.
+  y::set<Script*> excluded_set;
+  excluded_set.insert(initial_excluded_set.begin(),
+                      initial_excluded_set.end());
+  excluded_set.insert(linked_scripts.begin(), linked_scripts.end());
 
   // Reverses an entire move chain. Since pushes come out in reverse order,
   // doing this forwards is really the correct way.
@@ -1295,12 +1288,14 @@ y::world Collision::collider_move_constrained(
         const Collision& collision,
         Script& source, const y::wvec2& amount,
         const y::vector<Script*>& scripts,
-        const y::vector<y::wvec2>& amounts)
+        const y::vector<y::wvec2>& amounts,
+        const y::set<Script*> & excluded_set)
     {
       Body* ignore;
-      collision.collider_move_raw(ignore, source, -amount);
+      collision.collider_move_raw(ignore, source, -amount, excluded_set);
       for (y::size i = 0; i < scripts.size(); ++i) {
-        collision.collider_move_raw(ignore, *scripts[i], -amounts[i]);
+        collision.collider_move_raw(ignore, *scripts[i],
+                                    -amounts[i], excluded_set);
       }
     }
   };
@@ -1312,18 +1307,13 @@ y::world Collision::collider_move_constrained(
   y::vector<y::wvec2> moves;
   y::world limited_move = 1.;
 
-  // Move each script in order of the move direction. Sorting is important so
-  // that the Scripts at the back aren't blocked by the ones in front before
-  // they've moved.
-  direction_order order;
-  order.move_vec = move;
-  std::sort(scripts.rbegin(), scripts.rend(), order);
+  // Move each script in order of the move direction.
   for (Script* script : scripts) {
     push_scripts.emplace_back();
     push_amounts.emplace_back();
     y::world move_ratio = collider_move_push(
         *push_scripts.rbegin(), *push_amounts.rbegin(),
-        *script, move, push_mask, push_max);
+        *script, move, push_mask, push_max, excluded_set);
     move_ratio = y::max(0., move_ratio);
     limited_move = y::min(move_ratio, limited_move);
     moves.push_back(move_ratio * move);
@@ -1333,7 +1323,8 @@ y::world Collision::collider_move_constrained(
   if (limited_move < 1.) {
     for (y::int32 i = scripts.size() - 1; i >= 0; i--) {
       local::reverse_move(*this, *scripts[i], moves[i],
-                          push_scripts[i], push_amounts[i]);
+                          push_scripts[i], push_amounts[i],
+                          excluded_set);
     }
     push_scripts.clear();
     push_amounts.clear();
@@ -1343,7 +1334,7 @@ y::world Collision::collider_move_constrained(
         push_amounts.emplace_back();
         collider_move_push(
             *push_scripts.rbegin(), *push_amounts.rbegin(),
-            *script, limited_move * move, push_mask, push_max);
+            *script, limited_move * move, push_mask, push_max, excluded_set);
       }
     }
   }
@@ -1369,12 +1360,6 @@ y::world Collision::collider_rotate_constrained(
   // This function is currently considerably simpler than the corresponding
   // movement function, since rotations can't push (so we don't need to reverse
   // anything).
-  // Furthermore, we use a different strategy to the sort order trick to make
-  // sure the rotating bodies don't block each other. The corresponding sort
-  // for rotation is a hard problem (at least, I don't know how to do it).
-  // Instead, since there's no pushing, and therefore no recursion, we can
-  // simply treat everything involved as one unifed object and ignore linked
-  // scripts while doing the rotation.
   y::vector<Script*> scripts;
   for (Script* script : linked_scripts) {
     scripts.emplace_back(script);
