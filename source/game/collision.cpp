@@ -765,19 +765,6 @@ bool CollisionData::body_in_radius(
 
 void CollisionData::update_spatial_hash(const Script& source)
 {
-  // TODO: segmentation fault here on get_list(source).
-  // Not sure what's going on. Seems to occur only when constrained and pushing
-  // at the same time.
-  // Backtrace:
-  //   y::map<Script, y::unique<Body>>::find
-  //   ScriptMap<Body>::get_list unordered_map.h:547
-  //   CollisionData::update_spatial_hash collision.cpp:779
-  //   Script::set_origin lua.cpp:536
-  //   Collision::collider_move_raw collision.cpp:951
-  //   Collision::collider_move_push collision.cpp:1207
-  //   Collision::collider_move_constrained collision.cpp:1337
-  //   Collision::collider_move collision.cpp:872
-  //   [lua]...
   for (const entry& body : get_list(source)) {
     auto bounds = body->get_bounds(source.get_origin(), source.get_rotation());
     _spatial_hash.update(body.get(), bounds.first, bounds.second);
@@ -1362,7 +1349,7 @@ y::world Collision::collider_move_constrained(
   }
 
   // Collapse move lists and return.
-  for (y::size i = 0; i < scripts.size(); ++i) {
+  for (y::size i = 0; i < push_scripts.size(); ++i) {
     for (y::size j = 0; j < push_scripts[i].size(); ++j) {
       push_script_output.push_back(push_scripts[i][j]);
       push_amount_output.push_back(push_amounts[i][j]);
