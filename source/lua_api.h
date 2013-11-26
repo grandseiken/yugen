@@ -578,18 +578,35 @@ y_api(get_sprite)
   y_return(&stage.get_bank().sprites.get(path));
 }
 
-// TODO: accept colour arguments.
 y_api(add_particle)
     y_arg(y::int32, tag) y_arg(y::int32, frames) y_arg(y::int32, size)
+    y_arg(y::world, depth) y_arg(y::world, layering_value)
     y_arg(const y::wvec2, p) y_arg(const y::wvec2, dp)
     y_arg(const y::wvec2, d2p)
-    y_arg(y::world, depth) y_arg(y::world, layering_value)
+    y_optarg(y::world, r) y_optarg(y::world, g)
+    y_optarg(y::world, b) y_optarg(y::world, a)
+    y_optarg(y::world, dr) y_optarg(y::world, dg)
+    y_optarg(y::world, db) y_optarg(y::world, da)
+    y_optarg(y::world, d2r) y_optarg(y::world, d2g)
+    y_optarg(y::world, d2b) y_optarg(y::world, d2a)
 {
   stage.get_environment().add_particle(
-      Particle(tag, frames, size,
-               p, dp, d2p,
-               y::fvec4(), y::fvec4(), y::fvec4(),
-               depth, layering_value));
+      Particle(
+          tag, frames, size,
+          depth, layering_value,
+          p, dp, d2p,
+          y::fvec4(r_defined ? float(r) : 0.f,
+                   g_defined ? float(g) : 0.f,
+                   b_defined ? float(b) : 0.f,
+                   a_defined ? float(a) : 1.f),
+          y::fvec4(dr_defined ? float(dr) : 0.f,
+                   dg_defined ? float(dg) : 0.f,
+                   db_defined ? float(db) : 0.f,
+                   da_defined ? float(da) : 0.f),
+          y::fvec4(d2r_defined ? float(d2r) : 0.f,
+                   d2g_defined ? float(d2g) : 0.f,
+                   d2b_defined ? float(d2b) : 0.f,
+                   d2a_defined ? float(d2a) : 0.f)));
   y_void();
 }
 

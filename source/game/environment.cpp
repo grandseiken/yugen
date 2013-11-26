@@ -8,20 +8,20 @@
 
 Particle::Particle(
     y::int32 tag, y::int32 frames, y::int32 size,
+    y::world depth, y::world layering_value,
     const y::wvec2& p, const y::wvec2& dp, const y::wvec2 d2p,
-    const y::fvec4& colour, const y::fvec4& dcolour, const y::fvec4& d2colour,
-    y::world depth, y::world layering_value)
+    const y::fvec4& colour, const y::fvec4& dcolour, const y::fvec4& d2colour)
   : tag(tag)
   , frames(frames)
   , size(size)
+  , depth(depth)
+  , layering_value(layering_value)
   , p(p)
   , dp(dp)
   , d2p(d2p)
   , colour(colour)
   , dcolour(colour)
   , d2colour(d2colour)
-  , depth(depth)
-  , layering_value(layering_value)
 {
 }
 
