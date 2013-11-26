@@ -9,6 +9,8 @@ class GlUtil;
 
 // TODO: move into environment class; add a tagging system for particles so that
 // many can be manipulated at once (e.g. for wind blowing snow).
+// TODO: allow particles to (optionally) collide with the world geometry.
+// TODO: derivates for colour, also.
 struct Particle {
   Particle(y::int32 frames, y::int32 size,
            const y::fvec2& p, const y::fvec2& dp, const y::fvec2 d2p,
