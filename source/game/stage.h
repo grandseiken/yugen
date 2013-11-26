@@ -10,7 +10,6 @@
 #include "../common.h"
 #include "../lua.h"
 #include "../modal.h"
-#include "../particle.h"
 #include "../render/util.h"
 #include "../spatial_hash.h"
 
@@ -180,7 +179,7 @@ public:
   void render(
       const Camera& camera, const WorldWindow& world, const ScriptBank& scripts,
       const Lighting& lighting, const Collision& collision,
-      const Particles& particles) const;
+      const Environment& environment) const;
 
 private:
 
@@ -312,9 +311,6 @@ public:
   const Environment& get_environment() const;
   /***/ Environment& get_environment();
 
-  const Particles& get_particles() const;
-  /***/ Particles& get_particles();
-
   // World source functions.
   // Since it's important we keep around all the sources we use, this function
   // should be used to access them based on a string key. The type of source
@@ -351,7 +347,6 @@ private:
   Collision _collision;
   Lighting _lighting;
   Environment _environment;
-  Particles _particles;
 
   Script* _player;
 

@@ -4,8 +4,42 @@
 #include "../render/gl_util.h"
 #include "../render/util.h"
 
+#include <algorithm>
+
+Particle::Particle(
+    y::int32 tag, y::int32 frames, y::int32 size,
+    const y::wvec2& p, const y::wvec2& dp, const y::wvec2 d2p,
+    const y::fvec4& colour, const y::fvec4& dcolour, const y::fvec4& d2colour,
+    y::world depth, y::world layering_value)
+  : tag(tag)
+  , frames(frames)
+  , size(size)
+  , p(p)
+  , dp(dp)
+  , d2p(d2p)
+  , colour(colour)
+  , dcolour(colour)
+  , d2colour(d2colour)
+  , depth(depth)
+  , layering_value(layering_value)
+{
+}
+
+bool Particle::update()
+{
+  p += dp;
+  dp += d2p;
+  colour += dcolour;
+  dcolour += d2colour;
+
+  return --frames >= 0;
+}
+
 Environment::Environment(GlUtil& gl, bool fake)
-  : _fog_program(gl.make_unique_program({
+  : _particle_program(gl.make_unique_program({
+        "/shaders/particle.v.glsl",
+        "/shaders/particle.f.glsl"}))
+  , _fog_program(gl.make_unique_program({
         "/shaders/env/fog.v.glsl",
         "/shaders/env/fog.f.glsl"}))
   , _reflect_program(gl.make_unique_program({
@@ -45,6 +79,48 @@ Environment::Environment(GlUtil& gl, bool fake)
       fv23d_64, 64, 1, 4, weights);
   _fv23d_64.swap(gl.make_unique_texture<float, 3>(
       y::ivec3{64, 64, 64}, GL_RG8, GL_RG, &fv23d_64[0][xx], true));
+}
+
+void Environment::add_particle(const Particle& particle)
+{
+  _particles.push_back(particle);
+}
+
+void Environment::destroy_particles(y::int32 tag)
+{
+  _particles.erase(std::remove_if(
+        _particles.begin(), _particles.end(),
+        [tag](Particle& p) {return p.tag == tag;}), _particles.end());
+}
+
+void Environment::modify_particles(
+    y::int32 tag,
+    const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add)
+{
+  // If iterating over the entire particle list every time we want to tweak them
+  // is too much, could map tags to separate lists.
+  for (Particle& p : _particles) {
+    if (p.tag != tag) {
+      continue;
+    }
+    p.p += p_add;
+    p.dp += dp_add;
+    p.d2p += d2p_add;
+  }
+}
+
+void Environment::update_particles()
+{
+  _particles.erase(std::remove_if(
+        _particles.begin(), _particles.end(),
+        [](Particle& p) {return !p.update();}), _particles.end());
+}
+
+void Environment::render_particles(const y::wvec2& camera) const
+{
+  for (const auto& p : _particles) {
+    // TODO.
+  }
 }
 
 void Environment::render_fog_colour(

@@ -2,10 +2,52 @@
 #define GAME__ENVIRONMENT_H
 
 #include "../common.h"
+#include "../vector.h"
 #include "../render/gl_handle.h"
 
 class GlUtil;
 class RenderUtil;
+
+// TODO: allow particles to (optionally) collide with the world geometry.
+struct Particle {
+  Particle(y::int32 tag, y::int32 frames, y::int32 size,
+           const y::wvec2& p, const y::wvec2& dp, const y::wvec2 d2p,
+           const y::fvec4& colour, const y::fvec4& dcolour,
+           const y::fvec4& d2colour,
+           y::world depth, y::world layering_value);
+
+  // Lookup tag for manipulating many particles at once (for example for wind
+  // blowing snow). TODO: do things with this.
+  y::int32 tag;
+
+  // Frames remaining until the particle is destroyed.
+  y::int32 frames;
+
+  // Size in pixels.
+  y::int32 size;
+
+  // Current position of the particle and derivatives.
+  y::wvec2 p;
+  y::wvec2 dp;
+  y::wvec2 d2p;
+
+  // Colour and derivatives.
+  y::fvec4 colour;
+  y::fvec4 dcolour;
+  y::fvec4 d2colour;
+
+  y::world depth;
+  y::world layering_value;
+
+  bool update();
+};
+
+class Particles : public y::no_copy {
+public:
+
+private:
+
+};
 
 class Environment : public y::no_copy {
 public:
@@ -48,7 +90,21 @@ public:
   };
 
   Environment(GlUtil& util, bool fake);
+ 
+  void add_particle(const Particle& particle);
 
+  // Destroy all particles with the given tag.
+  void destroy_particles(y::int32 tag);
+  // Add position and derivates to all particles with the given tag.
+  void modify_particles(
+      y::int32 tag,
+      const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add);
+
+  // Particle update and rendering.
+  void update_particles();
+  void render_particles(const y::wvec2& camera) const;
+
+  // Complicated environment shaders below here.
   void render_fog_colour(
       RenderUtil& util, const y::wvec2& origin, const y::wvec2& region,
       const fog_params& params) const;
@@ -68,6 +124,9 @@ private:
   GlUnique<GlBuffer<float, 2>> make_rect_buffer(
       RenderUtil& util, const y::wvec2& origin, const y::wvec2& region) const;
 
+  y::vector<Particle> _particles;
+
+  GlUnique<GlProgram> _particle_program;
   GlUnique<GlProgram> _fog_program;
   GlUnique<GlProgram> _reflect_program;
   GlUnique<GlProgram> _reflect_normal_program;

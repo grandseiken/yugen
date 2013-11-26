@@ -434,7 +434,7 @@ bool GameRenderer::draw_pass_is_layer(draw_layer layer) const
 void GameRenderer::render(
     const Camera& camera, const WorldWindow& world, const ScriptBank& scripts,
     const Lighting& lighting, const Collision& collision,
-    const Particles& particles) const
+    const Environment& environment) const
 {
   y::fvec2 translation = y::fvec2(camera.world_to_camera(y::wvec2()));
   _util.add_translation(translation);
@@ -460,7 +460,7 @@ void GameRenderer::render(
     // The world layer is special; the tiles and particles are rendered to it.
     if (draw_pass_is_layer(DRAW_WORLD)) {
       render_tiles(camera, world);
-      particles.render(camera.get_origin());
+      environment.render_particles(camera.get_origin());
     }
     _util.render_batch(_current_batch);
 
@@ -691,7 +691,6 @@ GameStage::GameStage(const Databank& bank, Filesystem& save_filesystem,
   , _collision(_world)
   , _lighting(_world, util.get_gl())
   , _environment(util.get_gl(), fake)
-  , _particles(util.get_gl())
   , _player(y::null)
 {
   const LuaFile& file = _bank.scripts.get("/scripts/game/player.lua");
@@ -798,16 +797,6 @@ Environment& GameStage::get_environment()
   return _environment;
 }
 
-const Particles& GameStage::get_particles() const
-{
-  return _particles;
-}
-
-Particles& GameStage::get_particles()
-{
-  return _particles;
-}
-
 const WorldSource& GameStage::get_source(const y::string& source_key) const
 {
   auto it = _source_map.find(source_key);
@@ -867,7 +856,7 @@ void GameStage::update()
   // Update scripts.
   _scripts.update_all();
   _scripts.handle_messages();
-  _particles.update();
+  _environment.update_particles();
 
   // Update window. When we need to move the active window, make sure to
   // compensate by moving all scripts and the camera to balance it out.
@@ -912,7 +901,7 @@ void GameStage::update()
 void GameStage::draw() const
 {
   _renderer.render(_camera, _world, _scripts,
-                   _lighting, _collision, _particles);
+                   _lighting, _collision, _environment);
 }
 
 void GameStage::set_player(Script* player)

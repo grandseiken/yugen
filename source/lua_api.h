@@ -578,15 +578,34 @@ y_api(get_sprite)
   y_return(&stage.get_bank().sprites.get(path));
 }
 
+// TODO: accept colour arguments.
 y_api(add_particle)
-    y_arg(y::int32, frames) y_arg(y::int32, size)
-    y_arg(y::fvec2, p) y_arg(y::fvec2, dp) y_arg(y::fvec2, d2p)
-    y_arg(y::fvec4, colour)
+    y_arg(y::int32, tag) y_arg(y::int32, frames) y_arg(y::int32, size)
+    y_arg(const y::wvec2, p) y_arg(const y::wvec2, dp)
+    y_arg(const y::wvec2, d2p)
     y_arg(y::world, depth) y_arg(y::world, layering_value)
 {
-  stage.get_particles().add(
-      Particle(frames, size, p, dp, d2p,
-               colour, depth, layering_value));
+  stage.get_environment().add_particle(
+      Particle(tag, frames, size,
+               p, dp, d2p,
+               y::fvec4(), y::fvec4(), y::fvec4(),
+               depth, layering_value));
+  y_void();
+}
+
+y_api(destroy_particles)
+    y_arg(y::int32, tag)
+{
+  stage.get_environment().destroy_particles(tag);
+  y_void();
+}
+
+y_api(modify_particles)
+    y_arg(y::int32, tag)
+    y_arg(const y::wvec2, p_add) y_arg(const y::wvec2, dp_add)
+    y_arg(const y::wvec2, d2p_add)
+{
+  stage.get_environment().modify_particles(tag, p_add, dp_add, d2p_add);
   y_void();
 }
 
