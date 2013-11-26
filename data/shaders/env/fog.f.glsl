@@ -6,7 +6,7 @@ uniform float fog_min = 0.4;
 uniform float fog_max = 0.7;
 noperspective varying vec2 tex_coord;
 
-#include "perlin.glsl"
+#include "../perlin.glsl"
 
 const bool flatten_fog = false;
 float fog_scale = 1.0 / (fog_max - fog_min);

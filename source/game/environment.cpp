@@ -6,14 +6,14 @@
 
 Environment::Environment(GlUtil& gl, bool fake)
   : _fog_program(gl.make_unique_program({
-        "/shaders/env_fog.v.glsl",
-        "/shaders/env_fog.f.glsl"}))
+        "/shaders/env/fog.v.glsl",
+        "/shaders/env/fog.f.glsl"}))
   , _reflect_program(gl.make_unique_program({
-        "/shaders/env_reflect.v.glsl",
-        "/shaders/env_reflect.f.glsl"}))
+        "/shaders/env/reflect.v.glsl",
+        "/shaders/env/reflect.f.glsl"}))
   , _reflect_normal_program(gl.make_unique_program({
-        "/shaders/env_reflect_normal.v.glsl",
-        "/shaders/env_reflect_normal.f.glsl"}))
+        "/shaders/env/reflect_normal.v.glsl",
+        "/shaders/env/reflect_normal.f.glsl"}))
 {
   if (fake) {
     return;

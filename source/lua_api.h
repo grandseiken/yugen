@@ -578,6 +578,18 @@ y_api(get_sprite)
   y_return(&stage.get_bank().sprites.get(path));
 }
 
+y_api(add_particle)
+    y_arg(y::int32, frames) y_arg(y::int32, size)
+    y_arg(y::fvec2, p) y_arg(y::fvec2, dp) y_arg(y::fvec2, d2p)
+    y_arg(y::fvec4, colour)
+    y_arg(y::world, depth) y_arg(y::world, layering_value)
+{
+  stage.get_particles().add(
+      Particle(frames, size, p, dp, d2p,
+               colour, depth, layering_value));
+  y_void();
+}
+
 y_api(render_sprite)
     y_arg(y::int32, layer) y_arg(y::world, depth)
     y_arg(const y::wvec2, origin) y_arg(y::world, rotation)

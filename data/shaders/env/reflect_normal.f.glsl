@@ -6,7 +6,7 @@ uniform float frame;
 uniform float normal_scaling;
 noperspective varying vec2 tex_coord;
 
-#include "perlin.glsl"
+#include "../perlin.glsl"
 
 void main()
 {

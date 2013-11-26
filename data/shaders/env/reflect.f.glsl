@@ -18,7 +18,7 @@ noperspective varying vec2 reflect_coord;
 noperspective varying vec2 refract_coord;
 noperspective varying float reflect_dist;
 
-#include "perlin.glsl"
+#include "../perlin.glsl"
 
 // Sampling outside the source framebuffer produces stretched column artefacts
 // in the reflection. Increasing the source framebuffer size helps, but in

@@ -1,4 +1,4 @@
-#include "env.glsl"
+#include "common.glsl"
 
 uniform bool flip_x;
 uniform bool flip_y;

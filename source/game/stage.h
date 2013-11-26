@@ -10,6 +10,7 @@
 #include "../common.h"
 #include "../lua.h"
 #include "../modal.h"
+#include "../particle.h"
 #include "../render/util.h"
 #include "../spatial_hash.h"
 
@@ -22,6 +23,8 @@ class RenderUtil;
 struct LuaFile;
 
 // Stores all the scripts currently active.
+// TODO: write a callback system for making stuff like script destruction way
+// nicer.
 class ScriptBank : public y::no_copy {
 public:
 
@@ -176,7 +179,8 @@ public:
   // GameStage.
   void render(
       const Camera& camera, const WorldWindow& world, const ScriptBank& scripts,
-      const Lighting& lighting, const Collision& collision) const;
+      const Lighting& lighting, const Collision& collision,
+      const Particles& particles) const;
 
 private:
 
@@ -308,6 +312,9 @@ public:
   const Environment& get_environment() const;
   /***/ Environment& get_environment();
 
+  const Particles& get_particles() const;
+  /***/ Particles& get_particles();
+
   // World source functions.
   // Since it's important we keep around all the sources we use, this function
   // should be used to access them based on a string key. The type of source
@@ -344,6 +351,7 @@ private:
   Collision _collision;
   Lighting _lighting;
   Environment _environment;
+  Particles _particles;
 
   Script* _player;
 

@@ -1,4 +1,4 @@
-#include "env.glsl"
+#include "common.glsl"
 
 noperspective varying vec2 tex_coord;
 

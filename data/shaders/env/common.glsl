@@ -1,4 +1,4 @@
-#include "pixels.glsl"
+#include "../pixels.glsl"
 
 uniform ivec3 perlin_size;
 uniform vec2 tex_offset;
