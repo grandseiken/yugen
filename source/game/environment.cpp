@@ -36,7 +36,15 @@ bool Particle::update()
 }
 
 Environment::Environment(GlUtil& gl, bool fake)
-  : _particle_program(gl.make_unique_program({
+  : _pixels(gl.make_unique_buffer<float, 2>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _colour(gl.make_unique_buffer<float, 4>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _depth(gl.make_unique_buffer<float, 1>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _element(gl.make_unique_buffer<GLushort, 1>(
+        GL_ELEMENT_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _particle_program(gl.make_unique_program({
         "/shaders/particle.v.glsl",
         "/shaders/particle.f.glsl"}))
   , _fog_program(gl.make_unique_program({
@@ -116,11 +124,36 @@ void Environment::update_particles()
         [](Particle& p) {return !p.update();}), _particles.end());
 }
 
-void Environment::render_particles(const y::wvec2& camera) const
+void Environment::render_particles(RenderUtil& util,
+                                   const y::wvec2& camera) const
 {
-  for (const auto& p : _particles) {
-    // TODO.
+  GlUtil& gl = util.get_gl();
+
+  gl.enable_depth(true);
+  gl.enable_blend(true);
+
+  y::size length = _particles.size();
+  for (y::size i = 0; i < length; ++i) {
+    const Particle& p = _particles[i];
+
+    // Divisor buffers would be great, again.
+    // TODO: write pixel buffer.
+    y::write_vector(_colour.data, 16 * i, {
+        p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa],
+        p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa],
+        p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa],
+        p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa]});
+    y::write_vector<float, y::vector<double>>(_depth.data, 4 * i, {
+        p.depth, p.depth, p.depth, p.depth});
   }
+
+  _particle_program->bind();
+  _particle_program->bind_attribute("pixels", _pixels.reupload());
+  _particle_program->bind_attribute("colour", _colour.reupload());
+  _particle_program->bind_attribute("depth", _depth.reupload());
+
+  util.bind_pixel_uniforms(*_particle_program);
+  util.quad_element(length).buffer->draw_elements(GL_TRIANGLES, 6 * length);
 }
 
 void Environment::render_fog_colour(

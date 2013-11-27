@@ -86,6 +86,8 @@ public:
   typedef GlBuffer<GLushort, 1> gl_quad_element;
   typedef GlBuffer<float, 2> gl_quad_vertex;
 
+  // Element array for arbitrarily many quads.
+  const GlDatabuffer<GLushort, 1>& quad_element(y::size length) const;
   // Element array for a quad.
   const gl_quad_element& quad_element() const;
   // Vertex positions for a quad.

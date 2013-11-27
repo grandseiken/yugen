@@ -460,7 +460,7 @@ void GameRenderer::render(
     // The world layer is special; the tiles and particles are rendered to it.
     if (draw_pass_is_layer(DRAW_WORLD)) {
       render_tiles(camera, world);
-      environment.render_particles(camera.get_origin());
+      environment.render_particles(_util, camera.get_origin());
     }
     _util.render_batch(_current_batch);
 

@@ -124,6 +124,19 @@ const Window& RenderUtil::get_window() const
   return get_gl().get_window();
 }
 
+const GlDatabuffer<GLushort, 1>& RenderUtil::quad_element(y::size length) const
+{
+  if (_element.data.size() / 6 < length) {
+    for (y::size i = _element.data.size() / 6; i < length; ++i) {
+      y::write_vector(_element.data, 6 * i, {
+          GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
+          GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
+    }
+    _element.reupload();
+  }
+  return _element;
+}
+
 const RenderUtil::gl_quad_element& RenderUtil::quad_element() const
 {
   return *_quad_element;
@@ -393,15 +406,6 @@ void RenderUtil::render_batch(
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa]});
   }
 
-  if (_element.data.size() / 6 < length) {
-    for (y::size i = _element.data.size() / 6; i < length; ++i) {
-      y::write_vector(_element.data, 6 * i, {
-          GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
-          GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
-    }
-    _element.reupload();
-  }
-
   _sprite_program->bind();
   _sprite_program->bind_attribute("pixels", _pixels.reupload());
   _sprite_program->bind_attribute("rotation", _rotation.reupload());
@@ -416,7 +420,7 @@ void RenderUtil::render_batch(
   _sprite_program->bind_uniform("frame_count", v);
   _sprite_program->bind_uniform("normal", normal);
   bind_pixel_uniforms(*_sprite_program);
-  _element.buffer->draw_elements(GL_TRIANGLES, 6 * length);
+  quad_element(length).buffer->draw_elements(GL_TRIANGLES, 6 * length);
 }
 
 void RenderUtil::render_batch(const RenderBatch& batch) const

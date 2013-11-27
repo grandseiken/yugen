@@ -42,13 +42,6 @@ struct Particle {
   bool update();
 };
 
-class Particles : public y::no_copy {
-public:
-
-private:
-
-};
-
 class Environment : public y::no_copy {
 public:
 
@@ -102,7 +95,7 @@ public:
 
   // Particle update and rendering.
   void update_particles();
-  void render_particles(const y::wvec2& camera) const;
+  void render_particles(RenderUtil& gl, const y::wvec2& camera) const;
 
   // Complicated environment shaders below here.
   void render_fog_colour(
@@ -125,6 +118,10 @@ private:
       RenderUtil& util, const y::wvec2& origin, const y::wvec2& region) const;
 
   y::vector<Particle> _particles;
+  GlDatabuffer<float, 2> _pixels;
+  GlDatabuffer<float, 4> _colour;
+  GlDatabuffer<float, 1> _depth;
+  GlDatabuffer<GLushort, 1> _element;
 
   GlUnique<GlProgram> _particle_program;
   GlUnique<GlProgram> _fog_program;

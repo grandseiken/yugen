@@ -3,7 +3,6 @@
 attribute vec2 pixels;
 attribute vec4 colour;
 attribute float depth;
-uniform ivec2 frame_size;
 
 flat varying vec4 colour_coord;
 flat varying float depth_coord;
