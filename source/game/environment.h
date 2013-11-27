@@ -17,7 +17,7 @@ struct Particle {
            const y::fvec4& d2colour);
 
   // Lookup tag for manipulating many particles at once (for example for wind
-  // blowing snow). TODO: do things with this.
+  // blowing snow).
   y::int32 tag;
 
   // Frames remaining until the particle is destroyed.
