@@ -10,7 +10,7 @@ flat varying vec2 range_coord;
 flat varying vec4 colour_coord;
 flat varying float layer_coord;
 
-#include "light_util.glsl"
+#include "util.glsl"
 
 // TODO: specular lighting with colours; somehow allow custom specular powers.
 // In particular we should allow metallic speculars (colour of material rather

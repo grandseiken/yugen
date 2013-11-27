@@ -4,7 +4,7 @@ uniform vec2 light_direction;
 uniform vec4 layer_colour;
 noperspective varying vec2 tex_coord;
 
-#include "light_util.glsl"
+#include "util.glsl"
 
 void main()
 {

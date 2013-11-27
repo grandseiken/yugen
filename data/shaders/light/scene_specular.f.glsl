@@ -2,7 +2,7 @@ uniform sampler2D colourbuffer;
 uniform sampler2D lightbuffer;
 noperspective varying vec2 tex_coord;
 
-#include "light_util.glsl"
+#include "util.glsl"
 
 void main()
 {

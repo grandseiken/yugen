@@ -69,11 +69,11 @@ Lighting::Lighting(const WorldWindow& world, GlUtil& gl)
   : _world(world)
   , _gl(gl)
   , _light_program(gl.make_unique_program({
-        "/shaders/light.v.glsl",
-        "/shaders/light.f.glsl"}))
+        "/shaders/light/light.v.glsl",
+        "/shaders/light/light.f.glsl"}))
   , _light_specular_program(gl.make_unique_program({
-        "/shaders/light_specular.v.glsl",
-        "/shaders/light_specular.f.glsl"}))
+        "/shaders/light/light_specular.v.glsl",
+        "/shaders/light/light_specular.f.glsl"}))
   , _tri(gl.make_unique_buffer<GLfloat, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _origin(gl.make_unique_buffer<GLfloat, 2>(

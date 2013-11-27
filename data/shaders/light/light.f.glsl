@@ -9,7 +9,7 @@ flat varying vec2 range_coord;
 flat varying vec4 colour_coord;
 flat varying float layer_coord;
 
-#include "light_util.glsl"
+#include "util.glsl"
 
 void main()
 {

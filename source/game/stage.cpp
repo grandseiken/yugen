@@ -351,11 +351,11 @@ GameRenderer::GameRenderer(RenderUtil& util, const GlFramebuffer& framebuffer)
   , _lightbuffer(util.get_gl().make_unique_framebuffer(
         framebuffer.get_size(), false, true))
   , _scene_program(util.get_gl().make_unique_program({
-        "/shaders/scene.v.glsl",
-        "/shaders/scene.f.glsl"}))
+        "/shaders/light/scene.v.glsl",
+        "/shaders/light/scene.f.glsl"}))
   , _scene_specular_program(util.get_gl().make_unique_program({
-        "/shaders/scene_specular.v.glsl",
-        "/shaders/scene_specular.f.glsl"}))
+        "/shaders/light/scene_specular.v.glsl",
+        "/shaders/light/scene_specular.f.glsl"}))
   , _current_draw_pass(draw_pass(0))
 {
 }
