@@ -579,8 +579,10 @@ y_api(get_sprite)
 }
 
 y_api(add_particle)
-    y_arg(y::int32, tag) y_arg(y::int32, frames) y_arg(y::int32, size)
+    y_arg(y::int32, tag) y_arg(y::int32, frames)
     y_arg(y::world, depth) y_arg(y::world, layering_value)
+    y_arg(y::world, size) y_arg(y::world, dsize)
+    y_arg(y::world, d2size)
     y_arg(const y::wvec2, p) y_arg(const y::wvec2, dp)
     y_arg(const y::wvec2, d2p)
     y_optarg(y::world, r) y_optarg(y::world, g)
@@ -592,8 +594,8 @@ y_api(add_particle)
 {
   stage.get_environment().add_particle(
       Particle(
-          tag, frames, size,
-          depth, layering_value,
+          tag, frames, depth, layering_value,
+          size, dsize, d2size,
           p, dp, d2p,
           y::fvec4(r_defined ? float(r) : 0.f,
                    g_defined ? float(g) : 0.f,

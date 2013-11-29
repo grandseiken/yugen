@@ -7,13 +7,15 @@
 #include <algorithm>
 
 Particle::Particle(
-    y::int32 tag, y::int32 frames, y::int32 size,
-    y::world depth, y::world layering_value,
+    y::int32 tag, y::int32 frames, y::world depth, y::world layering_value,
+    y::world size, y::world dsize, y::world d2size,
     const y::wvec2& p, const y::wvec2& dp, const y::wvec2 d2p,
     const y::fvec4& colour, const y::fvec4& dcolour, const y::fvec4& d2colour)
   : tag(tag)
   , frames(frames)
   , size(size)
+  , dsize(dsize)
+  , d2size(d2size)
   , depth(depth)
   , layering_value(layering_value)
   , p(p)
@@ -31,6 +33,8 @@ bool Particle::update()
   dp += d2p;
   colour += dcolour;
   dcolour += d2colour;
+  size += dsize;
+  dsize += d2size;
 
   return --frames >= 0;
 }
@@ -42,11 +46,16 @@ Environment::Environment(GlUtil& gl, bool fake)
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _depth(gl.make_unique_buffer<float, 1>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
+  , _layering(gl.make_unique_buffer<float, 1>(
+        GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _element(gl.make_unique_buffer<GLushort, 1>(
         GL_ELEMENT_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _particle_program(gl.make_unique_program({
         "/shaders/particle.v.glsl",
         "/shaders/particle.f.glsl"}))
+  , _particle_normal_program(gl.make_unique_program({
+        "/shaders/particle_normal.v.glsl",
+        "/shaders/particle_normal.f.glsl"}))
   , _fog_program(gl.make_unique_program({
         "/shaders/env/fog.v.glsl",
         "/shaders/env/fog.f.glsl"}))
@@ -101,6 +110,11 @@ void Environment::destroy_particles(y::int32 tag)
         [tag](Particle& p) {return p.tag == tag;}), _particles.end());
 }
 
+void Environment::destroy_particles()
+{
+  _particles.clear();
+}
+
 void Environment::modify_particles(
     y::int32 tag,
     const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add)
@@ -117,6 +131,16 @@ void Environment::modify_particles(
   }
 }
 
+void Environment::modify_particles(
+    const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add)
+{
+  for (Particle& p : _particles) {
+    p.p += p_add;
+    p.dp += dp_add;
+    p.d2p += d2p_add;
+  }
+}
+
 void Environment::update_particles()
 {
   _particles.erase(std::remove_if(
@@ -124,8 +148,7 @@ void Environment::update_particles()
         [](Particle& p) {return !p.update();}), _particles.end());
 }
 
-void Environment::render_particles(RenderUtil& util,
-                                   const y::wvec2& camera) const
+void Environment::render_particles(RenderUtil& util) const
 {
   GlUtil& gl = util.get_gl();
 
@@ -135,15 +158,20 @@ void Environment::render_particles(RenderUtil& util,
   y::size length = _particles.size();
   for (y::size i = 0; i < length; ++i) {
     const Particle& p = _particles[i];
+    y::wvec2 pos = p.p;
 
     // Divisor buffers would be great, again.
-    // TODO: write pixel buffer.
+    y::write_vector<float, y::vector<y::world>>(_pixels.data, 8 * i, {
+        pos[xx] - p.size / 2., pos[yy] - p.size / 2.,
+        pos[xx] + p.size / 2., pos[yy] - p.size / 2.,
+        pos[xx] - p.size / 2., pos[yy] + p.size / 2.,
+        pos[xx] + p.size / 2., pos[yy] + p.size / 2.});
     y::write_vector(_colour.data, 16 * i, {
         p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa],
         p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa],
         p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa],
         p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa]});
-    y::write_vector<float, y::vector<double>>(_depth.data, 4 * i, {
+    y::write_vector<float, y::vector<y::world>>(_depth.data, 4 * i, {
         p.depth, p.depth, p.depth, p.depth});
   }
 
@@ -153,6 +181,41 @@ void Environment::render_particles(RenderUtil& util,
   _particle_program->bind_attribute("depth", _depth.reupload());
 
   util.bind_pixel_uniforms(*_particle_program);
+  util.quad_element(length).buffer->draw_elements(GL_TRIANGLES, 6 * length);
+}
+
+void Environment::render_particles_normal(RenderUtil& util) const
+{
+  GlUtil& gl = util.get_gl();
+
+  gl.enable_depth(true);
+  gl.enable_blend(false);
+
+  y::size length = _particles.size();
+  for (y::size i = 0; i < length; ++i) {
+    const Particle& p = _particles[i];
+    y::wvec2 pos = p.p;
+
+    // Divisor buffers would be great, again.
+    y::write_vector<float, y::vector<y::world>>(_pixels.data, 8 * i, {
+        pos[xx] - p.size / 2., pos[yy] - p.size / 2.,
+        pos[xx] + p.size / 2., pos[yy] - p.size / 2.,
+        pos[xx] - p.size / 2., pos[yy] + p.size / 2.,
+        pos[xx] + p.size / 2., pos[yy] + p.size / 2.});
+    y::write_vector<float, y::vector<y::world>>(_depth.data, 4 * i, {
+        p.depth, p.depth, p.depth, p.depth});
+    y::write_vector<float, y::vector<y::world>>(_layering.data, 4 * i, {
+        p.layering_value, p.layering_value,
+        p.layering_value, p.layering_value});
+  }
+
+  _particle_normal_program->bind();
+  _particle_normal_program->bind_attribute("pixels", _pixels.reupload());
+  _particle_normal_program->bind_attribute("depth", _depth.reupload());
+  _particle_normal_program->bind_attribute("layering_value",
+                                           _layering.reupload());
+
+  util.bind_pixel_uniforms(*_particle_normal_program);
   util.quad_element(length).buffer->draw_elements(GL_TRIANGLES, 6 * length);
 }
 

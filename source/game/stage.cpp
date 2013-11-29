@@ -460,7 +460,12 @@ void GameRenderer::render(
     // The world layer is special; the tiles and particles are rendered to it.
     if (draw_pass_is_layer(DRAW_WORLD)) {
       render_tiles(camera, world);
-      environment.render_particles(_util, camera.get_origin());
+      if (draw_pass_is_normal()) {
+        environment.render_particles_normal(_util);
+      }
+      else {
+        environment.render_particles(_util);
+      }
     }
     _util.render_batch(_current_batch);
 
@@ -874,6 +879,7 @@ void GameStage::update()
       y::wvec2 script_move = y::wvec2(
           move * Cell::cell_size * Tileset::tile_size);
       _scripts.move_all(-script_move, get_collision());
+      _environment.modify_particles(-script_move, y::wvec2(), y::wvec2());
       _camera.move(-script_move);
     }
   }

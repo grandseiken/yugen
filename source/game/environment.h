@@ -9,9 +9,11 @@ class GlUtil;
 class RenderUtil;
 
 // TODO: allow particles to (optionally) collide with the world geometry.
+// TODO: support particles which draw sprites.
 struct Particle {
-  Particle(y::int32 tag, y::int32 frames, y::int32 size,
+  Particle(y::int32 tag, y::int32 frames,
            y::world depth, y::world layering_value,
+           y::world size, y::world dsize, y::world d2size,
            const y::wvec2& p, const y::wvec2& dp, const y::wvec2 d2p,
            const y::fvec4& colour, const y::fvec4& dcolour,
            const y::fvec4& d2colour);
@@ -23,8 +25,13 @@ struct Particle {
   // Frames remaining until the particle is destroyed.
   y::int32 frames;
 
-  // Size in pixels.
-  y::int32 size;
+  y::world depth;
+  y::world layering_value;
+
+  // Size (in pixels) and derivatives.
+  y::world size;
+  y::world dsize;
+  y::world d2size;
 
   // Current position of the particle and derivatives.
   y::wvec2 p;
@@ -35,9 +42,6 @@ struct Particle {
   y::fvec4 colour;
   y::fvec4 dcolour;
   y::fvec4 d2colour;
-
-  y::world depth;
-  y::world layering_value;
 
   bool update();
 };
@@ -88,14 +92,19 @@ public:
 
   // Destroy all particles with the given tag.
   void destroy_particles(y::int32 tag);
+  void destroy_particles();
+
   // Add position and derivates to all particles with the given tag.
   void modify_particles(
       y::int32 tag,
       const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add);
+  void modify_particles(
+      const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add);
 
   // Particle update and rendering.
   void update_particles();
-  void render_particles(RenderUtil& gl, const y::wvec2& camera) const;
+  void render_particles(RenderUtil& gl) const;
+  void render_particles_normal(RenderUtil& gl) const;
 
   // Complicated environment shaders below here.
   void render_fog_colour(
@@ -121,9 +130,11 @@ private:
   GlDatabuffer<float, 2> _pixels;
   GlDatabuffer<float, 4> _colour;
   GlDatabuffer<float, 1> _depth;
+  GlDatabuffer<float, 1> _layering;
   GlDatabuffer<GLushort, 1> _element;
 
   GlUnique<GlProgram> _particle_program;
+  GlUnique<GlProgram> _particle_normal_program;
   GlUnique<GlProgram> _fog_program;
   GlUnique<GlProgram> _reflect_program;
   GlUnique<GlProgram> _reflect_normal_program;

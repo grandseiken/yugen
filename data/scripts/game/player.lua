@@ -260,6 +260,12 @@ function update()
   up_check_prev = try_move < 0 and math.abs(move:y()) < math.abs(try_move)
   jump_timer_logic(down_check_now)
 
+  add_particle(0, 16, 0.3, 0.3,
+               2, 0.2, 0.1,
+               self:get_origin(), vec(0, 1), vec(0, 0.5),
+               1, 0, 0, 1,
+               0, 0.01, 0.01, 0,
+               0., 0.005, 0.005, 0)
   -- load_origin()
   -- save_origin()
 end
