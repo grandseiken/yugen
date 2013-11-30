@@ -27,7 +27,7 @@ public:
   bool operator!=(const ScriptReference& arg) const;
 
   bool is_valid() const;
-  void invalidate();
+  void invalidate(Script* script);
 
   const Script* get() const;
   /***/ Script* get();
@@ -41,7 +41,7 @@ public:
 private:
 
   Script* _script;
-  ObjCallback<ScriptReference> _callback;
+  ObjCallback<ScriptReference, Script*> _callback;
 
 };
 
@@ -61,7 +61,7 @@ public:
   bool operator!=(const ConstScriptReference& arg) const;
 
   bool is_valid() const;
-  void invalidate();
+  void invalidate(Script* script);
 
   const Script* get() const;
   const Script& operator*() const;
@@ -70,7 +70,7 @@ public:
 private:
 
   const Script* _script;
-  ObjCallback<ConstScriptReference> _callback;
+  ObjCallback<ConstScriptReference, Script*> _callback;
 
 };
 
@@ -101,9 +101,10 @@ public:
   void call(lua_args& output, const y::string& function_name,
             const lua_args& args = {});
 
-  // TODO: use destroy callbacks to clean up more shit (lots of shit).
-  void add_destroy_callback(Callback<>* callback) const;
-  void remove_destroy_callback(Callback<>* callback) const;
+  // TODO: use this for more shit (lots of shit).
+  typedef Callback<Script*> destroy_callback;
+  void add_destroy_callback(destroy_callback* c) const;
+  void remove_destroy_callback(destroy_callback* c) const;
 
   void destroy();
   bool is_destroyed() const;
@@ -119,7 +120,7 @@ private:
   y::world _rotation;
 
   bool _destroyed;
-  mutable CallbackSet<> _destroy_callbacks;
+  mutable CallbackSet<Script*> _destroy_callbacks;
 
 };
 

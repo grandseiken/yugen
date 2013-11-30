@@ -318,8 +318,9 @@ bool ScriptReference::is_valid() const
   return _script && !_script->is_destroyed();
 }
 
-void ScriptReference::invalidate()
+void ScriptReference::invalidate(Script* script)
 {
+  (void)script;
   _script = y::null;
 }
 
@@ -416,8 +417,9 @@ bool ConstScriptReference::is_valid() const
   return _script && !_script->is_destroyed();
 }
 
-void ConstScriptReference::invalidate()
+void ConstScriptReference::invalidate(Script* script)
 {
+  (void)script;
   _script = y::null;
 }
 
@@ -533,6 +535,7 @@ void Script::set_region(const y::wvec2& region)
 void Script::set_origin(const y::wvec2& origin)
 {
   _origin = origin;
+  // TODO: use callbacks for this?
   _stage.get_collision().get_data().update_spatial_hash(*this);
   _stage.get_scripts().update_spatial_hash(*this);
 }
@@ -581,14 +584,14 @@ void Script::call(lua_args& output, const y::string& function_name,
   }
 }
 
-void Script::add_destroy_callback(Callback<>* callback) const
+void Script::add_destroy_callback(destroy_callback* c) const
 {
-  _destroy_callbacks.add(callback);
+  _destroy_callbacks.add(c);
 }
 
-void Script::remove_destroy_callback(Callback<>* callback) const
+void Script::remove_destroy_callback(destroy_callback* c) const
 {
-  _destroy_callbacks.remove(callback);
+  _destroy_callbacks.remove(c);
 }
 
 void Script::destroy()
@@ -597,7 +600,7 @@ void Script::destroy()
     return;
   }
   _destroyed = true;
-  _destroy_callbacks();
+  _destroy_callbacks(this);
 }
 
 bool Script::is_destroyed() const

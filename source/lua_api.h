@@ -5,7 +5,6 @@
 #include "data/bank.h"
 #include "game/collision.h"
 #include "game/stage.h"
-#include "render/util.h"
 #endif
 
 // Anonymous namespace.
