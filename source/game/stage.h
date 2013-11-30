@@ -22,8 +22,6 @@ class RenderUtil;
 struct LuaFile;
 
 // Stores all the scripts currently active.
-// TODO: write a callback system for making stuff like script destruction way
-// nicer.
 class ScriptBank : public y::no_copy {
 public:
 

@@ -1,6 +1,7 @@
 #ifndef LUA_H
 #define LUA_H
 
+#include "callback.h"
 #include "common.h"
 #include "vector.h"
 #include "lua_types.h"
@@ -40,6 +41,7 @@ public:
 private:
 
   Script* _script;
+  ObjCallback<ScriptReference> _callback;
 
 };
 
@@ -68,6 +70,7 @@ public:
 private:
 
   const Script* _script;
+  ObjCallback<ConstScriptReference> _callback;
 
 };
 
@@ -98,6 +101,10 @@ public:
   void call(lua_args& output, const y::string& function_name,
             const lua_args& args = {});
 
+  // TODO: use destroy callbacks to clean up more shit (lots of shit).
+  void add_destroy_callback(Callback<>* callback) const;
+  void remove_destroy_callback(Callback<>* callback) const;
+
   void destroy();
   bool is_destroyed() const;
 
@@ -112,13 +119,7 @@ private:
   y::world _rotation;
 
   bool _destroyed;
-
-  friend class ScriptReference;
-  friend class ConstScriptReference;
-  typedef y::set<ScriptReference*> reference_set;
-  typedef y::set<ConstScriptReference*> const_reference_set;
-  reference_set _reference_set;
-  mutable const_reference_set _const_reference_set;
+  mutable CallbackSet<> _destroy_callbacks;
 
 };
 

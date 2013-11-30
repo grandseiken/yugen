@@ -267,22 +267,24 @@ namespace {
 
 ScriptReference::ScriptReference(Script& script)
   : _script(&script)
+  , _callback(*this, &ScriptReference::invalidate)
 {
-  script._reference_set.insert(this);
+  _script->add_destroy_callback(&_callback);
 }
 
 ScriptReference::ScriptReference(const ScriptReference& script)
   : _script(script._script)
+  , _callback(*this, &ScriptReference::invalidate)
 {
   if (_script) {
-    _script->_reference_set.insert(this);
+    _script->add_destroy_callback(&_callback);
   }
 }
 
 ScriptReference::~ScriptReference()
 {
   if (is_valid()) {
-    _script->_reference_set.erase(this);
+    _script->remove_destroy_callback(&_callback);
   }
 }
 
@@ -292,11 +294,11 @@ ScriptReference& ScriptReference::operator=(const ScriptReference& arg)
     return *this;
   }
   if (_script) {
-    _script->_reference_set.erase(this);
+    _script->remove_destroy_callback(&_callback);
   }
   _script = arg._script;
   if (_script) {
-    _script->_reference_set.insert(this);
+    _script->add_destroy_callback(&_callback);
   }
   return *this;
 }
@@ -353,30 +355,33 @@ Script* ScriptReference::operator->()
 
 ConstScriptReference::ConstScriptReference(const Script& script)
   : _script(&script)
+  , _callback(*this, &ConstScriptReference::invalidate)
 {
-  script._const_reference_set.insert(this);
+  _script->add_destroy_callback(&_callback);
 }
 
 ConstScriptReference::ConstScriptReference(const ScriptReference& script)
   : _script(script.get())
+  , _callback(*this, &ConstScriptReference::invalidate)
 {
   if (_script) {
-    _script->_const_reference_set.insert(this);
+    _script->add_destroy_callback(&_callback);
   }
 }
 
 ConstScriptReference::ConstScriptReference(const ConstScriptReference& script)
   : _script(script._script)
+  , _callback(*this, &ConstScriptReference::invalidate)
 {
   if (_script) {
-    _script->_const_reference_set.insert(this);
+    _script->add_destroy_callback(&_callback);
   }
 }
 
 ConstScriptReference::~ConstScriptReference()
 {
   if (is_valid()) {
-    _script->_const_reference_set.erase(this);
+    _script->remove_destroy_callback(&_callback);
   }
 }
 
@@ -387,11 +392,11 @@ ConstScriptReference& ConstScriptReference::operator=(
     return *this;
   }
   if (_script) {
-    _script->_const_reference_set.erase(this);
+    _script->remove_destroy_callback(&_callback);
   }
   _script = arg._script;
   if (_script) {
-    _script->_const_reference_set.insert(this);
+    _script->add_destroy_callback(&_callback);
   }
   return *this;
 }
@@ -496,13 +501,8 @@ Script::Script(GameStage& stage,
 
 Script::~Script()
 {
+  destroy();
   lua_close(_state);
-  for (ScriptReference* ref : _reference_set) {
-    ref->invalidate();
-  }
-  for (ConstScriptReference* ref : _const_reference_set) {
-    ref->invalidate();
-  }
 }
 
 const y::string& Script::get_path() const
@@ -581,9 +581,23 @@ void Script::call(lua_args& output, const y::string& function_name,
   }
 }
 
+void Script::add_destroy_callback(Callback<>* callback) const
+{
+  _destroy_callbacks.add(callback);
+}
+
+void Script::remove_destroy_callback(Callback<>* callback) const
+{
+  _destroy_callbacks.remove(callback);
+}
+
 void Script::destroy()
 {
+  if (_destroyed) {
+    return;
+  }
   _destroyed = true;
+  _destroy_callbacks();
 }
 
 bool Script::is_destroyed() const
