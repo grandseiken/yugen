@@ -599,6 +599,17 @@ CollisionData::CollisionData()
 {
 }
 
+Body* CollisionData::create_obj(Script& source)
+{
+  if (get_list(source).empty()) {
+    source.add_move_callback(
+        y::bind(&CollisionData::update_spatial_hash, this,
+                std::placeholders::_1));
+  }
+  Body* body = ScriptMap<Body>::create_obj(source);
+  return body;
+}
+
 void CollisionData::get_bodies_in_region(
     result& output, const y::wvec2& origin, const y::wvec2& region,
     y::int32 collide_mask) const
@@ -763,10 +774,10 @@ bool CollisionData::body_in_radius(
   return false;
 }
 
-void CollisionData::update_spatial_hash(const Script& source)
+void CollisionData::update_spatial_hash(Script* source)
 {
-  for (const entry& body : get_list(source)) {
-    auto bounds = body->get_bounds(source.get_origin(), source.get_rotation());
+  for (const entry& body : get_list(*source)) {
+    auto bounds = body->get_bounds(source->get_origin(), source->get_rotation());
     _spatial_hash.update(body.get(), bounds.first, bounds.second);
   }
 }

@@ -72,9 +72,9 @@ void ScriptBank::send_message(Script* script, const y::string& function_name,
   _messages.push_back({script, function_name, args});
 }
 
-void ScriptBank::update_spatial_hash(Script& source)
+void ScriptBank::update_spatial_hash(Script* source)
 {
-  _spatial_hash.update(&source, source.get_origin(), source.get_origin());
+  _spatial_hash.update(source, source->get_origin(), source->get_origin());
 }
 
 void ScriptBank::update_all() const
@@ -297,7 +297,10 @@ void ScriptBank::create_in_bounds(
 
 void ScriptBank::add_script(y::unique<Script> script)
 {
-  update_spatial_hash(*script);
+  update_spatial_hash(script.get());
+  script->add_move_callback(
+      y::bind(&ScriptBank::update_spatial_hash, this, std::placeholders::_1));
+
   _scripts.emplace_back();
   (_scripts.rbegin())->swap(script);
 }

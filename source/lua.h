@@ -41,7 +41,7 @@ public:
 private:
 
   Script* _script;
-  ObjCallback<ScriptReference, Script*> _callback;
+  y::int32 _callback_id;
 
 };
 
@@ -70,7 +70,7 @@ public:
 private:
 
   const Script* _script;
-  ObjCallback<ConstScriptReference, Script*> _callback;
+  y::int32 _callback_id;
 
 };
 
@@ -101,25 +101,26 @@ public:
   void call(lua_args& output, const y::string& function_name,
             const lua_args& args = {});
 
-  // TODO: use this for more shit (lots of shit).
-  typedef Callback<Script*> destroy_callback;
-  void add_destroy_callback(destroy_callback* c) const;
-  void remove_destroy_callback(destroy_callback* c) const;
+  typedef CallbackSet<Script*>::callback callback;
+  y::int32 add_move_callback(const callback& callback) const;
+  void remove_move_callback(y::int32 id) const;
+  y::int32 add_destroy_callback(const callback& callback) const;
+  void remove_destroy_callback(y::int32 id) const;
 
   void destroy();
   bool is_destroyed() const;
 
 private:
 
-  GameStage& _stage;
   y::string _path;
   lua_State* _state;
 
   y::wvec2 _origin;
   y::wvec2 _region;
   y::world _rotation;
-
   bool _destroyed;
+
+  mutable CallbackSet<Script*> _move_callbacks;
   mutable CallbackSet<Script*> _destroy_callbacks;
 
 };

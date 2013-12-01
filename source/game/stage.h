@@ -58,7 +58,7 @@ public:
 
   // Update the spatial hash. Must be called when the Script moves or changes
   // geometry.
-  void update_spatial_hash(Script& source);
+  void update_spatial_hash(Script* source);
 
   // Functions for updating/rendering all the Scripts.
   void update_all() const;

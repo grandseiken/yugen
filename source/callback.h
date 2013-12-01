@@ -4,63 +4,48 @@
 #include "common.h"
 
 template<typename... A>
-struct Callback {
-  virtual void operator()(A... args) = 0;
-};
-
-template<typename T, typename... A>
-struct ObjCallback : public Callback<A...> {
-  typedef void (T::*pointer)(A... args);
-  ObjCallback(T& object, pointer p)
-    : object(object)
-    , p(p)
-  {}
-
-  T& object;
-  pointer p;
-
-  void operator()(A... args) override;
-};
-
-template<typename... A>
 class CallbackSet : public y::no_copy {
 public:
 
-  typedef Callback<A...> callback;
+  typedef y::function<void(A...)> callback;
+  CallbackSet();
 
-  void add(callback* c);
-  void remove(callback* c);
+  y::int32 add(const callback& c);
+  void remove(y::int32 id);
   void operator()(A... args) const;
 
 private:
 
-  y::set<callback*> _callbacks;
+  y::int32 _ids;
+  y::map<y::int32, callback> _callbacks;
 
 };
 
-template<typename T, typename... A>
-void ObjCallback<T, A...>::operator()(A... args)
+template<typename... A>
+CallbackSet<A...>::CallbackSet()
+  : _ids(0)
 {
-  (object.*p)(args...);
 }
 
 template<typename... A>
-void CallbackSet<A...>::add(callback* c)
+y::int32 CallbackSet<A...>::add(const callback& c)
 {
-  _callbacks.insert(c);
+  y::int32 id = _ids++;
+  _callbacks[id] = c;
+  return id;
 }
 
 template<typename... A>
-void CallbackSet<A...>::remove(callback* c)
+void CallbackSet<A...>::remove(y::int32 id)
 {
-  _callbacks.erase(c);
+  _callbacks.erase(id);
 }
 
 template<typename... A>
 void CallbackSet<A...>::operator()(A... args) const
 {
-  for (callback* c : _callbacks) {
-    (*c)(args...);
+  for (const auto& pair : _callbacks) {
+    pair.second(args...);
   }
 }
 

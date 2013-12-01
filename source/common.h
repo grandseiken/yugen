@@ -4,7 +4,7 @@
 #include <boost/functional/hash.hpp>
 #include <boost/utility.hpp>
 #include <cstddef>
-#include <list>
+#include <functional>
 #include <map>
 #include <memory>
 #include <set>
@@ -36,42 +36,13 @@ namespace y {
   typedef std::ostream ostream;
   typedef std::istream istream;
 
-  template<typename T>
-  string to_string(const T& t)
-  {
-    return std::to_string(t);
-  }
+  using std::to_string;
+  using std::abs;
+  using std::fabs;
+  using std::pow;
+  using std::min;
+  using std::max;
 
-  template<typename T>
-  T abs(const T& t)
-  {
-    return std::abs(t);
-  }
-  template<>
-  inline float abs<float>(const float& t)
-  {
-    return std::fabs(t);
-  }
-  template<>
-  inline double abs<double>(const double& t)
-  {
-    return std::fabs(t);
-  }
-  template<typename T>
-  T pow (const T& a, const T& b)
-  {
-    return std::pow(a, b);
-  }
-  template<typename T>
-  T min(const T& a, const T& b)
-  {
-    return std::min(a, b);
-  }
-  template<typename T>
-  T max(const T& a, const T& b)
-  {
-    return std::max(a, b);
-  }
   template<typename T>
   T euclidean_div(const T& n, const T& d)
   {
@@ -115,6 +86,9 @@ namespace y {
   using pair = std::pair<T, U>;
   template<typename T>
   using unique = std::unique_ptr<T>;
+  template<typename... T>
+  using function = std::function<T...>;
+  using std::bind;
 
   typedef vector<string> string_vector;
   const std::nullptr_t null = nullptr;
@@ -134,11 +108,7 @@ namespace y {
     }
   }
 
-  template<typename T>
-  auto move(T t) -> decltype(std::move(std::forward<T>(t)))
-  {
-    return std::move(std::forward<T>(t));
-  }
+  using std::move;
 
   template<typename T>
   auto move_unique(T* t) -> decltype(unique<T>(t))
@@ -152,11 +122,7 @@ namespace y {
     return std::move(t);
   }
 
-  template<typename T, typename U>
-  pair<T, U> make_pair(T t, U u)
-  {
-    return pair<T, U>(std::forward<T>(t), std::forward<U>(u));
-  }
+  using std::make_pair;
 
   typedef boost::noncopyable no_copy;
 

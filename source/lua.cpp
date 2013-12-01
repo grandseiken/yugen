@@ -1,5 +1,4 @@
 #include "lua.h"
-#include "game/collision.h"
 
 namespace {
   // Variadic push.
@@ -267,24 +266,25 @@ namespace {
 
 ScriptReference::ScriptReference(Script& script)
   : _script(&script)
-  , _callback(*this, &ScriptReference::invalidate)
+  , _callback_id(_script->add_destroy_callback(
+        y::bind(&ScriptReference::invalidate, this, std::placeholders::_1)))
 {
-  _script->add_destroy_callback(&_callback);
 }
 
 ScriptReference::ScriptReference(const ScriptReference& script)
   : _script(script._script)
-  , _callback(*this, &ScriptReference::invalidate)
+  , _callback_id(-1)
 {
   if (_script) {
-    _script->add_destroy_callback(&_callback);
+    _callback_id = _script->add_destroy_callback(
+        y::bind(&ScriptReference::invalidate, this, std::placeholders::_1));
   }
 }
 
 ScriptReference::~ScriptReference()
 {
   if (is_valid()) {
-    _script->remove_destroy_callback(&_callback);
+    _script->remove_destroy_callback(_callback_id);
   }
 }
 
@@ -294,11 +294,12 @@ ScriptReference& ScriptReference::operator=(const ScriptReference& arg)
     return *this;
   }
   if (_script) {
-    _script->remove_destroy_callback(&_callback);
+    _script->remove_destroy_callback(_callback_id);
   }
   _script = arg._script;
   if (_script) {
-    _script->add_destroy_callback(&_callback);
+    _callback_id = _script->add_destroy_callback(
+        y::bind(&ScriptReference::invalidate, this, std::placeholders::_1));
   }
   return *this;
 }
@@ -356,33 +357,36 @@ Script* ScriptReference::operator->()
 
 ConstScriptReference::ConstScriptReference(const Script& script)
   : _script(&script)
-  , _callback(*this, &ConstScriptReference::invalidate)
+  , _callback_id(_script->add_destroy_callback(
+        y::bind(&ConstScriptReference::invalidate, this,
+                std::placeholders::_1)))
 {
-  _script->add_destroy_callback(&_callback);
 }
 
 ConstScriptReference::ConstScriptReference(const ScriptReference& script)
   : _script(script.get())
-  , _callback(*this, &ConstScriptReference::invalidate)
 {
   if (_script) {
-    _script->add_destroy_callback(&_callback);
+    _callback_id = _script->add_destroy_callback(
+        y::bind(&ConstScriptReference::invalidate, this,
+                std::placeholders::_1));
   }
 }
 
 ConstScriptReference::ConstScriptReference(const ConstScriptReference& script)
   : _script(script._script)
-  , _callback(*this, &ConstScriptReference::invalidate)
 {
   if (_script) {
-    _script->add_destroy_callback(&_callback);
+    _callback_id = _script->add_destroy_callback(
+        y::bind(&ConstScriptReference::invalidate, this,
+                std::placeholders::_1));
   }
 }
 
 ConstScriptReference::~ConstScriptReference()
 {
   if (is_valid()) {
-    _script->remove_destroy_callback(&_callback);
+    _script->remove_destroy_callback(_callback_id);
   }
 }
 
@@ -393,11 +397,13 @@ ConstScriptReference& ConstScriptReference::operator=(
     return *this;
   }
   if (_script) {
-    _script->remove_destroy_callback(&_callback);
+    _script->remove_destroy_callback(_callback_id);
   }
   _script = arg._script;
   if (_script) {
-    _script->add_destroy_callback(&_callback);
+    _callback_id = _script->add_destroy_callback(
+        y::bind(&ConstScriptReference::invalidate, this,
+                std::placeholders::_1));
   }
   return *this;
 }
@@ -441,8 +447,7 @@ const Script* ConstScriptReference::operator->() const
 Script::Script(GameStage& stage,
                const y::string& path, const y::string& contents,
                const y::wvec2& origin, const y::wvec2& region)
-  : _stage(stage)
-  , _path(path)
+  : _path(path)
   // Use standard allocator and panic function.
   , _state(luaL_newstate())
   , _origin(origin)
@@ -535,16 +540,13 @@ void Script::set_region(const y::wvec2& region)
 void Script::set_origin(const y::wvec2& origin)
 {
   _origin = origin;
-  // TODO: use callbacks for this?
-  _stage.get_collision().get_data().update_spatial_hash(*this);
-  _stage.get_scripts().update_spatial_hash(*this);
+  _move_callbacks(this);
 }
 
 void Script::set_rotation(y::world rotation)
 {
   _rotation = rotation;
-  _stage.get_collision().get_data().update_spatial_hash(*this);
-  _stage.get_scripts().update_spatial_hash(*this);
+  _move_callbacks(this);
 }
 
 bool Script::has_function(const y::string& function_name) const
@@ -584,14 +586,24 @@ void Script::call(lua_args& output, const y::string& function_name,
   }
 }
 
-void Script::add_destroy_callback(destroy_callback* c) const
+y::int32 Script::add_move_callback(const callback& c) const
 {
-  _destroy_callbacks.add(c);
+  return _move_callbacks.add(c);
 }
 
-void Script::remove_destroy_callback(destroy_callback* c) const
+void Script::remove_move_callback(y::int32 id) const
 {
-  _destroy_callbacks.remove(c);
+  _move_callbacks.remove(id);
+}
+
+y::int32 Script::add_destroy_callback(const callback& c) const
+{
+  return _destroy_callbacks.add(c);
+}
+
+void Script::remove_destroy_callback(y::int32 id) const
+{
+  _destroy_callbacks.remove(id);
 }
 
 void Script::destroy()

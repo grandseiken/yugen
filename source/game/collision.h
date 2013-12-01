@@ -114,6 +114,8 @@ public:
 
   typedef y::vector<Body*> result;
 
+  Body* create_obj(Script& source);
+
   // Finds all bodies that currently overlap the given region, radius, or body,
   // with an optional mask on thier collide_type.
   void get_bodies_in_region(
@@ -141,7 +143,7 @@ public:
 
   // This must be called whenever a Script's position or rotation changes in
   // order to update the bodies in the spatial hash.
-  void update_spatial_hash(const Script& source);
+  void update_spatial_hash(Script* source);
   void clear_spatial_hash();
 
   typedef SpatialHash<Body*, y::world, 2> spatial_hash;
