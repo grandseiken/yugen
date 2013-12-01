@@ -6,6 +6,6 @@ MILESTONES
  + DONE: World rotations and gravity
  + DONE: Normal / bump mapping, specular mapping
  + DONE: Water, mirrors, fog
+ + DONE: Particle system
  + Space, weather, lightning, snow, etc
  + Physics, hook shot, long shot, morph ball, etc
- + Particle system

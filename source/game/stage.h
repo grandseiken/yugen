@@ -84,7 +84,7 @@ public:
 private:
 
   void add_script(y::unique<Script> script);
-  void cleanup_script(Script* script);
+  void release_uid(Script* script);
 
   GameStage& _stage;
 

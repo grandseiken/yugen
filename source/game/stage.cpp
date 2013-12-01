@@ -188,9 +188,6 @@ void ScriptBank::clean_out_of_bounds(
         overlaps_preserved = origin + region / 2 >= lower &&
                              origin - region / 2 < upper;
       }
-      if (!overlaps_preserved) {
-        script_bank.cleanup_script(s.get());
-      }
       return !overlaps_preserved;
     }
   };
@@ -201,25 +198,9 @@ void ScriptBank::clean_out_of_bounds(
 
 void ScriptBank::clean_destroyed()
 {
-  struct local {
-    ScriptBank& script_bank;
+  _scripts.remove_if(
+      [](const y::unique<Script>& s) {return s->is_destroyed();});
 
-    local(ScriptBank& script_bank)
-      : script_bank(script_bank)
-    {
-    }
-
-    bool operator()(const y::unique<Script>& s)
-    {
-      if (s->is_destroyed()) {
-        script_bank.cleanup_script(s.get());
-      }
-      return s->is_destroyed();
-    }
-  };
-
-  local is_destroyed(*this);
-  _scripts.remove_if(is_destroyed);
   // Remove all the script map entries where the references have been
   // invalidated.
   for (auto it = _script_map.begin(); it != _script_map.end();) {
@@ -300,17 +281,18 @@ void ScriptBank::add_script(y::unique<Script> script)
   update_spatial_hash(script.get());
   script->add_move_callback(
       y::bind(&ScriptBank::update_spatial_hash, this, y::_1));
+  script->add_destroy_callback(
+      y::bind(&SpatialHash<Script*, y::world, 2>::remove,
+              &_spatial_hash, y::_1));
+  script->add_destroy_callback(
+      y::bind(&ScriptBank::release_uid, this, y::_1));
 
   _scripts.emplace_back();
   (_scripts.rbegin())->swap(script);
 }
 
-void ScriptBank::cleanup_script(Script* script)
+void ScriptBank::release_uid(Script* script)
 {
-  // Remove from spatial hash.
-  _spatial_hash.remove(script);
-
-  // Release UID.
   auto it = _uid_map.find(script);
   if (it == _uid_map.end()) {
     return;
