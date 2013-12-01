@@ -1,6 +1,7 @@
 #include "yugen.h"
 
 #include "data/bank.h"
+#include "data/tileset.h"
 #include "filesystem/physical.h"
 #include "filesystem/compressed.h"
 #include "game/stage.h"

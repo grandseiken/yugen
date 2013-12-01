@@ -1,5 +1,8 @@
 #include "bank.h"
 
+#include "cell.h"
+#include "tileset.h"
+
 #include "../filesystem/filesystem.h"
 #include "../filesystem/physical.h"
 #include "../game/stage.h"
@@ -8,28 +11,39 @@
 #include "../render/util.h"
 #include "../../gen/proto/cell.pb.h"
 
+Databank::~Databank()
+{
+}
+
 Databank::Databank()
-  : _default_script{"/yedit/missing.lua", "", y::fvec4{1.f, 1.f, 1.f, 1.f}}
-  , _default_tileset(_default_sprite)
-  , scripts(_default_script)
-  , sprites(_default_sprite)
-  , tilesets(_default_tileset)
-  , cells(_default_cell)
-  , maps(_default_map)
+  : _default_script(
+      new LuaFile{"/yedit/missing.lua", "", y::fvec4{1.f, 1.f, 1.f, 1.f}})
+  , _default_sprite(new Sprite())
+  , _default_tileset(new Tileset(*_default_sprite))
+  , _default_cell(new CellBlueprint())
+  , _default_map(new CellMap())
+  , scripts(*_default_script)
+  , sprites(*_default_sprite)
+  , tilesets(*_default_tileset)
+  , cells(*_default_cell)
+  , maps(*_default_map)
 {
 }
 
 Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
                    bool load_yedit_data)
-  : _default_script{"/yedit/missing.lua", "", y::fvec4{1.f, 1.f, 1.f, 1.f}}
-  , _default_sprite{gl.make_texture("/yedit/missing.png"),
-                    gl.make_texture("/default_normal.png")}
-  , _default_tileset(_default_sprite)
-  , scripts(_default_script)
-  , sprites(_default_sprite)
-  , tilesets(_default_tileset)
-  , cells(_default_cell)
-  , maps(_default_map)
+  : _default_script(
+      new LuaFile{"/yedit/missing.lua", "", y::fvec4{1.f, 1.f, 1.f, 1.f}})
+  , _default_sprite(new Sprite{gl.make_texture("/yedit/missing.png"),
+                               gl.make_texture("/default_normal.png")})
+  , _default_tileset(new Tileset(*_default_sprite))
+  , _default_cell(new CellBlueprint())
+  , _default_map(new CellMap())
+  , scripts(*_default_script)
+  , sprites(*_default_sprite)
+  , tilesets(*_default_tileset)
+  , cells(*_default_cell)
+  , maps(*_default_map)
 {
   // Things should be loaded in order of dependence, so that the data can be
   // accessed while loading if necessary. For example, maps depend on cells
@@ -46,7 +60,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
 
     GlTexture2D texture = gl.make_texture(s);
     GlTexture2D normal_texture = filesystem.is_file(normal_path) ?
-        gl.make_texture(normal_path) : _default_sprite.normal;
+        gl.make_texture(normal_path) : _default_sprite->normal;
 
     _textures.emplace_back(gl.make_unique(texture));
     if (filesystem.is_file(normal_path)) {
@@ -70,7 +84,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
 
     GlTexture2D texture = gl.make_texture(s);
     GlTexture2D normal_texture = filesystem.is_file(normal_path) ?
-        gl.make_texture(normal_path) : _default_sprite.normal;
+        gl.make_texture(normal_path) : _default_sprite->normal;
 
     _textures.emplace_back(gl.make_unique(texture));
     if (filesystem.is_file(normal_path)) {
@@ -85,8 +99,8 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
   }
 
-  filesystem.read_file_with_includes(_default_script.contents,
-                                     _default_script.path);
+  filesystem.read_file_with_includes(_default_script->contents,
+                                     _default_script->path);
   // Scripts in the root directory are for inclusion only.
   paths.clear();
   filesystem.list_pattern(paths, "/scripts/*/**.lua");

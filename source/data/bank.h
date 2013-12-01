@@ -1,18 +1,19 @@
 #ifndef DATA__BANK_H
 #define DATA__BANK_H
 
-#include "cell.h"
-#include "tileset.h"
-
 #include "../common/map.h"
 #include "../common/vector.h"
 #include "../common/utility.h"
 #include "../render/gl_handle.h"
+#include "../save.h"
 
+class CellBlueprint;
+class CellMap;
 class Databank;
 class Filesystem;
 class GameStage;
 class GlUtil;
+class Tileset;
 
 // Finds and loads resources. Template parameter T is the resource type which
 // can be associated with string keys. The Dataset owns all resources and they
@@ -89,18 +90,13 @@ struct Sprite {
 #endif
 
 class Databank : public y::no_copy {
-
-  LuaFile _default_script;
-  Sprite _default_sprite;
-  Tileset _default_tileset;
-  CellBlueprint _default_cell;
-  CellMap _default_map;
-
 public:
 
+  ~Databank();
   Databank();
   Databank(const Filesystem& filesystem, GlUtil& gl,
            bool load_yedit_data = false);
+
   void reload_cells_and_maps(const Filesystem& filesystem);
 
   // Get the dataset for a generic type.
@@ -118,12 +114,6 @@ public:
   template<typename T>
   void save_all(Filesystem& filesystem) const;
 
-  Dataset<LuaFile> scripts;
-  Dataset<Sprite> sprites;
-  Dataset<Tileset> tilesets;
-  Dataset<CellBlueprint> cells;
-  Dataset<CellMap> maps;
-
 private:
 
   void make_default_map();
@@ -132,6 +122,20 @@ private:
 
   // Used to delete the textures when the Databank is destroyed.
   y::vector<GlUnique<GlTexture2D>> _textures;
+
+  y::unique<LuaFile> _default_script;
+  y::unique<Sprite> _default_sprite;
+  y::unique<Tileset> _default_tileset;
+  y::unique<CellBlueprint> _default_cell;
+  y::unique<CellMap> _default_map;
+
+public:
+
+  Dataset<LuaFile> scripts;
+  Dataset<Sprite> sprites;
+  Dataset<Tileset> tilesets;
+  Dataset<CellBlueprint> cells;
+  Dataset<CellMap> maps;
 
 };
 

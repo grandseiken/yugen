@@ -1,5 +1,10 @@
 #include "stage.h"
 
+#include "collision.h"
+#include "environment.h"
+#include "lighting.h"
+#include "savegame.h"
+
 #include "../data/bank.h"
 #include "../data/tileset.h"
 #include "../render/gl_util.h"
@@ -678,9 +683,10 @@ GameStage::GameStage(const Databank& bank, Filesystem& save_filesystem,
   , _scripts(*this)
   , _renderer(util, framebuffer)
   , _camera(framebuffer.get_size())
-  , _collision(_world)
-  , _lighting(_world, util.get_gl())
-  , _environment(util.get_gl(), fake)
+  , _collision(new Collision(_world))
+  , _lighting(new Lighting(_world, util.get_gl()))
+  , _environment(new Environment(util.get_gl(), fake))
+  , _savegame(new Savegame())
   , _player(y::null)
 {
   const LuaFile& file = _bank.scripts.get("/scripts/game/player.lua");
@@ -709,7 +715,11 @@ GameStage::GameStage(const Databank& bank, Filesystem& save_filesystem,
   _key_map[KEY_ACTION] = {sf::Keyboard::Space};
 
   // TODO: need a proper save system, but use this temporary thing for now.
-  _savegame.load(save_filesystem, "/tmp.sav");
+  _savegame->load(save_filesystem, "/tmp.sav");
+}
+
+GameStage::~GameStage()
+{
 }
 
 const Databank& GameStage::get_bank() const
@@ -719,12 +729,12 @@ const Databank& GameStage::get_bank() const
 
 const Savegame& GameStage::get_savegame() const
 {
-  return _savegame;
+  return *_savegame;
 }
 
 Savegame& GameStage::get_savegame()
 {
-  return _savegame;
+  return *_savegame;
 }
 
 const ScriptBank& GameStage::get_scripts() const
@@ -759,32 +769,32 @@ Camera& GameStage::get_camera()
 
 const Collision& GameStage::get_collision() const
 {
-  return _collision;
+  return *_collision;
 }
 
 Collision& GameStage::get_collision()
 {
-  return _collision;
+  return *_collision;
 }
 
 const Lighting& GameStage::get_lighting() const
 {
-  return _lighting;
+  return *_lighting;
 }
 
 Lighting& GameStage::get_lighting()
 {
-  return _lighting;
+  return *_lighting;
 }
 
 const Environment& GameStage::get_environment() const
 {
-  return _environment;
+  return *_environment;
 }
 
 Environment& GameStage::get_environment()
 {
-  return _environment;
+  return *_environment;
 }
 
 const WorldSource& GameStage::get_source(const y::string& source_key) const
@@ -846,7 +856,7 @@ void GameStage::update()
   // Update scripts.
   _scripts.update_all();
   _scripts.handle_messages();
-  _environment.update_particles();
+  _environment->update_particles();
 
   // Update window. When we need to move the active window, make sure to
   // compensate by moving all scripts and the camera to balance it out.
@@ -864,7 +874,7 @@ void GameStage::update()
       y::wvec2 script_move = y::wvec2(
           move * Cell::cell_size * Tileset::tile_size);
       _scripts.move_all(-script_move, get_collision());
-      _environment.modify_particles(-script_move, y::wvec2(), y::wvec2());
+      _environment->modify_particles(-script_move, y::wvec2(), y::wvec2());
       _camera.move(-script_move);
     }
   }
@@ -886,13 +896,13 @@ void GameStage::update()
   }
 
   // Recalculate lighting.
-  _lighting.recalculate_traces(_camera.get_min(), _camera.get_max());
+  _lighting->recalculate_traces(_camera.get_min(), _camera.get_max());
 }
 
 void GameStage::draw() const
 {
   _renderer.render(_camera, _world, _scripts,
-                   _lighting, _collision, _environment);
+                   *_lighting, *_collision, *_environment);
 }
 
 void GameStage::set_player(Script* player)
@@ -921,12 +931,12 @@ bool GameStage::is_key_down(y::int32 key) const
 
 void GameStage::save_game() const
 {
-  _savegame.save(_save_filesystem, "/tmp.sav");
+  _savegame->save(_save_filesystem, "/tmp.sav");
 }
 
 void GameStage::script_maps_clean_up()
 {
-  _collision.get_constraints().clean_up();
-  _collision.get_data().clean_up();
-  _lighting.clean_up();
+  _collision->get_constraints().clean_up();
+  _collision->get_data().clean_up();
+  _lighting->clean_up();
 }

@@ -1,12 +1,7 @@
 #ifndef GAME__STAGE_H
 #define GAME__STAGE_H
 
-#include "collision.h"
-#include "environment.h"
-#include "lighting.h"
-#include "savegame.h"
 #include "world.h"
-
 #include "../common/list.h"
 #include "../common/utility.h"
 #include "../common/vector.h"
@@ -20,8 +15,12 @@
 
 class Camera;
 class CellMap;
+class Collision;
+class Environment;
 class Filesystem;
+class Lighting;
 class RenderUtil;
+class Savegame;
 struct LuaFile;
 
 // Stores all the scripts currently active.
@@ -287,7 +286,7 @@ public:
             RenderUtil& util, const GlFramebuffer& framebuffer,
             const y::string& source_key, const y::wvec2& coord,
             bool fake = false);
-  ~GameStage() override {};
+  ~GameStage() override;
 
   const Databank& get_bank() const;
 
@@ -341,13 +340,14 @@ private:
   y::string _active_source_key;
   WorldWindow _world;
 
-  Savegame _savegame;
   ScriptBank _scripts;
   GameRenderer _renderer;
   Camera _camera;
-  Collision _collision;
-  Lighting _lighting;
-  Environment _environment;
+
+  y::unique<Savegame> _savegame;
+  y::unique<Collision> _collision;
+  y::unique<Lighting> _lighting;
+  y::unique<Environment> _environment;
 
   Script* _player;
 

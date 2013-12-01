@@ -9,3 +9,21 @@ MILESTONES
  + DONE: Particle system
  + Space, weather, lightning, snow, etc
  + Physics, hook shot, long shot, morph ball, etc
+
+SKILLS
+
+Jump
+++ Super jump
+++ Double jump
+>> Walk jump
+
+Hookshot
+++ Longshot
+++ Reel in/out
+>> Self-catapult
+
+Force move
+>> Reverse force move
+>>>> Rotate world
+
+Sharkfin

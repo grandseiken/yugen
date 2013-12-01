@@ -1,6 +1,7 @@
 #include "map.h"
 
 #include "../data/bank.h"
+#include "../data/tileset.h"
 #include "../render/gl_util.h"
 #include "../render/window.h"
 #include "../../gen/proto/cell.pb.h"

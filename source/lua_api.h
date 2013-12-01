@@ -4,6 +4,9 @@
 #define LUA_API_H
 #include "data/bank.h"
 #include "game/collision.h"
+#include "game/environment.h"
+#include "game/lighting.h"
+#include "game/savegame.h"
 #include "game/stage.h"
 #endif
 
