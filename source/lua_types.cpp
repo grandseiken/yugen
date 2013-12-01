@@ -1,4 +1,5 @@
 #include "lua_types.h"
+#include "common/algorithm.h"
 
 LuaValue::LuaValue(void* userdata, const y::string& metatable)
   : type(USERDATA)
@@ -46,7 +47,7 @@ LuaValue::LuaValue(LuaValue&& value)
   : type(WORLD)
   , userdata(y::null)
 {
-  operator=(std::move(value));
+  operator=(y::move(value));
 }
 
 LuaValue& LuaValue::operator=(const LuaValue& value)
@@ -84,12 +85,12 @@ LuaValue& LuaValue::operator=(const LuaValue& value)
 
 LuaValue& LuaValue::operator=(LuaValue&& value)
 {
-  std::swap(type, value.type);
-  std::swap(userdata, value.userdata);
-  std::swap(world, value.world);
-  std::swap(boolean, value.boolean);
-  std::swap(string, value.string);
-  std::swap(array, value.array);
+  y::swap(type, value.type);
+  y::swap(userdata, value.userdata);
+  y::swap(world, value.world);
+  y::swap(boolean, value.boolean);
+  y::swap(string, value.string);
+  y::swap(array, value.array);
   return *this;
 }
 

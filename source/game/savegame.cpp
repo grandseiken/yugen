@@ -29,7 +29,7 @@ namespace {
       }
     }
     else {
-      std::cerr << "Saving savegame value with invalid type" << std::endl;
+      y::cerr << "Saving savegame value with invalid type" << y::endl;
     }
   }
 
@@ -57,7 +57,7 @@ namespace {
       }
     }
     else {
-      std::cerr << "Loading savegame value with invalid type" << std::endl;
+      y::cerr << "Loading savegame value with invalid type" << y::endl;
     }
   }
 
@@ -101,7 +101,7 @@ void Savegame::put(const y::string& key, const LuaValue& value)
   // We can't handle arbitrary userdata types. It might be possible to provide
   // an exception for two-dimensional vectors for convenience.
   if (value.type == LuaValue::USERDATA) {
-    std::cerr << "Tried to write userdata into savegame" << std::endl;
+    y::cerr << "Tried to write userdata into savegame" << y::endl;
     return;
   }
   _map.erase(key);

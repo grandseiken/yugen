@@ -4,13 +4,17 @@
 #include <fstream>
 #include <boost/filesystem.hpp>
 
+namespace y {
+  typedef std::ifstream ifstream;
+}
+
 PhysicalFilesystem::PhysicalFilesystem(const y::string& root)
   : _root(boost::filesystem::absolute(boost::filesystem::path(root))
           .generic_string())
 {
 }
 
-void PhysicalFilesystem::list_directory_internal(y::string_vector& output,
+void PhysicalFilesystem::list_directory_internal(y::vector<y::string>& output,
                                                  const y::string& path) const
 {
   try {
@@ -63,10 +67,10 @@ void PhysicalFilesystem::read_file_internal(y::string& output,
     file.read(&output[first], output.length());
   }
   catch (const boost::filesystem::filesystem_error& e) {
-    std::cerr << "Write of " << path << " failed" << std::endl;
+    y::cerr << "Write of " << path << " failed" << y::endl;
   }
   catch (const std::ofstream::failure& e) {
-    std::cerr << "Write of " << path << " failed" << std::endl;
+    y::cerr << "Write of " << path << " failed" << y::endl;
   }
 }
 
@@ -80,9 +84,9 @@ void PhysicalFilesystem::write_file_internal(const y::string& data,
     file << data;
   }
   catch (const boost::filesystem::filesystem_error& e) {
-    std::cerr << "Write of " << path << " failed" << std::endl;
+    y::cerr << "Write of " << path << " failed" << y::endl;
   }
   catch (const std::ofstream::failure& e) {
-    std::cerr << "Write of " << path << " failed" << std::endl;
+    y::cerr << "Write of " << path << " failed" << y::endl;
   }
 }

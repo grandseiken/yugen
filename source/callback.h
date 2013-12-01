@@ -1,7 +1,10 @@
 #ifndef CALLBACK_H
 #define CALLBACK_H
 
-#include "common.h"
+#include "common/function.h"
+#include "common/map.h"
+#include "common/math.h"
+#include "common/utility.h"
 
 template<typename... A>
 class CallbackSet : public y::no_copy {

@@ -12,7 +12,7 @@ public:
 
 protected:
 
-  void list_directory_internal(y::string_vector& output,
+  void list_directory_internal(y::vector<y::string>& output,
                                const y::string& path) const override;
 
   bool is_file_internal(const y::string& path) const override;

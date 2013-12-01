@@ -1,7 +1,10 @@
 #ifndef MODAL_H
 #define MODAL_H
 
-#include "common.h"
+#include "common/memory.h"
+#include "common/ordered_set.h"
+#include "common/utility.h"
+#include "common/vector.h"
 #include "vector.h"
 
 namespace sf {

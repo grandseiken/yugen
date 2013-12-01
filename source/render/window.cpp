@@ -3,7 +3,6 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/OpenGL.hpp>
-#include <iostream>
 
 Resolution::Resolution()
   : size{0, 0}
@@ -39,24 +38,24 @@ Window::Window(const y::string& title, y::size default_bpp,
   if (!skip_choice) {
     y::size i = 0;
     for (const Resolution& r : supported_modes) {
-      std::cout << i++ << ") " <<
+      y::cout << i++ << ") " <<
           r.size[xx] << "x" << r.size[yy] << " " << r.bpp << "bpp";
       if (desktop == r) {
-        std::cout << " (*)";
+        y::cout << " (*)";
       }
 
       if (i % 4) {
-        std::cout << '\t';
+        y::cout << '\t';
       }
       else {
-        std::cout << std::endl;
+        y::cout << y::endl;
       }
     }
-    std::cout << std::endl;
+    y::cout << y::endl;
 
     if (!supported_modes.empty()) {
       y::size input;
-      std::cin >> input;
+      y::cin >> input;
       if (input < supported_modes.size()) {
         _resolution = supported_modes[input];
         default_fullscreen = true;

@@ -1,4 +1,6 @@
 #include "modal.h"
+
+#include "common/list.h"
 #include "render/util.h"
 #include "render/window.h"
 
@@ -152,7 +154,7 @@ bool Panel::order::operator()(Panel* a, Panel* b) const
   if (a->_z_index < b->_z_index) {
     return false;
   }
-  static std::less<Panel*> less;
+  static y::less<Panel*> less;
   return less(b, a);
 }
 

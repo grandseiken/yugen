@@ -3,9 +3,9 @@
 
 #include "map_util.h"
 
-#include "../common.h"
-#include "../modal.h"
+#include "../common/memory.h"
 #include "../render/gl_handle.h"
+#include "../modal.h"
 #include "../vector.h"
 
 #include <random>
@@ -80,7 +80,7 @@ private:
   y::ivec2 _camera;
   y::ivec2 _hover;
   y::fvec2 _light_direction;
-  y::string_vector _layer_status;
+  y::vector<y::string> _layer_status;
 
   TileBrush _tile_brush;
   BrushPanel _brush_panel;

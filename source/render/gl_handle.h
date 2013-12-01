@@ -1,9 +1,12 @@
 #ifndef RENDER__GL_HANDLE_H
 #define RENDER__GL_HANDLE_H
 
-#include "../common.h"
+#include "../common/utility.h"
+#include "../common/map.h"
+#include "../common/memory.h"
+#include "../common/set.h"
+#include "../common/vector.h"
 #include "../vector.h"
-
 #include <GL/glew.h>
 
 #define GL_TYPE(T, V) template<> struct GlType<T> {enum {type_enum = V};}
@@ -326,7 +329,7 @@ public:
   GlUnique(GlUnique&& u)
     : _gl(u._gl)
   {
-    std::swap(_t, u._t);
+    y::swap(_t, u._t);
   }
 
   // Implemented in gl_util.h.
@@ -334,14 +337,14 @@ public:
 
   void swap(GlUnique& u)
   {
-    std::swap(_t, u._t);
-    std::swap(_gl, u._gl);
+    y::swap(_t, u._t);
+    y::swap(_gl, u._gl);
   }
 
   void swap(GlUnique&& u)
   {
-    std::swap(_t, u._t);
-    std::swap(_gl, u._gl);
+    y::swap(_t, u._t);
+    y::swap(_gl, u._gl);
   }
 
   const T& operator*() const
@@ -647,7 +650,7 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
 
 template<typename T, y::size N>
 GlDatabuffer<T, N>::GlDatabuffer(GlUnique<GlBuffer<T, N>>&& buffer)
-  : buffer(std::forward<GlUnique<GlBuffer<T, N>>>(buffer))
+  : buffer(y::forward<GlUnique<GlBuffer<T, N>>>(buffer))
 {
 }
 

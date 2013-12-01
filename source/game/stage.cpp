@@ -299,7 +299,7 @@ void ScriptBank::add_script(y::unique<Script> script)
 {
   update_spatial_hash(script.get());
   script->add_move_callback(
-      y::bind(&ScriptBank::update_spatial_hash, this, std::placeholders::_1));
+      y::bind(&ScriptBank::update_spatial_hash, this, y::_1));
 
   _scripts.emplace_back();
   (_scripts.rbegin())->swap(script);
@@ -818,7 +818,7 @@ const WorldSource& GameStage::get_source(const y::string& source_key) const
     return *source;
   }
 
-  std::cerr << "Invalid WorldSource key " << source_key << std::endl;
+  y::cerr << "Invalid WorldSource key " << source_key << y::endl;
   return *(WorldSource*)y::null;
 }
 

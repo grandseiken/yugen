@@ -2,8 +2,6 @@
 #include "window.h"
 
 #include "../filesystem/filesystem.h"
-
-#include <algorithm>
 #include <SFML/Graphics.hpp>
 
 GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
@@ -13,8 +11,8 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
 {
   GLenum ok = glewInit();
   if (ok != GLEW_OK) {
-    std::cerr << "Couldn't initialise GLEW: " <<
-        glewGetErrorString(ok) << std::endl;
+    y::cerr << "Couldn't initialise GLEW: " <<
+        glewGetErrorString(ok) << y::endl;
     return;
   }
 
@@ -26,27 +24,27 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
   // objects, and so on.
   // http://www.opengl.org/registry/doc/GLSLangSpec.Full.1.30.10.pdf
   if (!GLEW_VERSION_2_1) {
-    std::cerr << "OpenGL 2.1 not available" << std::endl;
+    y::cerr << "OpenGL 2.1 not available" << y::endl;
     return;
   }
 
   if (!GLEW_ARB_texture_non_power_of_two) {
-    std::cerr << "OpenGL non-power-of-two textures not available" << std::endl;
+    y::cerr << "OpenGL non-power-of-two textures not available" << y::endl;
     return;
   }
 
   if (!GLEW_ARB_shading_language_100 || !GLEW_ARB_shader_objects ||
       !GLEW_ARB_vertex_shader || !GLEW_ARB_fragment_shader) {
-    std::cerr << "OpenGL shaders not available" << std::endl;
+    y::cerr << "OpenGL shaders not available" << y::endl;
     return;
   }
 
   if (!GLEW_EXT_framebuffer_object) {
-    std::cerr << "OpenGL framebuffer object not available" << std::endl;
+    y::cerr << "OpenGL framebuffer object not available" << y::endl;
     return;
   }
 
-  y::string_vector shaders;
+  y::vector<y::string> shaders;
   _filesystem.list_pattern(shaders, "/shaders/**.v.glsl");
   _filesystem.list_pattern(shaders, "/shaders/**.f.glsl");
   _filesystem.list_pattern(shaders, "/shaders/**.v");
@@ -119,7 +117,7 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size,
   }
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    std::cerr << "Framebuffer isn't complete" << std::endl;
+    y::cerr << "Framebuffer isn't complete" << y::endl;
     delete_texture(texture);
     glDeleteFramebuffers(1, &framebuffer);
     if (has_depth) {
@@ -163,13 +161,13 @@ GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
   y::string data;
   _filesystem.read_file(data, filename);
   if (data.empty()) {
-    std::cerr << "Couldn't read file " << filename << std::endl;
+    y::cerr << "Couldn't read file " << filename << y::endl;
     return GlTexture2D();
   }
 
   sf::Image image;
   if (!image.loadFromMemory(data.data(), data.length())) {
-    std::cerr << "Couldn't load image " << filename << std::endl;
+    y::cerr << "Couldn't load image " << filename << y::endl;
     return GlTexture2D();
   }
   y::ivec2 size{y::int32(image.getSize().x), y::int32(image.getSize().y)};
@@ -218,7 +216,7 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
 
   y::string data = header;
   if (!_filesystem.read_file_with_includes(data, filename)) {
-    std::cerr << "Couldn't read file " << filename << std::endl;
+    y::cerr << "Couldn't read file " << filename << y::endl;
     return GlShader();
   }
 
@@ -251,13 +249,13 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
     return r;
   }
 
-  std::cerr << "Shader " << filename << " failed compilation" << std::endl;
-  std::cerr << data << std::endl;
+  y::cerr << "Shader " << filename << " failed compilation" << y::endl;
+  y::cerr << data << y::endl;
   GLint log_length;
   glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
   y::unique<char[]> log(new char[log_length]);
   glGetShaderInfoLog(shader, log_length, 0, log.get());
-  std::cerr << log.get();
+  y::cerr << log.get();
   glDeleteShader(shader);
   return GlShader();
 }
@@ -294,11 +292,11 @@ void GlUtil::delete_shader(const GlShader& shader)
   }
 }
 
-GlProgram GlUtil::make_program(const y::string_vector& shaders)
+GlProgram GlUtil::make_program(const y::vector<y::string>& shaders)
 {
-  y::string_vector sort;
-  std::copy(shaders.begin(), shaders.end(), std::back_inserter(sort));
-  std::sort(sort.begin(), sort.end());
+  y::vector<y::string> sort;
+  y::copy(shaders.begin(), shaders.end(), y::back_inserter(sort));
+  y::sort(sort.begin(), sort.end());
 
   y::string hash;
   for (const y::string& s : sort) {
@@ -324,27 +322,27 @@ GlProgram GlUtil::make_program(const y::string_vector& shaders)
     return r;
   }
 
-  std::cerr << "Program failed linking" << std::endl;
+  y::cerr << "Program failed linking" << y::endl;
   GLint log_length;
   glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
   y::unique<char[]> log(new char[log_length]);
   glGetProgramInfoLog(program, log_length, 0, log.get());
-  std::cerr << log.get();
+  y::cerr << log.get();
   glDeleteProgram(program);
   return GlProgram();
 }
 
 GlUnique<GlProgram> GlUtil::make_unique_program(
-    const y::string_vector& shaders)
+    const y::vector<y::string>& shaders)
 {
   return make_unique(make_program(shaders));
 }
 
-GlProgram GlUtil::get_program(const y::string_vector& shaders) const
+GlProgram GlUtil::get_program(const y::vector<y::string>& shaders) const
 {
-  y::string_vector sort;
-  std::copy(shaders.begin(), shaders.end(), std::back_inserter(sort));
-  std::sort(sort.begin(), sort.end());
+  y::vector<y::string> sort;
+  y::copy(shaders.begin(), shaders.end(), y::back_inserter(sort));
+  y::sort(sort.begin(), sort.end());
 
   y::string hash;
   for (const y::string& s : sort) {
@@ -355,11 +353,11 @@ GlProgram GlUtil::get_program(const y::string_vector& shaders) const
   return it == _program_map.end() ? GlProgram() : it->second;
 }
 
-void GlUtil::delete_program(const y::string_vector& shaders)
+void GlUtil::delete_program(const y::vector<y::string>& shaders)
 {
-  y::string_vector sort;
-  std::copy(shaders.begin(), shaders.end(), std::back_inserter(sort));
-  std::sort(sort.begin(), sort.end());
+  y::vector<y::string> sort;
+  y::copy(shaders.begin(), shaders.end(), y::back_inserter(sort));
+  y::sort(sort.begin(), sort.end());
 
   y::string hash;
   for (const y::string& s : sort) {

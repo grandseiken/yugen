@@ -4,8 +4,6 @@
 #include "../render/gl_util.h"
 #include "../render/util.h"
 
-#include <algorithm>
-
 Particle::Particle(
     y::int32 tag, y::int32 frames, y::world depth, y::world layering_value,
     y::world size, y::world dsize, y::world d2size,
@@ -105,7 +103,7 @@ void Environment::add_particle(const Particle& particle)
 
 void Environment::destroy_particles(y::int32 tag)
 {
-  _particles.erase(std::remove_if(
+  _particles.erase(y::remove_if(
         _particles.begin(), _particles.end(),
         [tag](Particle& p) {return p.tag == tag;}), _particles.end());
 }
@@ -143,7 +141,7 @@ void Environment::modify_particles(
 
 void Environment::update_particles()
 {
-  _particles.erase(std::remove_if(
+  _particles.erase(y::remove_if(
         _particles.begin(), _particles.end(),
         [](Particle& p) {return !p.update();}), _particles.end());
 }

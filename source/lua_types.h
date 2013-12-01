@@ -1,7 +1,12 @@
 #ifndef LUA_TYPES_H
 #define LUA_TYPES_H
 
-#include "common.h"
+#include "common/map.h"
+#include "common/memory.h"
+#include "common/string.h"
+#include "common/utility.h"
+#include "common/vector.h"
+
 #include <lua/lua.hpp>
 
 typedef y::int32 lua_int;
@@ -145,7 +150,7 @@ y::vector<T> LuaType<y::vector<T>>::default_value;
 template<typename T>
 void LuaType<T>::to_lua(lua_State* state, const void* v) const
 {
-  typedef typename std::remove_const<T>::type T_non_const;
+  typedef typename y::remove_const<T>::type T_non_const;
   T_non_const* t = reinterpret_cast<T_non_const*>(
       lua_newuserdata(state, sizeof(T)));
   const T& arg = *reinterpret_cast<const T*>(v);
@@ -156,7 +161,7 @@ template<typename T>
 void* LuaType<T>::copy(const void* v) const
 {
   const T& arg = *reinterpret_cast<const T*>(v);
-  return new typename std::remove_const<T>::type(arg);
+  return new typename y::remove_const<T>::type(arg);
 }
 
 template<typename T>

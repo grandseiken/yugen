@@ -188,12 +188,12 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
 #else
   GLenum name_type;
   if (!check_name_exists(attribute, name, array, index, name_type)) {
-    std::cerr << "Undefined " <<
+    y::cerr << "Undefined " <<
         (attribute ? "attribute" : "uniform") << " " << name;
     if (array) {
-      std::cerr << "[" << index << "]";
+      y::cerr << "[" << index << "]";
     }
-    std::cerr << std::endl;
+    y::cerr << y::endl;
     return false;
   }
 
@@ -202,13 +202,13 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
   composite_type_to_base_and_length(name_type, name_base_type, name_length);
 
   if (type != name_base_type) {
-    std::cerr << (attribute ? "Attribute" : "Uniform") <<
-        " " << name << " given incorrect type" << std::endl;
+    y::cerr << (attribute ? "Attribute" : "Uniform") <<
+        " " << name << " given incorrect type" << y::endl;
     return false;
   }
   if (length != name_length) {
-    std::cerr << (attribute ? "Attribute" : "Uniform") <<
-        " " << name << " given incorrect length" << std::endl;
+    y::cerr << (attribute ? "Attribute" : "Uniform") <<
+        " " << name << " given incorrect length" << y::endl;
     return false;
   }
   return true;

@@ -34,7 +34,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
   // Things should be loaded in order of dependence, so that the data can be
   // accessed while loading if necessary. For example, maps depend on cells
   // and scripts.
-  y::string_vector paths;
+  y::vector<y::string> paths;
   filesystem.list_pattern(paths, "/sprites/**.png");
   for (const y::string& s : paths) {
     y::string bare_path;
@@ -122,7 +122,7 @@ void Databank::reload_cells_and_maps(const Filesystem& filesystem)
   cells.clear();
   maps.clear();
 
-  y::string_vector paths;
+  y::vector<y::string> paths;
   filesystem.list_pattern(paths, "/world/**.cell");
   for (const y::string& s : paths) {
     CellBlueprint* cell = new CellBlueprint();

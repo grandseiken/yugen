@@ -1,11 +1,13 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
-#include "common.h"
+#include "common/algorithm.h"
+#include "common/math.h"
+#include "common/string.h"
+#include "common/utility.h"
 
 #include <boost/functional/hash.hpp>
 #include <boost/iterator/iterator_facade.hpp>
-#include <cmath>
 
 namespace proto {
   class ivec2;
@@ -35,7 +37,7 @@ namespace y {
     }
 
     template<typename... U,
-             typename std::enable_if<N == sizeof...(U), bool>::type = 0>
+             typename y::enable_if<N == sizeof...(U), bool>::type = 0>
     vec(U... args)
       : elements{args...}
     {
@@ -83,14 +85,14 @@ namespace y {
       return elements[i];
     }
 
-    template<y::size M, typename std::enable_if<(N > M), bool>::type = 0>
+    template<y::size M, typename y::enable_if<(N > M), bool>::type = 0>
     T& operator[](const element_accessor<M>& e)
     {
       (void)e;
       return elements[M];
     }
 
-    template<y::size M, typename std::enable_if<(N > M), bool>::type = 0>
+    template<y::size M, typename y::enable_if<(N > M), bool>::type = 0>
     const T& operator[](const element_accessor<M>& e) const
     {
       (void)e;
@@ -148,7 +150,7 @@ namespace y {
       return v;
     }
 
-    template<typename std::enable_if<non_strict, bool>::type = 0>
+    template<typename y::enable_if<non_strict, bool>::type = 0>
     V operator*(const V& arg) const
     {
       V v;
@@ -158,7 +160,7 @@ namespace y {
       return v;
     }
 
-    template<typename std::enable_if<non_strict, bool>::type = 0>
+    template<typename y::enable_if<non_strict, bool>::type = 0>
     V operator/(const V& arg) const
     {
       V v;
@@ -198,19 +200,19 @@ namespace y {
       return operator=(operator/(arg));
     }
 
-    template<typename std::enable_if<non_strict, bool>::type = 0>
+    template<typename y::enable_if<non_strict, bool>::type = 0>
     V& operator*=(const V& arg)
     {
       return operator=(operator*(arg));
     }
 
-    template<typename std::enable_if<non_strict, bool>::type = 0>
+    template<typename y::enable_if<non_strict, bool>::type = 0>
     V& operator/=(const V& arg)
     {
       return operator=(operator/(arg));
     }
 
-    template<typename std::enable_if<non_strict, bool>::type = 0>
+    template<typename y::enable_if<non_strict, bool>::type = 0>
     bool operator<(const V& arg) const
     {
       for (y::size i = 0; i < N; ++i) {
@@ -221,7 +223,7 @@ namespace y {
       return true;
     }
 
-    template<typename std::enable_if<non_strict, bool>::type = 0>
+    template<typename y::enable_if<non_strict, bool>::type = 0>
     bool operator>(const V& arg) const
     {
       for (y::size i = 0; i < N; ++i) {
@@ -232,7 +234,7 @@ namespace y {
       return true;
     }
 
-    template<typename std::enable_if<non_strict, bool>::type = 0>
+    template<typename y::enable_if<non_strict, bool>::type = 0>
     bool operator<=(const V& arg) const
     {
       for (y::size i = 0; i < N; ++i) {
@@ -243,7 +245,7 @@ namespace y {
       return true;
     }
 
-    template<typename std::enable_if<non_strict, bool>::type = 0>
+    template<typename y::enable_if<non_strict, bool>::type = 0>
     bool operator>=(const V& arg) const
     {
       for (y::size i = 0; i < N; ++i) {
@@ -280,8 +282,8 @@ namespace y {
 
     template<
         typename U = T,
-        typename std::enable_if<N == 2 &&
-                                std::is_same<T, U>::value, bool>::type = 0>
+        typename y::enable_if<N == 2 &&
+                              y::is_same<T, U>::value, bool>::type = 0>
     T cross(const V& arg) const
     {
       return elements[0] * arg[1] - arg[0] * elements[1];
@@ -289,8 +291,8 @@ namespace y {
 
     template<
         typename U = T,
-        typename std::enable_if<N == 3 &&
-                                std::is_same<T, U>::value, bool>::type = 0>
+        typename y::enable_if<N == 3 &&
+                              y::is_same<T, U>::value, bool>::type = 0>
     V cross(const V& arg) const
     {
       return V(elements[1] * arg[2] - elements[2] * arg[1],
@@ -300,8 +302,8 @@ namespace y {
 
     template<
       typename U = T,
-      typename std::enable_if<N == 2 &&
-                              std::is_same<T, U>::value, bool>::type = 0>
+      typename y::enable_if<N == 2 &&
+                            y::is_same<T, U>::value, bool>::type = 0>
     V rotate(T angle) const
     {
       const V row_0(cos(angle), -sin(angle));
@@ -311,8 +313,8 @@ namespace y {
 
     template<
         typename U = T,
-        typename std::enable_if<N == 2 &&
-                                std::is_same<T, U>::value, bool>::type = 0>
+        typename y::enable_if<N == 2 &&
+                              y::is_same<T, U>::value, bool>::type = 0>
     auto angle() const -> decltype(atan(T()))
     {
       if (!elements[0] && !elements[1]) {
@@ -331,8 +333,8 @@ namespace y {
 
     template<
         typename U = T,
-        typename std::enable_if<N == 2 &&
-                                std::is_same<T, U>::value, bool>::type = 0>
+        typename y::enable_if<N == 2 &&
+                              y::is_same<T, U>::value, bool>::type = 0>
     static V from_angle(T angle)
     {
       return V{T(cos(angle)), T(sin(angle))};

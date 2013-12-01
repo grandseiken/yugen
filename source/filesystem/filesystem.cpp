@@ -1,8 +1,7 @@
 #include "filesystem.h"
+#include "../common/algorithm.h"
 
-#include <algorithm>
-
-void Filesystem::list_pattern(y::string_vector& output,
+void Filesystem::list_pattern(y::vector<y::string>& output,
                               const y::string& pattern) const
 {
   struct local {
@@ -85,14 +84,14 @@ void Filesystem::list_pattern(y::string_vector& output,
   y::size right = cpattern.find_first_of('/', star_pos);
 
   y::string pattern_prefix = cpattern.substr(0, left);
-  y::string_vector intermediate;
+  y::vector<y::string> intermediate;
 
   // If we see a double star in the first path segment with stars, need to check
   // everything anyway.
   if (cpattern.find("**", star_pos) < right) {
     list_directory_recursive(intermediate, pattern_prefix);
-    std::copy_if(
-        intermediate.begin(), intermediate.end(), std::back_inserter(output),
+    y::copy_if(
+        intermediate.begin(), intermediate.end(), y::back_inserter(output),
         [&](const y::string& p){return local::check_pattern(p, cpattern);});
     return;
   }
@@ -119,7 +118,7 @@ void Filesystem::list_pattern(y::string_vector& output,
   }
 }
 
-void Filesystem::list_directory(y::string_vector& output,
+void Filesystem::list_directory(y::vector<y::string>& output,
                                 const y::string& path) const
 {
   y::string cpath;
@@ -127,21 +126,21 @@ void Filesystem::list_directory(y::string_vector& output,
     return;
   }
 
-  y::string_vector intermediate;
+  y::vector<y::string> intermediate;
   list_directory_internal(intermediate, cpath);
 
   y::size first = output.size();
-  std::copy_if(
-      intermediate.begin(), intermediate.end(), std::back_inserter(output),
+  y::copy_if(
+      intermediate.begin(), intermediate.end(), y::back_inserter(output),
       [&](const y::string& p){return exists(p);});
-  std::sort(output.begin() + first, output.end());
+  y::sort(output.begin() + first, output.end());
 }
 
-void Filesystem::list_directory_recursive(y::string_vector& output,
+void Filesystem::list_directory_recursive(y::vector<y::string>& output,
                                           const y::string& path) const
 {
   // Canonicalising is handled by list_directory.
-  y::string_vector directory;
+  y::vector<y::string> directory;
   list_directory(directory, path);
 
   for (const y::string& sub_path : directory) {
@@ -184,11 +183,11 @@ bool Filesystem::read_file(y::string& output,
 {
   y::string cpath;
   if (!canonicalise_path(cpath, path)) {
-    std::cerr << "Couldn't read file " << path << ", invalid path" << std::endl;
+    y::cerr << "Couldn't read file " << path << ", invalid path" << y::endl;
     return false;
   }
   if (!is_file_internal(cpath)) {
-    std::cerr << "Couldn't read file " << path << std::endl;
+    y::cerr << "Couldn't read file " << path << y::endl;
     return false;
   }
   read_file_internal(output, cpath);
@@ -208,7 +207,7 @@ bool Filesystem::read_file_with_includes(y::string& output,
   y::size include = output.find(include_directive);
   while (include != y::string::npos) {
     if (++include_count > include_limit) {
-      std::cerr << "Include depth too deep in file " << path << std::endl;
+      y::cerr << "Include depth too deep in file " << path << y::endl;
       return false;
     }
     y::size begin = include + include_directive.length();
@@ -227,8 +226,7 @@ bool Filesystem::read_file_with_includes(y::string& output,
     y::string after = output.substr(1 + end);
     output = output.substr(0, include);
     if (!read_file(output, include_filename)) {
-      std::cerr << "Couldn't read included file " << include_filename <<
-          std::endl;
+      y::cerr << "Couldn't read included file " << include_filename << y::endl;
       return false;
     }
     output += after;
@@ -242,13 +240,11 @@ bool Filesystem::write_file(const y::string& data,
 {
   y::string cpath;
   if (!canonicalise_path(cpath, path)) {
-    std::cerr << "Couldn't write file " << path << ", invalid path" <<
-        std::endl;
+    y::cerr << "Couldn't write file " << path << ", invalid path" << y::endl;
     return false;
   }
   if (is_directory_internal(cpath)) {
-    std::cerr << "Couldn't write file " << path << ", is a directory" <<
-        std::endl;
+    y::cerr << "Couldn't write file " << path << ", is a directory" << y::endl;
     return false;
   }
   write_file_internal(data, cpath);
@@ -299,7 +295,7 @@ bool Filesystem::canonicalise_path(y::string& output,
                                    const y::string& path) const
 {
   struct local {
-    static bool process_segment(y::string_vector& split,
+    static bool process_segment(y::vector<y::string>& split,
                                 const y::string& segment)
     {
       if (segment == "..") {
@@ -315,7 +311,7 @@ bool Filesystem::canonicalise_path(y::string& output,
     }
   };
 
-  y::string_vector split;
+  y::vector<y::string> split;
   y::size p = 0;
   y::size q = path.find_first_of('/');
   while (q != y::string::npos) {

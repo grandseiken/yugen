@@ -2,6 +2,7 @@
 #define FILESYSTEM__COMPRESSED_H
 
 #include "filesystem.h"
+#include "../common/set.h"
 
 // Implementation of Filesystem that wraps another (concrete) implementation,
 // adding compression to a given set of file extensions.
@@ -27,7 +28,7 @@ public:
 
 protected:
 
-  void list_directory_internal(y::string_vector& output,
+  void list_directory_internal(y::vector<y::string>& output,
                                const y::string& path) const override;
 
   bool is_file_internal(const y::string& path) const override;

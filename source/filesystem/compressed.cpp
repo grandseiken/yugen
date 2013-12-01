@@ -18,10 +18,10 @@ void CompressedFilesystem::add_compressed_extension(const y::string& extension)
   _extensions.insert(extension);
 }
 
-void CompressedFilesystem::list_directory_internal(y::string_vector& output,
+void CompressedFilesystem::list_directory_internal(y::vector<y::string>& output,
                                                    const y::string& path) const
 {
-  y::string_vector temp;
+  y::vector<y::string> temp;
   _base.list_directory(temp, path);
 
   y::set<y::string> set;
@@ -67,7 +67,7 @@ void CompressedFilesystem::read_file_internal(y::string& output,
   _base.read_file(compressed, path + get_suffix());
   y::sstream ss;
   ss << compressed;
-  
+
   boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
   switch (_algorithm) {
     case ZLIB:
@@ -112,7 +112,7 @@ void CompressedFilesystem::write_file_internal(const y::string& data,
   }
   out.push(boost::iostreams::back_inserter(compressed));
   boost::iostreams::copy(boost::make_iterator_range(data), out);
-  
+
   _base.write_file(compressed, path + get_suffix());
 }
 

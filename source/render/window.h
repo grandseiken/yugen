@@ -1,7 +1,9 @@
 #ifndef RENDER__WINDOW_H
 #define RENDER__WINDOW_H
 
-#include "../common.h"
+#include "../common/memory.h"
+#include "../common/utility.h"
+#include "../common/vector.h"
 #include "../vector.h"
 
 struct Resolution {

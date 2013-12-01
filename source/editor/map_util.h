@@ -2,7 +2,6 @@
 #define EDITOR__MAP_UTIL_H
 
 #include "../data/cell.h"
-#include "../common.h"
 #include "../modal.h"
 #include "../ui_util.h"
 #include "../vector.h"
@@ -212,7 +211,7 @@ private:
 class LayerPanel : public Panel {
 public:
 
-  LayerPanel(const y::string_vector& status);
+  LayerPanel(const y::vector<y::string>& status);
   ~LayerPanel() override {}
 
   y::int32 get_layer() const;
@@ -223,7 +222,7 @@ public:
 
 private:
 
-  const y::string_vector& _status;
+  const y::vector<y::string>& _status;
   UiList _list;
   y::int32 _layer_select;
 

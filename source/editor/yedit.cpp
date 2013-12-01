@@ -186,7 +186,7 @@ void Yedit::draw() const
   struct local {
     static void render_list(
         RenderUtil& util, const UiList& list, bool active,
-        const y::string& title, const y::string_vector& source,
+        const y::string& title, const y::vector<y::string>& source,
         y::vector<bool>& actives, y::size select)
     {
       util.irender_text(

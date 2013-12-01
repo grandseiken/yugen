@@ -1,7 +1,6 @@
 #ifndef GAME__ENVIRONMENT_H
 #define GAME__ENVIRONMENT_H
 
-#include "../common.h"
 #include "../vector.h"
 #include "../render/gl_handle.h"
 
@@ -87,7 +86,7 @@ public:
   };
 
   Environment(GlUtil& util, bool fake);
- 
+
   void add_particle(const Particle& particle);
 
   // Destroy all particles with the given tag.

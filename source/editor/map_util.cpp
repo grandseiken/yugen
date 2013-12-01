@@ -467,7 +467,7 @@ void ScriptPanel::draw(RenderUtil& util) const
   _list.draw(util, _bank.scripts.get_names(), _script_select);
 }
 
-LayerPanel::LayerPanel(const y::string_vector& status)
+LayerPanel::LayerPanel(const y::vector<y::string>& status)
   : Panel(y::ivec2(), y::ivec2())
   , _status(status)
   , _list(y::ivec2(), y::ivec2(), colour::panel, colour::item, colour::select)
@@ -529,7 +529,7 @@ void LayerPanel::update()
 
 void LayerPanel::draw(RenderUtil& util) const
 {
-  static y::string_vector layer_names{
+  static y::vector<y::string> layer_names{
     "1 Background",
     "2 Collision",
     "3 Foreground",

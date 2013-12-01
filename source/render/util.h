@@ -2,8 +2,7 @@
 #define RENDER__UTIL_H
 
 #include "gl_handle.h"
-
-#include "../common.h"
+#include "../common/ordered_map.h"
 #include "../vector.h"
 
 class GlUtil;

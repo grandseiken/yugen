@@ -4,7 +4,6 @@
 #include "../render/gl_util.h"
 #include "../render/util.h"
 
-#include <algorithm>
 #include <boost/functional/hash.hpp>
 
 Light::Light(const Script& source)
@@ -187,10 +186,10 @@ void Lighting::recalculate_traces(
       // Perform the appropriate vertex sort.
       if (light->is_planar()) {
         planar.normal_vec = light->normal_vec;
-        std::sort(vertex_buffer.begin(), vertex_buffer.end(), planar);
+        y::sort(vertex_buffer.begin(), vertex_buffer.end(), planar);
       }
       else {
-        std::sort(vertex_buffer.begin(), vertex_buffer.end(), angular);
+        y::sort(vertex_buffer.begin(), vertex_buffer.end(), angular);
       }
 
       // Trace the light geometry.

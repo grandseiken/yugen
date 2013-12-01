@@ -1,7 +1,6 @@
 #ifndef GAME__WORLD_H
 #define GAME__WORLD_H
 
-#include "../common.h"
 #include "../data/cell.h"
 #include "../spatial_hash.h"
 

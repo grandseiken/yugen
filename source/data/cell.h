@@ -1,7 +1,8 @@
 #ifndef DATA__CELL_H
 #define DATA__CELL_H
 
-#include "../common.h"
+#include "../common/map.h"
+#include "../common/memory.h"
 #include "../save.h"
 #include "../vector.h"
 

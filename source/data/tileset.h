@@ -1,7 +1,7 @@
 #ifndef DATA__TILESET_H
 #define DATA__TILESET_H
 
-#include "../common.h"
+#include "../common/memory.h"
 #include "../render/gl_handle.h"
 #include "../save.h"
 #include "../vector.h"

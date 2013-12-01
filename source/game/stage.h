@@ -7,11 +7,14 @@
 #include "savegame.h"
 #include "world.h"
 
-#include "../common.h"
+#include "../common/list.h"
+#include "../common/utility.h"
+#include "../common/vector.h"
+#include "../render/util.h"
 #include "../lua.h"
 #include "../modal.h"
-#include "../render/util.h"
 #include "../spatial_hash.h"
+#include "../vector.h"
 
 #include <SFML/Window.hpp>
 
@@ -87,7 +90,7 @@ private:
 
   typedef y::list<y::unique<Script>> script_list;
   script_list _scripts;
-  
+
   // Spatial hash of existing scripts.
   typedef SpatialHash<Script*, y::world, 2> spatial_hash;
   spatial_hash _spatial_hash;

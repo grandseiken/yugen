@@ -1,7 +1,6 @@
 #ifndef PERLIN_H
 #define PERLIN_H
 
-#include "common.h"
 #include "vector.h"
 #include <random>
 

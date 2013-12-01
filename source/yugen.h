@@ -1,7 +1,6 @@
 #ifndef YUGEN_H
 #define YUGEN_H
 
-#include "common.h"
 #include "modal.h"
 #include "render/gl_handle.h"
 

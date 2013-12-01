@@ -1,7 +1,7 @@
 #ifndef GAME__SAVEGAME_H
 #define GAME__SAVEGAME_H
 
-#include "../common.h"
+#include "../common/string.h"
 #include "../lua_types.h"
 #include "../save.h"
 

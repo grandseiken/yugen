@@ -1,7 +1,6 @@
 #ifndef UI_UTIL_H
 #define UI_UTIL_H
 
-#include "common.h"
 #include "modal.h"
 #include "render/util.h"
 #include "vector.h"
@@ -25,11 +24,11 @@ public:
 
   // Draw with colour lookup from list.
   void draw(RenderUtil& util, const y::vector<y::fvec4>& items,
-            const y::string_vector& source, y::size select) const;
+            const y::vector<y::string>& source, y::size select) const;
 
   // Draw with default colour values.
   void draw(RenderUtil& util,
-            const y::string_vector& source, y::size select) const;
+            const y::vector<y::string>& source, y::size select) const;
 
 private:
 

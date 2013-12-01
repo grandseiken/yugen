@@ -1,7 +1,9 @@
 #ifndef FILESYSTEM__FILESYSTEM_H
 #define FILESYSTEM__FILESYSTEM_H
 
-#include "../common.h"
+#include "../common/string.h"
+#include "../common/vector.h"
+#include "../common/utility.h"
 
 class Filesystem {
 public:
@@ -12,15 +14,15 @@ public:
   // Lists all files and directories matching pattern, in which * expands to any
   // substring not containing '/' and ** to any substring (i.e. recursively).
   // '..' and '.' are collapsed before expansion.
-  /*****/ void list_pattern(y::string_vector& output,
+  /*****/ void list_pattern(y::vector<y::string>& output,
                             const y::string& pattern) const;
 
   // Lists all files and subdirectories in a directory.
-  /*****/ void list_directory(y::string_vector& output,
+  /*****/ void list_directory(y::vector<y::string>& output,
                               const y::string& path) const;
 
   // Lists all files and subdirectories under a directory.
-  /*****/ void list_directory_recursive(y::string_vector& output,
+  /*****/ void list_directory_recursive(y::vector<y::string>& output,
                                         const y::string& path) const;
 
   // Returns true iff the given path exists.
@@ -58,7 +60,7 @@ public:
 
 protected:
 
-  virtual void list_directory_internal(y::string_vector& output,
+  virtual void list_directory_internal(y::vector<y::string>& output,
                                        const y::string& path) const = 0;
 
   virtual bool is_file_internal(const y::string& path) const = 0;

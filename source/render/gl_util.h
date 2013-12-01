@@ -2,10 +2,9 @@
 #define RENDER__GL_UTIL_H
 
 #include "gl_handle.h"
-
-#include "../common.h"
+#include "../common/map.h"
+#include "../common/set.h"
 #include "../vector.h"
-
 #include <GL/glew.h>
 
 class Filesystem;
@@ -86,12 +85,12 @@ public:
   void delete_shader(const GlShader& shader);
 
   // Link multiple shaders into one GLSL program.
-  GlProgram make_program(const y::string_vector& shaders);
-  GlUnique<GlProgram> make_unique_program(const y::string_vector& shaders);
+  GlProgram make_program(const y::vector<y::string>& shaders);
+  GlUnique<GlProgram> make_unique_program(const y::vector<y::string>& shaders);
   // Get preloaded program.
-  GlProgram get_program(const y::string_vector& shaders) const;
+  GlProgram get_program(const y::vector<y::string>& shaders) const;
   // Delete preloaded program.
-  void delete_program(const y::string_vector& shaders);
+  void delete_program(const y::vector<y::string>& shaders);
   void delete_program(const GlProgram& program);
 
   // Render to window, rather than any framebuffer.

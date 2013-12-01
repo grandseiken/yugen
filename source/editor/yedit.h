@@ -1,7 +1,7 @@
 #ifndef EDITOR__YEDIT_H
 #define EDITOR__YEDIT_H
 
-#include "../common.h"
+#include "../common/math.h"
 #include "../modal.h"
 #include "../ui_util.h"
 

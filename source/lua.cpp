@@ -267,7 +267,7 @@ namespace {
 ScriptReference::ScriptReference(Script& script)
   : _script(&script)
   , _callback_id(_script->add_destroy_callback(
-        y::bind(&ScriptReference::invalidate, this, std::placeholders::_1)))
+        y::bind(&ScriptReference::invalidate, this, y::_1)))
 {
 }
 
@@ -277,7 +277,7 @@ ScriptReference::ScriptReference(const ScriptReference& script)
 {
   if (_script) {
     _callback_id = _script->add_destroy_callback(
-        y::bind(&ScriptReference::invalidate, this, std::placeholders::_1));
+        y::bind(&ScriptReference::invalidate, this, y::_1));
   }
 }
 
@@ -299,7 +299,7 @@ ScriptReference& ScriptReference::operator=(const ScriptReference& arg)
   _script = arg._script;
   if (_script) {
     _callback_id = _script->add_destroy_callback(
-        y::bind(&ScriptReference::invalidate, this, std::placeholders::_1));
+        y::bind(&ScriptReference::invalidate, this, y::_1));
   }
   return *this;
 }
@@ -358,8 +358,7 @@ Script* ScriptReference::operator->()
 ConstScriptReference::ConstScriptReference(const Script& script)
   : _script(&script)
   , _callback_id(_script->add_destroy_callback(
-        y::bind(&ConstScriptReference::invalidate, this,
-                std::placeholders::_1)))
+        y::bind(&ConstScriptReference::invalidate, this, y::_1)))
 {
 }
 
@@ -368,8 +367,7 @@ ConstScriptReference::ConstScriptReference(const ScriptReference& script)
 {
   if (_script) {
     _callback_id = _script->add_destroy_callback(
-        y::bind(&ConstScriptReference::invalidate, this,
-                std::placeholders::_1));
+        y::bind(&ConstScriptReference::invalidate, this, y::_1));
   }
 }
 
@@ -378,8 +376,7 @@ ConstScriptReference::ConstScriptReference(const ConstScriptReference& script)
 {
   if (_script) {
     _callback_id = _script->add_destroy_callback(
-        y::bind(&ConstScriptReference::invalidate, this,
-                std::placeholders::_1));
+        y::bind(&ConstScriptReference::invalidate, this, y::_1));
   }
 }
 
@@ -402,8 +399,7 @@ ConstScriptReference& ConstScriptReference::operator=(
   _script = arg._script;
   if (_script) {
     _callback_id = _script->add_destroy_callback(
-        y::bind(&ConstScriptReference::invalidate, this,
-                std::placeholders::_1));
+        y::bind(&ConstScriptReference::invalidate, this, y::_1));
   }
   return *this;
 }
@@ -498,11 +494,11 @@ Script::Script(GameStage& stage,
   if (lua_load(_state, local::read, &data_struct, _path.c_str()) ||
       lua_pcall(_state, 0, 0, 1)) {
     const char* error = lua_tostring(_state, -1);
-    std::cerr << "Loading script " << _path << " failed";
+    y::cerr << "Loading script " << _path << " failed";
     if (error) {
-      std::cerr << ": " << error;
+      y::cerr << ": " << error;
     }
-    std::cerr << std::endl;
+    y::cerr << y::endl;
   }
 }
 
@@ -574,12 +570,12 @@ void Script::call(lua_args& output, const y::string& function_name,
   }
   if (lua_pcall(_state, args.size(), LUA_MULTRET, 1)) {
     const char* error = lua_tostring(_state, -1);
-    std::cerr << "Calling function " << _path << ":" <<
+    y::cerr << "Calling function " << _path << ":" <<
         function_name << " failed";
     if (error) {
-      std::cerr << ": " << error;
+      y::cerr << ": " << error;
     }
-    std::cerr << std::endl;
+    y::cerr << y::endl;
   }
   for (++top; top <= lua_gettop(_state); ++top) {
     output.emplace_back(t.get(_state, top));

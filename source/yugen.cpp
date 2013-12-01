@@ -8,7 +8,6 @@
 #include "render/util.h"
 #include "render/window.h"
 
-#include <iomanip>
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 
@@ -163,38 +162,39 @@ void Yugen::draw() const
 
   // Render debug status.
   _util.set_resolution(_post_buffer->get_size());
-  y::sstream ss;
   float fps_avg = 1000000.f / _run_timing.us_per_frame_avg;
   float fps_inst = 1000000.f / _run_timing.us_per_frame_inst;
   float update_pct = 100.f *
       float(_run_timing.us_per_update_avg) / _run_timing.us_per_frame_avg;
-  ss << std::setw(5) <<
+
+  y::sstream ss;
+  ss << y::setw(5) <<
       _run_timing.us_per_update_avg << " / " <<
-      std::setw(5) <<
+      y::setw(5) <<
       _run_timing.us_per_draw_avg << " / " <<
-      std::setw(5) <<
+      y::setw(5) <<
       _run_timing.us_per_frame_avg << " avg (" <<
-      std::setw(5) << std::setprecision(1) << std::fixed <<
+      y::setw(5) << y::setprecision(1) << y::fixed <<
       fps_avg << " fps)";
   _util.irender_text(ss.str(), {16, 16}, colour::white);
 
   ss.str(y::string());
   ss.clear();
-  ss << std::setw(5) <<
+  ss << y::setw(5) <<
       _run_timing.us_per_update_inst << " / " <<
-      std::setw(5) <<
+      y::setw(5) <<
       _run_timing.us_per_draw_inst << " / " <<
-      std::setw(5) <<
+      y::setw(5) <<
       _run_timing.us_per_frame_inst << " inst (" <<
-      std::setw(5) << std::setprecision(1) << std::fixed <<
+      y::setw(5) << y::setprecision(1) << y::fixed <<
       fps_inst << " fps)";
   _util.irender_text(ss.str(), {16, 24}, colour::white);
 
   ss.str(y::string());
   ss.clear();
-  ss << std::setw(5) << std::setprecision(1) << std::fixed <<
+  ss << y::setw(5) << y::setprecision(1) << y::fixed <<
       update_pct << "% update; " <<
-      std::setw(1) <<
+      y::setw(1) <<
       _run_timing.updates_this_cycle << " updates";
   if (_recording) {
     ss << " [recording]";
@@ -283,11 +283,11 @@ void Yugen::recording_render(const GlFramebuffer& source) const
       image.flipVertically();
 
       y::sstream ss;
-      ss << "tmp/" << std::setw(4) << std::setfill('0') << n++ << ".png";
+      ss << "tmp/" << y::setw(4) << y::setfill('0') << n++ << ".png";
       image.saveToFile(ss.str());
       delete[] data;
-      std::cout << "Saved frame " << n << " of " << _save_file_frames.size() <<
-          std::endl;
+      y::cout << "Saved frame " <<
+          n << " of " << _save_file_frames.size() << y::endl;
     }
     _save_file_frames.clear();
   }
@@ -297,13 +297,13 @@ void Yugen::recording_render(const GlFramebuffer& source) const
 
 y::int32 main(y::int32 argc, char** argv)
 {
-  y::string_vector args;
+  y::vector<y::string> args;
   for (y::int32 i = 1; i < argc; ++i) {
     args.emplace_back(argv[i]);
   }
   // Usage: yugen [map x y]
   if (!args.empty() && args.size() != 3) {
-    std::cerr << "Usage: yugen [map x y]" << std::endl;
+    y::cerr << "Usage: yugen [map x y]" << y::endl;
     return 1;
   }
 
@@ -323,7 +323,7 @@ y::int32 main(y::int32 argc, char** argv)
     if (databank.maps.is_name_used(args[0])) {
       map = args[0];
     }
-    y::ivec2 tile{std::stoi(args[1]), std::stoi(args[2])};
+    y::ivec2 tile{y::stoi(args[1]), y::stoi(args[2])};
     world = (y::wvec2{.5, .5} + y::wvec2(tile)) *
              y::wvec2(Tileset::tile_size);
   }

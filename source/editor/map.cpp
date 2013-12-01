@@ -146,8 +146,8 @@ void MapEditor::event(const sf::Event& e)
         y::string call = "bin/yugen " + _bank.maps.get_name(_map) +
                          " " + y::to_string(get_hover_world()[xx]) +
                          " " + y::to_string(get_hover_world()[yy]);
-        std::cout << call << " exited with code " << system(call.c_str()) <<
-            std::endl;
+        y::cout << call <<
+            " exited with code " << system(call.c_str()) << y::endl;
       }
       break;
 
@@ -489,10 +489,10 @@ void MapEditor::get_script_drag_result(
     swap_x = min_output[xx] > max_output[xx];
     swap_y = min_output[yy] > max_output[yy];
     if (swap_x) {
-      std::swap(min_output[xx], max_output[xx]);
+      y::swap(min_output[xx], max_output[xx]);
     }
     if (swap_y) {
-      std::swap(min_output[yy], max_output[yy]);
+      y::swap(min_output[yy], max_output[yy]);
     }
   }
 

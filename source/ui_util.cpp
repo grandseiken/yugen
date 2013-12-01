@@ -50,7 +50,7 @@ void UiList::set_select(const y::fvec4& select)
 }
 
 void UiList::draw(RenderUtil& util, const y::vector<y::fvec4>& items,
-                  const y::string_vector& source, y::size select) const
+                  const y::vector<y::string>& source, y::size select) const
 {
   util.irender_fill(RenderUtil::from_grid(_origin),
                     RenderUtil::from_grid(_size), _panel);
@@ -74,7 +74,7 @@ void UiList::draw(RenderUtil& util, const y::vector<y::fvec4>& items,
 }
 
 void UiList::draw(RenderUtil& util,
-                  const y::string_vector& source, y::size select) const
+                  const y::vector<y::string>& source, y::size select) const
 {
   y::vector<y::fvec4> items;
   for (y::size n = 0; n < source.size(); ++n) {

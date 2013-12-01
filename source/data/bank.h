@@ -4,11 +4,10 @@
 #include "cell.h"
 #include "tileset.h"
 
-#include "../common.h"
+#include "../common/map.h"
+#include "../common/vector.h"
+#include "../common/utility.h"
 #include "../render/gl_handle.h"
-
-#include <algorithm>
-#include <iostream>
 
 class Databank;
 class Filesystem;
@@ -39,7 +38,7 @@ public:
   bool empty() const;
 
   // Get list of loaded resource names.
-  const y::string_vector& get_names() const;
+  const y::vector<y::string>& get_names() const;
   // Check if a name is used.
   bool is_name_used(const y::string& name) const;
 
@@ -67,7 +66,7 @@ public:
 private:
 
   typedef y::map<y::string, y::unique<T>> map_type;
-  y::string_vector _list;
+  y::vector<y::string> _list;
   map_type _map;
   T& _default;
 
@@ -172,7 +171,7 @@ void Dataset<T>::insert(const y::string& name, y::unique<T> resource)
   }
 
   _list.emplace_back(name);
-  std::sort(_list.begin(), _list.end());
+  y::sort(_list.begin(), _list.end());
   auto jt = _map.insert(y::make_pair(name, y::unique<T>()));
   jt.first->second.swap(resource);
 }
@@ -190,7 +189,7 @@ bool Dataset<T>::empty() const
 }
 
 template<typename T>
-const y::string_vector& Dataset<T>::get_names() const
+const y::vector<y::string>& Dataset<T>::get_names() const
 {
   return _list;
 }
@@ -213,7 +212,7 @@ const T& Dataset<T>::get(const y::string& name) const
   if (it != _map.end()) {
     return *it->second;
   }
-  std::cerr << "Couldn't find resource " << name << std::endl;
+  y::cerr << "Couldn't find resource " << name << y::endl;
   return _default;
 }
 
@@ -224,7 +223,7 @@ T& Dataset<T>::get(const y::string& name)
   if (it != _map.end()) {
     return *it->second;
   }
-  std::cerr << "Couldn't find resource " << name << std::endl;
+  y::cerr << "Couldn't find resource " << name << y::endl;
   return _default;
 }
 
@@ -234,7 +233,7 @@ const T& Dataset<T>::get(y::size index) const
   if (index < get_names().size()) {
     return get(get_names()[index]);
   }
-  std::cerr << "Couldn't find resource " << index << std::endl;
+  y::cerr << "Couldn't find resource " << index << y::endl;
   return _default;
 }
 
@@ -244,7 +243,7 @@ T& Dataset<T>::get(y::size index)
   if (index < get_names().size()) {
     return get(get_names()[index]);
   }
-  std::cerr << "Couldn't find resource " << index << std::endl;
+  y::cerr << "Couldn't find resource " << index << y::endl;
   return _default;
 }
 
@@ -257,7 +256,7 @@ const y::string& Dataset<T>::get_name(const T& resource) const
       return pair.first;
     }
   }
-  std::cerr << "Could find name of resource" << std::endl;
+  y::cerr << "Could find name of resource" << y::endl;
   return none;
 }
 
@@ -277,7 +276,7 @@ y::size Dataset<T>::get_index(const T& resource) const
       return i;
     }
   }
-  std::cerr << "Could find index of resource" << std::endl;
+  y::cerr << "Could find index of resource" << y::endl;
   return -1;
 }
 
@@ -306,7 +305,7 @@ void Dataset<T>::rename(const T& resource, const y::string& new_name)
   _map.erase(it);
 
   _list.emplace_back(new_name);
-  std::sort(_list.begin(), _list.end());
+  y::sort(_list.begin(), _list.end());
   auto jt = _map.insert(y::make_pair(new_name, y::unique<T>()));
   jt.first->second.swap(temp);
 }

@@ -7,6 +7,11 @@ FILE=$3
 
 # Get include dependencies from a single file.
 get_deps() {
+  if [ ! -f $1 ]; then
+    echo "NONE"
+    return
+  fi
+
   DIR=$(dirname $1)
   # Extract the filenames in lines that look like:
   #   #include "foo.h"

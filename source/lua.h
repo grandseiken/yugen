@@ -1,8 +1,9 @@
 #ifndef LUA_H
 #define LUA_H
 
+#include "common/map.h"
+#include "common/set.h"
 #include "callback.h"
-#include "common.h"
 #include "vector.h"
 #include "lua_types.h"
 
@@ -240,7 +241,6 @@ template<typename T>
 const typename ScriptMap<T>::entry_list& ScriptMap<T>::get_list(
     const Script& source) const
 {
-//  std::cerr << "finding for " << &source << std::endl;
   auto it = _map.find(const_cast<Script*>(&source));
   if (it == _map.end() || !it->second.ref.is_valid()) {
     return no_list;

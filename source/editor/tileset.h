@@ -1,7 +1,6 @@
 #ifndef EDITOR__TILESET_H
 #define EDITOR__TILESET_H
 
-#include "../common.h"
 #include "../modal.h"
 #include "../vector.h"
 

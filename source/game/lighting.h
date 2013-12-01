@@ -3,7 +3,6 @@
 
 #include "world.h"
 
-#include "../common.h"
 #include "../render/gl_handle.h"
 #include "../lua.h"
 #include "../vector.h"
