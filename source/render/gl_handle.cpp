@@ -1,4 +1,5 @@
 #include "gl_handle.h"
+#include "../log.h"
 
 bool GlHandle::operator==(const GlHandle& handle) const
 {
@@ -177,7 +178,7 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
                             bool array, y::size index,
                             GLenum type, y::size length) const
 {
-#ifndef GL_DEBUG
+#ifndef DEBUG
   (void)attribute;
   (void)name;
   (void)array;
@@ -188,12 +189,11 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
 #else
   GLenum name_type;
   if (!check_name_exists(attribute, name, array, index, name_type)) {
-    y::cerr << "Undefined " <<
-        (attribute ? "attribute" : "uniform") << " " << name;
+    logg_err("Undefined ", attribute ? "attribute" : "uniform", " ", name);
     if (array) {
-      y::cerr << "[" << index << "]";
+      logg_err("[", index, "]");
     }
-    y::cerr << y::endl;
+    log_err();
     return false;
   }
 
@@ -202,13 +202,13 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
   composite_type_to_base_and_length(name_type, name_base_type, name_length);
 
   if (type != name_base_type) {
-    y::cerr << (attribute ? "Attribute" : "Uniform") <<
-        " " << name << " given incorrect type" << y::endl;
+    log_err(attribute ? "Attribute" : "Uniform",
+            " ", name, " given incorrect type");
     return false;
   }
   if (length != name_length) {
-    y::cerr << (attribute ? "Attribute" : "Uniform") <<
-        " " << name << " given incorrect length" << y::endl;
+    log_err(attribute ? "Attribute" : "Uniform",
+            " ", name, " given incorrect length");
     return false;
   }
   return true;

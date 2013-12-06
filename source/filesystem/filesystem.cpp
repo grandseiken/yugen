@@ -1,5 +1,6 @@
 #include "filesystem.h"
 #include "../common/algorithm.h"
+#include "../log.h"
 
 void Filesystem::list_pattern(y::vector<y::string>& output,
                               const y::string& pattern) const
@@ -183,11 +184,11 @@ bool Filesystem::read_file(y::string& output,
 {
   y::string cpath;
   if (!canonicalise_path(cpath, path)) {
-    y::cerr << "Couldn't read file " << path << ", invalid path" << y::endl;
+    log_err("Couldn't read file ", path, ", invalid path");
     return false;
   }
   if (!is_file_internal(cpath)) {
-    y::cerr << "Couldn't read file " << path << y::endl;
+    log_err("Couldn't read file ", path);
     return false;
   }
   read_file_internal(output, cpath);
@@ -207,7 +208,7 @@ bool Filesystem::read_file_with_includes(y::string& output,
   y::size include = output.find(include_directive);
   while (include != y::string::npos) {
     if (++include_count > include_limit) {
-      y::cerr << "Include depth too deep in file " << path << y::endl;
+      log_err("Include depth too deep in file ", path);
       return false;
     }
     y::size begin = include + include_directive.length();
@@ -226,7 +227,7 @@ bool Filesystem::read_file_with_includes(y::string& output,
     y::string after = output.substr(1 + end);
     output = output.substr(0, include);
     if (!read_file(output, include_filename)) {
-      y::cerr << "Couldn't read included file " << include_filename << y::endl;
+      log_err("Couldn't read included file ", include_filename);
       return false;
     }
     output += after;
@@ -240,11 +241,11 @@ bool Filesystem::write_file(const y::string& data,
 {
   y::string cpath;
   if (!canonicalise_path(cpath, path)) {
-    y::cerr << "Couldn't write file " << path << ", invalid path" << y::endl;
+    log_err("Couldn't write file ", path, ", invalid path");
     return false;
   }
   if (is_directory_internal(cpath)) {
-    y::cerr << "Couldn't write file " << path << ", is a directory" << y::endl;
+    log_err("Couldn't write file ", path, ", is a directory");
     return false;
   }
   write_file_internal(data, cpath);

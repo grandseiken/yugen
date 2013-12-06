@@ -7,6 +7,7 @@ FILE=$3
 
 # Get include dependencies from a single file.
 get_deps() {
+  # TODO: something about this breaks the Makefile when things are changed.
   if [ ! -f $1 ]; then
     echo "NONE"
     return

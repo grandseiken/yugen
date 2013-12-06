@@ -5,6 +5,7 @@
 #include "../common/vector.h"
 #include "../common/utility.h"
 #include "../render/gl_handle.h"
+#include "../log.h"
 #include "../save.h"
 
 class CellBlueprint;
@@ -216,7 +217,7 @@ const T& Dataset<T>::get(const y::string& name) const
   if (it != _map.end()) {
     return *it->second;
   }
-  y::cerr << "Couldn't find resource " << name << y::endl;
+  log_err("Couldn't find resource ", name);
   return _default;
 }
 
@@ -227,7 +228,7 @@ T& Dataset<T>::get(const y::string& name)
   if (it != _map.end()) {
     return *it->second;
   }
-  y::cerr << "Couldn't find resource " << name << y::endl;
+  log_err("Couldn't find resource ", name);
   return _default;
 }
 
@@ -237,7 +238,7 @@ const T& Dataset<T>::get(y::size index) const
   if (index < get_names().size()) {
     return get(get_names()[index]);
   }
-  y::cerr << "Couldn't find resource " << index << y::endl;
+  log_err("Couldn't find resource ", index);
   return _default;
 }
 
@@ -247,7 +248,7 @@ T& Dataset<T>::get(y::size index)
   if (index < get_names().size()) {
     return get(get_names()[index]);
   }
-  y::cerr << "Couldn't find resource " << index << y::endl;
+  log_err("Couldn't find resource ", index);
   return _default;
 }
 
@@ -260,7 +261,7 @@ const y::string& Dataset<T>::get_name(const T& resource) const
       return pair.first;
     }
   }
-  y::cerr << "Could find name of resource" << y::endl;
+  log_err("Couldn't find name of resource");
   return none;
 }
 
@@ -280,7 +281,7 @@ y::size Dataset<T>::get_index(const T& resource) const
       return i;
     }
   }
-  y::cerr << "Could find index of resource" << y::endl;
+  log_err("Couldn't find index of resource");
   return -1;
 }
 

@@ -28,7 +28,7 @@ namespace {
   auto lua_get(lua_State* state, lua_int index) ->
       decltype(LuaType<T>().get(state, index))
   {
-#ifdef LUA_DEBUG
+#ifdef DEBUG
     luaL_argcheck(state, lua_is<T>(state, index), index,
                   (LuaType<T>::type_name + " expected").c_str());
 #endif
@@ -39,7 +39,7 @@ namespace {
   void lua_argassert(lua_State* state,
                      bool condition, lua_int index, const y::string& message)
   {
-#ifdef LUA_DEBUG
+#ifdef DEBUG
     luaL_argcheck(state, condition, index, message.c_str());
 #else
     (void)state;
@@ -494,11 +494,11 @@ Script::Script(GameStage& stage,
   if (lua_load(_state, local::read, &data_struct, _path.c_str()) ||
       lua_pcall(_state, 0, 0, 1)) {
     const char* error = lua_tostring(_state, -1);
-    y::cerr << "Loading script " << _path << " failed";
+    logg_err("Loading script ", _path, " failed");
     if (error) {
-      y::cerr << ": " << error;
+      logg_err(": ", error);
     }
-    y::cerr << y::endl;
+    log_err();
   }
 }
 
@@ -570,12 +570,11 @@ void Script::call(lua_args& output, const y::string& function_name,
   }
   if (lua_pcall(_state, args.size(), LUA_MULTRET, 1)) {
     const char* error = lua_tostring(_state, -1);
-    y::cerr << "Calling function " << _path << ":" <<
-        function_name << " failed";
+    logg_err("Calling function ", _path, ":", function_name, " failed");
     if (error) {
-      y::cerr << ": " << error;
+      logg_err(": ", error);
     }
-    y::cerr << y::endl;
+    log_err();
   }
   for (++top; top <= lua_gettop(_state); ++top) {
     output.emplace_back(t.get(_state, top));

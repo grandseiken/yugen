@@ -304,7 +304,7 @@ y::int32 main(y::int32 argc, char** argv)
   }
   // Usage: yugen [map x y]
   if (!args.empty() && args.size() != 3) {
-    y::cerr << "Usage: yugen [map x y]" << y::endl;
+    log_err("Usage: yugen [map x y]");
     return 1;
   }
 

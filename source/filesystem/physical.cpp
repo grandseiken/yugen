@@ -1,4 +1,5 @@
 #include "physical.h"
+#include "../log.h"
 
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 #include <fstream>
@@ -67,10 +68,10 @@ void PhysicalFilesystem::read_file_internal(y::string& output,
     file.read(&output[first], output.length());
   }
   catch (const boost::filesystem::filesystem_error& e) {
-    y::cerr << "Write of " << path << " failed" << y::endl;
+    log_err("Write of ", path, " failed");
   }
   catch (const std::ofstream::failure& e) {
-    y::cerr << "Write of " << path << " failed" << y::endl;
+    log_err("Write of ", path, " failed");
   }
 }
 
@@ -84,9 +85,9 @@ void PhysicalFilesystem::write_file_internal(const y::string& data,
     file << data;
   }
   catch (const boost::filesystem::filesystem_error& e) {
-    y::cerr << "Write of " << path << " failed" << y::endl;
+    log_err("Write of ", path, " failed");
   }
   catch (const std::ofstream::failure& e) {
-    y::cerr << "Write of " << path << " failed" << y::endl;
+    log_err("Write of ", path, " failed");
   }
 }

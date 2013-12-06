@@ -94,7 +94,7 @@ PFLAGS= \
 ifeq ($(DBG), 1)
 CFLAGS += -Og -g -ggdb \
 	-Werror -Wall -Wextra -Wpedantic \
-	-DLUA_DEBUG -DGL_DEBUG
+	-DDEBUG
 else
 CFLAGS += -O3
 endif

@@ -6,9 +6,9 @@
 #include "../filesystem/filesystem.h"
 #include "../filesystem/physical.h"
 #include "../game/stage.h"
-#include "../lua.h"
 #include "../render/gl_util.h"
 #include "../render/util.h"
+#include "../lua.h"
 #include "../../gen/proto/cell.pb.h"
 
 Databank::~Databank()
@@ -28,6 +28,7 @@ Databank::Databank()
   , cells(*_default_cell)
   , maps(*_default_map)
 {
+  log_debug("Created default Databank");
 }
 
 Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
@@ -56,6 +57,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     if (bare_path.substr(bare_path.length() - 7) == "_normal") {
       continue;
     }
+    log_debug("Loading ", bare_path);
     y::string normal_path = bare_path + "_normal.png";
 
     GlTexture2D texture = gl.make_texture(s);
@@ -64,6 +66,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
 
     _textures.emplace_back(gl.make_unique(texture));
     if (filesystem.is_file(normal_path)) {
+      log_debug("Loading ", normal_path);
       _textures.emplace_back(gl.make_unique(normal_texture));
     }
 
@@ -82,17 +85,20 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     y::string data_path = bare_path + ".tile";
     y::string normal_path = bare_path + "_normal.png";
 
+    log_debug("Loading ", bare_path);
     GlTexture2D texture = gl.make_texture(s);
     GlTexture2D normal_texture = filesystem.is_file(normal_path) ?
         gl.make_texture(normal_path) : _default_sprite->normal;
 
     _textures.emplace_back(gl.make_unique(texture));
     if (filesystem.is_file(normal_path)) {
+      log_debug("Loading ", normal_path);
       _textures.emplace_back(gl.make_unique(normal_texture));
     }
 
     Tileset* tileset = new Tileset({texture, normal_texture});
     if (filesystem.exists(data_path)) {
+      log_debug("Loading ", data_path);
       tileset->load(filesystem, *this, data_path);
     }
     tilesets.insert(data_path, y::move_unique(tileset));
@@ -105,6 +111,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
   paths.clear();
   filesystem.list_pattern(paths, "/scripts/*/**.lua");
   for (const y::string& s : paths) {
+    log_debug("Loading ", s);
     LuaFile* lua_file = new LuaFile;
     lua_file->path = s;
     filesystem.read_file_with_includes(lua_file->contents, s);
@@ -139,6 +146,7 @@ void Databank::reload_cells_and_maps(const Filesystem& filesystem)
   y::vector<y::string> paths;
   filesystem.list_pattern(paths, "/world/**.cell");
   for (const y::string& s : paths) {
+    log_debug("Loading ", s);
     CellBlueprint* cell = new CellBlueprint();
     cell->load(filesystem, *this, s);
     cells.insert(s, y::move_unique(cell));
@@ -147,6 +155,7 @@ void Databank::reload_cells_and_maps(const Filesystem& filesystem)
   paths.clear();
   filesystem.list_pattern(paths, "/world/**.map");
   for (const y::string& s : paths) {
+    log_debug("Loading ", s);
     CellMap* map = new CellMap();
     map->load(filesystem, *this, s);
     maps.insert(s, y::move_unique(map));

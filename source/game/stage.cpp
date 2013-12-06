@@ -298,6 +298,7 @@ void ScriptBank::add_script(y::unique<Script> script)
 
 void ScriptBank::release_uid(Script* script)
 {
+  // TODO: causes segfault on shutdown.
   auto it = _uid_map.find(script);
   if (it == _uid_map.end()) {
     return;
@@ -683,10 +684,10 @@ GameStage::GameStage(const Databank& bank, Filesystem& save_filesystem,
   , _scripts(*this)
   , _renderer(util, framebuffer)
   , _camera(framebuffer.get_size())
+  , _savegame(new Savegame())
   , _collision(new Collision(_world))
   , _lighting(new Lighting(_world, util.get_gl()))
   , _environment(new Environment(util.get_gl(), fake))
-  , _savegame(new Savegame())
   , _player(y::null)
 {
   const LuaFile& file = _bank.scripts.get("/scripts/game/player.lua");
@@ -810,7 +811,7 @@ const WorldSource& GameStage::get_source(const y::string& source_key) const
     return *source;
   }
 
-  y::cerr << "Invalid WorldSource key " << source_key << y::endl;
+  log_err("Invalid WorldSource key ", source_key);
   return *(WorldSource*)y::null;
 }
 

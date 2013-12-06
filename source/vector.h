@@ -3,7 +3,7 @@
 
 #include "common/algorithm.h"
 #include "common/math.h"
-#include "common/string.h"
+#include "common/io.h"
 #include "common/utility.h"
 
 #include <boost/functional/hash.hpp>

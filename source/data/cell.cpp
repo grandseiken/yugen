@@ -144,7 +144,7 @@ void CellMap::load_from_proto(Databank& bank, const proto::CellMap& proto)
       set_coord(v, bank.cells.get(path));
     }
     else {
-      y::cerr << "Map uses missing cell " << path << ", skipping" << y::endl;
+      log_err("Map uses missing cell ", path, ", skipping");
     }
   }
 
@@ -157,8 +157,7 @@ void CellMap::load_from_proto(Databank& bank, const proto::CellMap& proto)
       _scripts.emplace_back(s);
     }
     else {
-      y::cerr <<
-          "Map uses missing script " << s.path << ", skipping" << y::endl;
+      log_err("Map uses missing script ", s.path, ", skipping");
     }
   }
 }

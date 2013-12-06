@@ -2,6 +2,7 @@
 #include "window.h"
 
 #include "../filesystem/filesystem.h"
+#include "../log.h"
 #include <SFML/Graphics.hpp>
 
 GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
@@ -11,8 +12,7 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
 {
   GLenum ok = glewInit();
   if (ok != GLEW_OK) {
-    y::cerr << "Couldn't initialise GLEW: " <<
-        glewGetErrorString(ok) << y::endl;
+    log_err("Couldn't initialise GLEW: ", glewGetErrorString(ok));
     return;
   }
 
@@ -24,23 +24,23 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
   // objects, and so on.
   // http://www.opengl.org/registry/doc/GLSLangSpec.Full.1.30.10.pdf
   if (!GLEW_VERSION_2_1) {
-    y::cerr << "OpenGL 2.1 not available" << y::endl;
+    log_err("OpenGL 2.1 not available");
     return;
   }
 
   if (!GLEW_ARB_texture_non_power_of_two) {
-    y::cerr << "OpenGL non-power-of-two textures not available" << y::endl;
+    log_err("OpenGL non-power-of-two textures not available");
     return;
   }
 
   if (!GLEW_ARB_shading_language_100 || !GLEW_ARB_shader_objects ||
       !GLEW_ARB_vertex_shader || !GLEW_ARB_fragment_shader) {
-    y::cerr << "OpenGL shaders not available" << y::endl;
+    log_err("OpenGL shaders not available");
     return;
   }
 
   if (!GLEW_EXT_framebuffer_object) {
-    y::cerr << "OpenGL framebuffer object not available" << y::endl;
+    log_err("OpenGL framebuffer object not available");
     return;
   }
 
@@ -117,7 +117,7 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size,
   }
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    y::cerr << "Framebuffer isn't complete" << y::endl;
+    log_err("Framebuffer isn't complete");
     delete_texture(texture);
     glDeleteFramebuffers(1, &framebuffer);
     if (has_depth) {
@@ -161,13 +161,13 @@ GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
   y::string data;
   _filesystem.read_file(data, filename);
   if (data.empty()) {
-    y::cerr << "Couldn't read file " << filename << y::endl;
+    log_err("Couldn't read file ", filename);
     return GlTexture2D();
   }
 
   sf::Image image;
   if (!image.loadFromMemory(data.data(), data.length())) {
-    y::cerr << "Couldn't load image " << filename << y::endl;
+    log_err("Couldn't load image ", filename);
     return GlTexture2D();
   }
   y::ivec2 size{y::int32(image.getSize().x), y::int32(image.getSize().y)};
@@ -216,7 +216,7 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
 
   y::string data = header;
   if (!_filesystem.read_file_with_includes(data, filename)) {
-    y::cerr << "Couldn't read file " << filename << y::endl;
+    log_err("Couldn't read file ", filename);
     return GlShader();
   }
 
@@ -249,13 +249,13 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
     return r;
   }
 
-  y::cerr << "Shader " << filename << " failed compilation" << y::endl;
-  y::cerr << data << y::endl;
+  log_err("Shader ", filename, " failed compilation");
+  log_err(data);
   GLint log_length;
   glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
   y::unique<char[]> log(new char[log_length]);
   glGetShaderInfoLog(shader, log_length, 0, log.get());
-  y::cerr << log.get();
+  log_err(log.get());
   glDeleteShader(shader);
   return GlShader();
 }
@@ -322,12 +322,12 @@ GlProgram GlUtil::make_program(const y::vector<y::string>& shaders)
     return r;
   }
 
-  y::cerr << "Program failed linking" << y::endl;
+  log_err("Program failed linking");
   GLint log_length;
   glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
   y::unique<char[]> log(new char[log_length]);
   glGetProgramInfoLog(program, log_length, 0, log.get());
-  y::cerr << log.get();
+  log_err(log.get());
   glDeleteProgram(program);
   return GlProgram();
 }
