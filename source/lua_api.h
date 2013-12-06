@@ -582,6 +582,7 @@ y_api(get_sprite)
 
 y_api(add_particle)
     y_arg(y::int32, tag) y_arg(y::int32, frames)
+    y_arg(y::world, bounce_coefficient)
     y_arg(y::world, depth) y_arg(y::world, layering_value)
     y_arg(y::world, size) y_arg(y::world, dsize)
     y_arg(y::world, d2size)
@@ -596,7 +597,8 @@ y_api(add_particle)
 {
   stage.get_environment().add_particle(
       Particle(
-          tag, frames, depth, layering_value,
+          tag, frames, bounce_coefficient,
+          depth, layering_value,
           size, dsize, d2size,
           p, dp, d2p,
           y::fvec4(r_defined ? float(r) : 0.f,

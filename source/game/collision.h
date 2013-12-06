@@ -9,6 +9,11 @@ struct Body;
 class RenderUtil;
 class WorldWindow;
 
+// Library functions.
+y::world get_projection(
+    const y::wvec2& start, const y::wvec2& end,
+    const y::wvec2& vertex, const y::wvec2& move, bool tolerance);
+
 // A Constraint fixes two Scripts relative to each other such that they must
 // move as one. If a Script involved is fixed, it cannot be moved by other
 // Scripts involved with the Constraint (but it may move them).

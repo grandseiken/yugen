@@ -686,7 +686,7 @@ GameStage::GameStage(const Databank& bank, Filesystem& save_filesystem,
   , _savegame(new Savegame())
   , _collision(new Collision(_world))
   , _lighting(new Lighting(_world, util.get_gl()))
-  , _environment(new Environment(util.get_gl(), fake))
+  , _environment(new Environment(util.get_gl(), _world, fake))
   , _player(y::null)
 {
   const LuaFile& file = _bank.scripts.get("/scripts/game/player.lua");

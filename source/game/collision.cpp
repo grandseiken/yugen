@@ -3,13 +3,61 @@
 
 #include "../render/util.h"
 
-// Internal collision functions.
 namespace {
 
   struct world_geometry {
     y::wvec2 start;
     y::wvec2 end;
   };
+
+}
+
+y::world get_projection(
+    const y::wvec2& start, const y::wvec2& end,
+    const y::wvec2& vertex, const y::wvec2& move, bool tolerance)
+{
+  static const y::world tolerance_factor = 1.0 / 1024;
+  world_geometry v{vertex, move + vertex};
+  world_geometry g{start, end};
+
+  // Skip geometry in the wrong direction. I think this is probably duplicated
+  // logic now that we have the get_vertices_and_geometries_for_move function.
+  if (tolerance) {
+    y::wvec2 g_vec = g.end - g.start;
+    y::wvec2 normal{g_vec[yy], -g_vec[xx]};
+    if (normal.dot(-move) <= 0) {
+      return 2;
+    }
+  }
+
+  // Equations of lines (for t, u in [0, 1]):
+  // v(t) = v.start + t * (v.end - v.start)
+  // g(u) = g.start + u * (g.end - g.start)
+  // Finds t, u such that v(t) = g(u).
+  y::world denominator = (g.end - g.start).cross(v.end - v.start);
+
+  // Lines are parallel or coincident.
+  if (!denominator) {
+    return 2;
+  }
+
+  y::world t = (g.end - g.start).cross(v.start - g.start) / -denominator;
+  y::world u = (v.end - v.start).cross(g.start - v.start) / denominator;
+
+  // Lines intersect outside of the segments. A small amount of tolerance is
+  // necessary when bodies are rotated due to trigonometric innaccuracy.
+  // (But we don't want tolerance when this is just a generic line check
+  // rather than an actual projection.)
+  if (t < (tolerance ? -tolerance_factor : 0) || t > 1 || u < 0 || u > 1) {
+    return 2;
+  }
+  return t;
+}
+
+
+// Internal collision functions.
+namespace {
+
   typedef CollisionData::entry_list entry_list;
   typedef CollisionData::entry entry;
 
@@ -61,42 +109,8 @@ namespace {
       const world_geometry& geometry,
       const y::wvec2& vertex, const y::wvec2& move, bool tolerance)
   {
-    static const y::world tolerance_factor = 1.0 / 1024;
-    world_geometry v{vertex, move + vertex};
-    const world_geometry& g = geometry;
-
-    // Skip geometry in the wrong direction. I think this is probably duplicated
-    // logic now that we have the get_vertices_and_geometries_for_move function.
-    if (tolerance) {
-      y::wvec2 g_vec = g.end - g.start;
-      y::wvec2 normal{g_vec[yy], -g_vec[xx]};
-      if (normal.dot(-move) <= 0) {
-        return 2;
-      }
-    }
-
-    // Equations of lines (for t, u in [0, 1]):
-    // v(t) = v.start + t * (v.end - v.start)
-    // g(u) = g.start + u * (g.end - g.start)
-    // Finds t, u such that v(t) = g(u).
-    y::world denominator = (g.end - g.start).cross(v.end - v.start);
-
-    // Lines are parallel or coincident.
-    if (!denominator) {
-      return 2;
-    }
-
-    y::world t = (g.end - g.start).cross(v.start - g.start) / -denominator;
-    y::world u = (v.end - v.start).cross(g.start - v.start) / denominator;
-
-    // Lines intersect outside of the segments. A small amount of tolerance is
-    // necessary when bodies are rotated due to trigonometric innaccuracy.
-    // (But we don't want tolerance when this is just a generic line check
-    // rather than an actual projection.)
-    if (t < (tolerance ? -tolerance_factor : 0) || t > 1 || u < 0 || u > 1) {
-      return 2;
-    }
-    return t;
+    return get_projection(geometry.start, geometry.end,
+                          vertex, move, tolerance);
   }
 
   y::world get_projection_ratio(

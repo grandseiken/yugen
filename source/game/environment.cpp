@@ -1,16 +1,20 @@
 #include "environment.h"
 
+#include "collision.h"
+#include "world.h"
 #include "../perlin.h"
 #include "../render/gl_util.h"
 #include "../render/util.h"
 
 Particle::Particle(
-    y::int32 tag, y::int32 frames, y::world depth, y::world layering_value,
+    y::int32 tag, y::int32 frames, y::world bounce_coefficient,
+    y::world depth, y::world layering_value,
     y::world size, y::world dsize, y::world d2size,
     const y::wvec2& p, const y::wvec2& dp, const y::wvec2 d2p,
     const y::fvec4& colour, const y::fvec4& dcolour, const y::fvec4& d2colour)
   : tag(tag)
   , frames(frames)
+  , bounce_coefficient(bounce_coefficient)
   , depth(depth)
   , layering_value(layering_value)
   , size(size)
@@ -25,9 +29,54 @@ Particle::Particle(
 {
 }
 
-bool Particle::update()
+bool Particle::update(const WorldWindow& world)
 {
-  p += dp;
+  if (bounce_coefficient < 0.) {
+    p += dp;
+  }
+  else {
+    bool collision = false;
+    y::world min_ratio = 1;
+    y::wvec2 nearest_normal;
+
+    y::wvec2 min = p - y::wvec2{size, size};
+    y::wvec2 max = p + y::wvec2{size, size};
+    auto it = world.get_geometry().search(
+        y::min(min, min + dp), y::max(max, max + dp));
+
+    for (; it && min_ratio > 0.; ++it) {
+      // Set Collision::collider_move for details.
+      y::wvec2 start = y::wvec2(it->start);
+      y::wvec2 end = y::wvec2(it->end);
+      y::wvec2 vec = end - start;
+      y::wvec2 normal{vec[yy], -vec[xx]};
+
+      if (normal.dot(-dp) <= 0) {
+        continue;
+      }
+
+      y::world ratio = get_projection(start, end, p, dp, true);
+      if (min_ratio > ratio) {
+        collision = true;
+        min_ratio = ratio;
+        nearest_normal = normal;
+      }
+    }
+
+    if (collision) {
+      p += y::max(0., min_ratio) * dp;
+
+      // Reflect the velocity vector in the nearest geometry and apply the bounce
+      // coefficient.
+      nearest_normal.normalise();
+      dp = 2 * dp.dot(nearest_normal) * nearest_normal - dp;
+      dp *= -bounce_coefficient;
+    }
+    else {
+      p += dp;
+    }
+  }
+
   dp += d2p;
   colour += dcolour;
   dcolour += d2colour;
@@ -37,8 +86,17 @@ bool Particle::update()
   return --frames >= 0;
 }
 
-Environment::Environment(GlUtil& gl, bool fake)
-  : _pixels(gl.make_unique_buffer<float, 2>(
+void Particle::modify(
+    const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add)
+{
+  p += p_add;
+  dp += dp_add;
+  d2p += d2p_add;
+}
+
+Environment::Environment(GlUtil& gl, const WorldWindow& world, bool fake)
+  : _world(world)
+  , _pixels(gl.make_unique_buffer<float, 2>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
   , _colour(gl.make_unique_buffer<float, 4>(
         GL_ARRAY_BUFFER, GL_STREAM_DRAW))
@@ -123,9 +181,7 @@ void Environment::modify_particles(
     if (p.tag != tag) {
       continue;
     }
-    p.p += p_add;
-    p.dp += dp_add;
-    p.d2p += d2p_add;
+    p.modify(p_add, dp_add, d2p_add);
   }
 }
 
@@ -133,17 +189,17 @@ void Environment::modify_particles(
     const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add)
 {
   for (Particle& p : _particles) {
-    p.p += p_add;
-    p.dp += dp_add;
-    p.d2p += d2p_add;
+    p.modify(p_add, dp_add, d2p_add);
   }
 }
 
 void Environment::update_particles()
 {
-  _particles.erase(y::remove_if(
-        _particles.begin(), _particles.end(),
-        [](Particle& p) {return !p.update();}), _particles.end());
+  _particles.erase(
+      y::remove_if(
+          _particles.begin(), _particles.end(),
+          [this](Particle& p) {return !p.update(this->_world);}),
+      _particles.end());
 }
 
 void Environment::render_particles(RenderUtil& util) const

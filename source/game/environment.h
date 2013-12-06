@@ -6,11 +6,11 @@
 
 class GlUtil;
 class RenderUtil;
+class WorldWindow;
 
-// TODO: allow particles to (optionally) collide with the world geometry.
 // TODO: support particles which draw sprites.
 struct Particle {
-  Particle(y::int32 tag, y::int32 frames,
+  Particle(y::int32 tag, y::int32 frames, y::world bounce_coefficient,
            y::world depth, y::world layering_value,
            y::world size, y::world dsize, y::world d2size,
            const y::wvec2& p, const y::wvec2& dp, const y::wvec2 d2p,
@@ -23,6 +23,11 @@ struct Particle {
 
   // Frames remaining until the particle is destroyed.
   y::int32 frames;
+
+  // Controls how the particle interacts with world geometry. If negative, does
+  // not collide with world geometry at all. Otherwise, particle bounces on
+  // contact and velocity is scaled by this coefficient.
+  y::world bounce_coefficient;
 
   y::world depth;
   y::world layering_value;
@@ -42,7 +47,9 @@ struct Particle {
   y::fvec4 dcolour;
   y::fvec4 d2colour;
 
-  bool update();
+  bool update(const WorldWindow& world);
+  void modify(
+      const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add);
 };
 
 class Environment : public y::no_copy {
@@ -85,7 +92,7 @@ public:
     bool normal_only;
   };
 
-  Environment(GlUtil& util, bool fake);
+  Environment(GlUtil& util, const WorldWindow& world, bool fake);
 
   void add_particle(const Particle& particle);
 
@@ -124,6 +131,8 @@ private:
 
   GlUnique<GlBuffer<float, 2>> make_rect_buffer(
       RenderUtil& util, const y::wvec2& origin, const y::wvec2& region) const;
+
+  const WorldWindow& _world;
 
   y::vector<Particle> _particles;
   GlDatabuffer<float, 2> _pixels;
