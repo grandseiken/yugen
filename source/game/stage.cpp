@@ -298,7 +298,6 @@ void ScriptBank::add_script(y::unique<Script> script)
 
 void ScriptBank::release_uid(Script* script)
 {
-  // TODO: causes segfault on shutdown.
   auto it = _uid_map.find(script);
   if (it == _uid_map.end()) {
     return;

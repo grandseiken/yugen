@@ -87,9 +87,6 @@ private:
 
   GameStage& _stage;
 
-  typedef y::list<y::unique<Script>> script_list;
-  script_list _scripts;
-
   // Spatial hash of existing scripts.
   typedef SpatialHash<Script*, y::world, 2> spatial_hash;
   spatial_hash _spatial_hash;
@@ -121,6 +118,11 @@ private:
   // Temporary per-frame data for storing which cells we need to preserve.
   bool _all_cells_preserved;
   WorldWindow::cell_list _preserved_cells;
+
+  // Script destruction callbacks remove it from the datastructures, so the scripts
+  // need to be destroyed first.
+  typedef y::list<y::unique<Script>> script_list;
+  script_list _scripts;
 
 };
 

@@ -4,6 +4,7 @@
 #include "gl_handle.h"
 #include "../common/map.h"
 #include "../common/set.h"
+#include "../log.h"
 #include "../vector.h"
 #include <GL/glew.h>
 
@@ -182,6 +183,8 @@ GlUnique<T>::~GlUnique()
 template<typename T, y::size N>
 GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint)
 {
+  // Don't log buffer creation and deletion, since it happens several times
+  // per frame.
   GLuint buffer;
   glGenBuffers(1, &buffer);
 
@@ -232,6 +235,15 @@ GlTexture<N> GlUtil::make_texture(const typename GlTexture<N>::ivecn& size,
                                   GLenum bit_depth, GLenum format,
                                   const T* data, bool loop)
 {
+  logg_debug("Making ");
+  for (y::size i = 0; i < N; ++i) {
+    if (i) {
+      logg_debug('x');
+    }
+    logg_debug(size[i]);
+  }
+  log_debug(" texture");
+
   GLenum wrap_type = loop ? GL_REPEAT : GL_CLAMP_TO_EDGE;
   GLenum dimension = GlTextureEnum<N>::dimension_enum;
 
@@ -270,6 +282,15 @@ void GlUtil::delete_buffer(const GlBuffer<T, N>& buffer)
 template<y::size N>
 void GlUtil::delete_texture(const GlTexture<N>& texture)
 {
+  logg_debug("Deleting ");
+  for (y::size i = 0; i < N; ++i) {
+    if (i) {
+      logg_debug('x');
+    }
+    logg_debug(texture.get_size()[i]);
+  }
+  logg_debug(" texture");
+
   auto it = _texture_set.find(texture.get_handle());
   if (it != _texture_set.end()) {
     glDeleteTextures(1, &*it);
@@ -277,11 +298,17 @@ void GlUtil::delete_texture(const GlTexture<N>& texture)
   }
   // Make sure to clean up the map entry if we deleted a filename-loaded
   // texture directly.
+  bool found = false;
   for (auto jt = _texture_map.begin(); jt != _texture_map.end(); ++jt) {
     if (jt->second.get_handle() == texture.get_handle()) {
+      found = true;
+      log_debug(' ', jt->first);
       _texture_map.erase(jt);
       break;
     }
+  }
+  if (!found) {
+    log_debug();
   }
 }
 

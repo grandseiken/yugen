@@ -101,6 +101,7 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size,
                                             has_alpha ? GL_RGBA8 : GL_RGB,
                                             has_alpha ? GL_RGBA : GL_RGB,
                                             y::null));
+  logg_debug("Making ", size[xx], 'x', size[yy], " framebuffer");
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                          GL_TEXTURE_2D, texture.get_handle(), 0);
   GLenum draw_buffers = GL_COLOR_ATTACHMENT0;
@@ -108,12 +109,16 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size,
 
   GLuint depth = 0;
   if (has_depth) {
+    log_debug(" with depthbuffer");
     glGenRenderbuffers(1, &depth);
     glBindRenderbuffer(GL_RENDERBUFFER, depth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
                           size[xx], size[yy]);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                               GL_RENDERBUFFER, depth);
+  }
+  else {
+    log_debug();
   }
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -149,15 +154,22 @@ void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
 
   delete_texture(framebuffer.get_texture());
 
+  logg_debug("Deleting ", framebuffer.get_size()[xx], 'x',
+             framebuffer.get_size()[yy], " framebuffer");
   it = _framebuffer_depth_set.find(framebuffer.get_depth_handle());
   if (framebuffer.get_depth_handle() && it != _framebuffer_depth_set.end()) {
+    log_debug(" with depthbuffer");
     glDeleteRenderbuffers(1, &*it);
     _framebuffer_depth_set.erase(it);
+  }
+  else {
+    log_debug();
   }
 }
 
 GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
 {
+  log_debug("Loading ", filename);
   y::string data;
   _filesystem.read_file(data, filename);
   if (data.empty()) {
@@ -199,15 +211,18 @@ GlTexture2D GlUtil::get_texture(const y::string& filename) const
 void GlUtil::delete_texture(const y::string& filename)
 {
   auto it = _texture_map.find(filename);
-  if (it != _texture_map.end()) {
-    GLuint handle = it->second.get_handle();
-    glDeleteTextures(1, &handle);
-    auto jt = _texture_set.find(it->second.get_handle());
-    if (jt != _texture_set.end()) {
-      _texture_set.erase(jt);
-    }
-    _texture_map.erase(it);
+  if (it == _texture_map.end()) {
+    return;
   }
+  log_debug("Deleting ", it->second.get_size()[xx], 'x',
+            it->second.get_size()[yy], " texture ", it->first);
+  GLuint handle = it->second.get_handle();
+  glDeleteTextures(1, &handle);
+  auto jt = _texture_set.find(it->second.get_handle());
+  if (jt != _texture_set.end()) {
+    _texture_set.erase(jt);
+  }
+  _texture_map.erase(it);
 }
 
 GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
@@ -230,6 +245,7 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
       type = GL_FRAGMENT_SHADER;
     }
   }
+  log_debug("Making shader ", filename);
   GLuint shader = glCreateShader(type);
   const char* char_data = data.c_str();
   GLint lengths[] = {(GLint)data.length()};
@@ -274,6 +290,7 @@ GlShader GlUtil::get_shader(const y::string& filename) const
 
 void GlUtil::delete_shader(const y::string& filename)
 {
+  log_debug("Deleting shader ", filename);
   auto it = _shader_map.find(filename);
   if (it != _shader_map.end()) {
     glDeleteShader(it->second.get_handle());
@@ -285,6 +302,7 @@ void GlUtil::delete_shader(const GlShader& shader)
 {
   for (auto it = _shader_map.begin(); it != _shader_map.end(); ++it) {
     if (it->second.get_handle() == shader.get_handle()) {
+      log_debug("Deleting shader ", it->first);
       glDeleteShader(it->second.get_handle());
       _shader_map.erase(it);
       break;
@@ -300,8 +318,9 @@ GlProgram GlUtil::make_program(const y::vector<y::string>& shaders)
 
   y::string hash;
   for (const y::string& s : sort) {
-    hash += s + '\n';
+    hash += s + ';';
   }
+  log_debug("Making program ", hash);
 
   GLuint program = glCreateProgram();
   for (const y::string& shader : shaders) {
@@ -346,7 +365,7 @@ GlProgram GlUtil::get_program(const y::vector<y::string>& shaders) const
 
   y::string hash;
   for (const y::string& s : sort) {
-    hash += s + '\n';
+    hash += s + ';';
   }
 
   auto it = _program_map.find(hash);
@@ -361,11 +380,12 @@ void GlUtil::delete_program(const y::vector<y::string>& shaders)
 
   y::string hash;
   for (const y::string& s : sort) {
-    hash += s + '\n';
+    hash += s + ';';
   }
 
   auto it = _program_map.find(hash);
   if (it != _program_map.end()) {
+    log_debug("Deleting program ", hash);
     glDeleteProgram(it->second.get_handle());
     _program_map.erase(it);
   }
@@ -375,6 +395,7 @@ void GlUtil::delete_program(const GlProgram& program)
 {
   for (auto it = _program_map.begin(); it != _program_map.end(); ++it) {
     if (it->second.get_handle() == program.get_handle()) {
+      log_debug("Deleting program ", it->first);
       glDeleteProgram(it->second.get_handle());
       _program_map.erase(it);
       break;
