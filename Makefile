@@ -326,6 +326,7 @@ clean_all: \
 	    [ -f ./bin/b2 ] && ./bin/b2 $(BOOST_CONFIGURE_FLAGS) --clean
 	-cd $(BOOST_DIR) && rm -rf ./include ./lib
 	-cd $(PROTOBUF_DIR) && [ -f ./Makefile ] && $(MAKE) clean
+	-cd $(PROTOBUF_DIR) && rm -rf ./bin ./include ./lib
 	-cd $(SFML_DIR) && [ -f ./Makefile ] && $(MAKE) clean
 	cd $(LUAJIT_DIR) && $(MAKE) $(LUAJIT_MAKE_FLAGS) uninstall
 	cd $(LUAJIT_DIR) && $(MAKE) $(LUAJIT_MAKE_FLAGS) clean
