@@ -192,8 +192,11 @@ GlTexture2D GlUtil::make_texture(
     log_err("Couldn't load image ", filename);
     return GlTexture2D();
   }
-  // TODO: gamma-correction is supposedly more correct, but it actually looks
-  // really odd. Disabled for now (and correspondingly in gamma.glsl).
+  // I don't really understand what's going on, but gamma-correction looks
+  // really bad. Everything looks right without any correction; half-gray really
+  // shows up as half-gray; and correction makes everything way too bright.
+  // Even though this isn't supposed to work.
+  // Also disabled in gamma.glsl.
   gamma_correct = false;
 
   y::ivec2 size{y::int32(image.getSize().x), y::int32(image.getSize().y)};

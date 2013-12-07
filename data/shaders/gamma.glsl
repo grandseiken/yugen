@@ -1,3 +1,4 @@
+// Disabled. See comments in gl_util.cpp.
 const bool use_gamma_correction = false;
 const float gamma_value = 2.2;
 const float gamma_div = 1.0 / gamma_value;
