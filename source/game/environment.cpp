@@ -224,10 +224,8 @@ void Environment::render_particles(RenderUtil& util, RenderBatch& batch) const
   gl.enable_depth(true);
   gl.enable_blend(true);
 
-  y::size length = _particles.size();
-  for (y::size i = 0; i < length; ++i) {
-    const Particle& p = _particles[i];
-
+  y::size i = 0;
+  for (const Particle& p : _particles) {
     if (p.sprite) {
       batch.add_sprite(p.sprite->texture, p.frame_size, false,
                        y::fvec2(p.pos.v - y::wvec2(p.frame_size / 2)),
@@ -253,6 +251,7 @@ void Environment::render_particles(RenderUtil& util, RenderBatch& batch) const
         p.colour.v[rr], p.colour.v[gg], p.colour.v[bb], p.colour.v[aa]});
     y::write_vector<float, y::vector<y::world>>(_depth.data, 4 * i, {
         p.depth, p.depth, p.depth, p.depth});
+    ++i;
   }
 
   _particle_program->bind();
@@ -261,7 +260,7 @@ void Environment::render_particles(RenderUtil& util, RenderBatch& batch) const
   _particle_program->bind_attribute("depth", _depth.reupload());
 
   util.bind_pixel_uniforms(*_particle_program);
-  util.quad_element(length).buffer->draw_elements(GL_TRIANGLES, 6 * length);
+  util.quad_element(i).buffer->draw_elements(GL_TRIANGLES, 6 * i);
 }
 
 void Environment::render_particles_normal(RenderUtil& util,
@@ -272,10 +271,8 @@ void Environment::render_particles_normal(RenderUtil& util,
   gl.enable_depth(true);
   gl.enable_blend(false);
 
-  y::size length = _particles.size();
-  for (y::size i = 0; i < length; ++i) {
-    const Particle& p = _particles[i];
-
+  y::size i = 0;
+  for (const Particle& p : _particles) {
     if (p.sprite) {
       batch.add_sprite(p.sprite->normal, p.frame_size, true,
                        y::fvec2(p.pos.v - y::wvec2(p.frame_size / 2)),
@@ -299,6 +296,7 @@ void Environment::render_particles_normal(RenderUtil& util,
     y::write_vector<float, y::vector<y::world>>(_layering.data, 4 * i, {
         p.layering_value, p.layering_value,
         p.layering_value, p.layering_value});
+    ++i;
   }
 
   _particle_normal_program->bind();
@@ -308,7 +306,7 @@ void Environment::render_particles_normal(RenderUtil& util,
                                            _layering.reupload());
 
   util.bind_pixel_uniforms(*_particle_normal_program);
-  util.quad_element(length).buffer->draw_elements(GL_TRIANGLES, 6 * length);
+  util.quad_element(i).buffer->draw_elements(GL_TRIANGLES, 6 * i);
 }
 
 void Environment::render_fog_colour(
