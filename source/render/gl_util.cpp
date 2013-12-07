@@ -168,15 +168,11 @@ void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
   }
 }
 
-GlTexture2D GlUtil::make_texture(
-    const y::string& filename, bool loop, bool gamma_correct)
+GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
 {
   logg_debug("Loading ", filename);
   if (loop) {
     logg_debug(" [loop]");
-  }
-  if (gamma_correct) {
-    logg_debug(" [gamma-correct]");
   }
   log_debug();
 
@@ -192,17 +188,9 @@ GlTexture2D GlUtil::make_texture(
     log_err("Couldn't load image ", filename);
     return GlTexture2D();
   }
-  // I don't really understand what's going on, but gamma-correction looks
-  // really bad. Everything looks right without any correction; half-gray really
-  // shows up as half-gray; and correction makes everything way too bright.
-  // Even though this isn't supposed to work.
-  // Also disabled in gamma.glsl.
-  gamma_correct = false;
-
   y::ivec2 size{y::int32(image.getSize().x), y::int32(image.getSize().y)};
-  GlTexture2D texture(make_texture<GLubyte>(
-      size, gamma_correct ? GL_SRGB8_ALPHA8 : GL_RGBA8, GL_RGBA,
-      image.getPixelsPtr(), loop));
+  GlTexture2D texture(make_texture<GLubyte>(size, GL_RGBA8, GL_RGBA,
+                                            image.getPixelsPtr(), loop));
 
   auto it = _texture_map.find(filename);
   if (it != _texture_map.end()) {
@@ -215,9 +203,9 @@ GlTexture2D GlUtil::make_texture(
 }
 
 GlUnique<GlTexture2D> GlUtil::make_unique_texture(
-    const y::string& filename, bool loop, bool gamma_correct)
+    const y::string& filename, bool loop)
 {
-  return make_unique(make_texture(filename, loop, gamma_correct));
+  return make_unique(make_texture(filename, loop));
 }
 
 GlTexture2D GlUtil::get_texture(const y::string& filename) const

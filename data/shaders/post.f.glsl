@@ -37,7 +37,7 @@ vec3 matrix_lookup(vec2 coord, vec2 r, vec2 g, vec2 b)
 
 void main()
 {
-  vec4 raw = gamma_correction(texture2D(framebuffer, tex_coord));
+  vec4 raw = gamma_write(texture2D(framebuffer, tex_coord));
 
   vec2 r_off = 0.05 * r_dir * dither_frame;
   vec2 g_off = 0.07 * g_dir * dither_frame;

@@ -8,6 +8,8 @@ flat varying vec2 frame_coord;
 flat varying vec4 colour_coord;
 flat varying float depth_coord;
 
+#include "gamma.glsl"
+
 void main()
 {
   vec2 coord = mod(frame_coord, frame_count) +
@@ -18,7 +20,7 @@ void main()
   coord = coord - mod(coord, 1.0 / vec2(frame_size));
 
   // Base colour.
-  vec4 colour = texture2D(sprite, coord / frame_count);
+  vec4 colour = gamma_read(texture2D(sprite, coord / frame_count));
   if (normal) {
     colour.b += depth_coord;
   }

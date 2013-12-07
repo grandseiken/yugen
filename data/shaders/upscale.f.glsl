@@ -16,6 +16,9 @@ bool eq(vec4 a, vec4 b)
 // desired size with linear interpolation. AKA BLur-O-Vision.
 // I don't know if this idea has been around for longer but Simon "Fra" Howard
 // of Chocolate Doom fame told me about his idea for it.
+//
+// This should probably not be used: after gamma-correction, it's not linearly
+// correct; and it looks daft with dithering anyway.
 vec4 fra_scale()
 {
   vec2 screen_size = 1.0 / screen_res;

@@ -64,9 +64,9 @@ public:
       GLenum bit_depth, GLenum format, const T* data, bool loop = false);
   // Load texture from file.
   GlTexture2D make_texture(
-      const y::string& filename, bool loop = false, bool gamma_correct = false);
+      const y::string& filename, bool loop = false);
   GlUnique<GlTexture2D> make_unique_texture(
-      const y::string& filename, bool loop = false, bool gamma_correct = false);
+      const y::string& filename, bool loop = false);
   // Get preloaded texture.
   GlTexture2D get_texture(const y::string& filename) const;
   // Delete preloaded texture.
