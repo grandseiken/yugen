@@ -107,9 +107,12 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size,
   GLenum draw_buffers = GL_COLOR_ATTACHMENT0;
   glDrawBuffers(1, &draw_buffers);
 
+  if (has_alpha) {
+    logg_debug(" [alpha]");
+  }
   GLuint depth = 0;
   if (has_depth) {
-    log_debug(" with depthbuffer");
+    logg_debug(" [and depthbuffer]");
     glGenRenderbuffers(1, &depth);
     glBindRenderbuffer(GL_RENDERBUFFER, depth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
@@ -117,9 +120,7 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size,
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                               GL_RENDERBUFFER, depth);
   }
-  else {
-    log_debug();
-  }
+  log_debug();
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     log_err("Framebuffer isn't complete");
@@ -158,7 +159,7 @@ void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
              framebuffer.get_size()[yy], " framebuffer");
   it = _framebuffer_depth_set.find(framebuffer.get_depth_handle());
   if (framebuffer.get_depth_handle() && it != _framebuffer_depth_set.end()) {
-    log_debug(" with depthbuffer");
+    log_debug(" [and depthbuffer]");
     glDeleteRenderbuffers(1, &*it);
     _framebuffer_depth_set.erase(it);
   }
