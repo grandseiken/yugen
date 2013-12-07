@@ -60,7 +60,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     log_debug("Loading ", bare_path);
     y::string normal_path = bare_path + "_normal.png";
 
-    GlTexture2D texture = gl.make_texture(s);
+    GlTexture2D texture = gl.make_texture(s, false, true);
     GlTexture2D normal_texture = filesystem.is_file(normal_path) ?
         gl.make_texture(normal_path) : _default_sprite->normal;
 
@@ -86,7 +86,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     y::string normal_path = bare_path + "_normal.png";
 
     log_debug("Loading ", bare_path);
-    GlTexture2D texture = gl.make_texture(s);
+    GlTexture2D texture = gl.make_texture(s, false, true);
     GlTexture2D normal_texture = filesystem.is_file(normal_path) ?
         gl.make_texture(normal_path) : _default_sprite->normal;
 

@@ -167,9 +167,18 @@ void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
   }
 }
 
-GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
+GlTexture2D GlUtil::make_texture(
+    const y::string& filename, bool loop, bool gamma_correct)
 {
-  log_debug("Loading ", filename);
+  logg_debug("Loading ", filename);
+  if (loop) {
+    logg_debug(" [loop]");
+  }
+  if (gamma_correct) {
+    logg_debug(" [gamma-correct]");
+  }
+  log_debug();
+
   y::string data;
   _filesystem.read_file(data, filename);
   if (data.empty()) {
@@ -182,9 +191,14 @@ GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
     log_err("Couldn't load image ", filename);
     return GlTexture2D();
   }
+  // TODO: gamma-correction is supposedly more correct, but it actually looks
+  // really odd. Disabled for now (and correspondingly in gamma.glsl).
+  gamma_correct = false;
+
   y::ivec2 size{y::int32(image.getSize().x), y::int32(image.getSize().y)};
-  GlTexture2D texture(make_texture<GLubyte>(size, GL_RGBA8, GL_RGBA,
-                                            image.getPixelsPtr(), loop));
+  GlTexture2D texture(make_texture<GLubyte>(
+      size, gamma_correct ? GL_SRGB8_ALPHA8 : GL_RGBA8, GL_RGBA,
+      image.getPixelsPtr(), loop));
 
   auto it = _texture_map.find(filename);
   if (it != _texture_map.end()) {
@@ -197,9 +211,9 @@ GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
 }
 
 GlUnique<GlTexture2D> GlUtil::make_unique_texture(
-    const y::string& filename, bool loop)
+    const y::string& filename, bool loop, bool gamma_correct)
 {
-  return make_unique(make_texture(filename, loop));
+  return make_unique(make_texture(filename, loop, gamma_correct));
 }
 
 GlTexture2D GlUtil::get_texture(const y::string& filename) const

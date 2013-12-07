@@ -5,6 +5,8 @@ uniform int dither_frame;
 noperspective varying vec2 tex_coord;
 noperspective varying vec2 dither_coord;
 
+#include "gamma.glsl"
+
 const int colours_per_channel = 16;
 const float div = 1.0 / (colours_per_channel - 1);
 const float pi = 3.1415926536;
@@ -35,7 +37,7 @@ vec3 matrix_lookup(vec2 coord, vec2 r, vec2 g, vec2 b)
 
 void main()
 {
-  vec4 raw = texture2D(framebuffer, tex_coord);
+  vec4 raw = gamma_correction(texture2D(framebuffer, tex_coord));
 
   vec2 r_off = 0.05 * r_dir * dither_frame;
   vec2 g_off = 0.07 * g_dir * dither_frame;
