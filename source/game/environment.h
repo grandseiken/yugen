@@ -5,8 +5,10 @@
 #include "../render/gl_handle.h"
 
 class GlUtil;
+class RenderBatch;
 class RenderUtil;
 class WorldWindow;
+struct Sprite;
 
 // A value with first- and second-order derivatives.
 template<typename T>
@@ -18,13 +20,21 @@ struct Derivatives {
   void update();
 };
 
-// TODO: support particles which draw sprites.
 struct Particle {
+  // Add a solid-colour particle.
   Particle(y::int32 tag, y::int32 frames, y::world bounce_coefficient,
            y::world depth, y::world layering_value,
            const Derivatives<y::world>& size,
            const Derivatives<y::wvec2>& pos,
            const Derivatives<y::fvec4>& colour);
+
+  // Add a textured particle.
+  Particle(y::int32 tag, y::int32 frames, y::world bounce_coefficient,
+           y::world depth, y::world layering_value,
+           const Derivatives<y::wvec2>& pos,
+           const Derivatives<y::fvec4>& colour,
+           const Sprite& sprite, const y::ivec2& frame_size,
+           const y::ivec2& frame);
 
   // Lookup tag for manipulating many particles at once (for example for wind
   // blowing snow).
@@ -38,13 +48,20 @@ struct Particle {
   // contact and velocity is scaled by this coefficient.
   y::world bounce_coefficient;
 
+  // Layering value is ignored for textured particles.
   y::world depth;
   y::world layering_value;
 
-  // Size (in pixels), current position, colour, and derivatives.
+  // Size (in pixels), current position, colour, and derivatives. Size affects
+  // rendering only, and is ignored for textured particles.
   Derivatives<y::world> size;
   Derivatives<y::wvec2> pos;
   Derivatives<y::fvec4> colour;
+
+  // Parameters for textured particles.
+  const Sprite* sprite;
+  y::ivec2 frame_size;
+  y::ivec2 frame;
 
   bool update(const WorldWindow& world);
   void collider_update(const WorldWindow& world);
@@ -106,8 +123,8 @@ public:
 
   // Particle update and rendering.
   void update_particles();
-  void render_particles(RenderUtil& gl) const;
-  void render_particles_normal(RenderUtil& gl) const;
+  void render_particles(RenderUtil& util, RenderBatch& batch) const;
+  void render_particles_normal(RenderUtil& util, RenderBatch& batch) const;
 
   // Complicated environment shaders below here.
   void render_fog_colour(
@@ -130,8 +147,8 @@ private:
       RenderUtil& util, const y::wvec2& origin, const y::wvec2& region) const;
 
   const WorldWindow& _world;
-
   y::vector<Particle> _particles;
+
   GlDatabuffer<float, 2> _pixels;
   GlDatabuffer<float, 4> _colour;
   GlDatabuffer<float, 1> _depth;

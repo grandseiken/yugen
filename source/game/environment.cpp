@@ -5,6 +5,7 @@
 #include "../perlin.h"
 #include "../render/gl_util.h"
 #include "../render/util.h"
+#include "../data/bank.h"
 
 Particle::Particle(
     y::int32 tag, y::int32 frames, y::world bounce_coefficient,
@@ -20,6 +21,27 @@ Particle::Particle(
   , size(size)
   , pos(pos)
   , colour(colour)
+  , sprite(y::null)
+{
+}
+
+Particle::Particle(
+    y::int32 tag, y::int32 frames, y::world bounce_coefficient,
+    y::world depth, y::world layering_value,
+    const Derivatives<y::wvec2>& pos,
+    const Derivatives<y::fvec4>& colour,
+    const Sprite& sprite, const y::ivec2& frame_size, const y::ivec2& frame)
+  : tag(tag)
+  , frames(frames)
+  , bounce_coefficient(bounce_coefficient)
+  , depth(depth)
+  , layering_value(layering_value)
+  , size{4., 4., 4.}
+  , pos(pos)
+  , colour(colour)
+  , sprite(&sprite)
+  , frame_size(frame_size)
+  , frame(frame)
 {
 }
 
@@ -195,7 +217,7 @@ void Environment::update_particles()
       _particles.end());
 }
 
-void Environment::render_particles(RenderUtil& util) const
+void Environment::render_particles(RenderUtil& util, RenderBatch& batch) const
 {
   GlUtil& gl = util.get_gl();
 
@@ -205,6 +227,14 @@ void Environment::render_particles(RenderUtil& util) const
   y::size length = _particles.size();
   for (y::size i = 0; i < length; ++i) {
     const Particle& p = _particles[i];
+
+    if (p.sprite) {
+      batch.add_sprite(p.sprite->texture, p.frame_size, false,
+                       y::fvec2(p.pos.v - y::wvec2(p.frame_size / 2)),
+                       p.frame, p.depth, 0.f, p.colour.v);
+      continue;
+    }
+
     if (p.size.v <= 0) {
       continue;
     }
@@ -234,7 +264,8 @@ void Environment::render_particles(RenderUtil& util) const
   util.quad_element(length).buffer->draw_elements(GL_TRIANGLES, 6 * length);
 }
 
-void Environment::render_particles_normal(RenderUtil& util) const
+void Environment::render_particles_normal(RenderUtil& util,
+                                          RenderBatch& batch) const
 {
   GlUtil& gl = util.get_gl();
 
@@ -244,6 +275,17 @@ void Environment::render_particles_normal(RenderUtil& util) const
   y::size length = _particles.size();
   for (y::size i = 0; i < length; ++i) {
     const Particle& p = _particles[i];
+
+    if (p.sprite) {
+      batch.add_sprite(p.sprite->normal, p.frame_size, true,
+                       y::fvec2(p.pos.v - y::wvec2(p.frame_size / 2)),
+                       p.frame, p.depth, 0.f, y::fvec4{1.f, 1.f, 1.f, 1.f});
+      continue;
+    }
+
+    if (p.size.v <= 0) {
+      continue;
+    }
     y::wvec2 pos = p.pos.v;
 
     // Divisor buffers would be great, again.

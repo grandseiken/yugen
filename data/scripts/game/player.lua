@@ -3,6 +3,11 @@
 #include "../keys.lua"
 #include "../render.lua"
 
+-- Sprite constants.
+local sprite = get_sprite("/tiles/easy.png")
+local frame_size = vec(32, 32)
+local frame = vec(3, 16)
+
 -- Collider body and check bodies.
 local bs, bo = vec(0, 8), vec(6, 16)
 local body = self:create_body(bs, bo)
@@ -11,8 +16,6 @@ local collide_mask = COLLIDE_WORLD + COLLIDE_OBJECT
 body:set_collide_mask(collide_mask)
 local up_check, down_check, left_check, right_check =
     create_all_checks(self, bs, bo)
-
--- Script references.
 
 -- Test light.
 local light = self:create_light(128, 128)
@@ -290,11 +293,6 @@ function key(k, down)
     end
   end
 end
-
--- Sprite constants.
-local sprite = get_sprite("/tiles/easy.png")
-local frame_size = vec(32, 32)
-local frame = vec(3, 16)
 
 function draw()
   render_sprite_self(sprite, frame_size, frame, 0.25)

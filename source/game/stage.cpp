@@ -451,10 +451,10 @@ void GameRenderer::render(
     if (draw_pass_is_layer(DRAW_WORLD)) {
       render_tiles(camera, world);
       if (draw_pass_is_normal()) {
-        environment.render_particles_normal(_util);
+        environment.render_particles_normal(_util, _current_batch);
       }
       else {
-        environment.render_particles(_util);
+        environment.render_particles(_util, _current_batch);
       }
     }
     _util.render_batch(_current_batch);
