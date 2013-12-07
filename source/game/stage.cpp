@@ -874,7 +874,8 @@ void GameStage::update()
       y::wvec2 script_move = y::wvec2(
           move * Cell::cell_size * Tileset::tile_size);
       _scripts.move_all(-script_move, get_collision());
-      _environment->modify_particles(-script_move, y::wvec2(), y::wvec2());
+      _environment->modify_particles(
+          Derivatives<y::wvec2>{-script_move, y::wvec2(), y::wvec2()});
       _camera.move(-script_move);
     }
   }

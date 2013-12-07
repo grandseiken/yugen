@@ -599,20 +599,21 @@ y_api(add_particle)
       Particle(
           tag, frames, bounce_coefficient,
           depth, layering_value,
-          size, dsize, d2size,
-          p, dp, d2p,
-          y::fvec4(r_defined ? float(r) : 0.f,
-                   g_defined ? float(g) : 0.f,
-                   b_defined ? float(b) : 0.f,
-                   a_defined ? float(a) : 1.f),
-          y::fvec4(dr_defined ? float(dr) : 0.f,
-                   dg_defined ? float(dg) : 0.f,
-                   db_defined ? float(db) : 0.f,
-                   da_defined ? float(da) : 0.f),
-          y::fvec4(d2r_defined ? float(d2r) : 0.f,
-                   d2g_defined ? float(d2g) : 0.f,
-                   d2b_defined ? float(d2b) : 0.f,
-                   d2a_defined ? float(d2a) : 0.f)));
+          Derivatives<y::world>{size, dsize, d2size},
+          Derivatives<y::wvec2>{p, dp, d2p},
+          Derivatives<y::fvec4>{
+              y::fvec4(r_defined ? float(r) : 0.f,
+                       g_defined ? float(g) : 0.f,
+                       b_defined ? float(b) : 0.f,
+                       a_defined ? float(a) : 1.f),
+              y::fvec4(dr_defined ? float(dr) : 0.f,
+                       dg_defined ? float(dg) : 0.f,
+                       db_defined ? float(db) : 0.f,
+                       da_defined ? float(da) : 0.f),
+              y::fvec4(d2r_defined ? float(d2r) : 0.f,
+                       d2g_defined ? float(d2g) : 0.f,
+                       d2b_defined ? float(d2b) : 0.f,
+                       d2a_defined ? float(d2a) : 0.f)}));
   y_void();
 }
 
@@ -628,7 +629,8 @@ y_api(modify_particles)
     y_arg(const y::wvec2, p_add) y_arg(const y::wvec2, dp_add)
     y_arg(const y::wvec2, d2p_add)
 {
-  stage.get_environment().modify_particles(tag, p_add, dp_add, d2p_add);
+  stage.get_environment().modify_particles(
+      tag, Derivatives<y::wvec2>{p_add, dp_add, d2p_add});
   y_void();
 }
 

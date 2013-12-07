@@ -9,89 +9,84 @@
 Particle::Particle(
     y::int32 tag, y::int32 frames, y::world bounce_coefficient,
     y::world depth, y::world layering_value,
-    y::world size, y::world dsize, y::world d2size,
-    const y::wvec2& p, const y::wvec2& dp, const y::wvec2 d2p,
-    const y::fvec4& colour, const y::fvec4& dcolour, const y::fvec4& d2colour)
+    const Derivatives<y::world>& size,
+    const Derivatives<y::wvec2>& pos,
+    const Derivatives<y::fvec4>& colour)
   : tag(tag)
   , frames(frames)
   , bounce_coefficient(bounce_coefficient)
   , depth(depth)
   , layering_value(layering_value)
   , size(size)
-  , dsize(dsize)
-  , d2size(d2size)
-  , p(p)
-  , dp(dp)
-  , d2p(d2p)
+  , pos(pos)
   , colour(colour)
-  , dcolour(dcolour)
-  , d2colour(d2colour)
 {
 }
 
 bool Particle::update(const WorldWindow& world)
 {
-  if (bounce_coefficient < 0.) {
-    p += dp;
+  if (bounce_coefficient >= 0.) {
+    collider_update(world);
   }
   else {
-    bool collision = false;
-    y::world min_ratio = 1;
-    y::wvec2 nearest_normal;
-
-    y::wvec2 min = p - y::wvec2{size, size};
-    y::wvec2 max = p + y::wvec2{size, size};
-    auto it = world.get_geometry().search(
-        y::min(min, min + dp), y::max(max, max + dp));
-
-    for (; it && min_ratio > 0.; ++it) {
-      // Set Collision::collider_move for details.
-      y::wvec2 start = y::wvec2(it->start);
-      y::wvec2 end = y::wvec2(it->end);
-      y::wvec2 vec = end - start;
-      y::wvec2 normal{vec[yy], -vec[xx]};
-
-      if (normal.dot(-dp) <= 0) {
-        continue;
-      }
-
-      y::world ratio = get_projection(start, end, p, dp, true);
-      if (min_ratio > ratio) {
-        collision = true;
-        min_ratio = ratio;
-        nearest_normal = normal;
-      }
-    }
-
-    if (collision) {
-      p += y::max(0., min_ratio) * dp;
-
-      // Reflect the velocity vector in the nearest geometry and apply the bounce
-      // coefficient.
-      nearest_normal.normalise();
-      dp = 2 * dp.dot(nearest_normal) * nearest_normal - dp;
-      dp *= -bounce_coefficient;
-    }
-    else {
-      p += dp;
-    }
+    pos.update();
   }
 
-  dp += d2p;
-  colour += dcolour;
-  dcolour += d2colour;
-  size += dsize;
-  dsize += d2size;
-
+  size.update();
+  colour.update();
   return --frames >= 0;
 }
 
-void Particle::modify(
-    const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add)
+void Particle::collider_update(const WorldWindow& world)
 {
-  p += p_add;
-  dp += dp_add;
-  d2p += d2p_add;
+  bool collision = false;
+  y::world min_ratio = 1;
+  y::wvec2 nearest_normal;
+
+  y::wvec2 min = pos.v - y::wvec2{size.v, size.v};
+  y::wvec2 max = pos.v + y::wvec2{size.v, size.v};
+  auto it = world.get_geometry().search(
+      y::min(min, min + pos.d), y::max(max, max + pos.d));
+
+  for (; it && min_ratio > 0.; ++it) {
+    // Set Collision::collider_move for details.
+    y::wvec2 start = y::wvec2(it->start);
+    y::wvec2 end = y::wvec2(it->end);
+    y::wvec2 vec = end - start;
+    y::wvec2 normal{vec[yy], -vec[xx]};
+
+    if (normal.dot(-pos.d) <= 0) {
+      continue;
+    }
+
+    y::world ratio = get_projection(start, end, pos.v, pos.d, true);
+    if (min_ratio > ratio) {
+      collision = true;
+      min_ratio = ratio;
+      nearest_normal = normal;
+    }
+  }
+
+  if (collision) {
+    pos.v += y::max(0., min_ratio) * pos.d;
+
+    // Reflect the velocity vector in the nearest geometry and apply the bounce
+    // coefficient.
+    nearest_normal.normalise();
+    pos.d = 2 * pos.d.dot(nearest_normal) * nearest_normal - pos.d;
+    pos.d *= -bounce_coefficient;
+  }
+  else {
+    pos.v += pos.d;
+  }
+  pos.d += pos.d2;
+}
+
+void Particle::modify(const Derivatives<y::wvec2>& modify)
+{
+  pos.v += modify.v;
+  pos.d += modify.d;
+  pos.d2 += modify.d2;
 }
 
 Environment::Environment(GlUtil& gl, const WorldWindow& world, bool fake)
@@ -172,8 +167,7 @@ void Environment::destroy_particles()
 }
 
 void Environment::modify_particles(
-    y::int32 tag,
-    const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add)
+    y::int32 tag, const Derivatives<y::wvec2>& modify)
 {
   // If iterating over the entire particle list every time we want to tweak them
   // is too much, could map tags to separate lists.
@@ -181,15 +175,14 @@ void Environment::modify_particles(
     if (p.tag != tag) {
       continue;
     }
-    p.modify(p_add, dp_add, d2p_add);
+    p.modify(modify);
   }
 }
 
-void Environment::modify_particles(
-    const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add)
+void Environment::modify_particles(const Derivatives<y::wvec2>& modify)
 {
   for (Particle& p : _particles) {
-    p.modify(p_add, dp_add, d2p_add);
+    p.modify(modify);
   }
 }
 
@@ -212,19 +205,22 @@ void Environment::render_particles(RenderUtil& util) const
   y::size length = _particles.size();
   for (y::size i = 0; i < length; ++i) {
     const Particle& p = _particles[i];
-    y::wvec2 pos = p.p;
+    if (p.size.v <= 0) {
+      continue;
+    }
+    y::wvec2 pos = p.pos.v;
 
     // Divisor buffers would be great, again.
     y::write_vector<float, y::vector<y::world>>(_pixels.data, 8 * i, {
-        pos[xx] - p.size / 2., pos[yy] - p.size / 2.,
-        pos[xx] + p.size / 2., pos[yy] - p.size / 2.,
-        pos[xx] - p.size / 2., pos[yy] + p.size / 2.,
-        pos[xx] + p.size / 2., pos[yy] + p.size / 2.});
+        pos[xx] - p.size.v / 2., pos[yy] - p.size.v / 2.,
+        pos[xx] + p.size.v / 2., pos[yy] - p.size.v / 2.,
+        pos[xx] - p.size.v / 2., pos[yy] + p.size.v / 2.,
+        pos[xx] + p.size.v / 2., pos[yy] + p.size.v / 2.});
     y::write_vector(_colour.data, 16 * i, {
-        p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa],
-        p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa],
-        p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa],
-        p.colour[rr], p.colour[gg], p.colour[bb], p.colour[aa]});
+        p.colour.v[rr], p.colour.v[gg], p.colour.v[bb], p.colour.v[aa],
+        p.colour.v[rr], p.colour.v[gg], p.colour.v[bb], p.colour.v[aa],
+        p.colour.v[rr], p.colour.v[gg], p.colour.v[bb], p.colour.v[aa],
+        p.colour.v[rr], p.colour.v[gg], p.colour.v[bb], p.colour.v[aa]});
     y::write_vector<float, y::vector<y::world>>(_depth.data, 4 * i, {
         p.depth, p.depth, p.depth, p.depth});
   }
@@ -248,14 +244,14 @@ void Environment::render_particles_normal(RenderUtil& util) const
   y::size length = _particles.size();
   for (y::size i = 0; i < length; ++i) {
     const Particle& p = _particles[i];
-    y::wvec2 pos = p.p;
+    y::wvec2 pos = p.pos.v;
 
     // Divisor buffers would be great, again.
     y::write_vector<float, y::vector<y::world>>(_pixels.data, 8 * i, {
-        pos[xx] - p.size / 2., pos[yy] - p.size / 2.,
-        pos[xx] + p.size / 2., pos[yy] - p.size / 2.,
-        pos[xx] - p.size / 2., pos[yy] + p.size / 2.,
-        pos[xx] + p.size / 2., pos[yy] + p.size / 2.});
+        pos[xx] - p.size.v / 2., pos[yy] - p.size.v / 2.,
+        pos[xx] + p.size.v / 2., pos[yy] - p.size.v / 2.,
+        pos[xx] - p.size.v / 2., pos[yy] + p.size.v / 2.,
+        pos[xx] + p.size.v / 2., pos[yy] + p.size.v / 2.});
     y::write_vector<float, y::vector<y::world>>(_depth.data, 4 * i, {
         p.depth, p.depth, p.depth, p.depth});
     y::write_vector<float, y::vector<y::world>>(_layering.data, 4 * i, {

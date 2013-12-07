@@ -8,14 +8,23 @@ class GlUtil;
 class RenderUtil;
 class WorldWindow;
 
+// A value with first- and second-order derivatives.
+template<typename T>
+struct Derivatives {
+  T v;
+  T d;
+  T d2;
+
+  void update();
+};
+
 // TODO: support particles which draw sprites.
 struct Particle {
   Particle(y::int32 tag, y::int32 frames, y::world bounce_coefficient,
            y::world depth, y::world layering_value,
-           y::world size, y::world dsize, y::world d2size,
-           const y::wvec2& p, const y::wvec2& dp, const y::wvec2 d2p,
-           const y::fvec4& colour, const y::fvec4& dcolour,
-           const y::fvec4& d2colour);
+           const Derivatives<y::world>& size,
+           const Derivatives<y::wvec2>& pos,
+           const Derivatives<y::fvec4>& colour);
 
   // Lookup tag for manipulating many particles at once (for example for wind
   // blowing snow).
@@ -32,24 +41,14 @@ struct Particle {
   y::world depth;
   y::world layering_value;
 
-  // Size (in pixels) and derivatives.
-  y::world size;
-  y::world dsize;
-  y::world d2size;
-
-  // Current position of the particle and derivatives.
-  y::wvec2 p;
-  y::wvec2 dp;
-  y::wvec2 d2p;
-
-  // Colour and derivatives.
-  y::fvec4 colour;
-  y::fvec4 dcolour;
-  y::fvec4 d2colour;
+  // Size (in pixels), current position, colour, and derivatives.
+  Derivatives<y::world> size;
+  Derivatives<y::wvec2> pos;
+  Derivatives<y::fvec4> colour;
 
   bool update(const WorldWindow& world);
-  void modify(
-      const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add);
+  void collider_update(const WorldWindow& world);
+  void modify(const Derivatives<y::wvec2>& modify);
 };
 
 class Environment : public y::no_copy {
@@ -102,10 +101,8 @@ public:
 
   // Add position and derivates to all particles with the given tag.
   void modify_particles(
-      y::int32 tag,
-      const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add);
-  void modify_particles(
-      const y::wvec2& p_add, const y::wvec2& dp_add, const y::wvec2& d2p_add);
+      y::int32 tag, const Derivatives<y::wvec2>& modify);
+  void modify_particles(const Derivatives<y::wvec2>& modify);
 
   // Particle update and rendering.
   void update_particles();
@@ -152,5 +149,12 @@ private:
   GlUnique<GlTexture3D> _fv23d_64;
 
 };
+
+template<typename T>
+void Derivatives<T>::update()
+{
+  v += d;
+  d += d2;
+}
 
 #endif
