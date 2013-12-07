@@ -5,7 +5,6 @@ uniform vec4 layer_colour;
 noperspective varying vec2 tex_coord;
 
 #include "util.glsl"
-#include "../gamma.glsl"
 
 void main()
 {

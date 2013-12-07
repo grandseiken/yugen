@@ -44,6 +44,9 @@ void main()
   vec2 b_off = 0.11 * b_dir * dither_frame;
   vec3 dither_val = matrix_lookup(dither_coord, r_off, g_off, b_off);
 
+  // Dithering is not properly gamma-corrected. We could gamma-correct at the
+  // very end, but then colour values are not evenly-spaced.
+  // TODO: properly gamma-correct the dither.
   vec4 adjusted = raw +
       mix(vec4(0.5 * div), vec4(dither_val * div, 0.0), dithering_mix);
   gl_FragColor = adjusted - mod(adjusted, div);

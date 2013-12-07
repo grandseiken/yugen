@@ -20,12 +20,13 @@ void main()
   coord = coord - mod(coord, 1.0 / vec2(frame_size));
 
   // Base colour.
-  vec4 colour = gamma_read(texture2D(sprite, coord / frame_count));
+  vec4 colour = texture2D(sprite, coord / frame_count);
   if (normal) {
+    // For sprites, use the depth value as the layering value.
     colour.b += depth_coord;
   }
   else {
-    colour *= colour_coord;
+    colour = gamma_read(colour) * colour_coord;
   }
 
   // Don't write the depth buffer.

@@ -1,3 +1,7 @@
+// Currently disabled, since I like how it looks without gamma-correction,
+// and don't want to turn correction on until it looks as nice.
+// In particular, ignoring gamma means colours don't shade exactly linearly,
+// which kind of looks good.
 const bool use_gamma_correction = false;
 const float gamma_value = 2.2;
 const float gamma_div = 1.0 / gamma_value;

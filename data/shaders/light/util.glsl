@@ -2,7 +2,9 @@ const float cel_shade_clamp = 1.0 / 4;
 const float cel_shade_clamp_specular = 1.0 / 3;
 const float cel_shade_mix = 0.75;
 
-const float ambient_light = 0.05;
+#include "../gamma.glsl"
+const float ambient_light =
+    use_gamma_correction ? 0.2 : 0.05;
 const bool ambient_is_post_cel_shade = true;
 
 const float direct_coefficient = 0.5;
