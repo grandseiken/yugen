@@ -296,7 +296,7 @@ function key(k, down)
         self:create_constraint(v:get_source(), true, false)
         break
       end
-      add_rope(128, 128, 1, 0.01, 0.01, vec(0, 0.5), 0.01,
+      add_rope(128, 128, 1, 0.1, 0.01, vec(0, 0.5), 0.01,
                0.3, 0.3, 4, 0.5, 0.5, 0.5, 1.0,
                self, self:get_origin() + vec(96, -64))
     end

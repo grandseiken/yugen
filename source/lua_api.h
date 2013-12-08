@@ -675,7 +675,7 @@ y_api(add_rope)
   params.ground_repulsion = 0.01;
   params.ground_friction = 0.01;
   params.ground_absorption = 0.1;
-  params.ground_height = 100;
+  params.ground_height = 256;
 
   stage.get_environment().add_rope(
       Rope(point_masses, length,
@@ -709,7 +709,7 @@ y_api(add_textured_rope)
   params.ground_repulsion = 0.01;
   params.ground_friction = 0.01;
   params.ground_absorption = 0.1;
-  params.ground_height = 100;
+  params.ground_height = 256;
 
   stage.get_environment().add_rope(
       Rope(point_masses, length,

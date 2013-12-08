@@ -62,6 +62,8 @@ bool Particle::update(const WorldWindow& world)
 
 void Particle::collider_update(const WorldWindow& world)
 {
+  pos.d += pos.d2;
+
   bool collision = false;
   y::world min_ratio = 1;
   y::wvec2 nearest_normal;
@@ -102,7 +104,6 @@ void Particle::collider_update(const WorldWindow& world)
   else {
     pos.v += pos.d;
   }
-  pos.d += pos.d2;
 }
 
 void Particle::modify(const Derivatives<y::wvec2>& modify)
