@@ -120,13 +120,13 @@ Rope::Rope(
     y::world size, const y::fvec4& colour)
   : _length(point_masses <= 1 ? length : length / point_masses - 1)
   , _params(params)
-  , _start(y::null)
-  , _end(y::null)
   , _depth(depth)
   , _layering_value(layering_value)
   , _size(size)
   , _colour(colour)
   , _sprite(y::null)
+  , _start(y::null)
+  , _end(y::null)
 {
   init(point_masses, script_start, script_end, start, end);
 }
@@ -140,8 +140,6 @@ Rope::Rope(
     const y::ivec2& frame_size, const y::ivec2& frame)
   : _length(point_masses <= 1 ? length : length / point_masses - 1)
   , _params(params)
-  , _start(y::null)
-  , _end(y::null)
   , _depth(depth)
   , _layering_value(layering_value)
   , _size(4)
@@ -149,6 +147,8 @@ Rope::Rope(
   , _sprite(&sprite)
   , _frame_size(frame_size)
   , _frame(frame)
+  , _start(y::null)
+  , _end(y::null)
 {
   init(point_masses, script_start, script_end, start, end);
 }
@@ -157,8 +157,6 @@ Rope::Rope(const Rope& rope)
   : _masses(rope._masses)
   , _length(rope._length)
   , _params(rope._params)
-  , _start(y::null)
-  , _end(y::null)
   , _depth(rope._depth)
   , _layering_value(rope._layering_value)
   , _size(rope._size)
@@ -166,6 +164,8 @@ Rope::Rope(const Rope& rope)
   , _sprite(rope._sprite)
   , _frame_size(rope._frame_size)
   , _frame(rope._frame)
+  , _start(y::null)
+  , _end(y::null)
 {
   if (rope._start && rope._start->is_valid()) {
     _start = y::move_unique(new ScriptReference(**rope._start));
@@ -246,7 +246,7 @@ const Rope::mass_list& Rope::get_masses() const
   return _masses;
 }
 
-void Rope::init(y::int32 point_masses,
+void Rope::init(y::size point_masses,
                 Script* script_start, Script* script_end,
                 const y::wvec2& start, const y::wvec2& end)
 {

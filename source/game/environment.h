@@ -116,7 +116,7 @@ public:
 private:
 
   friend class Environment;
-  void init(y::int32 point_masses,
+  void init(y::size point_masses,
             Script* script_start, Script* script_end,
             const y::wvec2& start, const y::wvec2& end);
   void lock_endpoints();
