@@ -114,27 +114,43 @@ void Particle::modify(const Derivatives<y::wvec2>& modify)
 
 Rope::Rope(
     y::size point_masses, y::world length,
-    Script* script_start, Script* script_end,
-    const y::wvec2& start, const y::wvec2& end, const params& params)
+    Script* script_start, Script* script_end, 
+    const y::wvec2& start, const y::wvec2& end, const params& params,
+    y::world depth, y::world layering_value,
+    y::world size, const y::fvec4& colour)
   : _length(point_masses <= 1 ? length : length / point_masses - 1)
   , _params(params)
   , _start(y::null)
   , _end(y::null)
+  , _depth(depth)
+  , _layering_value(layering_value)
+  , _size(size)
+  , _colour(colour)
+  , _sprite(y::null)
 {
-  if (script_start) {
-    _start = y::move_unique(new ScriptReference(*script_start));
-  }
-  if (script_end) {
-    _end = y::move_unique(new ScriptReference(*script_start));
-  }
-  y::wvec2 s = script_start ? script_start->get_origin() : start;
-  y::wvec2 e = script_end ? script_end->get_origin() : end;
+  init(point_masses, script_start, script_end, start, end);
+}
 
-  for (y::size i = 0; i < point_masses; ++i) {
-    y::wvec2 v = point_masses == 1 ? (s + e) / 2 :
-        s + (i / (point_masses - 1.)) * (e - s);
-    _masses.push_back({v, y::wvec2(), y::wvec2()});
-  }
+Rope::Rope(
+    y::size point_masses, y::world length,
+    Script* script_start, Script* script_end, 
+    const y::wvec2& start, const y::wvec2& end, const params& params,
+    y::world depth, y::world layering_value,
+    const y::fvec4& colour, const Sprite& sprite,
+    const y::ivec2& frame_size, const y::ivec2& frame)
+  : _length(point_masses <= 1 ? length : length / point_masses - 1)
+  , _params(params)
+  , _start(y::null)
+  , _end(y::null)
+  , _depth(depth)
+  , _layering_value(layering_value)
+  , _size(4)
+  , _colour(colour)
+  , _sprite(&sprite)
+  , _frame_size(frame_size)
+  , _frame(frame)
+{
+  init(point_masses, script_start, script_end, start, end);
 }
 
 Rope::Rope(const Rope& rope)
@@ -143,6 +159,13 @@ Rope::Rope(const Rope& rope)
   , _params(rope._params)
   , _start(y::null)
   , _end(y::null)
+  , _depth(rope._depth)
+  , _layering_value(rope._layering_value)
+  , _size(rope._size)
+  , _colour(rope._colour)
+  , _sprite(rope._sprite)
+  , _frame_size(rope._frame_size)
+  , _frame(rope._frame)
 {
   if (rope._start && rope._start->is_valid()) {
     _start = y::move_unique(new ScriptReference(**rope._start));
@@ -221,6 +244,26 @@ void Rope::move(const y::wvec2& move)
 const Rope::mass_list& Rope::get_masses() const
 {
   return _masses;
+}
+
+void Rope::init(y::int32 point_masses,
+                Script* script_start, Script* script_end,
+                const y::wvec2& start, const y::wvec2& end)
+{
+  if (script_start) {
+    _start = y::move_unique(new ScriptReference(*script_start));
+  }
+  if (script_end) {
+    _end = y::move_unique(new ScriptReference(*script_start));
+  }
+  y::wvec2 s = script_start ? script_start->get_origin() : start;
+  y::wvec2 e = script_end ? script_end->get_origin() : end;
+
+  for (y::size i = 0; i < point_masses; ++i) {
+    y::wvec2 v = point_masses == 1 ? (s + e) / 2 :
+        s + (i / (point_masses - 1.)) * (e - s);
+    _masses.push_back({v, y::wvec2(), y::wvec2()});
+  }
 }
 
 void Rope::lock_endpoints()
@@ -383,33 +426,58 @@ void Environment::render_physics(RenderUtil& util, RenderBatch& batch) const
   gl.enable_blend(true);
 
   y::size i = 0;
-  for (const Particle& p : _particles) {
-    if (p.sprite) {
-      batch.add_sprite(p.sprite->texture, p.frame_size, false,
-                       y::fvec2(p.pos.v - y::wvec2(p.frame_size / 2)),
-                       p.frame, p.depth, 0.f, p.colour.v);
-      continue;
+  auto lambda = [&](  
+      const Sprite* sprite, const y::ivec2& frame_size, const y::ivec2& frame,
+      const y::wvec2& pos, y::world depth, y::world size,
+      const y::fvec4& colour)
+  {
+    if (sprite) {
+      batch.add_sprite(sprite->texture, frame_size, false,
+                       y::fvec2(pos - y::wvec2(frame_size / 2)),
+                       frame, depth, 0.f, colour);
+      return;
     }
 
-    if (p.size.v <= 0) {
-      continue;
+    if (size <= 0) {
+      return;
     }
-    y::wvec2 pos = p.pos.v;
 
     // Divisor buffers would be great, again.
     y::write_vector<float, y::vector<y::world>>(_pixels.data, 8 * i, {
-        pos[xx] - p.size.v / 2., pos[yy] - p.size.v / 2.,
-        pos[xx] + p.size.v / 2., pos[yy] - p.size.v / 2.,
-        pos[xx] - p.size.v / 2., pos[yy] + p.size.v / 2.,
-        pos[xx] + p.size.v / 2., pos[yy] + p.size.v / 2.});
+        pos[xx] - size / 2., pos[yy] - size / 2.,
+        pos[xx] + size / 2., pos[yy] - size / 2.,
+        pos[xx] - size / 2., pos[yy] + size / 2.,
+        pos[xx] + size / 2., pos[yy] + size / 2.});
     y::write_vector(_colour.data, 16 * i, {
-        p.colour.v[rr], p.colour.v[gg], p.colour.v[bb], p.colour.v[aa],
-        p.colour.v[rr], p.colour.v[gg], p.colour.v[bb], p.colour.v[aa],
-        p.colour.v[rr], p.colour.v[gg], p.colour.v[bb], p.colour.v[aa],
-        p.colour.v[rr], p.colour.v[gg], p.colour.v[bb], p.colour.v[aa]});
+        colour[rr], colour[gg], colour[bb], colour[aa],
+        colour[rr], colour[gg], colour[bb], colour[aa],
+        colour[rr], colour[gg], colour[bb], colour[aa],
+        colour[rr], colour[gg], colour[bb], colour[aa]});
     y::write_vector<float, y::vector<y::world>>(_depth.data, 4 * i, {
-        p.depth, p.depth, p.depth, p.depth});
+        depth, depth, depth, depth});
     ++i;
+  };
+
+  for (const Particle& p : _particles) {
+    lambda(p.sprite, p.frame_size, p.frame,
+           p.pos.v, p.depth, p.size.v, p.colour.v);
+  }
+
+  for (const Rope& rope : _ropes) {
+    for (const auto& mass : rope.get_masses()) {
+      lambda(rope._sprite, rope._frame_size, rope._frame,
+             mass.v, rope._depth, rope._size, rope._colour);
+    }
+  }
+
+  // TODO: better line rendering.
+  for (const Rope& rope : _ropes) {
+    y::vector<RenderUtil::line> lines;
+    const Rope::mass_list& masses = rope.get_masses();
+    for (y::size i = 0; !masses.empty() && i < masses.size() - 1; ++i) {
+      lines.push_back({y::fvec2(masses[i].v), y::fvec2(masses[1 + i].v)});
+    }
+    util.render_lines(lines, rope._colour);
   }
 
   _particle_program->bind();
@@ -419,15 +487,6 @@ void Environment::render_physics(RenderUtil& util, RenderBatch& batch) const
 
   util.bind_pixel_uniforms(*_particle_program);
   util.quad_element(i).buffer->draw_elements(GL_TRIANGLES, 6 * i);
-
-  y::vector<RenderUtil::line> lines;
-  for (const Rope& rope : _ropes) {
-    const Rope::mass_list& masses = rope.get_masses();
-    for (y::size i = 0; !masses.empty() && i < masses.size() - 1; ++i) {
-      lines.push_back({y::fvec2(masses[i].v), y::fvec2(masses[1 + i].v)});
-    }
-  }
-  util.render_lines(lines, colour::white);
 }
 
 void Environment::render_physics_normal(RenderUtil& util,
@@ -439,31 +498,55 @@ void Environment::render_physics_normal(RenderUtil& util,
   gl.enable_blend(false);
 
   y::size i = 0;
-  for (const Particle& p : _particles) {
-    if (p.sprite) {
-      batch.add_sprite(p.sprite->normal, p.frame_size, true,
-                       y::fvec2(p.pos.v - y::wvec2(p.frame_size / 2)),
-                       p.frame, p.depth, 0.f, y::fvec4{1.f, 1.f, 1.f, 1.f});
-      continue;
+  auto lambda = [&](
+      const Sprite* sprite, const y::ivec2& frame_size, const y::ivec2& frame,
+      const y::wvec2& pos, y::world depth, y::world layering_value,
+      y::world size)
+  {
+    if (sprite) {
+      batch.add_sprite(sprite->normal, frame_size, true,
+                       y::fvec2(pos - y::wvec2(frame_size / 2)),
+                       frame, depth, 0.f, y::fvec4{1.f, 1.f, 1.f, 1.f});
+      return;
     }
 
-    if (p.size.v <= 0) {
-      continue;
+    if (size <= 0) {
+      return;
     }
-    y::wvec2 pos = p.pos.v;
 
-    // Divisor buffers would be great, again.
     y::write_vector<float, y::vector<y::world>>(_pixels.data, 8 * i, {
-        pos[xx] - p.size.v / 2., pos[yy] - p.size.v / 2.,
-        pos[xx] + p.size.v / 2., pos[yy] - p.size.v / 2.,
-        pos[xx] - p.size.v / 2., pos[yy] + p.size.v / 2.,
-        pos[xx] + p.size.v / 2., pos[yy] + p.size.v / 2.});
+        pos[xx] - size / 2., pos[yy] - size / 2.,
+        pos[xx] + size / 2., pos[yy] - size / 2.,
+        pos[xx] - size / 2., pos[yy] + size / 2.,
+        pos[xx] + size / 2., pos[yy] + size / 2.});
     y::write_vector<float, y::vector<y::world>>(_depth.data, 4 * i, {
-        p.depth, p.depth, p.depth, p.depth});
+        depth, depth, depth, depth});
     y::write_vector<float, y::vector<y::world>>(_layering.data, 4 * i, {
-        p.layering_value, p.layering_value,
-        p.layering_value, p.layering_value});
+        layering_value, layering_value,
+        layering_value, layering_value});
     ++i;
+  };
+
+  for (const Particle& p : _particles) {
+    lambda(p.sprite, p.frame_size, p.frame,
+           p.pos.v, p.depth, p.layering_value, p.size.v);
+  }
+
+  for (const Rope& rope : _ropes) {
+    for (const auto& mass : rope.get_masses()) {
+      lambda(rope._sprite, rope._frame_size, rope._frame,
+             mass.v, rope._depth, rope._layering_value, rope._size);
+    }
+  }
+
+  for (const Rope& rope : _ropes) {
+    y::vector<RenderUtil::line> lines;
+    const Rope::mass_list& masses = rope.get_masses();
+    for (y::size i = 0; !masses.empty() && i < masses.size() - 1; ++i) {
+      lines.push_back({y::fvec2(masses[i].v), y::fvec2(masses[1 + i].v)});
+    }
+    util.render_lines(
+        lines, y::fvec4{.5f, .5f, float(rope._layering_value), 1.f});
   }
 
   _particle_normal_program->bind();
@@ -474,15 +557,6 @@ void Environment::render_physics_normal(RenderUtil& util,
 
   util.bind_pixel_uniforms(*_particle_normal_program);
   util.quad_element(i).buffer->draw_elements(GL_TRIANGLES, 6 * i);
-
-  y::vector<RenderUtil::line> lines;
-  for (const Rope& rope : _ropes) {
-    const Rope::mass_list& masses = rope.get_masses();
-    for (y::size i = 0; !masses.empty() && i < masses.size() - 1; ++i) {
-      lines.push_back({y::fvec2(masses[i].v), y::fvec2(masses[1 + i].v)});
-    }
-  }
-  util.render_lines(lines, y::fvec4{.5f, .5f, 0.f, 0.f});
 }
 
 void Environment::render_fog_colour(

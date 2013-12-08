@@ -658,6 +658,10 @@ y_api(add_rope)
     y_arg(y::int32, point_masses) y_arg(y::world, length)
     y_arg(y::world, mass) y_arg(y::world, spring) y_arg(y::world, friction)
     y_arg(const y::wvec2, gravity) y_arg(y::world, air_friction)
+    y_arg(y::world, depth) y_arg(y::world, layering_value)
+    y_arg(y::world, size)
+    y_arg(y::world, r) y_arg(y::world, g)
+    y_arg(y::world, b) y_arg(y::world, a)
     y_optarg(Script*, script_start) y_optarg(Script*, script_end)
     y_optarg(const y::wvec2, v0) y_optarg(const y::wvec2, v1)
 {
@@ -678,7 +682,43 @@ y_api(add_rope)
            script_start_defined ? script_start : y::null,
            script_end_defined ? script_end : y::null,
            v0, script_start_defined && !script_end_defined ? v0 : v1,
-           params));
+           params, depth, layering_value, size,
+           y::fvec4{float(r), float(g), float(b), float(a)}));
+  y_void();
+}
+
+y_api(add_textured_rope)
+    y_arg(y::int32, point_masses) y_arg(y::world, length)
+    y_arg(y::world, mass) y_arg(y::world, spring) y_arg(y::world, friction)
+    y_arg(const y::wvec2, gravity) y_arg(y::world, air_friction)
+    y_arg(y::world, depth) y_arg(y::world, layering_value)
+    y_arg(y::world, r) y_arg(y::world, g)
+    y_arg(y::world, b) y_arg(y::world, a)
+    y_arg(const Sprite*, sprite)
+    y_arg(const y::wvec2, frame_size) y_arg(const y::wvec2, frame)
+    y_optarg(Script*, script_start) y_optarg(Script*, script_end)
+    y_optarg(const y::wvec2, v0) y_optarg(const y::wvec2, v1)
+{
+  Rope::params params;
+  params.mass = mass;
+  params.spring_coefficient = spring;
+  params.friction_coefficient = friction;
+  params.gravity = gravity;
+  params.air_friction = air_friction;
+
+  params.ground_repulsion = 0.01;
+  params.ground_friction = 0.01;
+  params.ground_absorption = 0.1;
+  params.ground_height = 100;
+
+  stage.get_environment().add_rope(
+      Rope(point_masses, length,
+           script_start_defined ? script_start : y::null,
+           script_end_defined ? script_end : y::null,
+           v0, script_start_defined && !script_end_defined ? v0 : v1,
+           params, depth, layering_value,
+           y::fvec4{float(r), float(g), float(b), float(a)},
+           *sprite, y::ivec2(frame_size), y::ivec2(frame)));
   y_void();
 }
 

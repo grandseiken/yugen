@@ -92,7 +92,18 @@ public:
   // corresponding script is non-null.
   Rope(y::size point_masses, y::world length,
        Script* script_start, Script* script_end, 
-       const y::wvec2& start, const y::wvec2& end, const params& params);
+       const y::wvec2& start, const y::wvec2& end, const params& params,
+       y::world depth, y::world layering_value,
+       y::world size, const y::fvec4& colour);
+
+  // Similar for a textured Rope.
+  Rope(y::size point_masses, y::world length,
+       Script* script_start, Script* script_end, 
+       const y::wvec2& start, const y::wvec2& end, const params& params,
+       y::world depth, y::world layering_value,
+       const y::fvec4& colour, const Sprite& sprite,
+       const y::ivec2& frame_size, const y::ivec2& frame);
+
   Rope(const Rope& rope);
   ~Rope();
 
@@ -104,11 +115,26 @@ public:
 
 private:
 
+  friend class Environment;
+  void init(y::int32 point_masses,
+            Script* script_start, Script* script_end,
+            const y::wvec2& start, const y::wvec2& end);
   void lock_endpoints();
 
   mass_list _masses;
   y::world _length;
   params _params;
+
+  // Rendering parameters work the same as for Particle (and apply to each
+  // point-mass).
+  y::world _depth;
+  y::world _layering_value;
+  y::world _size;
+  y::fvec4 _colour;
+
+  const Sprite* _sprite;
+  y::ivec2 _frame_size;
+  y::ivec2 _frame;
 
   y::unique<ScriptReference> _start;
   y::unique<ScriptReference> _end;

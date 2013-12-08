@@ -297,6 +297,7 @@ function key(k, down)
         break
       end
       add_rope(128, 128, 1, 0.01, 0.01, vec(0, 0.5), 0.01,
+               0.3, 0.3, 4, 0.5, 0.5, 0.5, 1.0,
                self, self:get_origin() + vec(96, -64))
     end
   end
