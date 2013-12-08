@@ -659,6 +659,7 @@ y_api(add_rope)
     y_arg(y::world, mass) y_arg(y::world, spring) y_arg(y::world, friction)
     y_arg(const y::wvec2, gravity)
     y_arg(y::world, air_friction) y_arg(y::world, ground_friction)
+    y_arg(y::world, bounce_coefficient)
     y_arg(y::world, depth) y_arg(y::world, layering_value)
     y_arg(y::world, size)
     y_arg(y::world, r) y_arg(y::world, g)
@@ -673,6 +674,7 @@ y_api(add_rope)
   params.gravity = gravity;
   params.air_friction = air_friction;
   params.ground_friction = ground_friction;
+  params.bounce_coefficient = bounce_coefficient;
 
   stage.get_environment().add_rope(
       Rope(point_masses, length,
@@ -689,6 +691,7 @@ y_api(add_textured_rope)
     y_arg(y::world, mass) y_arg(y::world, spring) y_arg(y::world, friction)
     y_arg(const y::wvec2, gravity)
     y_arg(y::world, air_friction) y_arg(y::world, ground_friction)
+    y_arg(y::world, bounce_coefficient)
     y_arg(y::world, depth) y_arg(y::world, layering_value)
     y_arg(y::world, r) y_arg(y::world, g)
     y_arg(y::world, b) y_arg(y::world, a)
@@ -704,6 +707,7 @@ y_api(add_textured_rope)
   params.gravity = gravity;
   params.air_friction = air_friction;
   params.ground_friction = ground_friction;
+  params.bounce_coefficient = bounce_coefficient;
 
   stage.get_environment().add_rope(
       Rope(point_masses, length,

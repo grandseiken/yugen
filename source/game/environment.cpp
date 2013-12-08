@@ -221,16 +221,28 @@ void Rope::update(const WorldWindow& world)
     mass.d2 += _params.gravity;
     mass.d2 -= _params.air_friction * mass.d / _params.mass;
 
-    y::wvec2 normal = mass_collider_update(mass, world);
-    if (normal != y::wvec2()) {
-      normal.normalise();
-      y::wvec2 ground{normal[yy], -normal[xx]};
+    if (_params.bounce_coefficient >= 0.) {
+      y::wvec2 normal = mass_collider_update(mass, world);
 
-      // Project velocity onto ground direction.
-      y::wvec2 project = mass.d.dot(ground) * ground;
-      mass.d2 = y::wvec2();
-      mass.d = (1. - _params.ground_friction) * project;
-      mass_collider_update(mass, world);
+      if (normal != y::wvec2()) {
+        normal.normalise();
+        y::wvec2 ground{normal[yy], -normal[xx]};
+
+        // Project velocity onto ground direction and normal.
+        y::wvec2 project = mass.d.dot(ground) * ground;
+        y::wvec2 n_project = mass.d.dot(normal) * normal;
+
+        // Handle ground friction.
+        mass.d2 = y::wvec2();
+        mass.d = (1. - _params.ground_friction) * project;
+        mass_collider_update(mass, world);
+
+        // Handle bounce.
+        mass.d -= _params.bounce_coefficient * n_project;
+      }
+    }
+    else {
+      mass.update();
     }
   }
 

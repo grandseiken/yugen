@@ -81,6 +81,7 @@ public:
     y::wvec2 gravity;
     y::world air_friction;
     y::world ground_friction;
+    y::world bounce_coefficient;
   };
 
   // Constructs a new rope. Start and end positions will be ignored if the
