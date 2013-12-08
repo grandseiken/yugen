@@ -183,26 +183,24 @@ void Yedit::draw() const
     return;
   }
 
-  struct local {
-    static void render_list(
-        RenderUtil& util, const UiList& list, bool active,
-        const y::string& title, const y::vector<y::string>& source,
-        y::vector<bool>& actives, y::size select)
-    {
-      util.irender_text(
-           title, RenderUtil::from_grid(list.get_origin() - y::ivec2{0, 2}),
-           active ? colour::select : colour::item);
-      y::vector<y::fvec4> items;
-      for (bool b : actives) {
-        items.emplace_back(
-            b ? colour::select : active ? colour::item : colour::dark_outline);
-      }
-      list.draw(util, items, source, select);
-      util.irender_outline(
-           RenderUtil::from_grid(list.get_origin()) - y::ivec2{1, 1},
-           RenderUtil::from_grid(list.get_size()) + y::ivec2{2, 2},
-           active ? colour::outline : colour::dark_outline);
+  auto render_list = [&](
+      const UiList& list, bool active,
+      const y::string& title, const y::vector<y::string>& source,
+      y::vector<bool>& actives, y::size select)
+  {
+    _util.irender_text(
+         title, RenderUtil::from_grid(list.get_origin() - y::ivec2{0, 2}),
+         active ? colour::select : colour::item);
+    y::vector<y::fvec4> items;
+    for (bool b : actives) {
+      items.emplace_back(
+          b ? colour::select : active ? colour::item : colour::dark_outline);
     }
+    list.draw(_util, items, source, select);
+    _util.irender_outline(
+         RenderUtil::from_grid(list.get_origin()) - y::ivec2{1, 1},
+         RenderUtil::from_grid(list.get_size()) + y::ivec2{2, 2},
+         active ? colour::outline : colour::dark_outline);
   };
 
   // Render tileset list.
@@ -216,8 +214,8 @@ void Yedit::draw() const
                                  _bank.cells.get(_cell_select)) :
                             false);
   }
-  local::render_list(_util, _tileset_list, _list_select == 0, "Tilesets",
-                     _bank.tilesets.get_names(), items, _tileset_select);
+  render_list(_tileset_list, _list_select == 0, "Tilesets",
+              _bank.tilesets.get_names(), items, _tileset_select);
 
   // Render map list.
   items.clear();
@@ -231,8 +229,8 @@ void Yedit::draw() const
                             used(_bank.scripts.get(_script_select),
                                  _bank.maps.get(i)));
   }
-  local::render_list(_util, _map_list, _list_select == 1, "Maps",
-                     _bank.maps.get_names(), items, _map_select);
+  render_list(_map_list, _list_select == 1, "Maps",
+              _bank.maps.get_names(), items, _map_select);
 
   // Render cell list.
   items.clear();
@@ -245,8 +243,8 @@ void Yedit::draw() const
         _list_select == 2 ? i == _cell_select :
                             false);
   }
-  local::render_list(_util, _cell_list, _list_select == 2, "Cells",
-                     _bank.cells.get_names(), items, _cell_select);
+  render_list(_cell_list, _list_select == 2, "Cells",
+              _bank.cells.get_names(), items, _cell_select);
 
   // Render script list.
   items.clear();
@@ -258,8 +256,8 @@ void Yedit::draw() const
         _list_select == 2 ? false :
                             i == _script_select);
   }
-  local::render_list(_util, _script_list, _list_select == 3, "Scripts",
-                     _bank.scripts.get_names(), items, _script_select);
+  render_list(_script_list, _list_select == 3, "Scripts",
+              _bank.scripts.get_names(), items, _script_select);
 }
 
 y::int32 main(y::int32 argc, char** argv)

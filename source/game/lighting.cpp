@@ -726,78 +726,77 @@ void Lighting::trace_angular_light_geometry(
     const geometry_entry& geometry_buffer,
     const geometry_map& map)
 {
-  struct local {
-    // Calculates closest point and geometry.
-    static y::wvec2 get_closest(
-        world_geometry& closest_geometry_output, y::world max_range,
-        const y::wvec2& v, const geometry_set& stack)
-    {
-      // If the stack is empty, use the max-range square.
-      if (stack.empty()) {
-        const y::wvec2 ul{-max_range, -max_range};
-        const y::wvec2 ur{max_range, -max_range};
-        const y::wvec2 dl{-max_range, max_range};
-        const y::wvec2 dr{max_range, max_range};
+  geometry_set stack;
 
-        // Make sure we choose the edge in the direction of rotation at the
-        // corners.
-        if (v[xx] == v[yy]) {
-          closest_geometry_output = v[xx] > 0 ?
-              world_geometry(dr, dl) : world_geometry(ul, ur);
-        }
-        else if (v[xx] == -v[yy]) {
-          closest_geometry_output = v[xx] > 0 ?
-              world_geometry(ur, dr) : world_geometry(dl, ul);
-        }
-        else if (v[yy] > 0 && v[yy] >= y::abs(v[xx])) {
-          closest_geometry_output = world_geometry(dr, dl);
-        }
-        else if (v[yy] < 0 && -v[yy] >= y::abs(v[xx])) {
-          closest_geometry_output = world_geometry(ul, ur);
-        }
-        else if (v[xx] > 0 && v[xx] >= y::abs(v[yy])) {
-          closest_geometry_output = world_geometry(ur, dr);
-        }
-        else if (v[xx] < 0 && -v[xx] >= y::abs(v[yy])) {
-          closest_geometry_output = world_geometry(dl, ul);
-        }
-        else {
-          closest_geometry_output.start = y::wvec2();
-          closest_geometry_output.end = y::wvec2();
-        }
+  // Calculates closest point and geometry.
+  auto get_closest = [&](
+      world_geometry& closest_geometry_output, const y::wvec2& v)
+  {
+    // If the stack is empty, use the max-range square.
+    if (stack.empty()) {
+      y::world max_range = light.get_max_range();
+      const y::wvec2 ul{-max_range, -max_range};
+      const y::wvec2 ur{max_range, -max_range};
+      const y::wvec2 dl{-max_range, max_range};
+      const y::wvec2 dr{max_range, max_range};
 
-        return get_angular_point_on_geometry(v, closest_geometry_output);
+      // Make sure we choose the edge in the direction of rotation at the
+      // corners.
+      if (v[xx] == v[yy]) {
+        closest_geometry_output = v[xx] > 0 ?
+            world_geometry(dr, dl) : world_geometry(ul, ur);
+      }
+      else if (v[xx] == -v[yy]) {
+        closest_geometry_output = v[xx] > 0 ?
+            world_geometry(ur, dr) : world_geometry(dl, ul);
+      }
+      else if (v[yy] > 0 && v[yy] >= y::abs(v[xx])) {
+        closest_geometry_output = world_geometry(dr, dl);
+      }
+      else if (v[yy] < 0 && -v[yy] >= y::abs(v[xx])) {
+        closest_geometry_output = world_geometry(ul, ur);
+      }
+      else if (v[xx] > 0 && v[xx] >= y::abs(v[yy])) {
+        closest_geometry_output = world_geometry(ur, dr);
+      }
+      else if (v[xx] < 0 && -v[xx] >= y::abs(v[yy])) {
+        closest_geometry_output = world_geometry(dl, ul);
+      }
+      else {
+        closest_geometry_output.start = y::wvec2();
+        closest_geometry_output.end = y::wvec2();
       }
 
-      const world_geometry* closest_geometry = y::null;
-      y::wvec2 closest_point;
-
-      bool first = true;
-      y::world min_dist_sq = 0;
-      for (const world_geometry& g : stack) {
-        // Distance is defined by the intersection of the geometry with the
-        // line from the origin to the current vertex.
-        y::wvec2 point = get_angular_point_on_geometry(v, g);
-        y::world dist_sq = point.length_squared();
-
-        if (first || dist_sq < min_dist_sq) {
-          min_dist_sq = dist_sq;
-          closest_geometry = &g;
-          closest_point = point;
-        }
-        first = false;
-      }
-
-      closest_geometry_output = *closest_geometry;
-      return closest_point;
+      return get_angular_point_on_geometry(v, closest_geometry_output);
     }
+
+    const world_geometry* closest_geometry = y::null;
+    y::wvec2 closest_point;
+
+    bool first = true;
+    y::world min_dist_sq = 0;
+    for (const world_geometry& g : stack) {
+      // Distance is defined by the intersection of the geometry with the
+      // line from the origin to the current vertex.
+      y::wvec2 point = get_angular_point_on_geometry(v, g);
+      y::world dist_sq = point.length_squared();
+
+      if (first || dist_sq < min_dist_sq) {
+        min_dist_sq = dist_sq;
+        closest_geometry = &g;
+        closest_point = point;
+      }
+      first = false;
+    }
+
+    closest_geometry_output = *closest_geometry;
+    return closest_point;
   };
 
   // Initialise the stack with geometry that intersects the line from the origin
   // to the first vertex (but doesn't start exactly on it). To make sure we get
   // only geometry crossing the positive half of the line and not the negative
   // half, make sure line is defined in correct direction.
-  geometry_set stack;
   const y::wvec2& first_vec = vertex_buffer[0];
   for (const world_geometry& g : geometry_buffer) {
     // If d_e < 0 && d_s > 0 then line crosses the negative half.
@@ -812,8 +811,7 @@ void Lighting::trace_angular_light_geometry(
   // defined opposite the sweep direction, this corresponds exactly to whether
   // the vertex is the start or end point of the geometry.
   world_geometry prev_closest_geometry;
-  local::get_closest(prev_closest_geometry, light.get_max_range(),
-                     first_vec, stack);
+  get_closest(prev_closest_geometry, first_vec);
   // If stack is empty, make sure the first vertex gets added.
   bool add_first = stack.empty();
 
@@ -844,9 +842,7 @@ void Lighting::trace_angular_light_geometry(
 
     // Find the new closest geometry.
     world_geometry new_closest_geometry;
-    y::wvec2 new_closest_point =
-        local::get_closest(new_closest_geometry, light.get_max_range(),
-                           v, stack);
+    y::wvec2 new_closest_point = get_closest(new_closest_geometry, v);
 
     // When nothing has changed, skip (with special-case for empty stack at the
     // beginning).
@@ -872,48 +868,47 @@ void Lighting::trace_planar_light_geometry(
     const geometry_entry& geometry_buffer,
     const geometry_map& map)
 {
-  struct local {
-    // Calculates closest point and geometry.
-    static y::wvec2 get_closest(
-        world_geometry& closest_geometry_output, const Light& light,
-        const y::wvec2& v, const geometry_set& stack)
-    {
-      const world_geometry* closest_geometry = y::null;
-      y::wvec2 closest_point;
-      // Point on light plane for comparison.
-      const y::wvec2 plane_point = get_planar_point_on_geometry(
-          light.normal_vec, v,
-          world_geometry(-light.get_offset(), light.get_offset()));
+  geometry_set stack;
 
-      bool first = true;
-      y::world min_dist_sq = 0;
-      for (const world_geometry& g : stack) {
-        y::wvec2 point = get_planar_point_on_geometry(light.normal_vec, v, g);
-        y::world dist_sq = (point - plane_point).length_squared();
+  // Calculates closest point and geometry.
+  auto get_closest = [&](
+      world_geometry& closest_geometry_output, const y::wvec2& v)
+  {
+    const world_geometry* closest_geometry = y::null;
+    y::wvec2 closest_point;
+    // Point on light plane for comparison.
+    const y::wvec2 plane_point = get_planar_point_on_geometry(
+        light.normal_vec, v,
+        world_geometry(-light.get_offset(), light.get_offset()));
 
-        if (first || dist_sq < min_dist_sq) {
-          min_dist_sq = dist_sq;
-          closest_geometry = &g;
-          closest_point = point;
-        }
-        first = false;
+    bool first = true;
+    y::world min_dist_sq = 0;
+    for (const world_geometry& g : stack) {
+      y::wvec2 point = get_planar_point_on_geometry(light.normal_vec, v, g);
+      y::world dist_sq = (point - plane_point).length_squared();
+
+      if (first || dist_sq < min_dist_sq) {
+        min_dist_sq = dist_sq;
+        closest_geometry = &g;
+        closest_point = point;
       }
-
-      // If the stack is empty (or all points were on the wrong side), use the
-      // max-range plane.
-      if (first) {
-        closest_geometry_output.end =
-            light.normal_vec * light.get_max_range() - light.get_offset();
-        closest_geometry_output.start =
-            light.normal_vec * light.get_max_range() + light.get_offset();
-
-        return get_planar_point_on_geometry(
-            light.normal_vec, v, closest_geometry_output);
-      }
-
-      closest_geometry_output = *closest_geometry;
-      return closest_point;
+      first = false;
     }
+
+    // If the stack is empty (or all points were on the wrong side), use the
+    // max-range plane.
+    if (first) {
+      closest_geometry_output.end =
+          light.normal_vec * light.get_max_range() - light.get_offset();
+      closest_geometry_output.start =
+          light.normal_vec * light.get_max_range() + light.get_offset();
+
+      return get_planar_point_on_geometry(
+          light.normal_vec, v, closest_geometry_output);
+    }
+
+    closest_geometry_output = *closest_geometry;
+    return closest_point;
   };
 
   // The strategy is very similar to angular tracing, but in coordinates with
@@ -926,7 +921,6 @@ void Lighting::trace_planar_light_geometry(
 
   // Initialise the stack with geometry that intersects the line from the first
   // vertex towards the light angle (but doesn't start exactly on it).
-  geometry_set stack;
   const y::wvec2& first_vec = vertex_buffer[0];
   for (const world_geometry& g : geometry_buffer) {
     // Lines crossing in the opposite direction have already been excluded.
@@ -939,7 +933,7 @@ void Lighting::trace_planar_light_geometry(
   // Algorithm: same as the angular case, but sweeping along a plane. See above
   // for details.
   world_geometry prev_closest_geometry;
-  local::get_closest(prev_closest_geometry, light, first_vec, stack);
+  get_closest(prev_closest_geometry, first_vec);
   bool add_first = stack.empty();
 
   for (y::size i = 0; i < vertex_buffer.size(); ++i) {
@@ -967,8 +961,7 @@ void Lighting::trace_planar_light_geometry(
     }
 
     world_geometry new_closest_geometry;
-    y::wvec2 new_closest_point =
-        local::get_closest(new_closest_geometry, light, v, stack);
+    y::wvec2 new_closest_point = get_closest(new_closest_geometry, v);
 
     bool add_last = i == vertex_buffer.size() - 1 && stack.empty();
     if (new_closest_geometry == prev_closest_geometry &&

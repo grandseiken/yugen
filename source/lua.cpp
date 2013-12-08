@@ -457,22 +457,22 @@ Script::Script(GameStage& stage,
   y_register(_state);
 
   // Chunk reader function.
-  struct local {
+  struct read_data {
     const y::string& data;
     bool has_read;
+  };
 
-    static const char* read(lua_State* state, void* data, y::size* size)
-    {
-      (void)state;
-      local* data_struct = reinterpret_cast<local*>(data);
-      if (data_struct->has_read) {
-        *size = 0;
-        return y::null;
-      }
-      data_struct->has_read = true;
-      *size = data_struct->data.length();
-      return data_struct->data.c_str();
+  auto read = [&](lua_State* state, void* data, y::size* size)
+  {
+    (void)state;
+    read_data* data_struct = reinterpret_cast<read_data*>(data);
+    if (data_struct->has_read) {
+      *size = 0;
+      return (const char*)y::null;
     }
+    data_struct->has_read = true;
+    *size = data_struct->data.length();
+    return data_struct->data.c_str();
   };
 
   // Use traceback error handler (stored in stack at position 1 always).
@@ -490,8 +490,8 @@ Script::Script(GameStage& stage,
   push_all(_state, this);
   lua_setglobal(_state, "self");
 
-  local data_struct{contents, false};
-  if (lua_load(_state, local::read, &data_struct, _path.c_str()) ||
+  read_data data_struct{contents, false};
+  if (lua_load(_state, read, &data_struct, _path.c_str()) ||
       lua_pcall(_state, 0, 0, 1)) {
     const char* error = lua_tostring(_state, -1);
     logg_err("Loading script ", _path, " failed");

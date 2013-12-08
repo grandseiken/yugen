@@ -181,52 +181,46 @@ namespace {
 
     // If any root t satisfies 0 <= t <= 1 then it is a block of the circle by
     // the line, so find the angle and limit.
-    struct local {
-      static y::world limit(y::world t, y::world rotation,
-                            y::world initial_angle,
-                            const y::wvec2& g_start, const y::wvec2& g_vec,
-                            const y::wvec2& origin)
-      {
-        static const y::world tolerance = 1.0 / 1024;
-        // Impact outside the line segment.
-        if (t < 0 || t > 1) {
-          return y::abs(rotation);
-        }
-        y::wvec2 impact_rel = g_start + t * g_vec - origin;
-        // Skip if the collision is opposite the direction the line is defined
-        // in. This is done by forming a line from the origin in the direction
-        // of the collision line's normal, and checking which side of it the
-        // impact point is on. Similarly, this may now be duplicated logic as we
-        // have get_vertices_and_geometries_for_rotate.
-        y::world signed_distance = g_vec.dot(impact_rel);
-        if ((rotation > 0) != (signed_distance > 0)) {
-          return y::abs(rotation);
-        }
-
-        y::world limiting_angle = impact_rel.angle();
-        // Finds the (absolute) limiting rotation in the direction of rotation
-        // (so it needs to be made negative again if the rotation is negative).
-        y::world limiting_rotation =
-            (rotation > 0 ? limiting_angle - initial_angle :
-                            initial_angle - limiting_angle) +
-            ((rotation > 0) != (limiting_angle > initial_angle) ? 2 * y::pi :
-                                                                  0);
-        // Because of trigonometric inaccuracies and the fact that if we are a
-        // tiny bit out in the wrong direction the rotation will not be blocked
-        // at all, it's best to have a small amount of tolerance. The tolerance
-        // must depend on the distance from the center of rotation, as the
-        // distances get bigger.
-        if (2 * y::pi - limiting_rotation < tolerance / impact_rel.length()) {
-          return limiting_rotation - 2 * y::pi;
-        }
-        return limiting_rotation;
-      }
-    };
     y::wvec2 g_vec = g.end - g.start;
     y::world initial_angle = (vertex - origin).angle();
-    y::world limiting_rotation = y::min(
-        local::limit(t_0, rotation, initial_angle, g.start, g_vec, origin),
-        local::limit(t_1, rotation, initial_angle, g.start, g_vec, origin));
+    auto limit = [&](y::world t)
+    {
+      static const y::world tolerance = 1.0 / 1024;
+      // Impact outside the line segment.
+      if (t < 0 || t > 1) {
+        return y::abs(rotation);
+      }
+      y::wvec2 impact_rel = g.start + t * g_vec - origin;
+      // Skip if the collision is opposite the direction the line is defined
+      // in. This is done by forming a line from the origin in the direction
+      // of the collision line's normal, and checking which side of it the
+      // impact point is on. Similarly, this may now be duplicated logic as we
+      // have get_vertices_and_geometries_for_rotate.
+      y::world signed_distance = g_vec.dot(impact_rel);
+      if ((rotation > 0) != (signed_distance > 0)) {
+        return y::abs(rotation);
+      }
+
+      y::world limiting_angle = impact_rel.angle();
+      // Finds the (absolute) limiting rotation in the direction of rotation
+      // (so it needs to be made negative again if the rotation is negative).
+      y::world limiting_rotation =
+          (rotation > 0 ? limiting_angle - initial_angle :
+                          initial_angle - limiting_angle) +
+          ((rotation > 0) != (limiting_angle > initial_angle) ? 2 * y::pi :
+                                                                0);
+      // Because of trigonometric inaccuracies and the fact that if we are a
+      // tiny bit out in the wrong direction the rotation will not be blocked
+      // at all, it's best to have a small amount of tolerance. The tolerance
+      // must depend on the distance from the center of rotation, as the
+      // distances get bigger.
+      if (2 * y::pi - limiting_rotation < tolerance / impact_rel.length()) {
+        return limiting_rotation - 2 * y::pi;
+      }
+      return limiting_rotation;
+    };
+
+    y::world limiting_rotation = y::min(limit(t_0), limit(t_1));
     return limiting_rotation;
   }
 
@@ -1085,19 +1079,15 @@ y::world Collision::collider_rotate_raw(
   // when a thing touching a surface at a point will rotate. Seems like
   // it always will for the first half of the rotation, but won't for the
   // second half (for the player, at least).
-  struct local {
-    static y::wvec2 origin_displace(const y::wvec2& origin_offset,
-                                    y::world rotation)
-    {
-      return origin_offset - origin_offset.rotate(rotation);
-    }
+  auto origin_displace = [&](y::world rotation)
+  {
+    return origin_offset - origin_offset.rotate(rotation);
   };
 
   const entry_list& bodies = _data.get_list(source);
   if (bodies.empty() || rotate == 0.) {
     source.set_rotation(y::angle(rotate + source.get_rotation()));
-    source.set_origin(source.get_origin() +
-                      local::origin_displace(origin_offset, rotate));
+    source.set_origin(source.get_origin() + origin_displace(rotate));
     return rotate;
   }
   y::wvec2 origin = source.get_origin() + origin_offset;
@@ -1200,11 +1190,8 @@ y::world Collision::collider_rotate_raw(
 
   // Rotate.
   const y::world limited_rotation = limiting_rotation * (rotate > 0 ? 1 : -1);
-  source.set_rotation(
-      y::angle(limited_rotation + source.get_rotation()));
-  source.set_origin(
-      source.get_origin() +
-      local::origin_displace(origin_offset, limited_rotation));
+  source.set_rotation(y::angle(limited_rotation + source.get_rotation()));
+  source.set_origin(source.get_origin() + origin_displace(limited_rotation));
   return limited_rotation;
 }
 
@@ -1306,20 +1293,16 @@ y::world Collision::collider_move_constrained(
 
   // Reverses an entire move chain. Since pushes come out in reverse order,
   // doing this forwards is really the correct way.
-  struct local {
-    static void reverse_move(
-        const Collision& collision,
-        Script& source, const y::wvec2& amount,
-        const y::vector<Script*>& scripts,
-        const y::vector<y::wvec2>& amounts,
-        const y::set<Script*> & excluded_set)
-    {
-      Body* ignore;
-      collision.collider_move_raw(ignore, source, -amount, excluded_set);
-      for (y::size i = 0; i < scripts.size(); ++i) {
-        collision.collider_move_raw(ignore, *scripts[i],
-                                    -amounts[i], excluded_set);
-      }
+  auto reverse_move = [&](
+      Script& source, const y::wvec2& amount,
+      const y::vector<Script*>& scripts,
+      const y::vector<y::wvec2>& amounts)
+  {
+    Body* ignore;
+    collider_move_raw(ignore, source, -amount, excluded_set);
+    for (y::size i = 0; i < scripts.size(); ++i) {
+      collider_move_raw(ignore, *scripts[i],
+                        -amounts[i], excluded_set);
     }
   };
 
@@ -1345,9 +1328,8 @@ y::world Collision::collider_move_constrained(
   // If any were blocked, reverse everything and move again.
   if (limited_move < 1.) {
     for (y::int32 i = scripts.size() - 1; i >= 0; i--) {
-      local::reverse_move(*this, *scripts[i], moves[i],
-                          push_scripts[i], push_amounts[i],
-                          excluded_set);
+      reverse_move(*scripts[i], moves[i],
+                   push_scripts[i], push_amounts[i]);
     }
     push_scripts.clear();
     push_amounts.clear();

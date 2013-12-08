@@ -426,7 +426,7 @@ void Environment::render_physics(RenderUtil& util, RenderBatch& batch) const
   gl.enable_blend(true);
 
   y::size i = 0;
-  auto lambda = [&](  
+  auto render = [&](  
       const Sprite* sprite, const y::ivec2& frame_size, const y::ivec2& frame,
       const y::wvec2& pos, y::world depth, y::world size,
       const y::fvec4& colour)
@@ -459,13 +459,13 @@ void Environment::render_physics(RenderUtil& util, RenderBatch& batch) const
   };
 
   for (const Particle& p : _particles) {
-    lambda(p.sprite, p.frame_size, p.frame,
+    render(p.sprite, p.frame_size, p.frame,
            p.pos.v, p.depth, p.size.v, p.colour.v);
   }
 
   for (const Rope& rope : _ropes) {
     for (const auto& mass : rope.get_masses()) {
-      lambda(rope._sprite, rope._frame_size, rope._frame,
+      render(rope._sprite, rope._frame_size, rope._frame,
              mass.v, rope._depth, rope._size, rope._colour);
     }
   }
@@ -498,7 +498,7 @@ void Environment::render_physics_normal(RenderUtil& util,
   gl.enable_blend(false);
 
   y::size i = 0;
-  auto lambda = [&](
+  auto render = [&](
       const Sprite* sprite, const y::ivec2& frame_size, const y::ivec2& frame,
       const y::wvec2& pos, y::world depth, y::world layering_value,
       y::world size)
@@ -528,13 +528,13 @@ void Environment::render_physics_normal(RenderUtil& util,
   };
 
   for (const Particle& p : _particles) {
-    lambda(p.sprite, p.frame_size, p.frame,
+    render(p.sprite, p.frame_size, p.frame,
            p.pos.v, p.depth, p.layering_value, p.size.v);
   }
 
   for (const Rope& rope : _ropes) {
     for (const auto& mass : rope.get_masses()) {
-      lambda(rope._sprite, rope._frame_size, rope._frame,
+      render(rope._sprite, rope._frame_size, rope._frame,
              mass.v, rope._depth, rope._layering_value, rope._size);
     }
   }

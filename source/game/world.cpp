@@ -1,5 +1,6 @@
 #include "world.h"
 
+#include "../common/function.h"
 #include "../data/tileset.h"
 #include <boost/functional/hash.hpp>
 
@@ -90,314 +91,312 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
   };
 
   // Lots of impenetrable case statements.
-  struct local {
-    static bool is_tile_blocked(const CellBlueprint& cell,
-                                const y::ivec2& v, Edge edge)
-    {
-      if (!(v >= y::ivec2() && v < Cell::cell_size)) {
-        return true;
-      }
-      y::int32 c = cell.get_tile(collision_layer, v).get_collision();
-
-      switch (edge) {
-        case EDGE_UP:
-          return
-              c == Tileset::COLLIDE_FULL ||
-              c == Tileset::COLLIDE_HALF_U ||
-              c == Tileset::COLLIDE_SLOPE1_DL ||
-              c == Tileset::COLLIDE_SLOPE1_DR ||
-              c == Tileset::COLLIDE_SLOPE2_DL_B ||
-              c == Tileset::COLLIDE_SLOPE2_DR_B ||
-              c == Tileset::COLLIDE_SLOPEH_DL_A ||
-              c == Tileset::COLLIDE_SLOPEH_DL_B ||
-              c == Tileset::COLLIDE_SLOPEH_DR_A ||
-              c == Tileset::COLLIDE_SLOPEH_DR_B;
-        case EDGE_DOWN:
-          return
-              c == Tileset::COLLIDE_FULL ||
-              c == Tileset::COLLIDE_HALF_D ||
-              c == Tileset::COLLIDE_SLOPE1_UL ||
-              c == Tileset::COLLIDE_SLOPE1_UR ||
-              c == Tileset::COLLIDE_SLOPE2_UL_B ||
-              c == Tileset::COLLIDE_SLOPE2_UR_B ||
-              c == Tileset::COLLIDE_SLOPEH_UL_A ||
-              c == Tileset::COLLIDE_SLOPEH_UL_B ||
-              c == Tileset::COLLIDE_SLOPEH_UR_A ||
-              c == Tileset::COLLIDE_SLOPEH_UR_B;
-        case EDGE_LEFT:
-          return
-              c == Tileset::COLLIDE_FULL ||
-              c == Tileset::COLLIDE_HALF_L ||
-              c == Tileset::COLLIDE_SLOPE1_UL ||
-              c == Tileset::COLLIDE_SLOPE1_DL ||
-              c == Tileset::COLLIDE_SLOPE2_UL_A ||
-              c == Tileset::COLLIDE_SLOPE2_UL_B ||
-              c == Tileset::COLLIDE_SLOPE2_DL_A ||
-              c == Tileset::COLLIDE_SLOPE2_DL_B ||
-              c == Tileset::COLLIDE_SLOPEH_UL_B ||
-              c == Tileset::COLLIDE_SLOPEH_DL_B;
-        case EDGE_RIGHT:
-          return
-              c == Tileset::COLLIDE_FULL ||
-              c == Tileset::COLLIDE_HALF_R ||
-              c == Tileset::COLLIDE_SLOPE1_UR ||
-              c == Tileset::COLLIDE_SLOPE1_DR ||
-              c == Tileset::COLLIDE_SLOPE2_UR_A ||
-              c == Tileset::COLLIDE_SLOPE2_UR_B ||
-              c == Tileset::COLLIDE_SLOPE2_DR_A ||
-              c == Tileset::COLLIDE_SLOPE2_DR_B ||
-              c == Tileset::COLLIDE_SLOPEH_UR_B ||
-              c == Tileset::COLLIDE_SLOPEH_DR_B;
-        case HALF_EDGE_UP_LEFT:
-          return
-              is_tile_blocked(cell, v, EDGE_LEFT) ||
-              c == Tileset::COLLIDE_HALF_U ||
-              c == Tileset::COLLIDE_SLOPEH_DL_A ||
-              c == Tileset::COLLIDE_SLOPEH_DR_B;
-        case HALF_EDGE_UP_RIGHT:
-          return
-              is_tile_blocked(cell, v, EDGE_RIGHT) ||
-              c == Tileset::COLLIDE_HALF_U ||
-              c == Tileset::COLLIDE_SLOPEH_DL_B ||
-              c == Tileset::COLLIDE_SLOPEH_DR_A;
-        case HALF_EDGE_DOWN_LEFT:
-          return
-              is_tile_blocked(cell, v, EDGE_LEFT) ||
-              c == Tileset::COLLIDE_HALF_D ||
-              c == Tileset::COLLIDE_SLOPEH_UL_A ||
-              c == Tileset::COLLIDE_SLOPEH_UR_B;
-        case HALF_EDGE_DOWN_RIGHT:
-          return
-              is_tile_blocked(cell, v, EDGE_RIGHT) ||
-              c == Tileset::COLLIDE_HALF_D ||
-              c == Tileset::COLLIDE_SLOPEH_UL_B ||
-              c == Tileset::COLLIDE_SLOPEH_UR_A;
-        case HALF_EDGE_LEFT_UP:
-          return
-              is_tile_blocked(cell, v, EDGE_UP) ||
-              c == Tileset::COLLIDE_HALF_L ||
-              c == Tileset::COLLIDE_SLOPE2_DL_A ||
-              c == Tileset::COLLIDE_SLOPE2_UL_B;
-        case HALF_EDGE_LEFT_DOWN:
-          return
-              is_tile_blocked(cell, v, EDGE_DOWN) ||
-              c == Tileset::COLLIDE_HALF_L ||
-              c == Tileset::COLLIDE_SLOPE2_DL_B ||
-              c == Tileset::COLLIDE_SLOPE2_UL_A;
-        case HALF_EDGE_RIGHT_UP:
-          return
-              is_tile_blocked(cell, v, EDGE_UP) ||
-              c == Tileset::COLLIDE_HALF_R ||
-              c == Tileset::COLLIDE_SLOPE2_DR_A ||
-              c == Tileset::COLLIDE_SLOPE2_UR_B;
-        case HALF_EDGE_RIGHT_DOWN:
-          return
-              is_tile_blocked(cell, v, EDGE_DOWN) ||
-              c == Tileset::COLLIDE_HALF_R ||
-              c == Tileset::COLLIDE_SLOPE2_DR_B ||
-              c == Tileset::COLLIDE_SLOPE2_UR_A;
-        default:
-          return false;
-      };
+  y::function<bool(const y::ivec2&, Edge)> is_tile_blocked =
+      [&](const y::ivec2& v, Edge edge)
+  {
+    if (!(v >= y::ivec2() && v < Cell::cell_size)) {
+      return true;
     }
+    y::int32 c = cell.get_tile(collision_layer, v).get_collision();
 
-    // Defines a consistent traversal direction for the edges of irregular
-    // tiles.
-    static y::ivec2 consistent_traversal(y::int32 collision, bool positive)
-    {
-      switch (collision) {
-        case Tileset::COLLIDE_HALF_U:
-        case Tileset::COLLIDE_HALF_D:
-          return positive ? y::ivec2{1, 0} : y::ivec2{-1, 0};
-
-        case Tileset::COLLIDE_HALF_L:
-        case Tileset::COLLIDE_HALF_R:
-          return positive ? y::ivec2{0, 1} : y::ivec2{0, -1};
-
-        case Tileset::COLLIDE_SLOPE1_UL:
-        case Tileset::COLLIDE_SLOPE1_DR:
-          return positive ? y::ivec2{1, 1} : y::ivec2{-1, -1};
-
-        case Tileset::COLLIDE_SLOPE1_UR:
-        case Tileset::COLLIDE_SLOPE1_DL:
-          return positive ? y::ivec2{1, -1} : y::ivec2{-1, 1};
-
-        case Tileset::COLLIDE_SLOPEH_UL_A:
-        case Tileset::COLLIDE_SLOPEH_DR_B:
-          return positive ? y::ivec2{1, 1} : y::ivec2{-1, 0};
-        case Tileset::COLLIDE_SLOPEH_UL_B:
-        case Tileset::COLLIDE_SLOPEH_DR_A:
-          return positive ? y::ivec2{1, 0} : y::ivec2{-1, -1};
-
-        case Tileset::COLLIDE_SLOPEH_UR_A:
-        case Tileset::COLLIDE_SLOPEH_DL_B:
-          return positive ? y::ivec2{1, 0} : y::ivec2{-1, 1};
-        case Tileset::COLLIDE_SLOPEH_UR_B:
-        case Tileset::COLLIDE_SLOPEH_DL_A:
-          return positive ? y::ivec2{1, -1} : y::ivec2{-1, 0};
-
-        case Tileset::COLLIDE_SLOPE2_UL_A:
-        case Tileset::COLLIDE_SLOPE2_DR_B:
-          return positive ? y::ivec2{0, 1} : y::ivec2{-1, -1};
-        case Tileset::COLLIDE_SLOPE2_UL_B:
-        case Tileset::COLLIDE_SLOPE2_DR_A:
-          return positive ? y::ivec2{1, 1} : y::ivec2{0, -1};
-
-        case Tileset::COLLIDE_SLOPE2_UR_A:
-        case Tileset::COLLIDE_SLOPE2_DL_B:
-          return positive ? y::ivec2{0, 1} : y::ivec2{1, -1};
-        case Tileset::COLLIDE_SLOPE2_DL_A:
-        case Tileset::COLLIDE_SLOPE2_UR_B:
-          return positive ? y::ivec2{-1, 1} : y::ivec2{0, -1};
-
-        default:
-          return y::ivec2();
-      }
+    switch (edge) {
+      case EDGE_UP:
+        return
+            c == Tileset::COLLIDE_FULL ||
+            c == Tileset::COLLIDE_HALF_U ||
+            c == Tileset::COLLIDE_SLOPE1_DL ||
+            c == Tileset::COLLIDE_SLOPE1_DR ||
+            c == Tileset::COLLIDE_SLOPE2_DL_B ||
+            c == Tileset::COLLIDE_SLOPE2_DR_B ||
+            c == Tileset::COLLIDE_SLOPEH_DL_A ||
+            c == Tileset::COLLIDE_SLOPEH_DL_B ||
+            c == Tileset::COLLIDE_SLOPEH_DR_A ||
+            c == Tileset::COLLIDE_SLOPEH_DR_B;
+      case EDGE_DOWN:
+        return
+            c == Tileset::COLLIDE_FULL ||
+            c == Tileset::COLLIDE_HALF_D ||
+            c == Tileset::COLLIDE_SLOPE1_UL ||
+            c == Tileset::COLLIDE_SLOPE1_UR ||
+            c == Tileset::COLLIDE_SLOPE2_UL_B ||
+            c == Tileset::COLLIDE_SLOPE2_UR_B ||
+            c == Tileset::COLLIDE_SLOPEH_UL_A ||
+            c == Tileset::COLLIDE_SLOPEH_UL_B ||
+            c == Tileset::COLLIDE_SLOPEH_UR_A ||
+            c == Tileset::COLLIDE_SLOPEH_UR_B;
+      case EDGE_LEFT:
+        return
+            c == Tileset::COLLIDE_FULL ||
+            c == Tileset::COLLIDE_HALF_L ||
+            c == Tileset::COLLIDE_SLOPE1_UL ||
+            c == Tileset::COLLIDE_SLOPE1_DL ||
+            c == Tileset::COLLIDE_SLOPE2_UL_A ||
+            c == Tileset::COLLIDE_SLOPE2_UL_B ||
+            c == Tileset::COLLIDE_SLOPE2_DL_A ||
+            c == Tileset::COLLIDE_SLOPE2_DL_B ||
+            c == Tileset::COLLIDE_SLOPEH_UL_B ||
+            c == Tileset::COLLIDE_SLOPEH_DL_B;
+      case EDGE_RIGHT:
+        return
+            c == Tileset::COLLIDE_FULL ||
+            c == Tileset::COLLIDE_HALF_R ||
+            c == Tileset::COLLIDE_SLOPE1_UR ||
+            c == Tileset::COLLIDE_SLOPE1_DR ||
+            c == Tileset::COLLIDE_SLOPE2_UR_A ||
+            c == Tileset::COLLIDE_SLOPE2_UR_B ||
+            c == Tileset::COLLIDE_SLOPE2_DR_A ||
+            c == Tileset::COLLIDE_SLOPE2_DR_B ||
+            c == Tileset::COLLIDE_SLOPEH_UR_B ||
+            c == Tileset::COLLIDE_SLOPEH_DR_B;
+      case HALF_EDGE_UP_LEFT:
+        return
+            is_tile_blocked(v, EDGE_LEFT) ||
+            c == Tileset::COLLIDE_HALF_U ||
+            c == Tileset::COLLIDE_SLOPEH_DL_A ||
+            c == Tileset::COLLIDE_SLOPEH_DR_B;
+      case HALF_EDGE_UP_RIGHT:
+        return
+            is_tile_blocked(v, EDGE_RIGHT) ||
+            c == Tileset::COLLIDE_HALF_U ||
+            c == Tileset::COLLIDE_SLOPEH_DL_B ||
+            c == Tileset::COLLIDE_SLOPEH_DR_A;
+      case HALF_EDGE_DOWN_LEFT:
+        return
+            is_tile_blocked(v, EDGE_LEFT) ||
+            c == Tileset::COLLIDE_HALF_D ||
+            c == Tileset::COLLIDE_SLOPEH_UL_A ||
+            c == Tileset::COLLIDE_SLOPEH_UR_B;
+      case HALF_EDGE_DOWN_RIGHT:
+        return
+            is_tile_blocked(v, EDGE_RIGHT) ||
+            c == Tileset::COLLIDE_HALF_D ||
+            c == Tileset::COLLIDE_SLOPEH_UL_B ||
+            c == Tileset::COLLIDE_SLOPEH_UR_A;
+      case HALF_EDGE_LEFT_UP:
+        return
+            is_tile_blocked(v, EDGE_UP) ||
+            c == Tileset::COLLIDE_HALF_L ||
+            c == Tileset::COLLIDE_SLOPE2_DL_A ||
+            c == Tileset::COLLIDE_SLOPE2_UL_B;
+      case HALF_EDGE_LEFT_DOWN:
+        return
+            is_tile_blocked(v, EDGE_DOWN) ||
+            c == Tileset::COLLIDE_HALF_L ||
+            c == Tileset::COLLIDE_SLOPE2_DL_B ||
+            c == Tileset::COLLIDE_SLOPE2_UL_A;
+      case HALF_EDGE_RIGHT_UP:
+        return
+            is_tile_blocked(v, EDGE_UP) ||
+            c == Tileset::COLLIDE_HALF_R ||
+            c == Tileset::COLLIDE_SLOPE2_DR_A ||
+            c == Tileset::COLLIDE_SLOPE2_UR_B;
+      case HALF_EDGE_RIGHT_DOWN:
+        return
+            is_tile_blocked(v, EDGE_DOWN) ||
+            c == Tileset::COLLIDE_HALF_R ||
+            c == Tileset::COLLIDE_SLOPE2_DR_B ||
+            c == Tileset::COLLIDE_SLOPE2_UR_A;
+      default:
+        return false;
     }
+  };
 
-    // Given irregular tile, returns the next irregular tile we expect to see
-    // in the consistent traversal direction if we are to form a line.
-    static y::int32 expected_traversal(y::int32 collision)
-    {
-      switch (collision) {
-        case Tileset::COLLIDE_SLOPE2_UL_A:
-          return Tileset::COLLIDE_SLOPE2_UL_B;
-        case Tileset::COLLIDE_SLOPE2_UL_B:
-          return Tileset::COLLIDE_SLOPE2_UL_A;
-        case Tileset::COLLIDE_SLOPE2_UR_A:
-          return Tileset::COLLIDE_SLOPE2_UR_B;
-        case Tileset::COLLIDE_SLOPE2_UR_B:
-          return Tileset::COLLIDE_SLOPE2_UR_A;
-        case Tileset::COLLIDE_SLOPE2_DL_A:
-          return Tileset::COLLIDE_SLOPE2_DL_B;
-        case Tileset::COLLIDE_SLOPE2_DL_B:
-          return Tileset::COLLIDE_SLOPE2_DL_A;
-        case Tileset::COLLIDE_SLOPE2_DR_A:
-          return Tileset::COLLIDE_SLOPE2_DR_B;
-        case Tileset::COLLIDE_SLOPE2_DR_B:
-          return Tileset::COLLIDE_SLOPE2_DR_A;
-        case Tileset::COLLIDE_SLOPEH_UL_A:
-          return Tileset::COLLIDE_SLOPEH_UL_B;
-        case Tileset::COLLIDE_SLOPEH_UL_B:
-          return Tileset::COLLIDE_SLOPEH_UL_A;
-        case Tileset::COLLIDE_SLOPEH_UR_A:
-          return Tileset::COLLIDE_SLOPEH_UR_B;
-        case Tileset::COLLIDE_SLOPEH_UR_B:
-          return Tileset::COLLIDE_SLOPEH_UR_A;
-        case Tileset::COLLIDE_SLOPEH_DL_A:
-          return Tileset::COLLIDE_SLOPEH_DL_B;
-        case Tileset::COLLIDE_SLOPEH_DL_B:
-          return Tileset::COLLIDE_SLOPEH_DL_A;
-        case Tileset::COLLIDE_SLOPEH_DR_A:
-          return Tileset::COLLIDE_SLOPEH_DR_B;
-        case Tileset::COLLIDE_SLOPEH_DR_B:
-          return Tileset::COLLIDE_SLOPEH_DR_A;
-        default:
-          return collision;
-      }
+  // Defines a consistent traversal direction for the edges of irregular
+  // tiles.
+  auto consistent_traversal = [&](y::int32 collision, bool positive)
+  {
+    switch (collision) {
+      case Tileset::COLLIDE_HALF_U:
+      case Tileset::COLLIDE_HALF_D:
+        return positive ? y::ivec2{1, 0} : y::ivec2{-1, 0};
+
+      case Tileset::COLLIDE_HALF_L:
+      case Tileset::COLLIDE_HALF_R:
+        return positive ? y::ivec2{0, 1} : y::ivec2{0, -1};
+
+      case Tileset::COLLIDE_SLOPE1_UL:
+      case Tileset::COLLIDE_SLOPE1_DR:
+        return positive ? y::ivec2{1, 1} : y::ivec2{-1, -1};
+
+      case Tileset::COLLIDE_SLOPE1_UR:
+      case Tileset::COLLIDE_SLOPE1_DL:
+        return positive ? y::ivec2{1, -1} : y::ivec2{-1, 1};
+
+      case Tileset::COLLIDE_SLOPEH_UL_A:
+      case Tileset::COLLIDE_SLOPEH_DR_B:
+        return positive ? y::ivec2{1, 1} : y::ivec2{-1, 0};
+      case Tileset::COLLIDE_SLOPEH_UL_B:
+      case Tileset::COLLIDE_SLOPEH_DR_A:
+        return positive ? y::ivec2{1, 0} : y::ivec2{-1, -1};
+
+      case Tileset::COLLIDE_SLOPEH_UR_A:
+      case Tileset::COLLIDE_SLOPEH_DL_B:
+        return positive ? y::ivec2{1, 0} : y::ivec2{-1, 1};
+      case Tileset::COLLIDE_SLOPEH_UR_B:
+      case Tileset::COLLIDE_SLOPEH_DL_A:
+        return positive ? y::ivec2{1, -1} : y::ivec2{-1, 0};
+
+      case Tileset::COLLIDE_SLOPE2_UL_A:
+      case Tileset::COLLIDE_SLOPE2_DR_B:
+        return positive ? y::ivec2{0, 1} : y::ivec2{-1, -1};
+      case Tileset::COLLIDE_SLOPE2_UL_B:
+      case Tileset::COLLIDE_SLOPE2_DR_A:
+        return positive ? y::ivec2{1, 1} : y::ivec2{0, -1};
+
+      case Tileset::COLLIDE_SLOPE2_UR_A:
+      case Tileset::COLLIDE_SLOPE2_DL_B:
+        return positive ? y::ivec2{0, 1} : y::ivec2{1, -1};
+      case Tileset::COLLIDE_SLOPE2_DL_A:
+      case Tileset::COLLIDE_SLOPE2_UR_B:
+        return positive ? y::ivec2{-1, 1} : y::ivec2{0, -1};
+
+      default:
+        return y::ivec2();
     }
+  };
 
-    static void add_traversal_edge(
-        geometry_list& list, y::ivec2 min, y::ivec2 max,
-        y::int32 min_c, y::int32 max_c)
-    {
-      min *= Tileset::tile_size;
-      max *= Tileset::tile_size;
+  // Given irregular tile, returns the next irregular tile we expect to see
+  // in the consistent traversal direction if we are to form a line.
+  auto expected_traversal = [&](y::int32 collision)
+  {
+    switch (collision) {
+      case Tileset::COLLIDE_SLOPE2_UL_A:
+        return Tileset::COLLIDE_SLOPE2_UL_B;
+      case Tileset::COLLIDE_SLOPE2_UL_B:
+        return Tileset::COLLIDE_SLOPE2_UL_A;
+      case Tileset::COLLIDE_SLOPE2_UR_A:
+        return Tileset::COLLIDE_SLOPE2_UR_B;
+      case Tileset::COLLIDE_SLOPE2_UR_B:
+        return Tileset::COLLIDE_SLOPE2_UR_A;
+      case Tileset::COLLIDE_SLOPE2_DL_A:
+        return Tileset::COLLIDE_SLOPE2_DL_B;
+      case Tileset::COLLIDE_SLOPE2_DL_B:
+        return Tileset::COLLIDE_SLOPE2_DL_A;
+      case Tileset::COLLIDE_SLOPE2_DR_A:
+        return Tileset::COLLIDE_SLOPE2_DR_B;
+      case Tileset::COLLIDE_SLOPE2_DR_B:
+        return Tileset::COLLIDE_SLOPE2_DR_A;
+      case Tileset::COLLIDE_SLOPEH_UL_A:
+        return Tileset::COLLIDE_SLOPEH_UL_B;
+      case Tileset::COLLIDE_SLOPEH_UL_B:
+        return Tileset::COLLIDE_SLOPEH_UL_A;
+      case Tileset::COLLIDE_SLOPEH_UR_A:
+        return Tileset::COLLIDE_SLOPEH_UR_B;
+      case Tileset::COLLIDE_SLOPEH_UR_B:
+        return Tileset::COLLIDE_SLOPEH_UR_A;
+      case Tileset::COLLIDE_SLOPEH_DL_A:
+        return Tileset::COLLIDE_SLOPEH_DL_B;
+      case Tileset::COLLIDE_SLOPEH_DL_B:
+        return Tileset::COLLIDE_SLOPEH_DL_A;
+      case Tileset::COLLIDE_SLOPEH_DR_A:
+        return Tileset::COLLIDE_SLOPEH_DR_B;
+      case Tileset::COLLIDE_SLOPEH_DR_B:
+        return Tileset::COLLIDE_SLOPEH_DR_A;
+      default:
+        return Tileset::Collision(collision);
+    }
+  };
 
-      switch (min_c) {
-        case Tileset::COLLIDE_HALF_U:
-          list.emplace_back(max + Tileset::r, min + Tileset::l);
-          break;
-        case Tileset::COLLIDE_HALF_D:
-          list.emplace_back(min + Tileset::l, max + Tileset::r);
-          break;
-        case Tileset::COLLIDE_HALF_L:
-          list.emplace_back(min + Tileset::u, max + Tileset::d);
-          break;
-        case Tileset::COLLIDE_HALF_R:
-          list.emplace_back(max + Tileset::d, min + Tileset::u);
-          break;
+  auto add_traversal_edge = [&](
+      geometry_list& list, y::ivec2 min, y::ivec2 max,
+      y::int32 min_c, y::int32 max_c)
+  {
+    min *= Tileset::tile_size;
+    max *= Tileset::tile_size;
 
-        case Tileset::COLLIDE_SLOPE1_UL:
-          list.emplace_back(min + Tileset::ul, max + Tileset::dr);
-          break;
-        case Tileset::COLLIDE_SLOPE1_UR:
-          list.emplace_back(min + Tileset::dl, max + Tileset::ur);
-          break;
-        case Tileset::COLLIDE_SLOPE1_DL:
-          list.emplace_back(max + Tileset::ur, min + Tileset::dl);
-          break;
-        case Tileset::COLLIDE_SLOPE1_DR:
-          list.emplace_back(max + Tileset::dr, min + Tileset::ul);
-          break;
+    switch (min_c) {
+      case Tileset::COLLIDE_HALF_U:
+        list.emplace_back(max + Tileset::r, min + Tileset::l);
+        break;
+      case Tileset::COLLIDE_HALF_D:
+        list.emplace_back(min + Tileset::l, max + Tileset::r);
+        break;
+      case Tileset::COLLIDE_HALF_L:
+        list.emplace_back(min + Tileset::u, max + Tileset::d);
+        break;
+      case Tileset::COLLIDE_HALF_R:
+        list.emplace_back(max + Tileset::d, min + Tileset::u);
+        break;
 
-        case Tileset::COLLIDE_SLOPEH_UL_A:
-        case Tileset::COLLIDE_SLOPEH_UL_B:
-          list.emplace_back(
-              min + (min_c == Tileset::COLLIDE_SLOPEH_UL_A ? Tileset::l :
-                                                             Tileset::ul),
-              max + (max_c == Tileset::COLLIDE_SLOPEH_UL_B ? Tileset::r :
-                                                             Tileset::dr));
-          break;
-        case Tileset::COLLIDE_SLOPEH_UR_A:
-        case Tileset::COLLIDE_SLOPEH_UR_B:
-          list.emplace_back(
-              min + (min_c == Tileset::COLLIDE_SLOPEH_UR_B ? Tileset::l :
-                                                             Tileset::dl),
-              max + (max_c == Tileset::COLLIDE_SLOPEH_UR_A ? Tileset::r :
-                                                             Tileset::ur));
-          break;
-        case Tileset::COLLIDE_SLOPEH_DL_A:
-        case Tileset::COLLIDE_SLOPEH_DL_B:
-          list.emplace_back(
-              max + (max_c == Tileset::COLLIDE_SLOPEH_DL_B ? Tileset::r :
-                                                             Tileset::ur),
-              min + (min_c == Tileset::COLLIDE_SLOPEH_DL_A ? Tileset::l :
-                                                             Tileset::dl));
-          break;
-        case Tileset::COLLIDE_SLOPEH_DR_A:
-        case Tileset::COLLIDE_SLOPEH_DR_B:
-          list.emplace_back(
-              max + (max_c == Tileset::COLLIDE_SLOPEH_DR_A ? Tileset::r :
-                                                             Tileset::dr),
-              min + (min_c == Tileset::COLLIDE_SLOPEH_DR_B ? Tileset::l :
-                                                             Tileset::ul));
-          break;
-        case Tileset::COLLIDE_SLOPE2_UL_A:
-        case Tileset::COLLIDE_SLOPE2_UL_B:
-          list.emplace_back(
-              min + (min_c == Tileset::COLLIDE_SLOPE2_UL_B ? Tileset::u :
-                                                             Tileset::ul),
-              max + (max_c == Tileset::COLLIDE_SLOPE2_UL_A ? Tileset::d :
-                                                             Tileset::dr));
-          break;
-        case Tileset::COLLIDE_SLOPE2_UR_A:
-        case Tileset::COLLIDE_SLOPE2_UR_B:
-          list.emplace_back(
-              min + (min_c == Tileset::COLLIDE_SLOPE2_UR_A ? Tileset::d :
-                                                             Tileset::dl),
-              max + (max_c == Tileset::COLLIDE_SLOPE2_UR_B ? Tileset::u :
-                                                             Tileset::ur));
-          break;
-        case Tileset::COLLIDE_SLOPE2_DL_A:
-        case Tileset::COLLIDE_SLOPE2_DL_B:
-          list.emplace_back(
-              min + (min_c == Tileset::COLLIDE_SLOPE2_DL_A ? Tileset::u :
-                                                             Tileset::ur),
-              max + (max_c == Tileset::COLLIDE_SLOPE2_DL_B ? Tileset::d :
-                                                             Tileset::dl));
-          break;
-        case Tileset::COLLIDE_SLOPE2_DR_A:
-        case Tileset::COLLIDE_SLOPE2_DR_B:
-          list.emplace_back(
-              max + (max_c == Tileset::COLLIDE_SLOPE2_DR_B ? Tileset::d :
-                                                             Tileset::dr),
-              min + (min_c == Tileset::COLLIDE_SLOPE2_DR_A ? Tileset::u :
-                                                             Tileset::ul));
-          break;
+      case Tileset::COLLIDE_SLOPE1_UL:
+        list.emplace_back(min + Tileset::ul, max + Tileset::dr);
+        break;
+      case Tileset::COLLIDE_SLOPE1_UR:
+        list.emplace_back(min + Tileset::dl, max + Tileset::ur);
+        break;
+      case Tileset::COLLIDE_SLOPE1_DL:
+        list.emplace_back(max + Tileset::ur, min + Tileset::dl);
+        break;
+      case Tileset::COLLIDE_SLOPE1_DR:
+        list.emplace_back(max + Tileset::dr, min + Tileset::ul);
+        break;
 
-        default: {}
-      }
+      case Tileset::COLLIDE_SLOPEH_UL_A:
+      case Tileset::COLLIDE_SLOPEH_UL_B:
+        list.emplace_back(
+            min + (min_c == Tileset::COLLIDE_SLOPEH_UL_A ? Tileset::l :
+                                                           Tileset::ul),
+            max + (max_c == Tileset::COLLIDE_SLOPEH_UL_B ? Tileset::r :
+                                                           Tileset::dr));
+        break;
+      case Tileset::COLLIDE_SLOPEH_UR_A:
+      case Tileset::COLLIDE_SLOPEH_UR_B:
+        list.emplace_back(
+            min + (min_c == Tileset::COLLIDE_SLOPEH_UR_B ? Tileset::l :
+                                                           Tileset::dl),
+            max + (max_c == Tileset::COLLIDE_SLOPEH_UR_A ? Tileset::r :
+                                                           Tileset::ur));
+        break;
+      case Tileset::COLLIDE_SLOPEH_DL_A:
+      case Tileset::COLLIDE_SLOPEH_DL_B:
+        list.emplace_back(
+            max + (max_c == Tileset::COLLIDE_SLOPEH_DL_B ? Tileset::r :
+                                                           Tileset::ur),
+            min + (min_c == Tileset::COLLIDE_SLOPEH_DL_A ? Tileset::l :
+                                                           Tileset::dl));
+        break;
+      case Tileset::COLLIDE_SLOPEH_DR_A:
+      case Tileset::COLLIDE_SLOPEH_DR_B:
+        list.emplace_back(
+            max + (max_c == Tileset::COLLIDE_SLOPEH_DR_A ? Tileset::r :
+                                                           Tileset::dr),
+            min + (min_c == Tileset::COLLIDE_SLOPEH_DR_B ? Tileset::l :
+                                                           Tileset::ul));
+        break;
+      case Tileset::COLLIDE_SLOPE2_UL_A:
+      case Tileset::COLLIDE_SLOPE2_UL_B:
+        list.emplace_back(
+            min + (min_c == Tileset::COLLIDE_SLOPE2_UL_B ? Tileset::u :
+                                                           Tileset::ul),
+            max + (max_c == Tileset::COLLIDE_SLOPE2_UL_A ? Tileset::d :
+                                                           Tileset::dr));
+        break;
+      case Tileset::COLLIDE_SLOPE2_UR_A:
+      case Tileset::COLLIDE_SLOPE2_UR_B:
+        list.emplace_back(
+            min + (min_c == Tileset::COLLIDE_SLOPE2_UR_A ? Tileset::d :
+                                                           Tileset::dl),
+            max + (max_c == Tileset::COLLIDE_SLOPE2_UR_B ? Tileset::u :
+                                                           Tileset::ur));
+        break;
+      case Tileset::COLLIDE_SLOPE2_DL_A:
+      case Tileset::COLLIDE_SLOPE2_DL_B:
+        list.emplace_back(
+            min + (min_c == Tileset::COLLIDE_SLOPE2_DL_A ? Tileset::u :
+                                                           Tileset::ur),
+            max + (max_c == Tileset::COLLIDE_SLOPE2_DL_B ? Tileset::d :
+                                                           Tileset::dl));
+        break;
+      case Tileset::COLLIDE_SLOPE2_DR_A:
+      case Tileset::COLLIDE_SLOPE2_DR_B:
+        list.emplace_back(
+            max + (max_c == Tileset::COLLIDE_SLOPE2_DR_B ? Tileset::d :
+                                                           Tileset::dr),
+            min + (min_c == Tileset::COLLIDE_SLOPE2_DR_A ? Tileset::u :
+                                                           Tileset::ul));
+        break;
+
+      default: {}
     }
   };
 
@@ -426,12 +425,12 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
 
     boundary = NONE;
     for (y::int32 t = 0; t <= 2 * Cell::cell_width; ++t) {
-      bool above = local::is_tile_blocked(
-          cell, {t / 2, row - 1}, t % 2 ? HALF_EDGE_RIGHT_DOWN :
-                                          HALF_EDGE_LEFT_DOWN);
-      bool below = local::is_tile_blocked(
-          cell, {t / 2, row}, t % 2 ? HALF_EDGE_RIGHT_UP :
-                                      HALF_EDGE_LEFT_UP);
+      bool above = is_tile_blocked(
+          {t / 2, row - 1}, t % 2 ? HALF_EDGE_RIGHT_DOWN :
+                                    HALF_EDGE_LEFT_DOWN);
+      bool below = is_tile_blocked(
+          {t / 2, row}, t % 2 ? HALF_EDGE_RIGHT_UP :
+                                HALF_EDGE_LEFT_UP);
 
       Boundary new_boundary = above && !below ? LEFT :
                               below && !above ? RIGHT : NONE;
@@ -463,12 +462,12 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
 
     boundary = NONE;
     for (y::int32 t = 0; t <= 2 * Cell::cell_height; ++t) {
-      bool left = local::is_tile_blocked(
-          cell, {col - 1, t / 2}, t % 2 ? HALF_EDGE_DOWN_RIGHT :
-                                          HALF_EDGE_UP_RIGHT);
-      bool right = local::is_tile_blocked(
-          cell, {col, t / 2}, t % 2 ? HALF_EDGE_DOWN_LEFT :
-                                      HALF_EDGE_UP_LEFT);
+      bool left = is_tile_blocked(
+          {col - 1, t / 2}, t % 2 ? HALF_EDGE_DOWN_RIGHT :
+                                    HALF_EDGE_UP_RIGHT);
+      bool right = is_tile_blocked(
+          {col, t / 2}, t % 2 ? HALF_EDGE_DOWN_LEFT :
+                                HALF_EDGE_UP_LEFT);
 
       // Since we're moving downwards, left tile blocked means
       // boundary is actually on the right.
@@ -515,15 +514,15 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     // Scan all the way in both directions to the end of the sloped edge.
     y::int32 c = collision;
     y::ivec2 u = v;
-    y::ivec2 dir = local::consistent_traversal(c, true);
+    y::ivec2 dir = consistent_traversal(c, true);
     y::int32 next = cell.get_tile(collision_layer, u + dir).get_collision();
 
-    while (next == local::expected_traversal(c)) {
+    while (next == expected_traversal(c)) {
       u += dir;
       set.erase(u);
 
       c = next;
-      dir = local::consistent_traversal(c, true);
+      dir = consistent_traversal(c, true);
       next = cell.get_tile(collision_layer, u + dir).get_collision();
     }
     y::ivec2 max = u;
@@ -532,22 +531,22 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     // Other direction.
     c = collision;
     u = v;
-    dir = local::consistent_traversal(c, false);
+    dir = consistent_traversal(c, false);
     next = cell.get_tile(collision_layer, u + dir).get_collision();
 
-    while (next == local::expected_traversal(c)) {
+    while (next == expected_traversal(c)) {
       u += dir;
       set.erase(u);
 
       c = next;
-      dir = local::consistent_traversal(c, false);
+      dir = consistent_traversal(c, false);
       next = cell.get_tile(collision_layer, u + dir).get_collision();
     }
     y::ivec2 min = u;
     y::int32 min_c = c;
 
     // Add the line.
-    local::add_traversal_edge(bucket.middle, min, max, min_c, max_c);
+    add_traversal_edge(bucket.middle, min, max, min_c, max_c);
   }
 }
 
@@ -568,60 +567,56 @@ void WorldGeometry::merge_all_geometry() const
     first = false;
   }
 
-  struct local {
-    static void insert(geometry_hash& target, const Geometry& g)
-    {
-      target.update(g, y::wvec2(y::min(g.start, g.end)),
-                       y::wvec2(y::max(g.start, g.end)));
+  auto insert = [&](const Geometry& g)
+  {
+    _geometry_hash.update(g, y::wvec2(y::min(g.start, g.end)),
+                             y::wvec2(y::max(g.start, g.end)));
+  };
+
+  auto insert_list = [&](const geometry_list& list, const y::ivec2& offset,
+                         bool external)
+  {
+    for (const Geometry& g : list) {
+      insert(Geometry(g.start + offset, g.end + offset, external));
+    }
+  };
+
+  auto merge_loop = [&](
+      const y::ivec2& a_offset, const y::ivec2& b_offset,
+      y::int32 a_min, y::int32 a_max, y::int32 b_min, y::int32 b_max,
+      y::size& a_index, y::size& b_index, geometry_list& a, geometry_list& b)
+  {
+    if (a_max < b_min) {
+      insert(Geometry(a_offset + a[a_index].start,
+                      a_offset + a[a_index].end, true));
+      ++a_index;
+      return;
+    }
+    if (b_max < a_min) {
+      insert(Geometry(b_offset + b[b_index].start,
+                      b_offset + b[b_index].end, true));
+      ++b_index;
+      return;
     }
 
-    static void insert(geometry_hash& target,
-                       const geometry_list& list, const y::ivec2& offset,
-                       bool external)
-    {
-      for (const Geometry& g : list) {
-        insert(target, Geometry(g.start + offset, g.end + offset, external));
-      }
+    // This rest magically works for all cases because the one of the
+    // lists has segments stored in reverse.
+    if (a_min != b_min) {
+      insert(Geometry(a_offset + a[a_index].start,
+                      b_offset + b[b_index].end, true));
     }
 
-    static void merge_loop(
-        geometry_hash& target,
-        const y::ivec2& a_offset, const y::ivec2& b_offset,
-        y::int32 a_min, y::int32 a_max, y::int32 b_min, y::int32 b_max,
-        y::size& a_index, y::size& b_index, geometry_list& a, geometry_list& b)
-    {
-      if (a_max < b_min) {
-        insert(target, Geometry(a_offset + a[a_index].start,
-                                a_offset + a[a_index].end, true));
-        ++a_index;
-        return;
-      }
-      if (b_max < a_min) {
-        insert(target, Geometry(b_offset + b[b_index].start,
-                                b_offset + b[b_index].end, true));
-        ++b_index;
-        return;
-      }
-
-      // This rest magically works for all cases because the one of the
-      // lists has segments stored in reverse.
-      if (a_min != b_min) {
-        insert(target, Geometry(a_offset + a[a_index].start,
-                                b_offset + b[b_index].end, true));
-      }
-
-      if (a_max < b_max) {
-        b[b_index].end = a[a_index].end - b_offset + a_offset;
-        ++a_index;
-      }
-      else if (a_max > b_max) {
-        a[a_index].start = b[b_index].start - a_offset + b_offset;
-        ++b_index;
-      }
-      else {
-        ++a_index;
-        ++b_index;
-      }
+    if (a_max < b_max) {
+      b[b_index].end = a[a_index].end - b_offset + a_offset;
+      ++a_index;
+    }
+    else if (a_max > b_max) {
+      a[a_index].start = b[b_index].start - a_offset + b_offset;
+      ++b_index;
+    }
+    else {
+      ++a_index;
+      ++b_index;
     }
   };
 
@@ -635,20 +630,20 @@ void WorldGeometry::merge_all_geometry() const
     // Add all non-edge geometry.
     const bucket& bucket = jt->second;
     const y::ivec2 offset = *it * Tileset::tile_size * Cell::cell_size;
-    local::insert(_geometry_hash, bucket.middle, offset, false);
+    insert_list(bucket.middle, offset, false);
 
     // Where there's no adjacent cell, add the edge geometry.
     if (_buckets.find(*it - y::ivec2{0, 1}) == _buckets.end()) {
-      local::insert(_geometry_hash, bucket.top, offset, true);
+      insert_list(bucket.top, offset, true);
     }
     if (_buckets.find(*it - y::ivec2{1, 0}) == _buckets.end()) {
-      local::insert(_geometry_hash, bucket.left, offset, true);
+      insert_list(bucket.left, offset, true);
     }
     if (_buckets.find(*it + y::ivec2{0, 1}) == _buckets.end()) {
-      local::insert(_geometry_hash, bucket.bottom, offset, true);
+      insert_list(bucket.bottom, offset, true);
     }
     if (_buckets.find(*it + y::ivec2{1, 0}) == _buckets.end()) {
-      local::insert(_geometry_hash, bucket.right, offset, true);
+      insert_list(bucket.right, offset, true);
     }
 
     // Merge edge geometry with adjacent cells. This depends on implementation
@@ -672,19 +667,17 @@ void WorldGeometry::merge_all_geometry() const
         y::int32 bottom_min = bottom[bottom_index].end[xx];
         y::int32 bottom_max = bottom[bottom_index].start[xx];
 
-        local::merge_loop(_geometry_hash, offset, bottom_offset,
-                          top_min, top_max, bottom_min, bottom_max,
-                          top_index, bottom_index, top, bottom);
+        merge_loop(offset, bottom_offset,
+                   top_min, top_max, bottom_min, bottom_max,
+                   top_index, bottom_index, top, bottom);
       }
       for (; top_index < top.size(); ++top_index) {
-        local::insert(_geometry_hash,
-                      Geometry(offset + top[top_index].start,
-                               offset + top[top_index].end, true));
+        insert(Geometry(offset + top[top_index].start,
+                       offset + top[top_index].end, true));
       }
       for (; bottom_index < bottom.size(); ++bottom_index) {
-        local::insert(_geometry_hash,
-                      Geometry(bottom_offset + bottom[bottom_index].start,
-                               bottom_offset + bottom[bottom_index].end, true));
+        insert(Geometry(bottom_offset + bottom[bottom_index].start,
+                        bottom_offset + bottom[bottom_index].end, true));
       }
     }
     jt = _buckets.find(*it + y::ivec2{1, 0});
@@ -706,19 +699,17 @@ void WorldGeometry::merge_all_geometry() const
 
         // This time the right list is the one with reversed segments, so need
         // to pass everything the other way around.
-        local::merge_loop(_geometry_hash, right_offset, offset,
-                          right_min, right_max, left_min, left_max,
-                          right_index, left_index, right, left);
+        merge_loop(right_offset, offset,
+                   right_min, right_max, left_min, left_max,
+                   right_index, left_index, right, left);
       }
       for (; left_index < left.size(); ++left_index) {
-        local::insert(_geometry_hash,
-                      Geometry(offset + left[left_index].start,
-                               offset + left[left_index].end, true));
+        insert(Geometry(offset + left[left_index].start,
+                        offset + left[left_index].end, true));
       }
       for (; right_index < right.size(); ++right_index) {
-        local::insert(_geometry_hash,
-                      Geometry(right_offset + right[right_index].start,
-                               right_offset + right[right_index].end, true));
+        insert(Geometry(right_offset + right[right_index].start,
+                        right_offset + right[right_index].end, true));
       }
     }
   }

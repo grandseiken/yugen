@@ -151,53 +151,35 @@ void ScriptBank::get_preserved_cells(WorldWindow& world)
 void ScriptBank::clean_out_of_bounds(
     const Script& player, const y::wvec2& lower, const y::wvec2& upper)
 {
-  struct local {
-    ScriptBank& script_bank;
-    const Script* player;
-
-    const y::wvec2& lower;
-    const y::wvec2& upper;
-
-    local(ScriptBank& script_bank, const Script* player,
-          const y::wvec2& lower, const y::wvec2& upper)
-      : script_bank(script_bank)
-      , player(player)
-      , lower(lower)
-      , upper(upper)
-    {
+  // If the script overlaps at all with any cell which is not being refreshed,
+  // then we need to keep it around. If it is entirely contained within cells
+  // we're replacing, or genuine out-of-bounds areas, then get rid of it.
+  auto is_out_of_bounds = [&](const y::unique<Script>& s)
+  {
+    if (s.get() == &player) {
+      return false;
     }
+    const y::wvec2& origin = s->get_origin();
+    const y::wvec2& region = s->get_region();
 
-    // If the script overlaps at all with any cell which is not being refreshed,
-    // then we need to keep it around. If it is entirely contained within cells
-    // we're replacing, or genuine out-of-bounds areas, then get rid of it.
-    bool operator()(const y::unique<Script>& s)
-    {
-      if (s.get() == player) {
-        return false;
+    bool overlaps_preserved = false;
+    for (const y::ivec2& cell : this->_preserved_cells) {
+      if (origin + region / 2 >= y::wvec2(
+              cell * Tileset::tile_size * Cell::cell_size) &&
+          origin - region / 2 < y::wvec2(
+              (y::ivec2{1, 1} + cell) *
+                  Tileset::tile_size * Cell::cell_size)) {
+        overlaps_preserved = true;
+        break;
       }
-      const y::wvec2& origin = s->get_origin();
-      const y::wvec2& region = s->get_region();
-
-      bool overlaps_preserved = false;
-      for (const y::ivec2& cell : script_bank._preserved_cells) {
-        if (origin + region / 2 >= y::wvec2(
-                cell * Tileset::tile_size * Cell::cell_size) &&
-            origin - region / 2 < y::wvec2(
-                (y::ivec2{1, 1} + cell) *
-                    Tileset::tile_size * Cell::cell_size)) {
-          overlaps_preserved = true;
-          break;
-        }
-      }
-      if (script_bank._all_cells_preserved) {
-        overlaps_preserved = origin + region / 2 >= lower &&
-                             origin - region / 2 < upper;
-      }
-      return !overlaps_preserved;
     }
+    if (this->_all_cells_preserved) {
+      overlaps_preserved = origin + region / 2 >= lower &&
+                           origin - region / 2 < upper;
+    }
+    return !overlaps_preserved;
   };
 
-  local is_out_of_bounds(*this, &player, lower, upper);
   _scripts.remove_if(is_out_of_bounds);
 }
 
