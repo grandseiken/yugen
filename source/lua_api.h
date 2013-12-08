@@ -654,6 +654,34 @@ y_api(add_textured_particle)
   y_void();
 }
 
+y_api(add_rope)
+    y_arg(y::int32, point_masses) y_arg(y::world, length)
+    y_arg(y::world, mass) y_arg(y::world, spring) y_arg(y::world, friction)
+    y_arg(const y::wvec2, gravity) y_arg(y::world, air_friction)
+    y_optarg(Script*, script_start) y_optarg(Script*, script_end)
+    y_optarg(const y::wvec2, v0) y_optarg(const y::wvec2, v1)
+{
+  Rope::params params;
+  params.mass = mass;
+  params.spring_coefficient = spring;
+  params.friction_coefficient = friction;
+  params.gravity = gravity;
+  params.air_friction = air_friction;
+
+  params.ground_repulsion = 0.01;
+  params.ground_friction = 0.01;
+  params.ground_absorption = 0.1;
+  params.ground_height = 100;
+
+  stage.get_environment().add_rope(
+      Rope(point_masses, length,
+           script_start_defined ? script_start : y::null,
+           script_end_defined ? script_end : y::null,
+           v0, script_start_defined && !script_end_defined ? v0 : v1,
+           params));
+  y_void();
+}
+
 y_api(destroy_particles)
     y_arg(y::int32, tag)
 {

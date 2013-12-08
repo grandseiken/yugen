@@ -447,14 +447,15 @@ void GameRenderer::render(
       _colourbuffer->bind(true, true);
     }
 
-    // The world layer is special; the tiles and particles are rendered to it.
+    // The world layer is special; the tiles and physics objects are rendered to
+    // it.
     if (draw_pass_is_layer(DRAW_WORLD)) {
       render_tiles(camera, world);
       if (draw_pass_is_normal()) {
-        environment.render_particles_normal(_util, _current_batch);
+        environment.render_physics_normal(_util, _current_batch);
       }
       else {
-        environment.render_particles(_util, _current_batch);
+        environment.render_physics(_util, _current_batch);
       }
     }
     _util.render_batch(_current_batch);
@@ -856,7 +857,7 @@ void GameStage::update()
   // Update scripts.
   _scripts.update_all();
   _scripts.handle_messages();
-  _environment->update_particles();
+  _environment->update_physics();
 
   // Update window. When we need to move the active window, make sure to
   // compensate by moving all scripts and the camera to balance it out.
@@ -876,6 +877,7 @@ void GameStage::update()
       _scripts.move_all(-script_move, get_collision());
       _environment->modify_particles(
           Derivatives<y::wvec2>{-script_move, y::wvec2(), y::wvec2()});
+      _environment->move_ropes(-script_move);
       _camera.move(-script_move);
     }
   }

@@ -8,8 +8,19 @@
 class GlUtil;
 class RenderBatch;
 class RenderUtil;
+class Script;
 class WorldWindow;
 struct Sprite;
+
+// A value with first- and second-order derivatives.
+template<typename T>
+struct Derivatives {
+  T v;
+  T d;
+  T d2;
+
+  void update();
+};
 
 struct Particle {
   // Add a solid-colour particle.
@@ -59,6 +70,44 @@ struct Particle {
   void modify(const Derivatives<y::wvec2>& modify);
 };
 
+class Rope {
+public:
+
+  // Various physical parameters for simulating the rope.
+  struct params {
+    y::world mass;
+    y::world spring_coefficient;
+    y::world friction_coefficient;
+
+    y::wvec2 gravity;
+
+    y::world air_friction;
+    y::world ground_repulsion;
+    y::world ground_friction;
+    y::world ground_absorption;
+    y::world ground_height;
+  };
+
+  // Constructs a new rope. Start and end positions will be ignored if the
+  // corresponding script is non-null.
+  Rope(y::size point_masses, y::world length,
+       Script* script_start, Script* script_end, 
+       const y::wvec2& start, const y::wvec2& end, const params& params);
+
+  void update();
+  void move(const y::wvec2& move);
+
+  typedef y::vector<Derivatives<y::wvec2>> mass_list;
+  const mass_list& get_masses() const;
+
+private:
+
+  mass_list _masses;
+  y::world _length;
+  params _params;
+ 
+};
+
 class Environment : public y::no_copy {
 public:
 
@@ -101,7 +150,9 @@ public:
 
   Environment(GlUtil& util, const WorldWindow& world, bool fake);
 
+  // Particle functions.
   void add_particle(const Particle& particle);
+  void add_particle(Particle&& particle);
 
   // Destroy all particles with the given tag.
   void destroy_particles(y::int32 tag);
@@ -112,10 +163,15 @@ public:
       y::int32 tag, const Derivatives<y::wvec2>& modify);
   void modify_particles(const Derivatives<y::wvec2>& modify);
 
-  // Particle update and rendering.
-  void update_particles();
-  void render_particles(RenderUtil& util, RenderBatch& batch) const;
-  void render_particles_normal(RenderUtil& util, RenderBatch& batch) const;
+  // Rope functions.
+  void add_rope(const Rope& rope);
+  void add_rope(Rope&& rope);
+  void move_ropes(const y::wvec2& move);
+
+  // Particle and rope update and rendering.
+  void update_physics();
+  void render_physics(RenderUtil& util, RenderBatch& batch) const;
+  void render_physics_normal(RenderUtil& util, RenderBatch& batch) const;
 
   // Complicated environment shaders below here.
   void render_fog_colour(
@@ -139,6 +195,7 @@ private:
 
   const WorldWindow& _world;
   y::vector<Particle> _particles;
+  y::vector<Rope> _ropes;
 
   GlDatabuffer<float, 2> _pixels;
   GlDatabuffer<float, 4> _colour;
@@ -156,9 +213,13 @@ private:
   GlUnique<GlTexture3D> _f3d_128;
   GlUnique<GlTexture3D> _fv23d_64;
 
-  // TODO: do a proper rope system.
-  Rope _rope;
-
 };
+
+template<typename T>
+void Derivatives<T>::update()
+{
+  d += d2;
+  v += d;
+}
 
 #endif

@@ -6,6 +6,7 @@
 #include "../render/gl_util.h"
 #include "../render/util.h"
 #include "../data/bank.h"
+#include "../lua.h"
 
 Particle::Particle(
     y::int32 tag, y::int32 frames, y::world bounce_coefficient,
@@ -111,6 +112,86 @@ void Particle::modify(const Derivatives<y::wvec2>& modify)
   pos.d2 += modify.d2;
 }
 
+Rope::Rope(
+    y::size point_masses, y::world length,
+    Script* script_start, Script* script_end,
+    const y::wvec2& start, const y::wvec2& end, const params& params)
+  : _length(point_masses <= 1 ? length : length / point_masses - 1)
+  , _params(params)
+{
+  y::wvec2 s = script_start ? script_start->get_origin() : start;
+  y::wvec2 e = script_end ? script_end->get_origin() : end;
+
+  for (y::size i = 0; i < point_masses; ++i) {
+    y::wvec2 v = point_masses == 1 ? (s + e) / 2 :
+        s + (i / (point_masses - 1.)) * (e - s);
+    _masses.push_back({v, y::wvec2(), y::wvec2()});
+  }
+}
+
+void Rope::update()
+{
+  // Reset forces to zero.
+  for (auto& mass : _masses) {
+    mass.d2 = y::wvec2();
+  }
+
+  // Simulate springs between the masses.
+  for (y::size i = 0; !_masses.empty() && i < _masses.size() - 1; ++i) {
+    auto& a = _masses[i];
+    auto& b = _masses[1 + i];
+    y::wvec2 vec = b.v - a.v;
+
+    y::wvec2 force;
+    if (vec.length_squared()) {
+      force += _params.spring_coefficient * (1 - _length / vec.length()) * vec;
+    }
+    force += _params.friction_coefficient * (b.d - a.d);
+
+    // Apply forces (F = m * a).
+    a.d2 += force / _params.mass;
+    b.d2 -= force / _params.mass;
+  }
+
+  // Simulate the masses.
+  for (auto& mass : _masses) {
+    // Apply gravity and air-friction.
+    mass.d2 += _params.gravity;
+    mass.d2 -= _params.air_friction * mass.d / _params.mass;
+
+    // TODO: proper collision.
+    if (mass.v[yy] > _params.ground_height) {
+      // Ground friction.
+      mass.d2 -=
+          _params.ground_friction * y::wvec2{mass.d[xx], 0.} / _params.mass;
+
+      // Absorb velocity.
+      if (mass.d[yy] > 0) {
+        mass.d2 -=
+            _params.ground_absorption * y::wvec2{0., mass.d[yy]} / _params.mass;
+      }
+
+      // Repulse velocity.
+      mass.d2 += _params.ground_repulsion *
+          y::wvec2{0., _params.ground_height - mass.v[yy]} / _params.mass;
+    }
+
+    mass.update();
+  }
+}
+
+void Rope::move(const y::wvec2& move)
+{
+  for (auto& mass : _masses) {
+    mass.v += move;
+  }
+}
+
+const Rope::mass_list& Rope::get_masses() const
+{
+  return _masses;
+}
+
 Environment::Environment(GlUtil& gl, const WorldWindow& world, bool fake)
   : _world(world)
   , _pixels(gl.make_unique_buffer<float, 2>(
@@ -138,7 +219,6 @@ Environment::Environment(GlUtil& gl, const WorldWindow& world, bool fake)
   , _reflect_normal_program(gl.make_unique_program({
         "/shaders/env/reflect_normal.v.glsl",
         "/shaders/env/reflect_normal.f.glsl"}))
-  , _rope(128, 2, 1, 0.1, 0.05, y::wvec2{0., .5}, 0.01, 0.01, 0.01, 0.1, 100)
 {
   if (fake) {
     return;
@@ -177,6 +257,11 @@ void Environment::add_particle(const Particle& particle)
   _particles.push_back(particle);
 }
 
+void Environment::add_particle(Particle&& particle)
+{
+  _particles.emplace_back(particle);
+}
+
 void Environment::destroy_particles(y::int32 tag)
 {
   _particles.erase(y::remove_if(
@@ -209,17 +294,37 @@ void Environment::modify_particles(const Derivatives<y::wvec2>& modify)
   }
 }
 
-void Environment::update_particles()
+void Environment::add_rope(const Rope& rope)
+{
+  _ropes.push_back(rope);
+}
+
+void Environment::add_rope(Rope&& rope)
+{
+  _ropes.emplace_back(rope);
+}
+
+void Environment::move_ropes(const y::wvec2& move)
+{
+  for (Rope& rope : _ropes) {
+    rope.move(move);
+  }
+}
+
+void Environment::update_physics()
 {
   _particles.erase(
       y::remove_if(
           _particles.begin(), _particles.end(),
           [this](Particle& p) {return !p.update(this->_world);}),
       _particles.end());
-  _rope.update();
+
+  for (Rope& rope : _ropes) {
+    rope.update();
+  }
 }
 
-void Environment::render_particles(RenderUtil& util, RenderBatch& batch) const
+void Environment::render_physics(RenderUtil& util, RenderBatch& batch) const
 {
   GlUtil& gl = util.get_gl();
 
@@ -263,11 +368,19 @@ void Environment::render_particles(RenderUtil& util, RenderBatch& batch) const
 
   util.bind_pixel_uniforms(*_particle_program);
   util.quad_element(i).buffer->draw_elements(GL_TRIANGLES, 6 * i);
-  _rope.render(util);
+
+  y::vector<RenderUtil::line> lines;
+  for (const Rope& rope : _ropes) {
+    const Rope::mass_list& masses = rope.get_masses();
+    for (y::size i = 0; !masses.empty() && i < masses.size() - 1; ++i) {
+      lines.push_back({y::fvec2(masses[i].v), y::fvec2(masses[1 + i].v)});
+    }
+  }
+  util.render_lines(lines, colour::white);
 }
 
-void Environment::render_particles_normal(RenderUtil& util,
-                                          RenderBatch& batch) const
+void Environment::render_physics_normal(RenderUtil& util,
+                                        RenderBatch& batch) const
 {
   GlUtil& gl = util.get_gl();
 
@@ -310,6 +423,15 @@ void Environment::render_particles_normal(RenderUtil& util,
 
   util.bind_pixel_uniforms(*_particle_normal_program);
   util.quad_element(i).buffer->draw_elements(GL_TRIANGLES, 6 * i);
+
+  y::vector<RenderUtil::line> lines;
+  for (const Rope& rope : _ropes) {
+    const Rope::mass_list& masses = rope.get_masses();
+    for (y::size i = 0; !masses.empty() && i < masses.size() - 1; ++i) {
+      lines.push_back({y::fvec2(masses[i].v), y::fvec2(masses[1 + i].v)});
+    }
+  }
+  util.render_lines(lines, y::fvec4{.5f, .5f, 0.f, 0.f});
 }
 
 void Environment::render_fog_colour(
