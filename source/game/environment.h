@@ -1,6 +1,7 @@
 #ifndef GAME__ENVIRONMENT_H
 #define GAME__ENVIRONMENT_H
 
+#include "physics.h"
 #include "../vector.h"
 #include "../render/gl_handle.h"
 
@@ -9,16 +10,6 @@ class RenderBatch;
 class RenderUtil;
 class WorldWindow;
 struct Sprite;
-
-// A value with first- and second-order derivatives.
-template<typename T>
-struct Derivatives {
-  T v;
-  T d;
-  T d2;
-
-  void update();
-};
 
 struct Particle {
   // Add a solid-colour particle.
@@ -165,13 +156,9 @@ private:
   GlUnique<GlTexture3D> _f3d_128;
   GlUnique<GlTexture3D> _fv23d_64;
 
-};
+  // TODO: do a proper rope system.
+  Rope _rope;
 
-template<typename T>
-void Derivatives<T>::update()
-{
-  v += d;
-  d += d2;
-}
+};
 
 #endif

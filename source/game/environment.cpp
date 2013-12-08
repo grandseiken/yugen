@@ -138,6 +138,7 @@ Environment::Environment(GlUtil& gl, const WorldWindow& world, bool fake)
   , _reflect_normal_program(gl.make_unique_program({
         "/shaders/env/reflect_normal.v.glsl",
         "/shaders/env/reflect_normal.f.glsl"}))
+  , _rope(128, 2, 1, 0.1, 0.05, y::wvec2{0., .5}, 0.01, 0.01, 0.01, 0.1, 100)
 {
   if (fake) {
     return;
@@ -215,6 +216,7 @@ void Environment::update_particles()
           _particles.begin(), _particles.end(),
           [this](Particle& p) {return !p.update(this->_world);}),
       _particles.end());
+  _rope.update();
 }
 
 void Environment::render_particles(RenderUtil& util, RenderBatch& batch) const
@@ -261,6 +263,7 @@ void Environment::render_particles(RenderUtil& util, RenderBatch& batch) const
 
   util.bind_pixel_uniforms(*_particle_program);
   util.quad_element(i).buffer->draw_elements(GL_TRIANGLES, 6 * i);
+  _rope.render(util);
 }
 
 void Environment::render_particles_normal(RenderUtil& util,
