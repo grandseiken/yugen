@@ -66,7 +66,6 @@ struct Particle {
   y::ivec2 frame;
 
   bool update(const WorldWindow& world);
-  void collider_update(const WorldWindow& world);
   void modify(const Derivatives<y::wvec2>& modify);
 };
 
@@ -80,12 +79,8 @@ public:
     y::world friction_coefficient;
 
     y::wvec2 gravity;
-
     y::world air_friction;
-    y::world ground_repulsion;
     y::world ground_friction;
-    y::world ground_absorption;
-    y::world ground_height;
   };
 
   // Constructs a new rope. Start and end positions will be ignored if the
@@ -107,7 +102,7 @@ public:
   Rope(const Rope& rope);
   ~Rope();
 
-  void update();
+  void update(const WorldWindow& world);
   void move(const y::wvec2& move);
 
   typedef y::vector<Derivatives<y::wvec2>> mass_list;

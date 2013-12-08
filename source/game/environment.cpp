@@ -8,6 +8,54 @@
 #include "../data/bank.h"
 #include "../lua.h"
 
+namespace {
+
+  // Returns the normal of the first wall collided with.
+  y::wvec2 mass_collider_update(
+      Derivatives<y::wvec2>& mass, const WorldWindow& world)
+  {
+    mass.d += mass.d2;
+
+    bool collision = false;
+    y::world min_ratio = 1;
+    y::wvec2 nearest_normal;
+
+    y::wvec2 min = mass.v - y::wvec2{4., 4.};
+    y::wvec2 max = mass.v + y::wvec2{4., 4.};
+    auto it = world.get_geometry().search(
+        y::min(min, min + mass.d), y::max(max, max + mass.d));
+
+    for (; it && min_ratio > 0.; ++it) {
+      // Set Collision::collider_move for details.
+      y::wvec2 start = y::wvec2(it->start);
+      y::wvec2 end = y::wvec2(it->end);
+      y::wvec2 vec = end - start;
+      y::wvec2 normal{vec[yy], -vec[xx]};
+
+      if (normal.dot(-mass.d) <= 0) {
+        continue;
+      }
+
+      y::world ratio = get_projection(start, end, mass.v, mass.d, true);
+      if (min_ratio > ratio) {
+        collision = true;
+        min_ratio = ratio;
+        nearest_normal = normal;
+      }
+    }
+
+    if (collision) {
+      mass.v += y::max(0., min_ratio) * mass.d;
+      return nearest_normal;
+    }
+    else {
+      mass.v += mass.d;
+    }
+    return y::wvec2();
+  }
+
+}
+
 Particle::Particle(
     y::int32 tag, y::int32 frames, y::world bounce_coefficient,
     y::world depth, y::world layering_value,
@@ -37,7 +85,6 @@ Particle::Particle(
   , bounce_coefficient(bounce_coefficient)
   , depth(depth)
   , layering_value(layering_value)
-  , size{4., 4., 4.}
   , pos(pos)
   , colour(colour)
   , sprite(&sprite)
@@ -49,7 +96,15 @@ Particle::Particle(
 bool Particle::update(const WorldWindow& world)
 {
   if (bounce_coefficient >= 0.) {
-    collider_update(world);
+    y::wvec2 normal = mass_collider_update(pos, world);
+
+    // Reflect the velocity vector in the nearest geometry and apply the bounce
+    // coefficient.
+    if (normal != y::wvec2()) {
+      normal.normalise();
+      pos.d = 2 * pos.d.dot(normal) * normal - pos.d;
+      pos.d *= -bounce_coefficient;
+    }
   }
   else {
     pos.update();
@@ -58,52 +113,6 @@ bool Particle::update(const WorldWindow& world)
   size.update();
   colour.update();
   return --frames >= 0;
-}
-
-void Particle::collider_update(const WorldWindow& world)
-{
-  pos.d += pos.d2;
-
-  bool collision = false;
-  y::world min_ratio = 1;
-  y::wvec2 nearest_normal;
-
-  y::wvec2 min = pos.v - y::wvec2{size.v, size.v};
-  y::wvec2 max = pos.v + y::wvec2{size.v, size.v};
-  auto it = world.get_geometry().search(
-      y::min(min, min + pos.d), y::max(max, max + pos.d));
-
-  for (; it && min_ratio > 0.; ++it) {
-    // Set Collision::collider_move for details.
-    y::wvec2 start = y::wvec2(it->start);
-    y::wvec2 end = y::wvec2(it->end);
-    y::wvec2 vec = end - start;
-    y::wvec2 normal{vec[yy], -vec[xx]};
-
-    if (normal.dot(-pos.d) <= 0) {
-      continue;
-    }
-
-    y::world ratio = get_projection(start, end, pos.v, pos.d, true);
-    if (min_ratio > ratio) {
-      collision = true;
-      min_ratio = ratio;
-      nearest_normal = normal;
-    }
-  }
-
-  if (collision) {
-    pos.v += y::max(0., min_ratio) * pos.d;
-
-    // Reflect the velocity vector in the nearest geometry and apply the bounce
-    // coefficient.
-    nearest_normal.normalise();
-    pos.d = 2 * pos.d.dot(nearest_normal) * nearest_normal - pos.d;
-    pos.d *= -bounce_coefficient;
-  }
-  else {
-    pos.v += pos.d;
-  }
 }
 
 void Particle::modify(const Derivatives<y::wvec2>& modify)
@@ -143,7 +152,6 @@ Rope::Rope(
   , _params(params)
   , _depth(depth)
   , _layering_value(layering_value)
-  , _size(4)
   , _colour(colour)
   , _sprite(&sprite)
   , _frame_size(frame_size)
@@ -180,7 +188,7 @@ Rope::~Rope()
 {
 }
 
-void Rope::update()
+void Rope::update(const WorldWindow& world)
 {
   lock_endpoints();
 
@@ -207,29 +215,23 @@ void Rope::update()
   }
 
   // Simulate the masses.
+  // TODO: work out what to do about ropes getting stuck on corners.
   for (auto& mass : _masses) {
     // Apply gravity and air-friction.
     mass.d2 += _params.gravity;
     mass.d2 -= _params.air_friction * mass.d / _params.mass;
 
-    // TODO: proper collision.
-    if (mass.v[yy] > _params.ground_height) {
-      // Ground friction.
-      mass.d2 -=
-          _params.ground_friction * y::wvec2{mass.d[xx], 0.} / _params.mass;
+    y::wvec2 normal = mass_collider_update(mass, world);
+    if (normal != y::wvec2()) {
+      normal.normalise();
+      y::wvec2 ground{normal[yy], -normal[xx]};
 
-      // Absorb velocity.
-      if (mass.d[yy] > 0) {
-        mass.d2 -=
-            _params.ground_absorption * y::wvec2{0., mass.d[yy]} / _params.mass;
-      }
-
-      // Repulse velocity.
-      mass.d2 += _params.ground_repulsion *
-          y::wvec2{0., _params.ground_height - mass.v[yy]} / _params.mass;
+      // Project velocity onto ground direction.
+      y::wvec2 project = mass.d.dot(ground) * ground;
+      mass.d2 = y::wvec2();
+      mass.d = (1. - _params.ground_friction) * project;
+      mass_collider_update(mass, world);
     }
-
-    mass.update();
   }
 
   lock_endpoints();
@@ -411,11 +413,11 @@ void Environment::update_physics()
   _particles.erase(
       y::remove_if(
           _particles.begin(), _particles.end(),
-          [this](Particle& p) {return !p.update(this->_world);}),
+          [&](Particle& p) {return !p.update(_world);}),
       _particles.end());
 
   for (Rope& rope : _ropes) {
-    rope.update();
+    rope.update(_world);
   }
 }
 
