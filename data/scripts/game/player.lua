@@ -267,14 +267,14 @@ function update()
                self:get_origin() + vec(0, -4), vec(0, 1), vec(0, 0.5),
                sprite, frame_size, frame,
                1, 0.5, 1, 1,
-               1, -0.005, -0.005, 0,
-               1., -0.005, -0.005, 0)
+               1, -0.005, -0.005, -.01,
+               1., -0.005, -0.005, -.001)
   add_particle(0, 24, 1.5, 0.3, 0.3,
                2, 0.1, 0.05,
                self:get_origin() + vec(0, -4), vec(0, 1), vec(0, 0.5),
                1, 0.5, 1, 1,
-               1, -0.005, -0.005, 0,
-               1., -0.005, -0.005, 0)
+               1, -0.005, -0.005, -.01,
+               1., -0.005, -0.005, -.001)
   -- load_origin()
   -- save_origin()
 end
@@ -296,9 +296,9 @@ function key(k, down)
         self:create_constraint(v:get_source(), true, false)
         break
       end
-      add_rope(64, 128, 1, 0.1, 0.01, vec(0, 0.5), 0.1, 0.1, 0.5,
+      add_rope(32, 32, 1, 0.5, 0.1, vec(0, 0.5), 0.1, 0.1, 0.5,
                0.3, 0.3, 4, 0.5, 0.5, 0.5, 1.0,
-               self, self:get_origin() + vec(128, -128))
+               self, self:get_origin() + vec(64, -64))
     end
   end
 end

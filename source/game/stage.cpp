@@ -431,6 +431,8 @@ void GameRenderer::render(
 
     // The world layer is special; the tiles and physics objects are rendered to
     // it.
+    // TODO: transparent physics objects don't work on the world layer. Need to
+    // allow rendering on whatever layer they like.
     if (draw_pass_is_layer(DRAW_WORLD)) {
       render_tiles(camera, world);
       if (draw_pass_is_normal()) {
