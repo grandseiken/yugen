@@ -118,7 +118,15 @@ Rope::Rope(
     const y::wvec2& start, const y::wvec2& end, const params& params)
   : _length(point_masses <= 1 ? length : length / point_masses - 1)
   , _params(params)
+  , _start(y::null)
+  , _end(y::null)
 {
+  if (script_start) {
+    _start = y::move_unique(new ScriptReference(*script_start));
+  }
+  if (script_end) {
+    _end = y::move_unique(new ScriptReference(*script_start));
+  }
   y::wvec2 s = script_start ? script_start->get_origin() : start;
   y::wvec2 e = script_end ? script_end->get_origin() : end;
 
@@ -129,8 +137,29 @@ Rope::Rope(
   }
 }
 
+Rope::Rope(const Rope& rope)
+  : _masses(rope._masses)
+  , _length(rope._length)
+  , _params(rope._params)
+  , _start(y::null)
+  , _end(y::null)
+{
+  if (rope._start && rope._start->is_valid()) {
+    _start = y::move_unique(new ScriptReference(**rope._start));
+  }
+  if (rope._end && rope._end->is_valid()) {
+    _end = y::move_unique(new ScriptReference(**rope._end));
+  }
+}
+
+Rope::~Rope()
+{
+}
+
 void Rope::update()
 {
+  lock_endpoints();
+
   // Reset forces to zero.
   for (auto& mass : _masses) {
     mass.d2 = y::wvec2();
@@ -178,6 +207,8 @@ void Rope::update()
 
     mass.update();
   }
+
+  lock_endpoints();
 }
 
 void Rope::move(const y::wvec2& move)
@@ -190,6 +221,26 @@ void Rope::move(const y::wvec2& move)
 const Rope::mass_list& Rope::get_masses() const
 {
   return _masses;
+}
+
+void Rope::lock_endpoints()
+{
+  if (_start) {
+    if (!_start->is_valid()) {
+      _start.reset(y::null);
+    }
+    else if (!_masses.empty()) {
+      _masses.begin()->v = (*_start)->get_origin();
+    }
+  }
+  if (_end) {
+    if (!_end->is_valid()) {
+      _end.reset(y::null);
+    }
+    else if (!_masses.empty()) {
+      _masses.rbegin()->v = (*_end)->get_origin();
+    }
+  }
 }
 
 Environment::Environment(GlUtil& gl, const WorldWindow& world, bool fake)
@@ -259,7 +310,7 @@ void Environment::add_particle(const Particle& particle)
 
 void Environment::add_particle(Particle&& particle)
 {
-  _particles.emplace_back(particle);
+  _particles.emplace_back(y::move(particle));
 }
 
 void Environment::destroy_particles(y::int32 tag)
@@ -301,7 +352,7 @@ void Environment::add_rope(const Rope& rope)
 
 void Environment::add_rope(Rope&& rope)
 {
-  _ropes.emplace_back(rope);
+  _ropes.emplace_back(y::move(rope));
 }
 
 void Environment::move_ropes(const y::wvec2& move)

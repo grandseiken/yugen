@@ -1,7 +1,6 @@
 #ifndef GAME__ENVIRONMENT_H
 #define GAME__ENVIRONMENT_H
 
-#include "physics.h"
 #include "../vector.h"
 #include "../render/gl_handle.h"
 
@@ -9,6 +8,7 @@ class GlUtil;
 class RenderBatch;
 class RenderUtil;
 class Script;
+class ScriptReference;
 class WorldWindow;
 struct Sprite;
 
@@ -93,6 +93,8 @@ public:
   Rope(y::size point_masses, y::world length,
        Script* script_start, Script* script_end, 
        const y::wvec2& start, const y::wvec2& end, const params& params);
+  Rope(const Rope& rope);
+  ~Rope();
 
   void update();
   void move(const y::wvec2& move);
@@ -102,9 +104,14 @@ public:
 
 private:
 
+  void lock_endpoints();
+
   mass_list _masses;
   y::world _length;
   params _params;
+
+  y::unique<ScriptReference> _start;
+  y::unique<ScriptReference> _end;
  
 };
 
