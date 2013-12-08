@@ -7,13 +7,6 @@ FILE=$3
 
 # Get include dependencies from a single file.
 get_deps() {
-  # TODO: something about this breaks the Makefile when things are changed. If
-  # a file includes a nonexistent file, make will not work.
-  if [ ! -f $1 ]; then
-    echo "NONE"
-    return
-  fi
-
   DIR=$(dirname $1)
   # Extract the filenames in lines that look like:
   #   #include "foo.h"
@@ -27,7 +20,10 @@ get_deps() {
     DEP=$(
         echo "$DIR/$DEP" | \
         sed ":repeat; s/[^/]\+\/\(\.\.\/\)*\.\.\//\1/; t repeat")
-    DEPS="$DEPS $DEP"
+
+    if [ -f $DEP ]; then
+      DEPS="$DEPS $DEP"
+    fi
   done
 
   echo $DEPS
