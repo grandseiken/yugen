@@ -15,6 +15,9 @@ local DRAW_FULLBRIGHT1 = 10
 local DRAW_OVERLAY2 = 11
 local DRAW_SPECULAR2 = 12
 local DRAW_FULLBRIGHT2 = 13
+local DRAW_OVERLAY3 = 14
+local DRAW_SPECULAR3 = 15
+local DRAW_FULLBRIGHT3 = 16
 
 -- Convenience functions to call the rendering API functions with keyword
 -- arguments stored in a table.

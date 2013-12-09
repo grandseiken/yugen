@@ -4,6 +4,7 @@
 #include "../vector.h"
 #include "../render/gl_handle.h"
 
+class GameRenderer;
 class GlUtil;
 class RenderBatch;
 class RenderUtil;
@@ -25,15 +26,15 @@ struct Derivatives {
 struct Particle {
   // Add a solid-colour particle.
   Particle(y::int32 tag, y::int32 frames, y::world bounce_coefficient,
-           y::world depth, y::world layering_value,
-           const Derivatives<y::world>& size,
            const Derivatives<y::wvec2>& pos,
+           y::int32 layer, y::world depth,
+           const Derivatives<y::world>& size,
            const Derivatives<y::fvec4>& colour);
 
   // Add a textured particle.
   Particle(y::int32 tag, y::int32 frames, y::world bounce_coefficient,
-           y::world depth, y::world layering_value,
            const Derivatives<y::wvec2>& pos,
+           y::int32 layer, y::world depth,
            const Derivatives<y::fvec4>& colour,
            const Sprite& sprite, const y::ivec2& frame_size,
            const y::ivec2& frame);
@@ -50,14 +51,13 @@ struct Particle {
   // contact and velocity is scaled by this coefficient.
   y::world bounce_coefficient;
 
-  // Layering value is ignored for textured particles.
+  y::int32 layer;
   y::world depth;
-  y::world layering_value;
 
   // Size (in pixels), current position, colour, and derivatives. Size affects
   // rendering only, and is ignored for textured particles.
-  Derivatives<y::world> size;
   Derivatives<y::wvec2> pos;
+  Derivatives<y::world> size;
   Derivatives<y::fvec4> colour;
 
   // Parameters for textured particles.
@@ -89,14 +89,14 @@ public:
   Rope(y::size point_masses, y::world length,
        Script* script_start, Script* script_end, 
        const y::wvec2& start, const y::wvec2& end, const params& params,
-       y::world depth, y::world layering_value,
+       y::int32 layer, y::world depth,
        y::world size, const y::fvec4& colour);
 
   // Similar for a textured Rope.
   Rope(y::size point_masses, y::world length,
        Script* script_start, Script* script_end, 
        const y::wvec2& start, const y::wvec2& end, const params& params,
-       y::world depth, y::world layering_value,
+       y::int32 layer, y::world depth,
        const y::fvec4& colour, const Sprite& sprite,
        const y::ivec2& frame_size, const y::ivec2& frame);
 
@@ -123,8 +123,8 @@ private:
 
   // Rendering parameters work the same as for Particle (and apply to each
   // point-mass).
+  y::int32 _layer;
   y::world _depth;
-  y::world _layering_value;
   y::world _size;
   y::fvec4 _colour;
 
@@ -199,8 +199,8 @@ public:
 
   // Particle and rope update and rendering.
   void update_physics();
-  void render_physics(RenderUtil& util, RenderBatch& batch) const;
-  void render_physics_normal(RenderUtil& util, RenderBatch& batch) const;
+  void render_physics(const GameRenderer& renderer) const;
+  void render_physics_normal(const GameRenderer& renderer) const;
 
   // Complicated environment shaders below here.
   void render_fog_colour(
@@ -229,7 +229,6 @@ private:
   GlDatabuffer<float, 2> _pixels;
   GlDatabuffer<float, 4> _colour;
   GlDatabuffer<float, 1> _depth;
-  GlDatabuffer<float, 1> _layering;
   GlDatabuffer<GLushort, 1> _element;
 
   GlUnique<GlProgram> _particle_program;

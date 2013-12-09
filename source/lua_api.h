@@ -583,11 +583,11 @@ y_api(get_sprite)
 y_api(add_particle)
     y_arg(y::int32, tag) y_arg(y::int32, frames)
     y_arg(y::world, bounce_coefficient)
-    y_arg(y::world, depth) y_arg(y::world, layering_value)
-    y_arg(y::world, size) y_arg(y::world, dsize)
-    y_arg(y::world, d2size)
     y_arg(const y::wvec2, p) y_arg(const y::wvec2, dp)
     y_arg(const y::wvec2, d2p)
+    y_arg(y::int32, layer) y_arg(y::world, depth)
+    y_arg(y::world, size) y_arg(y::world, dsize)
+    y_arg(y::world, d2size)
     y_optarg(y::world, r) y_optarg(y::world, g)
     y_optarg(y::world, b) y_optarg(y::world, a)
     y_optarg(y::world, dr) y_optarg(y::world, dg)
@@ -598,9 +598,9 @@ y_api(add_particle)
   stage.get_environment().add_particle(
       Particle(
           tag, frames, bounce_coefficient,
-          depth, layering_value,
-          Derivatives<y::world>{size, dsize, d2size},
           Derivatives<y::wvec2>{p, dp, d2p},
+          layer, depth,
+          Derivatives<y::world>{size, dsize, d2size},
           Derivatives<y::fvec4>{
               y::fvec4(r_defined ? float(r) : 0.f,
                        g_defined ? float(g) : 0.f,
@@ -620,9 +620,9 @@ y_api(add_particle)
 y_api(add_textured_particle)
     y_arg(y::int32, tag) y_arg(y::int32, frames)
     y_arg(y::world, bounce_coefficient)
-    y_arg(y::world, depth) y_arg(y::world, layering_value)
     y_arg(const y::wvec2, p) y_arg(const y::wvec2, dp)
     y_arg(const y::wvec2, d2p)
+    y_arg(y::int32, layer) y_arg(y::world, depth)
     y_arg(const Sprite*, sprite)
     y_arg(const y::wvec2, frame_size) y_arg(const y::wvec2, frame)
     y_optarg(y::world, r) y_optarg(y::world, g)
@@ -635,8 +635,8 @@ y_api(add_textured_particle)
   stage.get_environment().add_particle(
       Particle(
           tag, frames, bounce_coefficient,
-          depth, layering_value,
           Derivatives<y::wvec2>{p, dp, d2p},
+          layer, depth,
           Derivatives<y::fvec4>{
               y::fvec4(r_defined ? float(r) : 0.f,
                        g_defined ? float(g) : 0.f,
@@ -660,7 +660,7 @@ y_api(add_rope)
     y_arg(const y::wvec2, gravity)
     y_arg(y::world, air_friction) y_arg(y::world, ground_friction)
     y_arg(y::world, bounce_coefficient)
-    y_arg(y::world, depth) y_arg(y::world, layering_value)
+    y_arg(y::int32, layer) y_arg(y::world, depth)
     y_arg(y::world, size)
     y_arg(y::world, r) y_arg(y::world, g)
     y_arg(y::world, b) y_arg(y::world, a)
@@ -681,7 +681,7 @@ y_api(add_rope)
            script_start_defined ? script_start : y::null,
            script_end_defined ? script_end : y::null,
            v0, script_start_defined && !script_end_defined ? v0 : v1,
-           params, depth, layering_value, size,
+           params, layer, depth, size,
            y::fvec4{float(r), float(g), float(b), float(a)}));
   y_void();
 }
@@ -692,7 +692,7 @@ y_api(add_textured_rope)
     y_arg(const y::wvec2, gravity)
     y_arg(y::world, air_friction) y_arg(y::world, ground_friction)
     y_arg(y::world, bounce_coefficient)
-    y_arg(y::world, depth) y_arg(y::world, layering_value)
+    y_arg(y::int32, layer) y_arg(y::world, depth)
     y_arg(y::world, r) y_arg(y::world, g)
     y_arg(y::world, b) y_arg(y::world, a)
     y_arg(const Sprite*, sprite)
@@ -714,7 +714,7 @@ y_api(add_textured_rope)
            script_start_defined ? script_start : y::null,
            script_end_defined ? script_end : y::null,
            v0, script_start_defined && !script_end_defined ? v0 : v1,
-           params, depth, layering_value,
+           params, layer, depth,
            y::fvec4{float(r), float(g), float(b), float(a)},
            *sprite, y::ivec2(frame_size), y::ivec2(frame)));
   y_void();

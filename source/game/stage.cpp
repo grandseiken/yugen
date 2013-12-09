@@ -363,7 +363,9 @@ bool GameRenderer::draw_pass_is_normal() const
          pass == DRAW_OVERLAY1_NORMAL ||
          pass == DRAW_SPECULAR1_NORMAL ||
          pass == DRAW_OVERLAY2_NORMAL ||
-         pass == DRAW_SPECULAR2_NORMAL;
+         pass == DRAW_SPECULAR2_NORMAL ||
+         pass == DRAW_OVERLAY3_NORMAL ||
+         pass == DRAW_SPECULAR3_NORMAL;
 }
 
 bool GameRenderer::draw_pass_is_layer(draw_layer layer) const
@@ -398,6 +400,12 @@ bool GameRenderer::draw_pass_is_layer(draw_layer layer) const
       return pass == DRAW_SPECULAR2_NORMAL || pass == DRAW_SPECULAR2_COLOUR;
     case DRAW_FULLBRIGHT2:
       return pass == DRAW_FULLBRIGHT2_COLOUR;
+    case DRAW_OVERLAY3:
+      return pass == DRAW_OVERLAY3_NORMAL || pass == DRAW_OVERLAY3_COLOUR;
+    case DRAW_SPECULAR3:
+      return pass == DRAW_SPECULAR3_NORMAL || pass == DRAW_SPECULAR3_COLOUR;
+    case DRAW_FULLBRIGHT3:
+      return pass == DRAW_FULLBRIGHT3_COLOUR;
     default:
       return false;
   }
@@ -429,23 +437,22 @@ void GameRenderer::render(
       _colourbuffer->bind(true, true);
     }
 
-    // The world layer is special; the tiles and physics objects are rendered to
-    // it.
-    // TODO: transparent physics objects don't work on the world layer. Need to
-    // allow rendering on whatever layer they like.
+    // The world layer is special; all tiles are rendered to it.
     if (draw_pass_is_layer(DRAW_WORLD)) {
       render_tiles(camera, world);
-      if (draw_pass_is_normal()) {
-        environment.render_physics_normal(_util, _current_batch);
-      }
-      else {
-        environment.render_physics(_util, _current_batch);
-      }
     }
     _util.render_batch(_current_batch);
 
+    // Dividing scripts into a separate batch is probably necessary for some
+    // reason I can't remember.
     _current_batch.clear();
     scripts.render_all(camera);
+    if (draw_pass_is_normal()) {
+      environment.render_physics_normal(*this);
+    }
+    else {
+      environment.render_physics(*this);
+    }
     _util.render_batch(_current_batch);
 
     // If there's anything on this layer, render scene by the lighting. We know
@@ -494,12 +501,13 @@ GameRenderer::layer_light_type GameRenderer::draw_pass_light_type() const
   draw_pass pass = _current_draw_pass;
   if (pass == DRAW_SPECULAR0_NORMAL || pass == DRAW_SPECULAR0_COLOUR ||
       pass == DRAW_SPECULAR1_NORMAL || pass == DRAW_SPECULAR1_COLOUR ||
-      pass == DRAW_SPECULAR2_NORMAL || pass == DRAW_SPECULAR2_COLOUR) {
+      pass == DRAW_SPECULAR2_NORMAL || pass == DRAW_SPECULAR2_COLOUR ||
+      pass == DRAW_SPECULAR3_NORMAL || pass == DRAW_SPECULAR3_COLOUR) {
     return LIGHT_TYPE_SPECULAR;
   }
   if (pass == DRAW_PARALLAX0_COLOUR || pass == DRAW_PARALLAX1_COLOUR ||
       pass == DRAW_FULLBRIGHT0_COLOUR || pass == DRAW_FULLBRIGHT1_COLOUR ||
-      pass == DRAW_FULLBRIGHT2_COLOUR) {
+      pass == DRAW_FULLBRIGHT2_COLOUR || pass == DRAW_FULLBRIGHT3_COLOUR) {
     return LIGHT_TYPE_FULLBRIGHT;
   }
   return LIGHT_TYPE_NORMAL;

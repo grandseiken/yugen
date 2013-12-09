@@ -263,15 +263,17 @@ function update()
   up_check_prev = try_move < 0 and math.abs(move:y()) < math.abs(try_move)
   jump_timer_logic(down_check_now)
 
-  add_textured_particle(0, 24, 0.66, 0.3, 0.3,
+  add_textured_particle(
+               0, 24, 0.66,
                self:get_origin() + vec(0, -4), vec(0, 1), vec(0, 0.5),
+               DRAW_OVERLAY3, 0.3,
                sprite, frame_size, frame,
                1, 0.5, 1, 1,
                1, -0.005, -0.005, -.01,
                1., -0.005, -0.005, -.001)
-  add_particle(0, 24, 1.5, 0.3, 0.3,
-               2, 0.1, 0.05,
+  add_particle(0, 24, 1.5,
                self:get_origin() + vec(0, -4), vec(0, 1), vec(0, 0.5),
+               DRAW_OVERLAY3, 0.3, 2, 0.1, 0.05,
                1, 0.5, 1, 1,
                1, -0.005, -0.005, -.01,
                1., -0.005, -0.005, -.001)
@@ -296,8 +298,8 @@ function key(k, down)
         self:create_constraint(v:get_source(), true, false)
         break
       end
-      add_rope(32, 32, 1, 0.5, 0.1, vec(0, 0.5), 0.1, 0.1, 0.5,
-               0.3, 0.3, 4, 0.5, 0.5, 0.5, 1.0,
+      add_rope(32, 32, 1, 0.6, 0.1, vec(0, 0.2), 0.1, 0.1, 0.5,
+               DRAW_OVERLAY3, 0.3, 4, 0.5, 0.5, 0.5, 1.0,
                self, self:get_origin() + vec(64, -64))
     end
   end

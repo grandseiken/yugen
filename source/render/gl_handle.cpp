@@ -54,6 +54,8 @@ void GlFramebuffer::bind(bool clear, bool clear_depth) const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, get_handle());
   glViewport(0, 0, get_texture().get_size()[xx], get_texture().get_size()[yy]);
+  glClearColor(0.f, 0.f, 0.f, 0.f);
+  glClearDepth(1.f);
   glClear((GL_COLOR_BUFFER_BIT * clear) | (GL_DEPTH_BUFFER_BIT * clear_depth));
 }
 

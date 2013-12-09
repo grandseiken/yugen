@@ -414,6 +414,8 @@ void GlUtil::bind_window(bool clear, bool clear_depth) const
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   const Resolution& mode = _window.get_mode();
   glViewport(0, 0, mode.size[xx], mode.size[yy]);
+  glClearColor(0.f, 0.f, 0.f, 0.f);
+  glClearDepth(1.f);
   glClear((GL_COLOR_BUFFER_BIT * clear) | (GL_DEPTH_BUFFER_BIT * clear_depth));
 }
 
