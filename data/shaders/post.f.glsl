@@ -15,14 +15,19 @@ const vec2 r_dir = vec2(sin(0.2), cos(0.2));
 const vec2 g_dir = vec2(sin(0.2 + 2 * pi / 3), cos(0.2 + 2 * pi / 3));
 const vec2 b_dir = vec2(sin(0.2 + 4 * pi / 3), cos(0.2 + 4 * pi / 3));
 
-// Whether dithering moves around (based on per-colour directions above).
+// Whether dithering moves around (based on per-colour directions above), and
+// whether it is separated by colour.
 const bool dithering_move = true;
+const bool dithering_monochrome = true;
 // How much to mix in dithering versus true colouring.
 const float dithering_mix = 1.;
 // See also http://bisqwit.iki.fi/story/howto/dither/jy/ for the dithering
 // bible.
 vec3 make_coord(vec2 coord, vec2 c_off, float c)
 {
+  if (dithering_monochrome) {
+    return vec3(coord / dither_res, 0);
+  }
   return vec3((dithering_move ? coord + c_off :
       coord + vec2(0.001) * dither_frame) / vec2(dither_res), c);
 }
@@ -35,19 +40,51 @@ vec3 matrix_lookup(vec2 coord, vec2 r, vec2 g, vec2 b)
            texture3D(dither_matrix, make_coord(coord, b, 2.0 / 3)).x);
 }
 
+vec3 floor_div(vec3 v)
+{
+  return v - mod(v, div);
+}
+
+vec3 linear_dither(vec3 raw, vec3 dither_val)
+{
+  vec3 adjusted = raw +
+      mix(vec3(0.5 * div), dither_val * div, dithering_mix);
+  return floor_div(adjusted);
+}
+
+// Simply gamma-correcting the colour values first and then dithering in
+// the sRGB space gives appearance-correct results, but the colours used
+// are then unevenly distributed.
+vec3 uneven_post(vec3 raw, vec3 dither_val)
+{
+  return linear_dither(gamma_write(raw), dither_val);
+}
+
+// This has evenly-spaced colours, but appears incorrect due to gamma issues.
+vec3 incorrect_post(vec3 raw, vec3 dither_val)
+{
+  return gamma_write(linear_dither(raw, dither_val));
+}
+
+// This took a while to figure out, but I think it's the real deal.
+vec3 gamma_correct_post(vec3 raw, vec3 dither_val)
+{
+  vec3 a = floor_div(raw);
+  vec3 b = a + div;
+  vec3 correct_ratio = 1 -
+      ((gamma_write(b) - gamma_write(raw)) /
+       (gamma_write(b) - gamma_write(a)));
+  return gamma_write(floor_div(a + (correct_ratio + dither_val) * div));
+}
+
 void main()
 {
-  vec4 raw = gamma_write(texture2D(framebuffer, tex_coord));
+  vec3 raw = vec3(texture2D(framebuffer, tex_coord));
 
   vec2 r_off = 0.05 * r_dir * dither_frame;
   vec2 g_off = 0.07 * g_dir * dither_frame;
   vec2 b_off = 0.11 * b_dir * dither_frame;
   vec3 dither_val = matrix_lookup(dither_coord, r_off, g_off, b_off);
 
-  // Dithering is not properly gamma-corrected. We could gamma-correct at the
-  // very end, but then colour values are not evenly-spaced.
-  // TODO: properly gamma-correct the dither.
-  vec4 adjusted = raw +
-      mix(vec4(0.5 * div), vec4(dither_val * div, 0.0), dithering_mix);
-  gl_FragColor = adjusted - mod(adjusted, div);
+  gl_FragColor = vec4(gamma_correct_post(raw, dither_val), 1.0);
 }
