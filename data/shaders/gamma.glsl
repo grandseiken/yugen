@@ -3,13 +3,11 @@
 // the eye is nonlinear, and these values are somehow too dark. We need to
 // convert colours to the true linear space (which appears "too bright" to the
 // eye) before performing lighting calculations, and reverse this again before
-// display.
+// display. We also need gamma-correction to dither properly.
 //
-// On the other hand, blending operations should really be done in the nonlinear
-// sRGB space, since for example, a blend value of 0.5 really means we want
-// an output half-way between the two colours we would otherwise see.
-// TODO: the gamma correction, right now, is happening in the wrong place (gamma
-// -correction of dither only).
+// On the other hand, blending operations should be done in the nonlinear sRGB
+// space, since for example, a blend value of 0.5 really means we want an output
+// half-way between the two colours we would otherwise see.
 const bool use_gamma_correction = true;
 const float gamma_value = 2.2;
 const float gamma_div = 1.0 / gamma_value;

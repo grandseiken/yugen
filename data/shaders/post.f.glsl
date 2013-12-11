@@ -6,7 +6,6 @@ noperspective varying vec2 tex_coord;
 noperspective varying vec2 dither_coord;
 
 #include "gamma.glsl"
-
 const int colours_per_channel = 16;
 const float div = 1.0 / (colours_per_channel - 1);
 const float pi = 3.1415926536;
