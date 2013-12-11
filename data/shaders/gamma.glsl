@@ -5,12 +5,12 @@
 // eye) before performing lighting calculations, and reverse this again before
 // display.
 //
-// On the other hand, blending *colours* should really be done in the nonlinear
+// On the other hand, blending operations should really be done in the nonlinear
 // sRGB space, since for example, a blend value of 0.5 really means we want
 // an output half-way between the two colours we would otherwise see.
-// TODO: the gamma correction, right now, is happening in the wrong place (input
-// of textures and final output only).
-const bool use_gamma_correction = false;
+// TODO: the gamma correction, right now, is happening in the wrong place (gamma
+// -correction of dither only).
+const bool use_gamma_correction = true;
 const float gamma_value = 2.2;
 const float gamma_div = 1.0 / gamma_value;
 

@@ -26,7 +26,7 @@ void main()
     colour.b += depth_coord;
   }
   else {
-    colour = gamma_read(colour) * colour_coord;
+    colour *= colour_coord;
   }
 
   // Don't write the depth buffer.

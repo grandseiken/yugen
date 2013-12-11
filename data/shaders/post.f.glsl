@@ -18,7 +18,7 @@ const vec2 b_dir = vec2(sin(0.2 + 4 * pi / 3), cos(0.2 + 4 * pi / 3));
 // Whether dithering moves around (based on per-colour directions above), and
 // whether it is separated by colour.
 const bool dithering_move = true;
-const bool dithering_monochrome = true;
+const bool dithering_monochrome = false;
 // How much to mix in dithering versus true colouring.
 const float dithering_mix = 1.;
 // See also http://bisqwit.iki.fi/story/howto/dither/jy/ for the dithering
@@ -52,29 +52,14 @@ vec3 linear_dither(vec3 raw, vec3 dither_val)
   return floor_div(adjusted);
 }
 
-// Simply gamma-correcting the colour values first and then dithering in
-// the sRGB space gives appearance-correct results, but the colours used
-// are then unevenly distributed.
-vec3 uneven_post(vec3 raw, vec3 dither_val)
-{
-  return linear_dither(gamma_write(raw), dither_val);
-}
-
-// This has evenly-spaced colours, but appears incorrect due to gamma issues.
-vec3 incorrect_post(vec3 raw, vec3 dither_val)
-{
-  return gamma_write(linear_dither(raw, dither_val));
-}
-
-// This took a while to figure out, but I think it's the real deal.
-vec3 gamma_correct_post(vec3 raw, vec3 dither_val)
+vec3 gamma_correct_dither(vec3 raw, vec3 dither_val)
 {
   vec3 a = floor_div(raw);
   vec3 b = a + div;
   vec3 correct_ratio = 1 -
       ((gamma_write(b) - gamma_write(raw)) /
        (gamma_write(b) - gamma_write(a)));
-  return gamma_write(floor_div(a + (correct_ratio + dither_val) * div));
+  return floor_div(a + (correct_ratio + dither_val) * div);
 }
 
 void main()
@@ -86,5 +71,5 @@ void main()
   vec2 b_off = 0.11 * b_dir * dither_frame;
   vec3 dither_val = matrix_lookup(dither_coord, r_off, g_off, b_off);
 
-  gl_FragColor = vec4(gamma_correct_post(raw, dither_val), 1.0);
+  gl_FragColor = vec4(gamma_correct_dither(raw, dither_val), 1.0);
 }

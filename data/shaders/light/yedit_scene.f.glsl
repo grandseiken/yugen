@@ -15,6 +15,5 @@ void main()
   float light = 0.5 + light_value(light_normal, normal) / 2.0;
   vec3 light_c = cel_shade(light, true, false);
 
-  gl_FragColor = gamma_write(
-      colour * layer_colour * vec4(light_c.rgb, 1.0));
+  gl_FragColor = colour * layer_colour * vec4(light_c.rgb, 1.0);
 }
