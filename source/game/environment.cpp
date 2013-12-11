@@ -344,20 +344,30 @@ Environment::Environment(GlUtil& gl, const WorldWindow& world, bool fake)
   _f2d_256.swap(gl.make_unique_texture(
       y::ivec2{256, 256}, GL_R8, GL_RED, f2d_256.data(), true));
 
+#ifdef DEBUG
+  // For faster testing, don't generate so many dimensions.
+  static const bool debug = true;
+#else
+  static const bool debug = false;
+#endif
+
   // 3D perlin field of size 128x128x128.
   fperlin::field f3d_128;
   LinearWeights<float> weights(1.f, 1.f);
-  fp.generate_perlin<3>(f3d_128, 64, 2, 6, weights);
+  fp.generate_perlin<debug ? 2 : 3>(f3d_128, 64, 2, 6, weights);
   _f3d_128.swap(gl.make_unique_texture<float, 3>(
-      y::ivec3{128, 128, 128}, GL_R8, GL_RED, f3d_128.data(), true));
+      y::ivec3{128, 128, debug ? 1 : 128},
+      GL_R8, GL_RED, f3d_128.data(), true));
 
   // 3D perlin field of y::fvec2, size 64x64x64.
   fv2perlin fv2p(57583);
   fv2perlin::field fv23d_64;
-  fv2p.generate_perlin<3, LinearWeights<float>, PowerSmoothing<float>>(
+  fv2p.generate_perlin<debug ? 2 : 3,
+                       LinearWeights<float>, PowerSmoothing<float>>(
       fv23d_64, 64, 1, 4, weights);
   _fv23d_64.swap(gl.make_unique_texture<float, 3>(
-      y::ivec3{64, 64, 64}, GL_RG8, GL_RG, &fv23d_64[0][xx], true));
+      y::ivec3{64, 64, debug ? 1 : 64},
+      GL_RG8, GL_RG, &fv23d_64[0][xx], true));
 }
 
 void Environment::add_particle(const Particle& particle)
