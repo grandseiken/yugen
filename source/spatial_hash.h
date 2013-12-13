@@ -16,9 +16,9 @@ public:
   SpatialHash(y::size bucket_size);
 
   // Add or update an object with given bounding box.
-  void update(T t, const coord& min, const coord& max);
+  void update(const T& t, const coord& min, const coord& max);
   // Remove the object.
-  void remove(T t);
+  void remove(const T& t);
   // Clear all objects.
   void clear();
 
@@ -85,7 +85,7 @@ SpatialHash<T, V, N>::SpatialHash(y::size bucket_size)
 }
 
 template<typename T, typename V, y::size N>
-void SpatialHash<T, V, N>::update(T t, const coord& min, const coord& max)
+void SpatialHash<T, V, N>::update(const T& t, const coord& min, const coord& max)
 {
   // We store objects in a bucket based on their centre, check for objects
   // in adjacent buckets, and keep a separate bucket for objects which
@@ -108,7 +108,7 @@ void SpatialHash<T, V, N>::update(T t, const coord& min, const coord& max)
 }
 
 template<typename T, typename V, y::size N>
-void SpatialHash<T, V, N>::remove(T t)
+void SpatialHash<T, V, N>::remove(const T& t)
 {
   for (auto it = _buckets.begin(); it != _buckets.end();) {
     // Also clean up empty buckets while we're at it.
