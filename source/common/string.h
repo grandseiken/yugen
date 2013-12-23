@@ -10,6 +10,9 @@ namespace y {
   typedef std::stringstream sstream;
 
   using std::stoi;
+  using std::stol;
+  using std::stof;
+  using std::stod;
   using std::to_string;
 
 }

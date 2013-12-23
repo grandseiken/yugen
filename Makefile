@@ -120,12 +120,12 @@ L_FILES= \
 	$(wildcard $(SOURCE)/*.l) \
   $(wildcard $(SOURCE)/*/*.l)
 L_SOURCES= \
-  $(subst $(SOURCE)/,$(GEN)/,$(FLEX:.l=.l.c))
+  $(subst $(SOURCE)/,$(GEN)/,$(L_FILES:.l=.l.c))
 Y_FILES= \
 	$(wildcard $(SOURCE)/*.y) \
 	$(wildcard $(SOURCE)/*/*.y)
 Y_SOURCES= \
-	$(subst $(SOURCE)/,$(GEN)/,$(BYACC:.y=.y.c))
+	$(subst $(SOURCE)/,$(GEN)/,$(Y_FILES:.y=.y.c))
 SOURCE_FILES= \
 	$(wildcard $(SOURCE)/*.cpp) \
 	$(wildcard $(SOURCE)/*/*.cpp)
@@ -186,7 +186,7 @@ wc:
 	@cat $(SCRIPT_FILES) | wc
 	@echo Protos:
 	@cat $(PROTOS) | wc
-	@echo Flex/BYACC files:
+	@echo Flex/YACC files:
 	@cat $(L_FILES) $(Y_FILES) | wc
 	@echo GLSL:
 	@cat $(GLSL_FILES) | wc
@@ -269,7 +269,7 @@ $(GEN)/proto/%.pb.h: \
 	@echo Compiling ./$<
 	$(PROTOC) $(PFLAGS) ./$<
 
-# Flex/BYACC files.
+# Flex/YACC files.
 .PRECIOUS: $(L_SOURCES) $(Y_SOURCES)
 $(GEN)/%.l.c: \
 	$(SOURCE)/%.l $(GEN)/%.mkdir ./depend/flex.build
@@ -281,7 +281,7 @@ $(GEN)/%.y.h: \
 $(GEN)/%.y.c: \
 	$(SOURCE)/%.y $(GEN)/%.mkdir ./depend/byacc.build
 	@echo Compiling ./$<
-	$(BYACC) -o $@ $<
+	$(YACC) -d -o $@ $<
 
 # Ensure a directory exists.
 .PRECIOUS: ./%.mkdir
@@ -349,7 +349,7 @@ SFML_CMAKE_FLAGS= \
 	@echo Building BYACC
 	cd $(BYACC_DIR) && ./configure
 	cd $(BYACC_DIR) && $(MAKE)
-	touch ./depend.byacc.build
+	touch ./depend/byacc.build
 
 # Build LLVM.
 ./depend/llvm.build:
