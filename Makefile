@@ -41,6 +41,10 @@ DEPEND_DIR= \
 	./depend
 BOOST_DIR= \
 	$(DEPEND_DIR)/boost_1_55_0
+BYACC_DIR= \
+	$(DEPEND_DIR)/byacc_2013_09_25
+FLEX_DIR= \
+	$(DEPEND_DIR)/flex_2_5_37
 LLVM_DIR= \
   $(DEPEND_DIR)/llvm_3_3
 LUAJIT_DIR= \
@@ -64,7 +68,8 @@ export PROTOC= \
 	$(PROTOBUF_DIR)/bin/protoc
 
 DEPENDENCY_DIRS= \
-	$(BOOST_DIR) $(LLVM_DIR) $(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
+	$(BOOST_DIR) $(BYACC_DIR) $(FLEX_DIR) $(LLVM_DIR) \
+	$(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
 DEPENDENCY_CFLAGS= \
 	$(addprefix -isystem ,\
 	$(addsuffix /include,$(DEPENDENCY_DIRS)))
@@ -296,6 +301,20 @@ SFML_CMAKE_FLAGS= \
 	cd $(BOOST_DIR) && ./bin/b2 install $(BOOST_CONFIGURE_FLAGS)
 	touch ./depend/boost.build
 
+# Build Flex.
+./depend/flex.build:
+	@echo Building Flex
+	cd $(FLEX_DIR) && ./configure
+	cd $(FLEX_DIR) && $(MAKE)
+	touch ./depend/flex.build
+
+# Build BYACC.
+./depend/byacc.build:
+	@echo Building BYACC
+	cd $(BYACC_DIR) && ./configure
+	cd $(BYACC_DIR) && $(MAKE)
+	touch ./depend.byacc.build
+
 # Build LLVM.
 ./depend/llvm.build:
 	@echo Building LLVM
@@ -334,9 +353,11 @@ clean_all: \
 	-cd $(BOOST_DIR) && \
 	    [ -f ./bin/b2 ] && ./bin/b2 $(BOOST_CONFIGURE_FLAGS) --clean
 	-cd $(BOOST_DIR) && rm -rf ./include ./lib
+	-cd $(BYACC_DIR) && [ -f ./Makefile ] && $(MAKE) clean
+	-cd $(FLEX_DIR) && [ -f ./Makefile ] && $(MAKE) clean
+	-cd $(LLVM_DIR) && $(MAKE) clean
 	-cd $(PROTOBUF_DIR) && [ -f ./Makefile ] && $(MAKE) clean
 	-cd $(PROTOBUF_DIR) && rm -rf ./bin ./include ./lib
 	-cd $(SFML_DIR) && [ -f ./Makefile ] && $(MAKE) clean
-	-cd $(LLVM_DIR) && $(MAKE) clean
 	cd $(LUAJIT_DIR) && $(MAKE) $(LUAJIT_MAKE_FLAGS) uninstall
 	cd $(LUAJIT_DIR) && $(MAKE) $(LUAJIT_MAKE_FLAGS) clean
