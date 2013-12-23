@@ -66,10 +66,13 @@ export CXX= \
 	/usr/bin/g++-4.8
 export PROTOC= \
 	$(PROTOBUF_DIR)/bin/protoc
+export FLEX= \
+	$(FLEX_DIR)/flex
+export YACC= \
+	$(BYACC_DIR)/yacc
 
 DEPENDENCY_DIRS= \
-	$(BOOST_DIR) $(BYACC_DIR) $(FLEX_DIR) $(LLVM_DIR) \
-	$(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
+	$(BOOST_DIR) $(LLVM_DIR) $(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
 DEPENDENCY_CFLAGS= \
 	$(addprefix -isystem ,\
 	$(addsuffix /include,$(DEPENDENCY_DIRS)))
