@@ -9,6 +9,7 @@ MILESTONES
  + DONE: Particle system
  + Space, weather, lightning, snow, etc
  + Physics, hook shot, long shot, morph ball, etc
+ + Vehicles
 
 SKILLS
 
@@ -26,4 +27,5 @@ Force move
 >> Reverse force move
 >>>> Rotate world
 
+Ice Bomb
 Sharkfin

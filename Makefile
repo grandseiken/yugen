@@ -41,6 +41,8 @@ DEPEND_DIR= \
 	./depend
 BOOST_DIR= \
 	$(DEPEND_DIR)/boost_1_55_0
+LLVM_DIR= \
+  $(DEPEND_DIR)/llvm_3_3
 LUAJIT_DIR= \
 	$(DEPEND_DIR)/luajit_2_0_2
 PROTOBUF_DIR= \
@@ -62,7 +64,7 @@ export PROTOC= \
 	$(PROTOBUF_DIR)/bin/protoc
 
 DEPENDENCY_DIRS= \
-	$(BOOST_DIR) $(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
+	$(BOOST_DIR) $(LLVM_DIR) $(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
 DEPENDENCY_CFLAGS= \
 	$(addprefix -isystem ,\
 	$(addsuffix /include,$(DEPENDENCY_DIRS)))
@@ -294,6 +296,13 @@ SFML_CMAKE_FLAGS= \
 	cd $(BOOST_DIR) && ./bin/b2 install $(BOOST_CONFIGURE_FLAGS)
 	touch ./depend/boost.build
 
+# Build LLVM.
+./depend/llvm.build:
+	@echo Building LLVM
+	cd $(LLVM_DIR) && ./configure
+	cd $(LLVM_DIR) && $(MAKE)
+	touch ./depend/llvm.build
+
 # Build LuaJIT.
 ./depend/luajit.build:
 	@echo Building LuaJIT
@@ -328,5 +337,6 @@ clean_all: \
 	-cd $(PROTOBUF_DIR) && [ -f ./Makefile ] && $(MAKE) clean
 	-cd $(PROTOBUF_DIR) && rm -rf ./bin ./include ./lib
 	-cd $(SFML_DIR) && [ -f ./Makefile ] && $(MAKE) clean
+	-cd $(LLVM_DIR) && $(MAKE) clean
 	cd $(LUAJIT_DIR) && $(MAKE) $(LUAJIT_MAKE_FLAGS) uninstall
 	cd $(LUAJIT_DIR) && $(MAKE) $(LUAJIT_MAKE_FLAGS) clean
