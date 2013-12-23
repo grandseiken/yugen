@@ -116,6 +116,16 @@ PROTO_SOURCES= \
 	$(subst $(SOURCE)/,$(GEN)/,$(PROTOS:.proto=.pb.cc))
 PROTO_HEADERS= \
 	$(subst $(SOURCE)/,$(GEN)/,$(PROTOS:.proto=.pb.h))
+L_FILES= \
+	$(wildcard $(SOURCE)/*.l) \
+  $(wildcard $(SOURCE)/*/*.l)
+L_SOURCES= \
+  $(subst $(SOURCE)/,$(GEN)/,$(FLEX:.l=.l.c))
+Y_FILES= \
+	$(wildcard $(SOURCE)/*.y) \
+	$(wildcard $(SOURCE)/*/*.y)
+Y_SOURCES= \
+	$(subst $(SOURCE)/,$(GEN)/,$(BYACC:.y=.y.c))
 SOURCE_FILES= \
 	$(wildcard $(SOURCE)/*.cpp) \
 	$(wildcard $(SOURCE)/*/*.cpp)
@@ -162,16 +172,22 @@ yedit: \
 .PHONY: add
 add:
 	git add $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
-	    $(SOURCE_FILES) $(HEADER_FILES) $(DATA_FILES)
+	    $(SOURCE_FILES) $(HEADER_FILES) $(DATA_FILES) \
+			$(PROTOS) $(L_FILES) $(Y_FILES)
 .PHONY: todo
 todo:
 	@grep --color -n "T[O]D[O]" \
 	    $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
-	    $(SOURCE_FILES) $(HEADER_FILES)
+	    $(SOURCE_FILES) $(HEADER_FILES) \
+			$(PROTOS) $(L_FILES) $(Y_FILES)
 .PHONY: wc
 wc:
 	@echo Scripts and docs:
 	@cat $(SCRIPT_FILES) | wc
+	@echo Protos:
+	@cat $(PROTOS) | wc
+	@echo Flex/BYACC files:
+	@cat $(L_FILES) $(Y_FILES) | wc
 	@echo GLSL:
 	@cat $(GLSL_FILES) | wc
 	@echo Lua:
@@ -180,7 +196,8 @@ wc:
 	@cat $(SOURCE_FILES) $(HEADER_FILES) | wc
 	@echo Total:
 	@cat $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
-	    $(SOURCE_FILES) $(HEADER_FILES) | wc
+	    $(SOURCE_FILES) $(HEADER_FILES) \
+			$(PROTOS) $(L_FILES) $(Y_FILES) | wc
 .PHONY: clean
 clean:
 	rm -rf $(OUTDIR)
@@ -234,7 +251,8 @@ $(YEDIT): \
 # are built.
 $(OUTDIR)/%.o: \
 	$(OUTDIR)/%.build $(OUTDIR)/%.mkdir \
-	./depend/boost.build ./depend/luajit.build ./depend/protobuf.build
+	./depend/boost.build ./depend/protobuf.build \
+	./depend/luajit.build ./depend/llvm.build
 	SOURCE_FILE=$(subst $(OUTDIR)/,,./$(<:.build=)); \
 	    echo Compiling $$SOURCE_FILE; \
 	    $(CXX) -c $(CFLAGS) -o $@ $$SOURCE_FILE
@@ -250,6 +268,20 @@ $(GEN)/proto/%.pb.h: \
 	./depend/protobuf.build
 	@echo Compiling ./$<
 	$(PROTOC) $(PFLAGS) ./$<
+
+# Flex/BYACC files.
+.PRECIOUS: $(L_SOURCES) $(Y_SOURCES)
+$(GEN)/%.l.c: \
+	$(SOURCE)/%.l $(GEN)/%.mkdir ./depend/flex.build
+	@echo Compiling ./$<
+	$(FLEX) -o $@ $<
+$(GEN)/%.y.h: \
+	$(GEN)/%.y.c
+	touch $@ $<
+$(GEN)/%.y.c: \
+	$(SOURCE)/%.y $(GEN)/%.mkdir ./depend/byacc.build
+	@echo Compiling ./$<
+	$(BYACC) -o $@ $<
 
 # Ensure a directory exists.
 .PRECIOUS: ./%.mkdir
@@ -289,6 +321,7 @@ SFML_CMAKE_FLAGS= \
 # Dependencies.
 ./depend/.build: \
 	./depend/boost.build \
+	./depend/llvm.build \
 	./depend/luajit.build \
 	./depend/protobuf.build \
 	./depend/sfml.build
