@@ -1,6 +1,7 @@
 # Targets:
 #   yugen - the Yugen game binary
 #   yedit - the Yedit editor binary
+#   yang - the Yang standalone compiler/checker
 #   clean - delete all outputs
 #   clean_all - delete all outputs and clean dependencies
 # Pass DBG=1 to make for debug binaries.
@@ -266,10 +267,13 @@ $(GEN)/proto/%.pb.h: \
 
 # Flex/YACC files.
 .PRECIOUS: $(L_SOURCES) $(Y_SOURCES)
+$(GEN)/%.l.h: \
+	$(GEN)/%.l.cc
+	touch $@ $<
 $(GEN)/%.l.cc: \
 	$(SOURCE)/%.l $(GEN)/%.mkdir ./depend/flex.build
 	@echo Compiling ./$<
-	$(FLEX) -o $@ $<
+	$(FLEX) -o $@ --header-file=$(@:.cc=.h) $<
 $(GEN)/%.y.h: \
 	$(GEN)/%.y.cc
 	touch $@ $<
