@@ -82,8 +82,10 @@ BOOST_LIBRARIES_LFLAGS= \
 	$(addprefix -lboost_,$(BOOST_LIBRARIES))
 
 # Compiler flags.
+C11FLAGS= \
+  -std=c++11
 CFLAGS= \
-	-std=c++11 \
+	$(C11FLAGS) \
 	$(DEPENDENCY_CFLAGS)
 LFLAGS= \
 	$(DEPENDENCY_LFLAGS) \
