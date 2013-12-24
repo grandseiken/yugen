@@ -1,6 +1,7 @@
 %{
 
 #include "yang.y.h"
+int yyline = 1;
 
 %}
 
@@ -87,9 +88,9 @@ parameter {return T_PARAMETER;}
 
   /* Identifiers and literals. */
 
-{identifier} {yylval.string_value = yytext; return T_IDENTIFIER;}
-{int_literal} {yylval.int_value = y::stoi(yytext); return T_INT_LITERAL;}
-{world_literal} {yylval.world_value = y::stod(yytext); return T_WORLD_LITERAL;}
+{identifier} {return T_IDENTIFIER;}
+{int_literal} {return T_INT_LITERAL;}
+{world_literal} {return T_WORLD_LITERAL;}
 
   /* Default. */
 

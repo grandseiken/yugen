@@ -1,10 +1,16 @@
 %{
+
+struct Node;
+extern int yylex();
+int yyerror(const char* message)
+{
+  return 0;
+}
+
 %}
 
 %union {
-  y::int32 int_value;
-  y::world world_value;
-  y::string string_value;
+  struct Node* node;
 }
 
   /* Tokens. */
