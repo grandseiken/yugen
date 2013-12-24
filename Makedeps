@@ -1,9 +1,10 @@
 #!/bin/sh
 # Usage:
-# ./deps.sh depfile buildfile file
+# ./deps.sh depfile buildfile file outdir
 DEPFILE=$1
 BUILDFILE=$2
 FILE=$3
+OUTDIR=$4
 
 # Get include dependencies from a single file.
 get_deps() {
@@ -64,7 +65,23 @@ while [ $ANY -eq 0 ]; do
   ANY=$?
 done
 
+# Find corresponding source files.
+SOURCE_DEPS=""
+for DEP in $DEPS; do
+  BASE="${DEP%.*}"
+  if [ -f $BASE.cc ]; then
+    SOURCE_DEPS="$SOURCE_DEPS $OUTDIR/$BASE.cc.o"
+  fi
+  if [ -f $BASE.cpp ]; then
+    SOURCE_DEPS="$SOURCE_DEPS $OUTDIR/$BASE.cpp.o"
+  fi
+done
+
 # Write dependency file. The .BUILD target depends on the corresponding file and
 # its include dependencies. We use double-colon rules to suppress target
 # override warnings.
 echo -e "$BUILDFILE::$DEPS\n\t@touch $BUILDFILE" > $DEPFILE
+
+# Write list of corresponding object files to a variable for linking.
+VAR=${FILE//\//_}
+echo -e "${VAR//./_}_LINK=$SOURCE_DEPS" >> $DEPFILE
