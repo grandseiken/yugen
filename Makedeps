@@ -67,4 +67,4 @@ done
 # Write dependency file. The .BUILD target depends on the corresponding file and
 # its include dependencies. We use double-colon rules to suppress target
 # override warnings.
-echo "$BUILDFILE::$DEPS\n\t@touch $BUILDFILE" > $DEPFILE
+echo -e "$BUILDFILE::$DEPS\n\t@touch $BUILDFILE" > $DEPFILE
