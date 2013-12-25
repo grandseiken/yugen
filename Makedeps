@@ -6,6 +6,22 @@ BUILDFILE=$2
 FILE=$3
 OUTDIR=$4
 
+# Deduplicate and filter one list by another.
+dedup() {
+  NEW=""
+  ANY=1
+  for X in $1; do
+    echo "$2 $NEW" | fgrep $X > /dev/null
+    if [ $? -ne 0 ]; then
+      NEW="$NEW $X"
+      ANY=0
+    fi
+  done
+
+  echo $NEW
+  return $ANY
+}
+
 # Get include dependencies from a single file.
 get_deps() {
   DIR=$(dirname $1)
@@ -39,23 +55,34 @@ get_new_deps() {
     T=$(get_deps $FILE)
     DEPS="$DEPS $T"
   done
- 
-  # Deduplicate and filter these new dependencies by second list.
-  NEW_DEPS=""
-  ANY=1
-  for DEP in $DEPS; do
-    echo "$2 $NEW_DEPS" | fgrep $DEP > /dev/null
-    if [ $? -ne 0 ]; then
-      NEW_DEPS="$NEW_DEPS $DEP"
-      ANY=0
+
+  R=$(dedup "$DEPS" "$2")
+  V=$?
+  echo $R
+  return $V
+}
+
+# Get corresponding source files that are not contained in a list of known
+# source files.
+get_source_files() {
+  SOURCES=""
+  for FILE in $1; do
+    BASE="${FILE%.*}"
+    if [ -f $BASE.cc ]; then
+      SOURCES="$SOURCES $BASE.cc"
+    fi
+    if [ -f $BASE.cpp ]; then
+      SOURCES="$SOURCES $BASE.cpp"
     fi
   done
 
-  echo $NEW_DEPS
-  return $ANY
+  R=$(dedup "$SOURCES" "$2")
+  V=$?
+  echo $R
+  return $V
 }
 
-# Extract deps until we have them all.
+# Extract include deps until we have them all.
 DEPS=""
 NEW_DEPS="$FILE"
 ANY=0
@@ -65,15 +92,28 @@ while [ $ANY -eq 0 ]; do
   ANY=$?
 done
 
-# Find corresponding source files.
-SOURCE_DEPS=""
-for DEP in $DEPS; do
-  BASE="${DEP%.*}"
-  if [ -f $BASE.cc ]; then
-    SOURCE_DEPS="$SOURCE_DEPS $OUTDIR/$BASE.cc.o"
-  fi
-  if [ -f $BASE.cpp ]; then
-    SOURCE_DEPS="$SOURCE_DEPS $OUTDIR/$BASE.cpp.o"
+# Extract link deps.
+LINK_DEPS=""
+NEW_DEPS=$DEPS
+ANY=0
+while [ $ANY -eq 0 ]; do
+  LINK_DEPS="$LINK_DEPS $NEW_DEPS"
+
+  T=$(get_source_files "$NEW_DEPS" "$LINK_DEPS")
+  LINK_ANY=$?
+
+  U=$(get_new_deps "$NEW_DEPS" "$LINK_DEPS")
+  INCLUDE_ANY=$?
+
+  NEW_DEPS="$T $U"
+  let ANY="$LINK_ANY * $INCLUDE_ANY"
+done
+
+OBJECT_DEPS=""
+for LINK in $LINK_DEPS; do
+  echo "$LINK" | egrep '.cc$|.cpp$' > /dev/null
+  if [ $? -eq 0 ]; then
+    OBJECT_DEPS="$OBJECT_DEPS $OUTDIR/$LINK.o"
   fi
 done
 
@@ -84,4 +124,4 @@ echo -e "$BUILDFILE::$DEPS\n\t@touch $BUILDFILE" > $DEPFILE
 
 # Write list of corresponding object files to a variable for linking.
 VAR=${FILE//\//_}
-echo -e "${VAR//./_}_LINK=$SOURCE_DEPS" >> $DEPFILE
+echo -e "${VAR//./_}_LINK=$OBJECT_DEPS" >> $DEPFILE

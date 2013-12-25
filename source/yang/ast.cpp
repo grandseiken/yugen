@@ -38,12 +38,13 @@ Node::Node(y::world value)
 }
 
 Node::Node(y::string value)
-  : Node()
+  : int_value(0)
+  , world_value(0)
   , string_value(value)
 {
 }
 
 void Node::add(Node* node)
 {
-  children.push_back(move_unique(node));
+  children.push_back(y::move_unique(node));
 }
