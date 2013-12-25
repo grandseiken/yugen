@@ -9,22 +9,52 @@
 // Child nodes passed to constructors or add transfer ownership, and are
 // destroyed when the parent is destroyed.
 struct Node {
-  Node();
-  Node(Node* a);
-  Node(Node* a, Node* b);
-  Node(Node* a, Node* b, Node* c);
+  enum node_type {
+    IDENTIFIER,
+    INT_LITERAL,
+    WORLD_LITERAL,
+    TERNARY,
+    LOGICAL_OR,
+    LOGICAL_AND,
+    BITWISE_OR,
+    BITWISE_AND,
+    BITWISE_XOR,
+    BITWISE_LSHIFT,
+    BITWISE_RSHIFT,
+    POW,
+    MOD,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    EQ,
+    NE,
+    GE,
+    LE,
+    GT,
+    LT,
+    LOGICAL_NEGATION,
+    BITWISE_NEGATION,
+    ARITHMETIC_NEGATION,
+  };
 
-  Node(y::int32 value);
-  Node(y::world value);
-  Node(y::string value);
+  Node(node_type type);
+  Node(node_type type, Node* a);
+  Node(node_type type, Node* a, Node* b);
+  Node(node_type type, Node* a, Node* b, Node* c);
+
+  Node(node_type type, y::int32 value);
+  Node(node_type type, y::world value);
+  Node(node_type type, y::string value);
 
   void add(Node* node);
+
+  node_type type;
+  y::vector<y::unique<Node>> children;
 
   y::int32 int_value;
   y::world world_value;
   y::string string_value;
-
-  y::vector<y::unique<Node>> children;
 };
 
 #endif

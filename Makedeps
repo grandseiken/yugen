@@ -1,10 +1,11 @@
 #!/bin/sh
 # Usage:
-# ./deps.sh depfile buildfile file outdir
+# ./deps.sh depfile buildfile file outdir make_link_deps
 DEPFILE=$1
 BUILDFILE=$2
 FILE=$3
 OUTDIR=$4
+MAKE_LINK_DEPS=$5
 
 # Deduplicate and filter one list by another.
 dedup() {
@@ -92,6 +93,15 @@ while [ $ANY -eq 0 ]; do
   ANY=$?
 done
 
+# Write dependency file. The .BUILD target depends on the corresponding file and
+# its include dependencies. We use double-colon rules to suppress target
+# override warnings.
+echo -e "$BUILDFILE::$DEPS\n\t@touch $BUILDFILE" > $DEPFILE
+
+if [ $MAKE_LINK_DEPS -ne 0 ]; then
+  exit
+fi
+
 # Extract link deps.
 LINK_DEPS=""
 NEW_DEPS=$DEPS
@@ -116,11 +126,6 @@ for LINK in $LINK_DEPS; do
     OBJECT_DEPS="$OBJECT_DEPS $OUTDIR/$LINK.o"
   fi
 done
-
-# Write dependency file. The .BUILD target depends on the corresponding file and
-# its include dependencies. We use double-colon rules to suppress target
-# override warnings.
-echo -e "$BUILDFILE::$DEPS\n\t@touch $BUILDFILE" > $DEPFILE
 
 # Write list of corresponding object files to a variable for linking.
 VAR=${FILE//\//_}

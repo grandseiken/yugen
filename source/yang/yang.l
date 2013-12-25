@@ -90,17 +90,18 @@ parameter {return T_PARAMETER;}
   /* Identifiers and literals. */
 
 {identifier} {
-  yylval.node = new Node(yytext);
+  yylval.node = new Node(Node::IDENTIFIER, yytext);
   return T_IDENTIFIER;
 }
 {int_literal} {
-  yylval.node = new Node(y::stoi(yytext));
+  yylval.node = new Node(Node::INT_LITERAL, y::stoi(yytext));
   return T_INT_LITERAL;
 }
 {world_literal} {
-  yylval.node = new Node(y::stod(yytext));
+  yylval.node = new Node(Node::WORLD_LITERAL, y::stod(yytext));
   return T_WORLD_LITERAL;
 }
 
   /* Default. */
+
 {default} {return yytext[0];}

@@ -60,13 +60,13 @@ int yyerror(const char* message)
 %token T_ASSIGN_SUB
 %token T_ASSIGN_MUL
 %token T_ASSIGN_DIV
-%token <string_value> T_IDENTIFIER
-%token <int_value> T_INT_LITERAL
-%token <world_value> T_WORLD_LITERAL
+%token <node> T_IDENTIFIER
+%token <node> T_INT_LITERAL
+%token <node> T_WORLD_LITERAL
 
   /* Operator precedence. */
 
-%left T_TERNARY_L T_TERNARY_R
+%left T_TERNARY
 %left T_LOGICAL_OR
 %left T_LOGICAL_AND
 %left T_EQ T_NE
@@ -82,6 +82,8 @@ int yyerror(const char* message)
 
   /* Types. */
 
+%type <node> t_expr
+%type <node> expr
 %start expr
 
 %%
@@ -90,33 +92,60 @@ int yyerror(const char* message)
 
 expr
   : t_expr T_TERNARY_L expr T_TERNARY_R expr
+{$$ = new Node(Node::TERNARY, $1, $3, $5);}
   | t_expr
+{$$ = $1;}
   ;
 
 t_expr
   : T_IDENTIFIER
+{$$ = $1;}
   | T_INT_LITERAL
+{$$ = $1;}
   | T_WORLD_LITERAL
+{$$ = $1;}
   | t_expr T_LOGICAL_OR t_expr
+{$$ = new Node(Node::LOGICAL_OR, $1, $3);}
   | t_expr T_LOGICAL_AND t_expr
+{$$ = new Node(Node::LOGICAL_AND, $1, $3);}
   | t_expr T_BITWISE_OR t_expr
+{$$ = new Node(Node::BITWISE_OR, $1, $3);}
   | t_expr T_BITWISE_AND t_expr
+{$$ = new Node(Node::BITWISE_AND, $1, $3);}
   | t_expr T_BITWISE_XOR t_expr
+{$$ = new Node(Node::BITWISE_XOR, $1, $3);}
   | t_expr T_BITWISE_LSHIFT t_expr
+{$$ = new Node(Node::BITWISE_LSHIFT, $1, $3);}
   | t_expr T_BITWISE_RSHIFT t_expr
+{$$ = new Node(Node::BITWISE_RSHIFT, $1, $3);}
   | t_expr T_POW t_expr
+{$$ = new Node(Node::POW, $1, $3);}
   | t_expr T_MOD t_expr
+{$$ = new Node(Node::MOD, $1, $3);}
   | t_expr T_ADD t_expr
+{$$ = new Node(Node::ADD, $1, $3);}
   | t_expr T_SUB t_expr
+{$$ = new Node(Node::SUB, $1, $3);}
   | t_expr T_MUL t_expr
+{$$ = new Node(Node::MUL, $1, $3);}
   | t_expr T_DIV t_expr
+{$$ = new Node(Node::DIV, $1, $3);}
   | t_expr T_EQ t_expr
+{$$ = new Node(Node::EQ, $1, $3);}
   | t_expr T_NE t_expr
+{$$ = new Node(Node::NE, $1, $3);}
   | t_expr T_GE t_expr
+{$$ = new Node(Node::GE, $1, $3);}
   | t_expr T_LE t_expr
+{$$ = new Node(Node::LE, $1, $3);}
   | t_expr T_GT t_expr
+{$$ = new Node(Node::GT, $1, $3);}
   | t_expr T_LT t_expr
+{$$ = new Node(Node::LT, $1, $3);}
   | T_LOGICAL_NEGATION t_expr %prec T_UNARY
+{$$ = new Node(Node::LOGICAL_NEGATION, $2);}
   | T_BITWISE_NEGATION t_expr %prec T_UNARY
+{$$ = new Node(Node::BITWISE_NEGATION, $2);}
   | T_SUB t_expr %prec T_UNARY
+{$$ = new Node(Node::ARITHMETIC_NEGATION, $2);}
   ;

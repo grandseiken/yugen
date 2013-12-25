@@ -212,7 +212,9 @@ $(OUTDIR)/%.deps: \
 	$(OUTDIR)/%.build $(OUTDIR)/%.mkdir ./Makedeps
 	SOURCE_FILE=$(subst $(OUTDIR)/,,./$(@:.deps=)); \
 	    echo Generating dependencies for $$SOURCE_FILE; \
-	    ./Makedeps $@ $< $$SOURCE_FILE $(OUTDIR)
+	    echo $(addsuffix .cpp,$(subst $(OUTDIR),$(SOURCE),$(BINARIES))) | \
+			    fgrep $$SOURCE_FILE > /dev/null; \
+	    ./Makedeps $@ $< $$SOURCE_FILE $(OUTDIR) $$?
 .PRECIOUS: $(OUTDIR)/%.build
 $(OUTDIR)/%.build: \
 	./% $(HEADERS) $(OUTDIR)/%.mkdir
