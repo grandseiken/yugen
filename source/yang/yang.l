@@ -1,6 +1,7 @@
 %{
 
 #include "yang.y.h"
+#include "../../source/yang/ast.h"
 int yyline = 1;
 
 %}
@@ -88,10 +89,18 @@ parameter {return T_PARAMETER;}
 
   /* Identifiers and literals. */
 
-{identifier} {return T_IDENTIFIER;}
-{int_literal} {return T_INT_LITERAL;}
-{world_literal} {return T_WORLD_LITERAL;}
+{identifier} {
+  yylval.node = new Node(yytext);
+  return T_IDENTIFIER;
+}
+{int_literal} {
+  yylval.node = new Node(y::stoi(yytext));
+  return T_INT_LITERAL;
+}
+{world_literal} {
+  yylval.node = new Node(y::stod(yytext));
+  return T_WORLD_LITERAL;
+}
 
   /* Default. */
-
 {default} {return yytext[0];}

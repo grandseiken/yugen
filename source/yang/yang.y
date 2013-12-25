@@ -1,6 +1,7 @@
 %{
 
-struct Node;
+#include "../../source/yang/ast.h"
+
 extern int yylex();
 int yyerror(const char* message)
 {
