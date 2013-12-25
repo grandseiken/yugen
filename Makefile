@@ -33,6 +33,14 @@ GEN= \
 	./gen
 SOURCE= \
 	./source
+YUGEN_BINARY= \
+	$(OUTDIR)/yugen
+YEDIT_BINARY= \
+	$(OUTDIR)/editor/yedit
+YANG_BINARY= \
+	$(OUTDIR)/yang/yang
+BINARIES= \
+	$(YUGEN_BINARY) $(YEDIT_BINARY) $(YANG_BINARY)
 
 # Dependency directories.
 DEPEND_DIR= \
@@ -150,8 +158,6 @@ DATA_FILES= \
 	$(wildcard ./data/world/*)
 SCRIPT_FILES= \
 	Makefile Makedeps README ./*.sh
-BINARIES= \
-	$(OUTDIR)/yugen $(OUTDIR)/editor/yedit $(OUTDIR)/yang
 
 # Master targets.
 .PHONY: all
@@ -159,13 +165,13 @@ all: \
 	$(BINARIES)
 .PHONY: yugen
 yugen: \
-	$(OUTDIR)/yugen
+	$(YUGEN_BINARY)
 .PHONY: yedit
 yedit: \
-	$(OUTDIR)/editor/yedit
+	$(YEDIT_BINARY)
 .PHONY: yang
 yang: \
-	$(OUTDIR)/yang
+	$(YANG_BINARY)
 .PHONY: add
 add:
 	git add $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
@@ -213,7 +219,7 @@ $(OUTDIR)/%.deps: \
 	SOURCE_FILE=$(subst $(OUTDIR)/,,./$(@:.deps=)); \
 	    echo Generating dependencies for $$SOURCE_FILE; \
 	    echo $(addsuffix .cpp,$(subst $(OUTDIR),$(SOURCE),$(BINARIES))) | \
-			    fgrep $$SOURCE_FILE > /dev/null; \
+	        fgrep $$SOURCE_FILE > /dev/null; \
 	    ./Makedeps $@ $< $$SOURCE_FILE $(OUTDIR) $$?
 .PRECIOUS: $(OUTDIR)/%.build
 $(OUTDIR)/%.build: \
