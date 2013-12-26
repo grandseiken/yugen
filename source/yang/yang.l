@@ -1,8 +1,24 @@
 %{
 
 #include "yang.y.h"
+#include "../../source/common/algorithm.h"
 #include "../../source/yang/ast.h"
-int yyline = 1;
+
+#undef YY_INPUT
+#define YY_INPUT(b, r, m) lexer_input(b, &r, m)
+
+int lexer_input(char* buffer, y::size* bytes_read, y::size bytes_max)
+{
+  const y::string& in = *ParseGlobals::lexer_input_contents;
+  y::size& offset = ParseGlobals::lexer_input_offset;
+
+  *bytes_read = y::min(bytes_max, in.length() - offset);
+  for (y::size i = 0; i < *bytes_read; ++i) {
+    buffer[i] = in[i + offset];
+  }
+  offset += *bytes_read;
+  return 0;
+}
 
 %}
 
@@ -31,10 +47,10 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
 
 <INITIAL>{long_comment_begin} {BEGIN(long_comment);}
 <long_comment>{long_comment_end} {BEGIN(INITIAL);}
-<long_comment>{newline} {++yyline;}
+<long_comment>{newline} {++ParseGlobals::lexer_line;}
 <long_comment>{long_comment_consume} {}
 {whitespace} {}
-{comment}|{newline} {++yyline;}
+{comment}|{newline} {++ParseGlobals::lexer_line;}
 
   /* Keywords. */
 

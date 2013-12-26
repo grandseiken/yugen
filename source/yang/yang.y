@@ -2,9 +2,10 @@
 
 #include "../../source/yang/ast.h"
 
-extern int yylex();
+int yylex();
 int yyerror(const char* message)
 {
+  ParseGlobals::errors.emplace_back(message);
   return 0;
 }
 
@@ -82,13 +83,19 @@ int yyerror(const char* message)
 
   /* Types. */
 
-%type <node> t_expr
+%type <node> program
 %type <node> expr
-%start expr
+%type <node> t_expr
+%start program
 
 %%
 
   /* Expressions. */
+
+program
+  : expr
+{$$ = ParseGlobals::parser_output = $1;}
+  ;
 
 expr
   : t_expr T_TERNARY_L expr T_TERNARY_R expr

@@ -68,10 +68,10 @@ void PhysicalFilesystem::read_file_internal(y::string& output,
     file.read(&output[first], output.length());
   }
   catch (const boost::filesystem::filesystem_error& e) {
-    log_err("Write of ", path, " failed");
+    log_err("Read of ", path, " failed");
   }
   catch (const std::ofstream::failure& e) {
-    log_err("Write of ", path, " failed");
+    log_err("Read of ", path, " failed");
   }
 }
 
