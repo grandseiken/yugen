@@ -22,6 +22,9 @@ y::unique<Node> parse_yang_ast(const y::string& contents)
   if (ParseGlobals::errors.size()) {
     return y::null;
   }
+
+  StaticChecker checker;
+  checker.walk(*ParseGlobals::parser_output);
   return y::move_unique(ParseGlobals::parser_output);
 }
 
