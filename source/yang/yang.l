@@ -10,17 +10,21 @@
 #undef YY_INPUT
 #define YY_INPUT(b, r, m) lexer_input(b, &r, m)
 
-int lexer_input(char* buffer, y::size* bytes_read, y::size bytes_max)
-{
-  const y::string& in = *ParseGlobals::lexer_input_contents;
-  y::size& offset = ParseGlobals::lexer_input_offset;
+namespace {
 
-  *bytes_read = y::min(bytes_max, in.length() - offset);
-  for (y::size i = 0; i < *bytes_read; ++i) {
-    buffer[i] = in[i + offset];
+  int lexer_input(char* buffer, y::size* bytes_read, y::size bytes_max)
+  {
+    const y::string& in = *ParseGlobals::lexer_input_contents;
+    y::size& offset = ParseGlobals::lexer_input_offset;
+
+    *bytes_read = y::min(bytes_max, in.length() - offset);
+    for (y::size i = 0; i < *bytes_read; ++i) {
+      buffer[i] = in[i + offset];
+    }
+    offset += *bytes_read;
+    return 0;
   }
-  offset += *bytes_read;
-  return 0;
+
 }
 
 %}
@@ -30,12 +34,12 @@ int lexer_input(char* buffer, y::size* bytes_read, y::size bytes_max)
 
   /* Regular expressions. */
 
-whitespace [ ]+
 newline \n|\r|\r\n
+whitespace [ ]+|{newline}
 comment \/\/.*{newline}
 long_comment_begin \/\*
 long_comment_end \*\/
-long_comment_consume \*|[^*\n\r]+
+long_comment_consume \*|[^*]+
 default .|\n|\r
 
 alpha [A-Za-z_]
@@ -50,10 +54,8 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
 
 <INITIAL>{long_comment_begin} {BEGIN(long_comment);}
 <long_comment>{long_comment_end} {BEGIN(INITIAL);}
-<long_comment>{newline} {++ParseGlobals::lexer_line;}
 <long_comment>{long_comment_consume} {}
-{whitespace} {}
-{comment}|{newline} {++ParseGlobals::lexer_line;}
+{whitespace}|{comment} {}
 
   /* Keywords. */
 

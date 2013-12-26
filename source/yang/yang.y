@@ -1,17 +1,20 @@
 %{
 
+#include "yang.l.h"
 #include "../../source/yang/ast.h"
 #include "../../source/yang/pipeline.h"
 
-extern char* yytext;
-int yylex();
-int yyerror(const char* message)
-{
-  y::sstream ss;
-  ss << "line " << ParseGlobals::lexer_line <<
-      ", near `" << yytext << "`:\n\t" << message;
-  ParseGlobals::errors.emplace_back(ss.str());
-  return 0;
+namespace {
+
+  int yyerror(const char* message)
+  {
+    y::sstream ss;
+    ss << "error at line " << yylineno <<
+        ", near`" << yytext << "`:\n\t" << message;
+    ParseGlobals::errors.emplace_back(ss.str());
+    return 0;
+  }
+
 }
 
 %}

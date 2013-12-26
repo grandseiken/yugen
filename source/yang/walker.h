@@ -29,7 +29,7 @@ public:
   virtual T visit(N& node, const result_list& results) = 0;
 
 };
-#include "../log.h"
+
 template<typename T, bool Const>
 T AstWalkerBase<T, Const>::walk(N& node)
 {

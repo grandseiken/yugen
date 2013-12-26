@@ -52,10 +52,16 @@ struct Node {
 
   void add(Node* node);
 
+  // Information about the location of this Node in the source text, for
+  // diagnostic purposes.
   y::size line;
+  y::string text;
+
+  // Type and children.
   node_type type;
   y::vector<y::unique<Node>> children;
 
+  // Literal values.
   y::int32 int_value;
   y::world world_value;
   y::string string_value;
