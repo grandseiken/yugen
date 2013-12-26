@@ -1,6 +1,7 @@
 #include "pipeline.h"
 
 #include "ast.h"
+#include "static.h"
 #include "../log.h"
 #include "../../gen/yang/yang.y.h"
 #include "../../gen/yang/yang.l.h"
@@ -11,7 +12,7 @@ y::unique<Node> parse_yang_ast(const y::string& contents)
 {
   ParseGlobals::lexer_input_contents = &contents;
   ParseGlobals::lexer_input_offset = 0;
-  ParseGlobals::lexer_line = 0;
+  ParseGlobals::lexer_line = 1;
   ParseGlobals::errors.clear();
 
   yyparse();

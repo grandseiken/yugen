@@ -29,6 +29,7 @@ int yyerror(const char* message)
 %token T_FOR
 %token T_GLOBAL
 %token T_PARAMETER
+
 %token T_TERNARY_L
 %token T_TERNARY_R
 %token T_LOGICAL_NEGATION
@@ -52,6 +53,7 @@ int yyerror(const char* message)
 %token T_LE
 %token T_GT
 %token T_LT
+%token T_WORLD_CAST
 %token T_ASSIGN
 %token T_ASSIGN_LOGICAL_OR
 %token T_ASSIGN_LOGICAL_AND
@@ -85,6 +87,7 @@ int yyerror(const char* message)
 %left T_MUL T_DIV T_MOD
 %right T_UNARY
 %left T_POW
+%left T_WORLD_CAST
 
   /* Types. */
 
@@ -110,7 +113,9 @@ expr
   ;
 
 t_expr
-  : T_IDENTIFIER
+  : '(' expr ')'
+{$$ = $2;}
+  | T_IDENTIFIER
 {$$ = $1;}
   | T_INT_LITERAL
 {$$ = $1;}
@@ -160,4 +165,8 @@ t_expr
 {$$ = new Node(Node::BITWISE_NEGATION, $2);}
   | T_SUB t_expr %prec T_UNARY
 {$$ = new Node(Node::ARITHMETIC_NEGATION, $2);}
+  | '[' expr ']'
+{$$ = new Node(Node::INT_CAST, $2);}
+  | t_expr T_WORLD_CAST
+{$$ = new Node(Node::WORLD_CAST, $1);}
   ;

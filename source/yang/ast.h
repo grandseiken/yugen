@@ -34,6 +34,8 @@ struct Node {
     LOGICAL_NEGATION,
     BITWISE_NEGATION,
     ARITHMETIC_NEGATION,
+    INT_CAST,
+    WORLD_CAST,
   };
 
   // Child nodes passed to constructors or add transfer ownership, and are
@@ -50,6 +52,7 @@ struct Node {
 
   void add(Node* node);
 
+  y::size line;
   node_type type;
   y::vector<y::unique<Node>> children;
 

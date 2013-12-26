@@ -5,6 +5,8 @@
 #include "../../source/yang/ast.h"
 #include "../../source/yang/pipeline.h"
 
+  /* Handle lexer input from a string. */
+
 #undef YY_INPUT
 #define YY_INPUT(b, r, m) lexer_input(b, &r, m)
 
@@ -88,6 +90,7 @@ parameter {return T_PARAMETER;}
 "<=" {return T_LE;}
 ">" {return T_GT;}
 "<" {return T_LT;}
+"." {return T_WORLD_CAST;}
 
 "=" {return T_ASSIGN;}
 "||=" {return T_ASSIGN_LOGICAL_OR;}
