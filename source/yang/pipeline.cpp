@@ -6,6 +6,15 @@
 #include "../log.h"
 #include "../../gen/yang/yang.y.h"
 
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/ExecutionEngine/JIT.h>
+#include <llvm/ExecutionEngine/GenericValue.h>
+#include <llvm/PassManager.h>
+#include <llvm/Analysis/Passes.h>
+#include <llvm/Target/TargetData.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Support/TargetSelect.h>
+
 int yyparse();
 
 y::unique<Node> parse_yang_ast(const y::string& contents)

@@ -77,8 +77,10 @@ export FLEX= \
 export YACC= \
 	$(BYACC_DIR)/yacc
 
+# TODO: put LLVM into the top-level directory (also, without asserts).
 DEPENDENCY_DIRS= \
-	$(BOOST_DIR) $(LLVM_DIR) $(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
+	$(BOOST_DIR) $(LLVM_DIR)/Release+Asserts $(LLVM_DIR) \
+	$(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
 DEPENDENCY_CFLAGS= \
 	$(addprefix -isystem ,\
 	$(addsuffix /include,$(DEPENDENCY_DIRS)))
@@ -99,6 +101,7 @@ LFLAGS= \
 	\
 	-Wl,-Bstatic \
 	$(BOOST_LIBRARIES_LFLAGS) \
+	$(shell $(LLVM_DIR)/Release+Asserts/bin/llvm-config --libs) \
 	-lluajit-5.1 \
 	-lprotobuf \
 	-lsfml-graphics-s -lsfml-window-s -lsfml-system-s \
