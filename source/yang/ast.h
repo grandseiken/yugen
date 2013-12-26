@@ -6,9 +6,6 @@
 #include "../common/string.h"
 #include "../common/vector.h"
 
-struct Node;
-y::unique<Node> parse_yang_ast(const y::string& contents);
-
 struct Node {
   enum node_type {
     IDENTIFIER,
@@ -59,15 +56,6 @@ struct Node {
   y::int32 int_value;
   y::world world_value;
   y::string string_value;
-};
-
-struct ParseGlobals {
-  static const y::string* lexer_input_contents;
-  static y::size lexer_input_offset;
-  static y::size lexer_line;
-
-  static Node* parser_output;
-  static y::vector<y::string> errors;
 };
 
 #endif

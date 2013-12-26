@@ -3,6 +3,7 @@
 #include "../log.h"
 
 #include "ast.h"
+#include "pipeline.h"
 #include <boost/filesystem.hpp>
 #include <fstream>
 
@@ -32,6 +33,6 @@ y::int32 main(y::int32 argc, char** argv)
     return 1;
   }
 
-  y::unique<Node> ast = parse_yang_ast(path);
+  y::unique<Node> ast = parse_yang_ast(contents);
   return 0;
 }

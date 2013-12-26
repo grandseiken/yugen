@@ -3,6 +3,7 @@
 #include "yang.y.h"
 #include "../../source/common/algorithm.h"
 #include "../../source/yang/ast.h"
+#include "../../source/yang/pipeline.h"
 
 #undef YY_INPUT
 #define YY_INPUT(b, r, m) lexer_input(b, &r, m)
