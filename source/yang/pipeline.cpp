@@ -17,32 +17,48 @@
 
 int yyparse();
 
-y::unique<Node> parse_yang_ast(const y::string& contents)
+YangProgram::YangProgram(const y::string& contents)
+  : _ast(y::null)
 {
   ParseGlobals::lexer_input_contents = &contents;
   ParseGlobals::lexer_input_offset = 0;
+  ParseGlobals::parser_output = y::null;
   ParseGlobals::errors.clear();
 
+  // TODO: nodes are not deleted if there's a parse error in the middle.
   yyparse();
+  y::unique<Node> output = y::move_unique(ParseGlobals::parser_output);
   for (const y::string& s : ParseGlobals::errors) {
     log_err(s);
   }
   if (ParseGlobals::errors.size()) {
-    return y::null;
+    return;
   }
 
   StaticChecker checker;
-  checker.walk(*ParseGlobals::parser_output);
+  checker.walk(*output);
   if (checker.errors()) {
-    return y::null;
+    return;
   }
-  return y::move_unique(ParseGlobals::parser_output);
+  _ast = y::move_unique(output);
 }
 
-y::string print_yang_ast(const Node& node)
+YangProgram::~YangProgram()
 {
+}
+
+bool YangProgram::success() const
+{
+  return bool(_ast);
+}
+
+y::string YangProgram::print_ast() const
+{
+  if (!success()) {
+    return "<error>";
+  }
   AstPrinter printer;
-  return printer.walk(node);
+  return printer.walk(*_ast);
 }
 
 const y::string* ParseGlobals::lexer_input_contents = y::null;

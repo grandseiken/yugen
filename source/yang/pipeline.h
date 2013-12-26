@@ -6,8 +6,21 @@
 #include "../common/vector.h"
 
 struct Node;
-y::unique<Node> parse_yang_ast(const y::string& contents);
-y::string print_yang_ast(const Node& node);
+
+class YangProgram {
+public:
+
+  YangProgram(const y::string& contents);
+  ~YangProgram();
+
+  bool success() const;
+  y::string print_ast() const;
+
+private:
+
+  y::unique<Node> _ast;
+
+};
 
 struct ParseGlobals {
   static const y::string* lexer_input_contents;

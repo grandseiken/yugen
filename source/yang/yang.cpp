@@ -2,7 +2,6 @@
 #include "../common/math.h"
 #include "../log.h"
 
-#include "ast.h"
 #include "pipeline.h"
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -33,11 +32,11 @@ y::int32 main(y::int32 argc, char** argv)
     return 1;
   }
 
-  y::unique<Node> ast = parse_yang_ast(contents);
-  if (!ast) {
+  YangProgram program(contents);
+  if (!program.success()) {
     return 1;
   }
 
-  log_info(print_yang_ast(*ast));
+  log_info(program.print_ast());
   return 0;
 }
