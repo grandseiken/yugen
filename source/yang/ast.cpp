@@ -63,3 +63,35 @@ void Node::add(Node* node)
 {
   children.push_back(y::move_unique(node));
 }
+
+y::string Node::op_string(node_type t)
+{
+  y::string s =
+      t == Node::TERNARY ? "?:" :
+      t == Node::LOGICAL_OR ? "||" :
+      t == Node::LOGICAL_AND ? "&&" :
+      t == Node::BITWISE_OR ? "|" :
+      t == Node::BITWISE_AND ? "&" :
+      t == Node::BITWISE_XOR ? "^" :
+      t == Node::BITWISE_LSHIFT ? "<<" :
+      t == Node::BITWISE_RSHIFT ? ">>" :
+      t == Node::POW ? "**" :
+      t == Node::MOD ? "%" :
+      t == Node::ADD ? "+" :
+      t == Node::SUB ? "-" :
+      t == Node::MUL ? "*" :
+      t == Node::DIV ? "/" :
+      t == Node::EQ ? "==" :
+      t == Node::NE ? "!=" :
+      t == Node::GE ? ">=" :
+      t == Node::LE ? "<=" :
+      t == Node::GT ? ">" :
+      t == Node::LT ? "<" :
+      t == Node::LOGICAL_NEGATION ? "!" :
+      t == Node::BITWISE_NEGATION ? "~" :
+      t == Node::ARITHMETIC_NEGATION ? "-" :
+      t == Node::INT_CAST ? "[]" :
+      t == Node::WORLD_CAST ? "." :
+      "unknown operator";
+  return "`" + s + "`";
+}

@@ -34,5 +34,10 @@ y::int32 main(y::int32 argc, char** argv)
   }
 
   y::unique<Node> ast = parse_yang_ast(contents);
+  if (!ast) {
+    return 1;
+  }
+
+  log_info(print_yang_ast(*ast));
   return 0;
 }

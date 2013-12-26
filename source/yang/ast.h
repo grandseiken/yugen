@@ -65,6 +65,9 @@ struct Node {
   y::int32 int_value;
   y::world world_value;
   y::string string_value;
+
+  static y::string op_string(node_type t);
+
 };
 
 #endif

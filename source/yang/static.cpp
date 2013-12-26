@@ -27,38 +27,6 @@ namespace {
     return "`" + s + "`";
   }
 
-  y::string op_string(Node::node_type t)
-  {
-    y::string s =
-        t == Node::TERNARY ? "?:" :
-        t == Node::LOGICAL_OR ? "||" :
-        t == Node::LOGICAL_AND ? "&&" :
-        t == Node::BITWISE_OR ? "|" :
-        t == Node::BITWISE_AND ? "&" :
-        t == Node::BITWISE_XOR ? "^" :
-        t == Node::BITWISE_LSHIFT ? "<<" :
-        t == Node::BITWISE_RSHIFT ? ">>" :
-        t == Node::POW ? "**" :
-        t == Node::MOD ? "%" :
-        t == Node::ADD ? "+" :
-        t == Node::SUB ? "-" :
-        t == Node::MUL ? "*" :
-        t == Node::DIV ? "/" :
-        t == Node::EQ ? "==" :
-        t == Node::NE ? "!=" :
-        t == Node::GE ? ">=" :
-        t == Node::LE ? "<=" :
-        t == Node::GT ? ">" :
-        t == Node::LT ? "<" :
-        t == Node::LOGICAL_NEGATION ? "!" :
-        t == Node::BITWISE_NEGATION ? "~" :
-        t == Node::ARITHMETIC_NEGATION ? "-" :
-        t == Node::INT_CAST ? "[]" :
-        t == Node::WORLD_CAST ? "." :
-        "unknown operator";
-    return "`" + s + "`";
-  }
-
 }
 
 StaticChecker::StaticChecker()
@@ -68,7 +36,7 @@ StaticChecker::StaticChecker()
 
 Type StaticChecker::visit(const Node& node, const result_list& results)
 {
-  y::string s = op_string(node.type);
+  y::string s = Node::op_string(node.type);
   y::vector<y::string> rs;
   for (Type t : results) {
     rs.push_back(type_string(t));
@@ -158,6 +126,8 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       return TYPE_WORLD;
   }
 
+  // Default.
+  error(node, "unimplemented construct");
   return TYPE_ERROR;
 }
 

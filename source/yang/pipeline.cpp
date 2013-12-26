@@ -1,6 +1,7 @@
 #include "pipeline.h"
 
 #include "ast.h"
+#include "print.h"
 #include "static.h"
 #include "../log.h"
 #include "../../gen/yang/yang.y.h"
@@ -27,6 +28,12 @@ y::unique<Node> parse_yang_ast(const y::string& contents)
     return y::null;
   }
   return y::move_unique(ParseGlobals::parser_output);
+}
+
+y::string print_yang_ast(const Node& node)
+{
+  AstPrinter printer;
+  return printer.walk(node);
 }
 
 const y::string* ParseGlobals::lexer_input_contents = y::null;
