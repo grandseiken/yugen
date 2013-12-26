@@ -20,35 +20,42 @@ class AstWalkerBase {
 public:
 
   typedef typename AstWalkerNodeType<Const>::type N;
-  void walk(N& node);
+  typedef y::vector<T> result_list;
 
-  virtual T visit(N& node) = 0;
-
-private:
-
-  y::vector<T> _results;
+  // Implements an algorithm such that visit() will be called for each node in
+  // the AST, with the passed result_list containing the results of the calls
+  // to visit() for each of the node's children.
+  T walk(N& node);
+  virtual T visit(N& node, const result_list& results) = 0;
 
 };
-
+#include "../log.h"
 template<typename T, bool Const>
-void AstWalkerBase<T, Const>::walk(N& node)
+T AstWalkerBase<T, Const>::walk(N& node)
 {
-  typedef y::pair<N*, decltype(node.children.begin())> pair;
-  y::vector<pair> stack;
+  struct stack_elem {
+    N* n;
+    decltype(node.children.begin()) it;
+    result_list results;
+  };
+  y::vector<stack_elem> stack;
 
-  stack.emplace_back(&node, node.children.begin());
-  while (!stack.empty()) {
-    N* n = stack.rbegin()->first;
-    auto& it = stack.rbegin()->second;
+  result_list root_output;
+  stack.push_back({&node, node.children.begin(), result_list()});
+  while (true) {
+    stack_elem& elem = *stack.rbegin();
 
-    if (it == n->children.end()) {
-      visit(*n);
+    if (elem.it == elem.n->children.end()) {
+      if (stack.size() == 1) {
+        return visit(*elem.n, elem.results);
+      }
+      (++stack.rbegin())->results.push_back(visit(*elem.n, elem.results));
       stack.pop_back();
       continue;
     }
 
-    N& next = **(it++);
-    stack.emplace_back(&next, next.children.begin());
+    N& next = **elem.it++;
+    stack.push_back({&next, next.children.begin(), result_list()});
   }
 }
 

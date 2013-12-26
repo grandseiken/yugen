@@ -11,7 +11,7 @@ enum Type {
 class StaticChecker : public ConstAstWalker<Type> {
 public:
 
-  Type visit(const Node& node) override;
+  Type visit(const Node& node, const result_list& results) override;
 
 };
 
