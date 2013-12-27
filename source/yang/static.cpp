@@ -139,6 +139,6 @@ bool StaticChecker::errors() const
 void StaticChecker::error(const Node& node, const y::string& message)
 {
   _errors = true;
-  log_err("error at line ", node.line,
+  log_err("Error at line ", node.line,
           ", near `", node.text, "`:\n\t", message);
 }

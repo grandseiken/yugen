@@ -6,19 +6,34 @@
 #include "../common/vector.h"
 
 struct Node;
+namespace llvm {
+  class Module;
+  class ExecutionEngine;
+}
 
 class YangProgram {
 public:
 
-  YangProgram(const y::string& contents);
+  YangProgram(const y::string& name, const y::string& contents);
   ~YangProgram();
 
+  // Returns true if the contents parsed and checked successfully. Otherwise,
+  // none of the following functions will do anything useful.
   bool success() const;
   y::string print_ast() const;
 
+  void generate_ir();
+  void optimise_ir();
+  y::string print_ir() const;
+
 private:
 
+  y::string _name;
+  y::string _error;
+
   y::unique<Node> _ast;
+  y::unique<llvm::Module> _module;
+  llvm::ExecutionEngine* _engine;
 
 };
 

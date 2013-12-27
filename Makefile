@@ -217,8 +217,12 @@ clean:
 # This means we only need to regenerate dependencies when a dependency changes.
 # When the specific .build target doesn't exist, the default causes everything
 # to be generated.
-$(OUTDIR)/%.deps: \
-	$(OUTDIR)/%.build $(OUTDIR)/%.mkdir ./Makedeps
+.SECONDEXPANSION:
+$(DEPFILES): $(OUTDIR)/%.deps: \
+	$(OUTDIR)/%.build $(OUTDIR)/%.mkdir ./Makedeps \
+	$$(subst \
+	$$(OUTDIR)/,,$$($$(subst .,_,$$(subst /,_,$$(subst \
+	$$(OUTDIR)/,,./$$(@:.deps=))))_LINK:.o=))
 	SOURCE_FILE=$(subst $(OUTDIR)/,,./$(@:.deps=)); \
 	    echo Generating dependencies for $$SOURCE_FILE; \
 	    echo $(addsuffix .cpp,$(subst $(OUTDIR),$(SOURCE),$(BINARIES))) | \
@@ -243,7 +247,6 @@ endif
 
 # Binary linking. Each binary uses a special variable containing the list of
 # object files it depends on, generated in the .deps file.
-.SECONDEXPANSION:
 $(BINARIES): $(OUTDIR)/%: \
 	./depend/.build $(OUTDIR)/%.mkdir \
 	$$(__source$$(subst /,_,$$(subst $$(OUTDIR),,./$$@))_cpp_LINK)

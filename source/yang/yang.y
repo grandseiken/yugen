@@ -9,7 +9,7 @@ namespace {
   int yyerror(const char* message)
   {
     y::sstream ss;
-    ss << "error at line " << yylineno <<
+    ss << "Error at line " << yylineno <<
         ", near`" << yytext << "`:\n\t" << message;
     ParseGlobals::errors.emplace_back(ss.str());
     return 0;

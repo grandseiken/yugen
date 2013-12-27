@@ -1,24 +1,28 @@
 #include "pipeline.h"
 
 #include "ast.h"
+#include "irgen.h"
 #include "print.h"
 #include "static.h"
 #include "../log.h"
 #include "../../gen/yang/yang.y.h"
 
+#include <llvm/Analysis/Passes.h>
+#include <llvm/Analysis/Verifier.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/JIT.h>
-#include <llvm/ExecutionEngine/GenericValue.h>
-#include <llvm/PassManager.h>
-#include <llvm/Analysis/Passes.h>
-#include <llvm/Target/TargetData.h>
-#include <llvm/Transforms/Scalar.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/PassManager.h>
 
 int yyparse();
 
-YangProgram::YangProgram(const y::string& contents)
-  : _ast(y::null)
+YangProgram::YangProgram(const y::string& name, const y::string& contents)
+  : _name(name)
+  , _ast(y::null)
+  , _module(y::null)
 {
   ParseGlobals::lexer_input_contents = &contents;
   ParseGlobals::lexer_input_offset = 0;
@@ -64,6 +68,63 @@ y::string YangProgram::print_ast() const
   }
   AstPrinter printer;
   return printer.walk(*_ast);
+}
+
+void YangProgram::generate_ir()
+{
+  if (!success()) {
+    return;
+  }
+
+  llvm::InitializeNativeTarget();
+  _module = y::move_unique(
+      new llvm::Module(_name, llvm::getGlobalContext()));
+
+  // TODO: unsure if I am supposed to delete the ExecutionEngine, or the Values.
+  _engine = llvm::EngineBuilder(_module.get()).setErrorStr(&_error).create();
+  if (!_engine) {
+    log_err("Couldn't create execution engine\n", _error);
+    _module = y::null;
+  }
+
+  IrGenerator irgen(*_module);
+  irgen.walk(*_ast);
+
+  if (!llvm::verifyModule(*_module)) {
+    log_err("Couldn't verify module\n", _error);
+    _module = y::null;
+  }
+}
+
+void YangProgram::optimise_ir()
+{
+  if (!_module) {
+    return;
+  }
+
+  llvm::PassManager optimiser;
+  optimiser.add(new llvm::DataLayout(*_engine->getDataLayout()));
+
+  // Optimisation passes.
+  // TODO: work out which optimisation passes to use.
+  optimiser.add(llvm::createBasicAliasAnalysisPass());
+  optimiser.add(llvm::createInstructionCombiningPass());
+  optimiser.add(llvm::createReassociatePass());
+  optimiser.add(llvm::createGVNPass());
+  optimiser.add(llvm::createCFGSimplificationPass());
+
+  optimiser.run(*_module);
+}
+
+y::string YangProgram::print_ir() const
+{
+  if (!_module) {
+    return "<error>";
+  }
+  y::string output;
+  llvm::raw_string_ostream os(output);
+  _module->print(os, y::null);
+  return output;
 }
 
 const y::string* ParseGlobals::lexer_input_contents = y::null;

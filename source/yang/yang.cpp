@@ -32,11 +32,18 @@ y::int32 main(y::int32 argc, char** argv)
     return 1;
   }
 
-  YangProgram program(contents);
+  YangProgram program(path, contents);
   if (!program.success()) {
     return 1;
   }
 
-  log_info(program.print_ast());
+  log_info("Source:\n", program.print_ast(), '\n');
+
+  program.generate_ir();
+  log_info("IR:\n", program.print_ir(), '\n');
+
+  program.optimise_ir();
+  log_info("Optimised IR:\n", program.print_ir(), '\n');
+
   return 0;
 }

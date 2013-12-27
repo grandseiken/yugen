@@ -1,7 +1,17 @@
 #include "irgen.h"
 
-#include <llvm/DerivedTypes.h>
-#include <llvm/LLVMContext.h>
-#include <llvm/Module.h>
-#include <llvm/Analysis/Verifier.h>
-#include <llvm/Support/IRBuilder.h>
+#include <llvm/IR/Module.h>
+
+IrGenerator::IrGenerator(llvm::Module& module)
+  : _builder(module.getContext())
+{
+}
+
+IrGenerator::~IrGenerator()
+{
+}
+
+llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
+{
+  return y::null;
+}
