@@ -43,8 +43,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return constant_world(node.world_value);
 
     case Node::TERNARY:
-      // TODO.
-      return results[0];
+      return branch(results[0], results[1], results[2]);
 
     case Node::LOGICAL_OR:
       return b2i(b.CreateOr(i2b(results[0]), i2b(results[1]), "lor"));
@@ -67,8 +66,8 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     case Node::MOD:
       // TODO: euclidean mod.
       return results[0]->getType()->isIntegerTy() ?
-        b.CreateSRem(results[0], results[1], "mod") :
-        b.CreateFRem(results[0], results[1], "fmod");
+          b.CreateSRem(results[0], results[1], "mod") :
+          b.CreateFRem(results[0], results[1], "fmod");
     case Node::ADD:
       return results[0]->getType()->isIntegerTy() ?
           b.CreateAdd(results[0], results[1], "add") :
@@ -88,29 +87,29 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
           b.CreateFDiv(results[0], results[1], "fdiv");
 
     case Node::EQ:
-      return results[0]->getType()->isIntegerTy() ?
+      return b2i(results[0]->getType()->isIntegerTy() ?
           b.CreateICmpEQ(results[0], results[1], "eq") :
-          b.CreateFCmpOEQ(results[0], results[1], "feq");
+          b.CreateFCmpOEQ(results[0], results[1], "feq"));
     case Node::NE:
-      return results[0]->getType()->isIntegerTy() ?
+      return b2i(results[0]->getType()->isIntegerTy() ?
           b.CreateICmpNE(results[0], results[1], "ne") :
-          b.CreateFCmpONE(results[0], results[1], "fne");
+          b.CreateFCmpONE(results[0], results[1], "fne"));
     case Node::GE:
-      return results[0]->getType()->isIntegerTy() ?
+      return b2i(results[0]->getType()->isIntegerTy() ?
           b.CreateICmpSGE(results[0], results[1], "ge") :
-          b.CreateFCmpOGE(results[0], results[1], "fge");
+          b.CreateFCmpOGE(results[0], results[1], "fge"));
     case Node::LE:
-      return results[0]->getType()->isIntegerTy() ?
+      return b2i(results[0]->getType()->isIntegerTy() ?
           b.CreateICmpSLE(results[0], results[1], "le") :
-          b.CreateFCmpOLE(results[0], results[1], "fle");
+          b.CreateFCmpOLE(results[0], results[1], "fle"));
     case Node::GT:
-      return results[0]->getType()->isIntegerTy() ?
+      return b2i(results[0]->getType()->isIntegerTy() ?
           b.CreateICmpSGT(results[0], results[1], "gt") :
-          b.CreateFCmpOGT(results[0], results[1], "fgt");
+          b.CreateFCmpOGT(results[0], results[1], "fgt"));
     case Node::LT:
-      return results[0]->getType()->isIntegerTy() ?
+      return b2i(results[0]->getType()->isIntegerTy() ?
           b.CreateICmpSLT(results[0], results[1], "lt") :
-          b.CreateFCmpOLT(results[0], results[1], "flt");
+          b.CreateFCmpOLT(results[0], results[1], "flt"));
 
     case Node::LOGICAL_NEGATION:
       return b2i(b.CreateICmpEQ(results[0], constant_int(0), "lneg"));
@@ -160,4 +159,33 @@ llvm::Value* IrGenerator::i2b(llvm::Value* v)
 llvm::Value* IrGenerator::b2i(llvm::Value* v)
 {
   return _builder.CreateZExt(v, int_type(), "int");
+}
+
+llvm::Value* IrGenerator::branch(
+    llvm::Value* cond, llvm::Value* left, llvm::Value* right)
+{
+  auto& b = _builder;
+  auto parent = b.GetInsertBlock()->getParent();
+
+  auto left_block = llvm::BasicBlock::Create(b.getContext(), "left", parent);
+  auto right_block = llvm::BasicBlock::Create(b.getContext(), "right");
+  auto merge_block = llvm::BasicBlock::Create(b.getContext(), "merge");
+
+  b.CreateCondBr(i2b(cond), left_block, right_block);
+  b.SetInsertPoint(left_block);
+  b.CreateBr(merge_block);
+  left_block = b.GetInsertBlock();
+
+  parent->getBasicBlockList().push_back(right_block);
+  b.SetInsertPoint(right_block);
+  b.CreateBr(merge_block);
+  right_block = b.GetInsertBlock();
+
+  parent->getBasicBlockList().push_back(merge_block);
+  b.SetInsertPoint(merge_block);
+  auto phi = b.CreatePHI(left->getType(), 2, "branch");
+
+  phi->addIncoming(left, left_block);
+  phi->addIncoming(right, right_block);
+  return phi;
 }

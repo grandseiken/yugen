@@ -30,6 +30,7 @@ private:
   llvm::Value* constant_world(y::world value) const;
   llvm::Value* i2b(llvm::Value* v);
   llvm::Value* b2i(llvm::Value* v);
+  llvm::Value* branch(llvm::Value* cond, llvm::Value* left, llvm::Value* right);
 
   llvm::Module& _module;
   llvm::IRBuilder<> _builder;

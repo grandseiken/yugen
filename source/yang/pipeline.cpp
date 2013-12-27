@@ -67,7 +67,7 @@ y::string YangProgram::print_ast() const
     return "<error>";
   }
   AstPrinter printer;
-  return printer.walk(*_ast);
+  return printer.walk(*_ast) + '\n';
 }
 
 void YangProgram::generate_ir()

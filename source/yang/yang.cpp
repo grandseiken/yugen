@@ -37,13 +37,13 @@ y::int32 main(y::int32 argc, char** argv)
     return 1;
   }
 
-  log_info("Source:\n", program.print_ast(), '\n');
+  log_info("Source:\n", program.print_ast());
 
   program.generate_ir();
-  log_info("IR:\n", program.print_ir(), '\n');
+  log_info("IR:\n", program.print_ir());
 
   program.optimise_ir();
-  log_info("Optimised IR:\n", program.print_ir(), '\n');
+  log_info("Optimised IR:\n", program.print_ir());
 
   return 0;
 }
