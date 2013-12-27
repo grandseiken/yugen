@@ -83,15 +83,15 @@ void YangProgram::generate_ir()
   // TODO: unsure if I am supposed to delete the ExecutionEngine, or the Values.
   _engine = llvm::EngineBuilder(_module.get()).setErrorStr(&_error).create();
   if (!_engine) {
-    log_err("Couldn't create execution engine\n", _error);
+    log_err("Couldn't create execution engine:\n", _error);
     _module = y::null;
   }
 
   IrGenerator irgen(*_module);
-  irgen.walk(*_ast);
+  irgen.generate(*_ast);
 
-  if (!llvm::verifyModule(*_module)) {
-    log_err("Couldn't verify module\n", _error);
+  if (llvm::verifyModule(*_module, llvm::ReturnStatusAction, &_error)) {
+    log_err("Couldn't verify module:\n", _error);
     _module = y::null;
   }
 }

@@ -5,7 +5,7 @@
 #include "../common/string.h"
 
 class AstPrinter : public ConstAstWalker<y::string> {
-public:
+protected:
 
   y::string visit(const Node& node, const result_list& results) override;
 

@@ -16,9 +16,11 @@ class StaticChecker : public ConstAstWalker<Type> {
 public:
 
   StaticChecker();
+  bool errors() const;
+
+protected:
 
   Type visit(const Node& node, const result_list& results) override;
-  bool errors() const;
 
 private:
 

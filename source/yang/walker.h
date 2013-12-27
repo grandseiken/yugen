@@ -26,6 +26,9 @@ public:
   // the AST, with the passed result_list containing the results of the calls
   // to visit() for each of the node's children.
   T walk(N& node);
+
+protected:
+
   virtual T visit(N& node, const result_list& results) = 0;
 
 };

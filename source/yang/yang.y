@@ -31,7 +31,7 @@ namespace {
 %token T_ELSE
 %token T_FOR
 %token T_GLOBAL
-%token T_PARAMETER
+%token T_EXPORT
 
 %token T_TERNARY_L
 %token T_TERNARY_R

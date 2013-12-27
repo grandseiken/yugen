@@ -34,6 +34,11 @@ StaticChecker::StaticChecker()
 {
 }
 
+bool StaticChecker::errors() const
+{
+  return _errors;
+}
+
 Type StaticChecker::visit(const Node& node, const result_list& results)
 {
   y::string s = "`" + Node::op_string(node.type) + "`";
@@ -129,11 +134,6 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
   // Default.
   error(node, "unimplemented construct");
   return TYPE_ERROR;
-}
-
-bool StaticChecker::errors() const
-{
-  return _errors;
 }
 
 void StaticChecker::error(const Node& node, const y::string& message)

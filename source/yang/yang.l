@@ -65,7 +65,7 @@ if {return T_IF;}
 else {return T_ELSE;}
 for {return T_FOR;}
 global {return T_GLOBAL;}
-parameter {return T_PARAMETER;}
+export {return T_EXPORT;}
 
   /* Operators. */
 
@@ -111,6 +111,14 @@ parameter {return T_PARAMETER;}
 
   /* Identifiers and literals. */
 
+true {
+  yylval.node = new Node(Node::INT_LITERAL, 1);
+  return T_INT_LITERAL;
+}
+false {
+  yylval.node = new Node(Node::INT_LITERAL, 0);
+  return T_INT_LITERAL;
+}
 {identifier} {
   yylval.node = new Node(Node::IDENTIFIER, yytext);
   return T_IDENTIFIER;
