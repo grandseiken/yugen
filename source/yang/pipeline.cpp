@@ -31,6 +31,7 @@ YangProgram::YangProgram(const y::string& contents)
   for (Node* node : Node::orphans) {
     y::move_unique(node);
   }
+  Node::orphans.clear();
 
   for (const y::string& s : ParseGlobals::errors) {
     log_err(s);

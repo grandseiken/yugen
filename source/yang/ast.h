@@ -40,7 +40,8 @@ struct Node {
   };
 
   // Child nodes passed to constructors or add transfer ownership, and are
-  // destroyed when the parent is destroyed.
+  // destroyed when the parent is destroyed. These would take explicit
+  // y::unique<Node> parameters but for sake of brevity in the parser.
   Node(node_type type);
   Node(node_type type, Node* a);
   Node(node_type type, Node* a, Node* b);
