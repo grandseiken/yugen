@@ -63,6 +63,12 @@ Node::Node(node_type type, y::string value)
   orphans.insert(this);
 }
 
+void Node::add_front(Node* node)
+{
+  orphans.erase(node);
+  children.insert(children.begin(), y::move_unique(node));
+}
+
 void Node::add(Node* node)
 {
   orphans.erase(node);

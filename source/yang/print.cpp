@@ -45,5 +45,17 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       return "[" + results[0] + "]";
     case Node::WORLD_CAST:
       return results[0] + ".";
+
+    case Node::VECTOR_CONSTRUCT:
+    {
+      y::string output = "";
+      for (const y::string& s : results) {
+        if (output.length()) {
+          output += ", ";
+        }
+        output += s;
+      }
+      return "(" + output + ")";
+    }
   }
 }

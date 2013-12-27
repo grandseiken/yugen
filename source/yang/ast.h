@@ -9,6 +9,7 @@
 
 struct Node {
   enum node_type {
+    ERROR,
     IDENTIFIER,
     INT_LITERAL,
     WORLD_LITERAL,
@@ -37,6 +38,7 @@ struct Node {
     ARITHMETIC_NEGATION,
     INT_CAST,
     WORLD_CAST,
+    VECTOR_CONSTRUCT,
   };
 
   // Child nodes passed to constructors or add transfer ownership, and are
@@ -51,6 +53,7 @@ struct Node {
   Node(node_type type, y::world value);
   Node(node_type type, y::string value);
 
+  void add_front(Node* node);
   void add(Node* node);
 
   // Information about the location of this Node in the source text, for

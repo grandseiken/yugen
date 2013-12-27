@@ -95,6 +95,7 @@ namespace {
   /* Types. */
 
 %type <node> program
+%type <node> expr_list
 %type <node> expr
 %type <node> t_expr
 %start program
@@ -106,6 +107,13 @@ namespace {
 program
   : expr
 {$$ = ParseGlobals::parser_output = $1;}
+  ;
+
+expr_list
+  : expr
+{$$ = new Node(Node::ERROR, $1);}
+  | expr_list ',' expr
+{$$ = $1; $$->add($3);}
   ;
 
 expr
@@ -172,4 +180,6 @@ t_expr
 {$$ = new Node(Node::INT_CAST, $2);}
   | t_expr T_WORLD_CAST
 {$$ = new Node(Node::WORLD_CAST, $1);}
+  | '(' expr ',' expr_list ')'
+{$$ = $4; $$->add_front($2); $$->type = Node::VECTOR_CONSTRUCT;}
   ;
