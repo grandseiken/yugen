@@ -8,6 +8,7 @@ Node::Node(node_type type)
   , line(yylineno)
   , text(yytext)
 {
+  orphans.insert(this);
 }
 
 Node::Node(node_type type, Node* a)
@@ -38,6 +39,7 @@ Node::Node(node_type type, y::int32 value)
   , line(yylineno)
   , text(yytext)
 {
+  orphans.insert(this);
 }
 
 Node::Node(node_type type, y::world value)
@@ -47,6 +49,7 @@ Node::Node(node_type type, y::world value)
   , line(yylineno)
   , text(yytext)
 {
+  orphans.insert(this);
 }
 
 Node::Node(node_type type, y::string value)
@@ -57,16 +60,18 @@ Node::Node(node_type type, y::string value)
   , line(yylineno)
   , text(yytext)
 {
+  orphans.insert(this);
 }
 
 void Node::add(Node* node)
 {
+  orphans.erase(node);
   children.push_back(y::move_unique(node));
 }
 
 y::string Node::op_string(node_type t)
 {
-  y::string s =
+  return
       t == Node::TERNARY ? "?:" :
       t == Node::LOGICAL_OR ? "||" :
       t == Node::LOGICAL_AND ? "&&" :
@@ -93,5 +98,6 @@ y::string Node::op_string(node_type t)
       t == Node::INT_CAST ? "[]" :
       t == Node::WORLD_CAST ? "." :
       "unknown operator";
-  return "`" + s + "`";
 }
+
+y::set<Node*> Node::orphans;

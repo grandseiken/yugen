@@ -36,7 +36,7 @@ StaticChecker::StaticChecker()
 
 Type StaticChecker::visit(const Node& node, const result_list& results)
 {
-  y::string s = Node::op_string(node.type);
+  y::string s = "`" + Node::op_string(node.type) + "`";
   y::vector<y::string> rs;
   for (Type t : results) {
     rs.push_back(type_string(t));

@@ -25,9 +25,13 @@ YangProgram::YangProgram(const y::string& contents)
   ParseGlobals::parser_output = y::null;
   ParseGlobals::errors.clear();
 
-  // TODO: nodes are not deleted if there's a parse error in the middle.
   yyparse();
   y::unique<Node> output = y::move_unique(ParseGlobals::parser_output);
+  Node::orphans.erase(output.get());
+  for (Node* node : Node::orphans) {
+    y::move_unique(node);
+  }
+
   for (const y::string& s : ParseGlobals::errors) {
     log_err(s);
   }

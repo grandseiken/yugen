@@ -3,6 +3,7 @@
 
 #include "../common/math.h"
 #include "../common/memory.h"
+#include "../common/set.h"
 #include "../common/string.h"
 #include "../common/vector.h"
 
@@ -39,8 +40,7 @@ struct Node {
   };
 
   // Child nodes passed to constructors or add transfer ownership, and are
-  // destroyed when the parent is destroyed. These would take explicit
-  // y::unique<Node> parameters but for sake of brevity in the parser.
+  // destroyed when the parent is destroyed.
   Node(node_type type);
   Node(node_type type, Node* a);
   Node(node_type type, Node* a, Node* b);
@@ -66,7 +66,13 @@ struct Node {
   y::world world_value;
   y::string string_value;
 
+  // Get the human-readable text of an operator.
   static y::string op_string(node_type t);
+
+  // If parsing aborts half-way due to a syntax error, Nodes allocated by the
+  // parser will leak. To avoid this, we keep a set of Nodes which have been
+  // allocated but not inserted as children so they can be freed later.
+  static y::set<Node*> orphans;
 
 };
 
