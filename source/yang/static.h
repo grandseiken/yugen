@@ -20,6 +20,8 @@ public:
   type_base base() const;
   y::size count() const;
   y::string string() const;
+  bool primitive() const;
+  bool is_error() const;
 
   Type unify(const Type& t) const;
   bool is(const Type& t) const;

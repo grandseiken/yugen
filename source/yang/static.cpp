@@ -29,6 +29,17 @@ y::string Type::string() const
   return "`" + s + "`";
 }
 
+bool Type::primitive() const
+{
+  return _count == 1 &&
+      (_base == INT || _base == WORLD) || is_error();
+}
+
+bool Type::is_error() const
+{
+  return _base == ERROR;
+}
+
 Type Type::unify(const Type& t) const
 {
   return *this != t ? ERROR : *this;
@@ -36,13 +47,13 @@ Type Type::unify(const Type& t) const
 
 bool Type::is(const Type& t) const
 {
-  return *this == t || *this == ERROR || t == ERROR;
+  return *this == t || is_error() || t.is_error();
 }
 
 bool Type::is(const Type& t, const Type& u) const
 {
   return (*this == t && t == u) ||
-      *this == ERROR || t == ERROR || u == ERROR;
+      is_error() || t.is_error() || u.is_error();
 }
 
 bool Type::operator==(const Type& t) const
@@ -110,8 +121,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::SUB:
     case Node::MUL:
     case Node::DIV:
-      if (!results[0].is(results[1], Type::INT) &&
-          !results[0].is(results[1], Type::WORLD)) {
+      if (!results[0].is(results[1]) || !results[0].primitive()) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
         return Type::ERROR;
       }
@@ -123,8 +133,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::LE:
     case Node::GT:
     case Node::LT:
-      if (!results[0].is(results[1], Type::INT) &&
-          !results[0].is(results[1], Type::WORLD)) {
+      if (!results[0].is(results[1]) || !results[0].primitive()) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
       }
       return Type::INT;
@@ -137,7 +146,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       return Type::INT;
 
     case Node::ARITHMETIC_NEGATION:
-      if (!results[0].is(Type::INT) && results[0].is(Type::WORLD)) {
+      if (!results[0].primitive()) {
         error(node, s + " applied to " + rs[0]);
         return Type::ERROR;
       }
@@ -154,6 +163,33 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         error(node, s + " applied to " + rs[0]);
       }
       return Type::WORLD;
+
+    case Node::VECTOR_CONSTRUCT:
+    {
+      Type t = results[0];
+      y::string ts;
+      bool unify_error = false;
+      for (y::size i = 0; i < results.size(); ++i) {
+        if (!results[i].primitive()) {
+          error(node, s + " element with non-primitive type " + rs[i]);
+          t = Type::ERROR;
+        }
+        if (i) {
+          bool error = t.is_error();
+          t = t.unify(results[i]);
+          if (!error && t.is_error()) {
+            unify_error = true;
+          }
+          ts += ", ";
+        }
+        ts += rs[i];
+      }
+      if (unify_error) {
+        error(node, s + " applied to different types " + ts);
+      }
+      return Type(t.base(), results.size());
+    }
+      
   }
 
   // Default.

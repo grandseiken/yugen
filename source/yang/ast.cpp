@@ -103,6 +103,7 @@ y::string Node::op_string(node_type t)
       t == Node::ARITHMETIC_NEGATION ? "-" :
       t == Node::INT_CAST ? "[]" :
       t == Node::WORLD_CAST ? "." :
+      t == Node::VECTOR_CONSTRUCT ? "()" :
       "unknown operator";
 }
 
