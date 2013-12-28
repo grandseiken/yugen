@@ -1,5 +1,4 @@
 #include "irgen.h"
-
 #include <llvm/IR/Module.h>
 
 namespace llvm {
@@ -114,6 +113,114 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return b2i(types[0]->isIntOrIntVectorTy() ?
           b.CreateICmpSLT(results[0], results[1], "lt") :
           b.CreateFCmpOLT(results[0], results[1], "flt"));
+
+    case Node::FOLD_LOGICAL_OR:
+      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateOr(v, u, "lor");
+      }, true));
+    case Node::FOLD_LOGICAL_AND:
+      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateAnd(v, u, "land");
+      }, true));
+    case Node::FOLD_BITWISE_OR:
+      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateOr(v, u, "or");
+      });
+    case Node::FOLD_BITWISE_AND:
+      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateAnd(v, u, "and");
+      });
+    case Node::FOLD_BITWISE_XOR:
+      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateXor(v, u, "xor");
+      });
+    case Node::FOLD_BITWISE_LSHIFT:
+      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateShl(v, u, "lsh");
+      });
+    case Node::FOLD_BITWISE_RSHIFT:
+      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateAShr(v, u, "rsh");
+      });
+
+    case Node::FOLD_POW:
+      // TODO.
+    case Node::FOLD_MOD:
+      // TODO: euclidean mod.
+      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateSRem(v, u, "mod") : b.CreateFRem(v, u, "fmod");
+      });
+    case Node::FOLD_ADD:
+      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateAdd(v, u, "add") : b.CreateFAdd(v, u, "fadd");
+      });
+    case Node::FOLD_SUB:
+      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateSub(v, u, "sub") : b.CreateFSub(v, u, "fsub");
+      });
+    case Node::FOLD_MUL:
+      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateMul(v, u, "mul") : b.CreateFMul(v, u, "fmul");
+      });
+    case Node::FOLD_DIV:
+      // TODO: euclidean division.
+      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateSDiv(v, u, "div") : b.CreateFDiv(v, u, "fdiv");
+      });
+
+    case Node::FOLD_EQ:
+      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateICmpEQ(v, u, "eq") : b.CreateFCmpOEQ(v, u, "feq");
+      }, false, true));
+    case Node::FOLD_NE:
+      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateICmpNE(v, u, "ne") : b.CreateFCmpONE(v, u, "fne");
+      }, false, true));
+    case Node::FOLD_GE:
+      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateICmpSGE(v, u, "ge") : b.CreateFCmpOGE(v, u, "fge");
+      }, false, true));
+    case Node::FOLD_LE:
+      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateICmpSLE(v, u, "le") : b.CreateFCmpOLE(v, u, "fle");
+      }, false, true));
+    case Node::FOLD_GT:
+      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateICmpSGT(v, u, "gt") : b.CreateFCmpOGT(v, u, "fgt");
+      }, false, true));
+    case Node::FOLD_LT:
+      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return types[0]->isIntOrIntVectorTy() ?
+            b.CreateICmpSLT(v, u, "lt") : b.CreateFCmpOLT(v, u, "flt");
+      }, false, true));
 
     case Node::LOGICAL_NEGATION:
     {
@@ -261,4 +368,36 @@ llvm::Value* IrGenerator::branch(
   phi->addIncoming(left, left_block);
   phi->addIncoming(right, right_block);
   return phi;
+}
+
+llvm::Value* IrGenerator::fold(
+    llvm::Value* value,
+    y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
+    bool to_bool, bool with_ands)
+{
+  y::vector<llvm::Value*> elements;
+  for (y::size i = 0; i < value->getType()->getVectorNumElements(); ++i) {
+    llvm::Value* v =
+        _builder.CreateExtractElement(value, constant_int(i), "idx");
+    elements.push_back(to_bool ? i2b(v) : v);
+  }
+
+  if (!with_ands) {
+    llvm::Value* v = elements[0];
+    for (y::size i = 1; i < elements.size(); ++i) {
+      v = op(v, elements[i]);
+    }
+    return v;
+  }
+
+  y::vector<llvm::Value*> comparisons;
+  for (y::size i = 1; i < elements.size(); ++i) {
+    comparisons.push_back(op(elements[i - 1], elements[i]));
+  }
+
+  llvm::Value* v = comparisons[0];
+  for (y::size i = 1; i < comparisons.size(); ++i) {
+    v = _builder.CreateAnd(v, comparisons[i], "fold");
+  }
+  return v;
 }

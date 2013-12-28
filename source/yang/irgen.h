@@ -2,6 +2,7 @@
 #define YANG__IRGEN_H
 
 #include "walker.h"
+#include "../common/function.h"
 #include <llvm/IR/IRBuilder.h>
 
 namespace llvm {
@@ -37,6 +38,10 @@ private:
   llvm::Value* i2b(llvm::Value* v);
   llvm::Value* b2i(llvm::Value* v);
   llvm::Value* branch(llvm::Value* cond, llvm::Value* left, llvm::Value* right);
+  llvm::Value* fold(
+      llvm::Value* value,
+      y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
+      bool to_bool = false, bool with_ands = false);
 
   llvm::Module& _module;
   llvm::IRBuilder<> _builder;

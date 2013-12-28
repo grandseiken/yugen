@@ -155,6 +155,43 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       }
       return Type(Type::INT, results[0].count());
 
+    case Node::FOLD_LOGICAL_OR:
+    case Node::FOLD_LOGICAL_AND:
+    case Node::FOLD_BITWISE_OR:
+    case Node::FOLD_BITWISE_AND:
+    case Node::FOLD_BITWISE_XOR:
+    case Node::FOLD_BITWISE_LSHIFT:
+    case Node::FOLD_BITWISE_RSHIFT:
+      if (!results[0].is_vector() || !results[0].is_int()) {
+        error(node, s + "-fold applied to " + rs[0]);
+      }
+      return Type::INT;
+
+    case Node::FOLD_POW:
+    case Node::FOLD_MOD:
+    case Node::FOLD_ADD:
+    case Node::FOLD_SUB:
+    case Node::FOLD_MUL:
+    case Node::FOLD_DIV:
+      if (!results[0].is_vector() ||
+          !(results[0].is_int() || results[0].is_world())) {
+        error(node, s + "-fold applied to " + rs[0]);
+        return Type::ERROR;
+      }
+      return results[0].base();
+
+    case Node::FOLD_EQ:
+    case Node::FOLD_NE:
+    case Node::FOLD_GE:
+    case Node::FOLD_LE:
+    case Node::FOLD_GT:
+    case Node::FOLD_LT:
+      if (!results[0].is_vector() ||
+          !(results[0].is_int() || results[0].is_world())) {
+        error(node, s + "-fold applied to " + rs[0]);
+      }
+      return Type::INT;
+
     case Node::LOGICAL_NEGATION:
     case Node::BITWISE_NEGATION:
       if (!results[0].is_int()) {
