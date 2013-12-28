@@ -266,7 +266,7 @@ $(OUTDIR)/%.o: \
 	SOURCE_FILE=$(subst $(OUTDIR)/,,./$(<:.build=)); \
 	    echo Compiling $$SOURCE_FILE; \
 	    $(CXX) -c $(CFLAGS) $(if $(findstring /./gen/,$@),,$(WFLAGS)) \
-			-o $@ $$SOURCE_FILE
+	    -o $@ $$SOURCE_FILE
 
 # Proto files. These are generated in pairs, so we have a little bit of trickery
 # to make that work right.

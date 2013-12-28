@@ -36,6 +36,27 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
     case Node::LT:
       return "(" + results[0] + " " + s + " " + results[1] + ")";
 
+    case Node::FOLD_LOGICAL_OR:
+    case Node::FOLD_LOGICAL_AND:
+    case Node::FOLD_BITWISE_OR:
+    case Node::FOLD_BITWISE_AND:
+    case Node::FOLD_BITWISE_XOR:
+    case Node::FOLD_BITWISE_LSHIFT:
+    case Node::FOLD_BITWISE_RSHIFT:
+    case Node::FOLD_POW:
+    case Node::FOLD_MOD:
+    case Node::FOLD_ADD:
+    case Node::FOLD_SUB:
+    case Node::FOLD_MUL:
+    case Node::FOLD_DIV:
+    case Node::FOLD_EQ:
+    case Node::FOLD_NE:
+    case Node::FOLD_GE:
+    case Node::FOLD_LE:
+    case Node::FOLD_GT:
+    case Node::FOLD_LT:
+      return results[0] + s;
+
     case Node::LOGICAL_NEGATION:
     case Node::BITWISE_NEGATION:
     case Node::ARITHMETIC_NEGATION:
