@@ -113,9 +113,9 @@ PFLAGS= \
 	-I=$(SOURCE)/proto \
 	--cpp_out=$(GEN)/proto
 ifeq ($(DBG), 1)
-CFLAGS += -Og -g -ggdb \
-	-Werror -Wall -Wextra -Wpedantic \
-	-DDEBUG
+CFLAGS += -Og -g -ggdb -DDEBUG
+WFLAGS= \
+	-Werror -Wall -Wextra -Wpedantic
 else
 CFLAGS += -O3
 endif
@@ -265,7 +265,8 @@ $(OUTDIR)/%.o: \
 	./depend/luajit.build ./depend/llvm.build
 	SOURCE_FILE=$(subst $(OUTDIR)/,,./$(<:.build=)); \
 	    echo Compiling $$SOURCE_FILE; \
-	    $(CXX) -c $(CFLAGS) -o $@ $$SOURCE_FILE
+	    $(CXX) -c $(CFLAGS) $(if $(findstring /./gen/,$@),,$(WFLAGS)) \
+			-o $@ $$SOURCE_FILE
 
 # Proto files. These are generated in pairs, so we have a little bit of trickery
 # to make that work right.

@@ -91,6 +91,7 @@ namespace {
 %right T_UNARY
 %left T_POW
 %left T_WORLD_CAST
+%left T_VECTOR_INDEX
 
   /* Types. */
 
@@ -182,4 +183,6 @@ t_expr
 {$$ = new Node(Node::WORLD_CAST, $1);}
   | '(' expr ',' expr_list ')'
 {$$ = $4; $$->add_front($2); $$->type = Node::VECTOR_CONSTRUCT;}
+  | t_expr '[' expr ']' %prec T_VECTOR_INDEX
+{$$ = new Node(Node::VECTOR_INDEX, $1, $3);}
   ;

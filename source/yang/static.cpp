@@ -29,15 +29,31 @@ y::string Type::string() const
   return "`" + s + "`";
 }
 
-bool Type::primitive() const
-{
-  return _count == 1 &&
-      (_base == INT || _base == WORLD) || is_error();
-}
-
 bool Type::is_error() const
 {
   return _base == ERROR;
+}
+
+bool Type::primitive() const
+{
+  return is_error() ||
+      (_count == 1 && (is_int() || is_world()));
+}
+
+bool Type::is_vector() const
+{
+  return is_error() ||
+      (_count > 1 && (is_int() || is_world()));
+}
+
+bool Type::is_int() const
+{
+  return is_error() || _base == INT;
+}
+
+bool Type::is_world() const
+{
+  return is_error() || _base == WORLD;
 }
 
 Type Type::unify(const Type& t) const
@@ -48,12 +64,6 @@ Type Type::unify(const Type& t) const
 bool Type::is(const Type& t) const
 {
   return *this == t || is_error() || t.is_error();
-}
-
-bool Type::is(const Type& t, const Type& u) const
-{
-  return (*this == t && t == u) ||
-      is_error() || t.is_error() || u.is_error();
 }
 
 bool Type::operator==(const Type& t) const
@@ -99,9 +109,8 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       }
       if (!results[0].is(Type::INT)) {
         error(node, s + " branching on " + rs[0]);
-        return Type::ERROR;
       }
-      return results[0].unify(results[1]);
+      return results[1].unify(results[2]);
 
     case Node::LOGICAL_OR:
     case Node::LOGICAL_AND:
@@ -110,10 +119,13 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::BITWISE_XOR:
     case Node::BITWISE_LSHIFT:
     case Node::BITWISE_RSHIFT:
-      if (!results[0].is(results[1], Type::INT)) {
+      if (!results[0].is(results[1]) || !results[0].is_int()) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
       }
-      return Type::INT;
+      if (results[0].count() != results[1].count()) {
+        return Type::ERROR;
+      }
+      return Type(Type::INT, results[0].count());
 
     case Node::POW:
     case Node::MOD:
@@ -121,7 +133,8 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::SUB:
     case Node::MUL:
     case Node::DIV:
-      if (!results[0].is(results[1]) || !results[0].primitive()) {
+      if (!results[0].is(results[1]) ||
+          !(results[0].is_int() || results[0].is_world())) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
         return Type::ERROR;
       }
@@ -133,36 +146,40 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::LE:
     case Node::GT:
     case Node::LT:
-      if (!results[0].is(results[1]) || !results[0].primitive()) {
+      if (!results[0].is(results[1]) ||
+          !(results[0].is_int() || results[0].is_world())) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
       }
-      return Type::INT;
+      if (results[0].count() != results[1].count()) {
+        return Type::ERROR;
+      }
+      return Type(Type::INT, results[0].count());
 
     case Node::LOGICAL_NEGATION:
     case Node::BITWISE_NEGATION:
-      if (!results[0].is(Type::INT)) {
+      if (!results[0].is_int()) {
         error(node, s + " applied to " + rs[0]);
       }
-      return Type::INT;
+      return Type(Type::INT, results[0].count());
 
     case Node::ARITHMETIC_NEGATION:
-      if (!results[0].primitive()) {
+      if (!(results[0].is_int() || results[0].is_world())) {
         error(node, s + " applied to " + rs[0]);
         return Type::ERROR;
       }
       return results[0];
 
     case Node::INT_CAST:
-      if (!results[0].is(Type::WORLD)) {
+      if (!results[0].is_world()) {
         error(node, s + " applied to " + rs[0]);
       }
-      return Type::INT;
+      return Type(Type::INT, results[0].count());
 
     case Node::WORLD_CAST:
-      if (!results[0].is(Type::INT)) {
+      if (!results[0].is_int()) {
         error(node, s + " applied to " + rs[0]);
       }
-      return Type::WORLD;
+      return Type(Type::WORLD, results[0].count());
 
     case Node::VECTOR_CONSTRUCT:
     {
@@ -189,12 +206,17 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       }
       return Type(t.base(), results.size());
     }
-      
-  }
+    case Node::VECTOR_INDEX:
+      if (!results[0].is_vector() || !results[1].is(Type::INT)) {
+        error(node, s + " applied to " + rs[0] + " and " + rs[1]);
+        return results[0].is_vector() ? results[0].base() : Type::ERROR;
+      }
+      return results[0].base();
 
-  // Default.
-  error(node, "unimplemented construct");
-  return Type::ERROR;
+    default:
+      error(node, "unimplemented construct");
+      return Type::ERROR;
+  }
 }
 
 void StaticChecker::error(const Node& node, const y::string& message)

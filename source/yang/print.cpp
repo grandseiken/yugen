@@ -57,5 +57,10 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       }
       return "(" + output + ")";
     }
+    case Node::VECTOR_INDEX:
+      return results[0] + "[" + results[1] + "]";
+
+    default:
+      return "";
   }
 }

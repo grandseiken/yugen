@@ -20,12 +20,15 @@ public:
   type_base base() const;
   y::size count() const;
   y::string string() const;
-  bool primitive() const;
+
   bool is_error() const;
+  bool primitive() const;
+  bool is_vector() const;
+  bool is_int() const;
+  bool is_world() const;
 
   Type unify(const Type& t) const;
   bool is(const Type& t) const;
-  bool is(const Type& t, const Type& u) const;
 
   bool operator==(const Type& t) const;
   bool operator!=(const Type& t) const;

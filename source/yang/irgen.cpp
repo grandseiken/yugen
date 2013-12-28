@@ -31,6 +31,10 @@ void IrGenerator::generate(const Node& node)
 llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
 {
   auto& b = _builder;
+  y::vector<llvm::Type*> types;
+  for (llvm::Value* v : results) {
+    types.push_back(v->getType());
+  }
 
   switch (node.type) {
     case Node::IDENTIFIER:
@@ -65,69 +69,113 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return results[0];
     case Node::MOD:
       // TODO: euclidean mod.
-      return results[0]->getType()->isIntegerTy() ?
+      return types[0]->isIntOrIntVectorTy() ?
           b.CreateSRem(results[0], results[1], "mod") :
           b.CreateFRem(results[0], results[1], "fmod");
     case Node::ADD:
-      return results[0]->getType()->isIntegerTy() ?
+      return types[0]->isIntOrIntVectorTy() ?
           b.CreateAdd(results[0], results[1], "add") :
           b.CreateFAdd(results[0], results[1], "fadd");
     case Node::SUB:
-      return results[0]->getType()->isIntegerTy() ?
+      return types[0]->isIntOrIntVectorTy() ?
           b.CreateSub(results[0], results[1], "sub") :
           b.CreateFSub(results[0], results[1], "fsub");
     case Node::MUL:
-      return results[0]->getType()->isIntegerTy() ?
+      return types[0]->isIntOrIntVectorTy() ?
           b.CreateMul(results[0], results[1], "mul") :
           b.CreateFMul(results[0], results[1], "fmul");
     case Node::DIV:
       // TODO: euclidean division.
-      return results[0]->getType()->isIntegerTy() ?
+      return types[0]->isIntOrIntVectorTy() ?
           b.CreateSDiv(results[0], results[1], "div") :
           b.CreateFDiv(results[0], results[1], "fdiv");
 
     case Node::EQ:
-      return b2i(results[0]->getType()->isIntegerTy() ?
+      return b2i(types[0]->isIntOrIntVectorTy() ?
           b.CreateICmpEQ(results[0], results[1], "eq") :
           b.CreateFCmpOEQ(results[0], results[1], "feq"));
     case Node::NE:
-      return b2i(results[0]->getType()->isIntegerTy() ?
+      return b2i(types[0]->isIntOrIntVectorTy() ?
           b.CreateICmpNE(results[0], results[1], "ne") :
           b.CreateFCmpONE(results[0], results[1], "fne"));
     case Node::GE:
-      return b2i(results[0]->getType()->isIntegerTy() ?
+      return b2i(types[0]->isIntOrIntVectorTy() ?
           b.CreateICmpSGE(results[0], results[1], "ge") :
           b.CreateFCmpOGE(results[0], results[1], "fge"));
     case Node::LE:
-      return b2i(results[0]->getType()->isIntegerTy() ?
+      return b2i(types[0]->isIntOrIntVectorTy() ?
           b.CreateICmpSLE(results[0], results[1], "le") :
           b.CreateFCmpOLE(results[0], results[1], "fle"));
     case Node::GT:
-      return b2i(results[0]->getType()->isIntegerTy() ?
+      return b2i(types[0]->isIntOrIntVectorTy() ?
           b.CreateICmpSGT(results[0], results[1], "gt") :
           b.CreateFCmpOGT(results[0], results[1], "fgt"));
     case Node::LT:
-      return b2i(results[0]->getType()->isIntegerTy() ?
+      return b2i(types[0]->isIntOrIntVectorTy() ?
           b.CreateICmpSLT(results[0], results[1], "lt") :
           b.CreateFCmpOLT(results[0], results[1], "flt"));
 
     case Node::LOGICAL_NEGATION:
-      return b2i(b.CreateICmpEQ(results[0], constant_int(0), "lneg"));
+    {
+      llvm::Constant* cmp = constant_int(0);
+      if (types[0]->isVectorTy()) {
+        cmp = constant_vector(cmp, types[0]->getVectorNumElements());
+      }
+      return b2i(b.CreateICmpEQ(results[0], cmp, "lneg"));
+    }
     case Node::BITWISE_NEGATION:
-      return b.CreateXor(
-          results[0], constant_int((unsigned y::int32)(0) - 1), "neg");
+    {
+      llvm::Constant* cmp = constant_int((y::uint32)(0) - 1);
+      if (types[0]->isVectorTy()) {
+        cmp = constant_vector(cmp, types[0]->getVectorNumElements());
+      }
+      return b.CreateXor(results[0], cmp, "neg");
+    }
     case Node::ARITHMETIC_NEGATION:
-      return results[0]->getType()->isIntegerTy() ?
-          b.CreateSub(constant_int(0), results[0], "sub") :
-          b.CreateFSub(constant_world(0), results[0], "fsub");
+    {
+      llvm::Constant* cmp = results[0]->getType()->isIntOrIntVectorTy() ?
+          constant_int(0) : constant_world(0);
+      if (types[0]->isVectorTy()) {
+        cmp = constant_vector(cmp, types[0]->getVectorNumElements());
+      }
+      return types[0]->isIntOrIntVectorTy() ?
+          b.CreateSub(cmp, results[0], "sub") :
+          b.CreateFSub(cmp, results[0], "fsub");
+    }
     case Node::INT_CAST:
+    {
+      llvm::Type* type = int_type();
+      if (types[0]->isVectorTy()) {
+        type = vector_type(type, types[0]->getVectorNumElements());
+      }
       // TODO: mathematical floor.
-      return b.CreateFPToSI(results[0], int_type(), "int");
+      return b.CreateFPToSI(results[0], type, "int");
+    }
     case Node::WORLD_CAST:
-      return b.CreateSIToFP(results[0], world_type(), "wrld");
-  }
+    {
+      llvm::Type* type = world_type();
+      if (types[0]->isVectorTy()) {
+        type = vector_type(type, types[0]->getVectorNumElements());
+      }
+      return b.CreateSIToFP(results[0], type, "wrld");
+    }
 
-  return y::null;
+    case Node::VECTOR_CONSTRUCT:
+    {
+      llvm::Value* v = constant_vector(
+          types[0]->isIntegerTy() ?
+              constant_int(0) : constant_world(0), results.size());
+      for (y::size i = 0; i < results.size(); ++i) {
+        v = b.CreateInsertElement(v, results[i], constant_int(i), "vec");
+      }
+      return v;
+    }
+    case Node::VECTOR_INDEX:
+      return b.CreateExtractElement(results[0], results[1], "idx");
+
+    default:
+      return y::null;
+  }
 }
 
 llvm::Type* IrGenerator::int_type() const
@@ -141,24 +189,49 @@ llvm::Type* IrGenerator::world_type() const
   return llvm::Type::getDoubleTy(_builder.getContext());
 }
 
-llvm::Value* IrGenerator::constant_int(y::int32 value) const
+llvm::Type* IrGenerator::vector_type(llvm::Type* type, y::size n) const
+{
+  return llvm::VectorType::get(type, n);
+}
+
+llvm::Constant* IrGenerator::constant_int(y::int32 value) const
 {
   return llvm::ConstantInt::getSigned(int_type(), value);
 }
 
-llvm::Value* IrGenerator::constant_world(y::world value) const
+llvm::Constant* IrGenerator::constant_world(y::world value) const
 {
   return llvm::ConstantFP::get(_builder.getContext(), llvm::APFloat(value));
 }
 
+llvm::Constant* IrGenerator::constant_vector(
+    const y::vector<llvm::Constant*>& values) const
+{
+  return llvm::ConstantVector::get(values);
+}
+
+llvm::Constant* IrGenerator::constant_vector(
+    llvm::Constant* value, y::size n) const
+{
+  return llvm::ConstantVector::getSplat(n, value);
+}
+
 llvm::Value* IrGenerator::i2b(llvm::Value* v)
 {
-  return _builder.CreateICmpNE(v, constant_int(0), "bool");
+  llvm::Constant* cmp = constant_int(0);
+  if (v->getType()->isVectorTy()) {
+    cmp = constant_vector(cmp, v->getType()->getVectorNumElements());
+  }
+  return _builder.CreateICmpNE(v, cmp, "bool");
 }
 
 llvm::Value* IrGenerator::b2i(llvm::Value* v)
 {
-  return _builder.CreateZExt(v, int_type(), "int");
+  llvm::Type* type = int_type();
+  if (v->getType()->isVectorTy()) {
+    type = vector_type(type, v->getType()->getVectorNumElements());
+  }
+  return _builder.CreateZExt(v, type, "int");
 }
 
 llvm::Value* IrGenerator::branch(

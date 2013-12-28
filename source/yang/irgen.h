@@ -5,6 +5,7 @@
 #include <llvm/IR/IRBuilder.h>
 
 namespace llvm {
+  class Constant;
   class Module;
   class Value;
 }
@@ -25,9 +26,14 @@ private:
 
   llvm::Type* int_type() const;
   llvm::Type* world_type() const;
+  llvm::Type* vector_type(llvm::Type* type, y::size n) const;
 
-  llvm::Value* constant_int(y::int32 value) const;
-  llvm::Value* constant_world(y::world value) const;
+  llvm::Constant* constant_int(y::int32 value) const;
+  llvm::Constant* constant_world(y::world value) const;
+  llvm::Constant* constant_vector(
+      const y::vector<llvm::Constant*>& values) const;
+  llvm::Constant* constant_vector(llvm::Constant* value, y::size n) const;
+
   llvm::Value* i2b(llvm::Value* v);
   llvm::Value* b2i(llvm::Value* v);
   llvm::Value* branch(llvm::Value* cond, llvm::Value* left, llvm::Value* right);

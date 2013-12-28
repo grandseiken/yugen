@@ -39,6 +39,7 @@ struct Node {
     INT_CAST,
     WORLD_CAST,
     VECTOR_CONSTRUCT,
+    VECTOR_INDEX,
   };
 
   // Child nodes passed to constructors or add transfer ownership, and are
