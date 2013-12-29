@@ -9,6 +9,7 @@
 
 #undef YY_INPUT
 #define YY_INPUT(b, r, m) lexer_input(b, &r, m)
+int yyerror(const char* message);
 
 namespace {
 
@@ -30,18 +31,19 @@ namespace {
 %}
 
 %option noyywrap
+%option yylineno
+%x line_comment
 %x long_comment
 
   /* Regular expressions. */
 
 newline \n|\r|\r\n
-whitespace_newline [ ]+{newline}|\/\/.*[ ]{newline}
 whitespace [ ]+|{newline}
+whitespace_newline [ ]+{newline}
 tab \t
-comment \/\/{newline}|\/\/.*[^ ]{newline}
+line_comment_begin \/\/
 long_comment_begin \/\*
 long_comment_end \*\/
-long_comment_consume \*|[^*]+
 default .|\n|\r
 
 alpha [A-Za-z_]
@@ -55,11 +57,18 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
   /* Comments and whitespace. */
 
 <INITIAL>{long_comment_begin} {BEGIN(long_comment);}
+<INITIAL>{line_comment_begin} {BEGIN(line_comment);}
+<line_comment>{newline} {BEGIN(INITIAL);}
+<line_comment>{tab} {yyerror("tab character");}
+<line_comment>{whitespace_newline} {yyerror("end-of-line whitespace");}
+<line_comment>{default} {}
 <long_comment>{long_comment_end} {BEGIN(INITIAL);}
-<long_comment>{long_comment_consume} {}
-{whitespace}|{comment} {}
-{whitespace_newline} {return T_WHITESPACE_NEWLINE;}
-{tab} {return T_WHITESPACE_TAB;}
+<long_comment>{tab} {yyerror("tab character");}
+<long_comment>{whitespace_newline} {yyerror("end-of-line whitespace");}
+<long_comment>{default} {}
+{whitespace} {}
+{whitespace_newline} {yyerror("end-of-line whitespace");}
+{tab} {yyerror("tab character");}
 
   /* Keywords. */
 

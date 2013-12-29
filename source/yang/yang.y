@@ -4,17 +4,11 @@
 #include "../../source/yang/ast.h"
 #include "../../source/yang/pipeline.h"
 
-namespace {
-
-  int yyerror(const char* message)
-  {
-    y::sstream ss;
-    ss << "Error at line " << yylineno <<
-        ", near `" << yytext << "`:\n\t" << message;
-    ParseGlobals::errors.emplace_back(ss.str());
-    return 0;
-  }
-
+int yyerror(const char* message)
+{
+  ParseGlobals::errors.emplace_back(
+      ParseGlobals::error(yylineno, yytext, message));
+  return 0;
 }
 
 %}
@@ -24,9 +18,6 @@ namespace {
 }
 
   /* Tokens. */
-
-%token T_WHITESPACE_NEWLINE
-%token T_WHITESPACE_TAB
 
 %token T_INT
 %token T_WORLD

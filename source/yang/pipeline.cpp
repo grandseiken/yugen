@@ -132,3 +132,30 @@ y::size ParseGlobals::lexer_input_offset = 0;
 
 Node* ParseGlobals::parser_output = y::null;
 y::vector<y::string> ParseGlobals::errors;
+
+y::string ParseGlobals::error(
+    y::size line, const y::string& token, const y::string& message)
+{
+  bool replace = false;
+  y::string t = token;
+  y::size it;
+  while ((it = t.find('\n')) != y::string::npos) {
+    t.replace(it, 1 + it, "");
+    replace = true;
+  }
+  while ((it = t.find('\r')) != y::string::npos) {
+    t.replace(it, 1 + it, "");
+    replace = true;
+  }
+  while ((it = t.find('\t')) != y::string::npos) {
+    t.replace(it, 1 + it, " ");
+  }
+  if (replace) {
+    --line;
+  }
+
+  y::sstream ss;
+  ss << "Error at line " << line <<
+      ", near `" << t << "`:\n\t" << message;
+  return ss.str();
+}

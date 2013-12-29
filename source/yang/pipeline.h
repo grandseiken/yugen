@@ -43,6 +43,8 @@ struct ParseGlobals {
 
   static Node* parser_output;
   static y::vector<y::string> errors;
+  static y::string error(
+      y::size line, const y::string& token, const y::string& message);
 };
 
 #endif

@@ -1,4 +1,5 @@
 #include "static.h"
+#include "pipeline.h"
 #include "../common/algorithm.h"
 #include "../log.h"
 
@@ -277,6 +278,5 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
 void StaticChecker::error(const Node& node, const y::string& message)
 {
   _errors = true;
-  log_err("Error at line ", node.line,
-          ", near `", node.text, "`:\n\t", message);
+  log_err(ParseGlobals::error(node.line, node.text, message));
 }
