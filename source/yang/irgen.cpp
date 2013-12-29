@@ -38,6 +38,10 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
   }
 
   switch (node.type) {
+    case Node::PROGRAM:
+    case Node::FUNCTION:
+      return results[0];
+
     case Node::BLOCK:
     {
       auto parent = b.GetInsertBlock()->getParent();
