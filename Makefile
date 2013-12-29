@@ -295,7 +295,7 @@ $(GEN)/%.y.h: \
 $(GEN)/%.y.cc: \
 	$(SOURCE)/%.y $(GEN)/%.mkdir ./depend/byacc.build
 	@echo Compiling ./$<
-	$(YACC) -d -o $@ $<
+	$(YACC) -d -v -o $@ $<
 
 # Ensure a directory exists.
 .PRECIOUS: ./%.mkdir

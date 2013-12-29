@@ -10,7 +10,7 @@ namespace {
   {
     y::sstream ss;
     ss << "Error at line " << yylineno <<
-        ", near`" << yytext << "`:\n\t" << message;
+        ", near `" << yytext << "`:\n\t" << message;
     ParseGlobals::errors.emplace_back(ss.str());
     return 0;
   }
@@ -24,6 +24,9 @@ namespace {
 }
 
   /* Tokens. */
+
+%token T_WHITESPACE_NEWLINE
+%token T_WHITESPACE_TAB
 
 %token T_INT
 %token T_WORLD
@@ -88,9 +91,9 @@ namespace {
 %left T_BITWISE_LSHIFT T_BITWISE_RSHIFT
 %left T_ADD T_SUB
 %left T_MUL T_DIV T_MOD
-%right UNARY_L
+%right PREC_UNARY_L
 %left T_POW
-%left UNARY_R
+%left PREC_UNARY_R
 
   /* Types. */
 
@@ -170,56 +173,58 @@ t_expr
 {$$ = new Node(Node::GT, $1, $3);}
   | t_expr T_LT t_expr
 {$$ = new Node(Node::LT, $1, $3);}
-  | t_expr T_LOGICAL_OR %prec UNARY_R
+  | t_expr T_LOGICAL_OR %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_LOGICAL_OR, $1);}
-  | t_expr T_LOGICAL_AND %prec UNARY_R
+  | t_expr T_LOGICAL_AND %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_LOGICAL_AND, $1);}
-  | t_expr T_BITWISE_OR %prec UNARY_R
+  | t_expr T_BITWISE_OR %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_BITWISE_OR, $1);}
-  | t_expr T_BITWISE_AND %prec UNARY_R
+  | t_expr T_BITWISE_AND %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_BITWISE_AND, $1);}
-  | t_expr T_BITWISE_XOR %prec UNARY_R
+  | t_expr T_BITWISE_XOR %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_BITWISE_XOR, $1);}
-  | t_expr T_BITWISE_LSHIFT %prec UNARY_R
+  | t_expr T_BITWISE_LSHIFT %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_BITWISE_LSHIFT, $1);}
-  | t_expr T_BITWISE_RSHIFT %prec UNARY_R
+  | t_expr T_BITWISE_RSHIFT %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_BITWISE_RSHIFT, $1);}
-  | t_expr T_POW %prec UNARY_R
+  | t_expr T_POW %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_POW, $1);}
-  | t_expr T_MOD %prec UNARY_R
+  | t_expr T_MOD %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_MOD, $1);}
-  | t_expr T_ADD %prec UNARY_R
+  | t_expr T_ADD %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_ADD, $1);}
-  | t_expr T_SUB %prec UNARY_R
+  | t_expr T_SUB %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_SUB, $1);}
-  | t_expr T_MUL %prec UNARY_R
+  | t_expr T_MUL %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_MUL, $1);}
-  | t_expr T_DIV %prec UNARY_R
+  | t_expr T_DIV %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_DIV, $1);}
-  | t_expr T_EQ %prec UNARY_R
+  | t_expr T_EQ %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_EQ, $1);}
-  | t_expr T_NE %prec UNARY_R
+  | t_expr T_NE %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_NE, $1);}
-  | t_expr T_GE %prec UNARY_R
+  | t_expr T_GE %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_GE, $1);}
-  | t_expr T_LE %prec UNARY_R
+  | t_expr T_LE %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_LE, $1);}
-  | t_expr T_GT %prec UNARY_R
+  | t_expr T_GT %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_GT, $1);}
-  | t_expr T_LT %prec UNARY_R
+  | t_expr T_LT %prec PREC_UNARY_R
 {$$ = new Node(Node::FOLD_LT, $1);}
-  | T_LOGICAL_NEGATION t_expr %prec UNARY_L
+  | T_LOGICAL_NEGATION t_expr %prec PREC_UNARY_L
 {$$ = new Node(Node::LOGICAL_NEGATION, $2);}
-  | T_BITWISE_NEGATION t_expr %prec UNARY_L
+  | T_BITWISE_NEGATION t_expr %prec PREC_UNARY_L
 {$$ = new Node(Node::BITWISE_NEGATION, $2);}
-  | T_SUB t_expr %prec UNARY_L
+  | T_SUB t_expr %prec PREC_UNARY_L
 {$$ = new Node(Node::ARITHMETIC_NEGATION, $2);}
   | '[' expr ']'
 {$$ = new Node(Node::INT_CAST, $2);}
-  | t_expr T_WORLD_CAST %prec UNARY_R
+  | t_expr T_WORLD_CAST %prec PREC_UNARY_R
 {$$ = new Node(Node::WORLD_CAST, $1);}
   | '(' expr ',' expr_list ')'
 {$$ = $4; $$->add_front($2); $$->type = Node::VECTOR_CONSTRUCT;}
-  | t_expr '[' expr ']' %prec UNARY_R
+  | t_expr '[' expr ']' %prec PREC_UNARY_R
 {$$ = new Node(Node::VECTOR_INDEX, $1, $3);}
   ;
+
+  /* Error-handling. */

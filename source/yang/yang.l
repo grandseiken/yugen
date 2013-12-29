@@ -35,8 +35,10 @@ namespace {
   /* Regular expressions. */
 
 newline \n|\r|\r\n
+whitespace_newline [ ]+{newline}|\/\/.*[ ]{newline}
 whitespace [ ]+|{newline}
-comment \/\/.*{newline}
+tab \t
+comment \/\/{newline}|\/\/.*[^ ]{newline}
 long_comment_begin \/\*
 long_comment_end \*\/
 long_comment_consume \*|[^*]+
@@ -56,6 +58,8 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
 <long_comment>{long_comment_end} {BEGIN(INITIAL);}
 <long_comment>{long_comment_consume} {}
 {whitespace}|{comment} {}
+{whitespace_newline} {return T_WHITESPACE_NEWLINE;}
+{tab} {return T_WHITESPACE_TAB;}
 
   /* Keywords. */
 
