@@ -56,19 +56,14 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
 
   /* Comments and whitespace. */
 
+<*>{tab} {yyerror("tab character");}
+<*>{whitespace_newline} {yyerror("end-of-line whitespace");}
 <INITIAL>{long_comment_begin} {BEGIN(long_comment);}
 <INITIAL>{line_comment_begin} {BEGIN(line_comment);}
 <line_comment>{newline} {BEGIN(INITIAL);}
-<line_comment>{tab} {yyerror("tab character");}
-<line_comment>{whitespace_newline} {yyerror("end-of-line whitespace");}
-<line_comment>{default} {}
 <long_comment>{long_comment_end} {BEGIN(INITIAL);}
-<long_comment>{tab} {yyerror("tab character");}
-<long_comment>{whitespace_newline} {yyerror("end-of-line whitespace");}
-<long_comment>{default} {}
+<line_comment,long_comment>{default} {}
 {whitespace} {}
-{whitespace_newline} {yyerror("end-of-line whitespace");}
-{tab} {yyerror("tab character");}
 
   /* Keywords. */
 
