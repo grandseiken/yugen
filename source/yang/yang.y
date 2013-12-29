@@ -109,7 +109,7 @@ int yyerror(const char* message)
 
 program
   : elem T_EOF
-{$$ = ParseGlobals::parser_output = $1; $$->type = Node::PROGRAM;}
+{$$ = ParseGlobals::parser_output = new Node(Node::PROGRAM, $1);}
   ;
 
 elem_list
