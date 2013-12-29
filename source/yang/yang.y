@@ -93,6 +93,9 @@ int yyerror(const char* message)
   /* Types. */
 
 %type <node> program
+%type <node> elem_list
+%type <node> elem
+%type <node> function
 %type <node> stmt_list
 %type <node> stmt
 %type <node> expr_list
@@ -105,8 +108,25 @@ int yyerror(const char* message)
   /* Language grammar. */
 
 program
-  : stmt T_EOF
-{$$ = ParseGlobals::parser_output = $1;}
+  : elem T_EOF
+{$$ = ParseGlobals::parser_output = $1; $$->type = Node::PROGRAM;}
+  ;
+
+elem_list
+  :
+{$$ = new Node(Node::ERROR);}
+  | elem_list elem
+{$$ = $1; $$->add($2);}
+  ;
+
+elem
+  : function
+{$$ = $1;}
+  ;
+
+function
+  : T_IDENTIFIER '(' ')' stmt
+{$$ = new Node(Node::FUNCTION, $4); $$->string_value = $1->string_value;}
   ;
 
 stmt_list

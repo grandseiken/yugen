@@ -10,9 +10,17 @@
 struct Node {
   enum node_type {
     ERROR,
+
+    // Top-level elements.
+    PROGRAM,
+    FUNCTION,
+
+    // Statements.
     BLOCK,
     EXPR_STMT,
     RETURN_STMT,
+
+    // Expressions.
     IDENTIFIER,
     INT_LITERAL,
     WORLD_LITERAL,

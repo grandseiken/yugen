@@ -5,6 +5,17 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
   y::string s = Node::op_string(node.type);
 
   switch (node.type) {
+    case Node::PROGRAM:
+    {
+      y::string s = "";
+      for (const y::string r : results) {
+        s += r + '\n';
+      }
+      return s;
+    }
+    case Node::FUNCTION:
+      return node.string_value + "() " + results[0];
+
     case Node::BLOCK:
     {
       y::string s = "";

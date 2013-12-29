@@ -110,6 +110,14 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
   // the erroneous 1 == 1. gives type INT, as the result would be INT whether or
   // not the operand type was intended to be int or world.
   switch (node.type) {
+    case Node::PROGRAM:
+      return Type::ERROR;
+    case Node::FUNCTION:
+      if (results[0].is_error()) {
+        error(node, "not all code paths return a value");
+      }
+      return Type::ERROR;
+
     case Node::BLOCK:
     {
       Type return_type = Type::ERROR;
