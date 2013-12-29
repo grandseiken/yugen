@@ -181,7 +181,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::FOLD_BITWISE_LSHIFT:
     case Node::FOLD_BITWISE_RSHIFT:
       if (!results[0].is_vector() || !results[0].is_int()) {
-        error(node, s + "-fold applied to " + rs[0]);
+        error(node, s + " applied to " + rs[0]);
       }
       return Type::INT;
 
@@ -193,7 +193,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::FOLD_DIV:
       if (!results[0].is_vector() ||
           !(results[0].is_int() || results[0].is_world())) {
-        error(node, s + "-fold applied to " + rs[0]);
+        error(node, s + " applied to " + rs[0]);
         return Type::ERROR;
       }
       return results[0].base();
@@ -206,7 +206,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::FOLD_LT:
       if (!results[0].is_vector() ||
           !(results[0].is_int() || results[0].is_world())) {
-        error(node, s + "-fold applied to " + rs[0]);
+        error(node, s + " applied to " + rs[0]);
       }
       return Type::INT;
 

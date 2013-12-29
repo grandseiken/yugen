@@ -55,17 +55,17 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
     case Node::FOLD_LE:
     case Node::FOLD_GT:
     case Node::FOLD_LT:
-      return results[0] + s;
+      return "(" + results[0] + s + ")";
 
     case Node::LOGICAL_NEGATION:
     case Node::BITWISE_NEGATION:
     case Node::ARITHMETIC_NEGATION:
-      return s + results[0];
+      return "(" + s + results[0] + ")";
 
     case Node::INT_CAST:
       return "[" + results[0] + "]";
     case Node::WORLD_CAST:
-      return results[0] + ".";
+      return "(" + results[0] + ".)";
 
     case Node::VECTOR_CONSTRUCT:
     {
@@ -79,7 +79,7 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       return "(" + output + ")";
     }
     case Node::VECTOR_INDEX:
-      return results[0] + "[" + results[1] + "]";
+      return "(" + results[0] + "[" + results[1] + "])";
 
     default:
       return "";

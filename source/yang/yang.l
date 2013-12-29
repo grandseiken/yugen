@@ -96,6 +96,7 @@ export {return T_EXPORT;}
 "<=" {return T_LE;}
 ">" {return T_GT;}
 "<" {return T_LT;}
+"$" {return T_FOLD;}
 "." {return T_WORLD_CAST;}
 
 "=" {return T_ASSIGN;}

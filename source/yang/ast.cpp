@@ -98,25 +98,25 @@ y::string Node::op_string(node_type t)
       t == Node::LE ? "<=" :
       t == Node::GT ? ">" :
       t == Node::LT ? "<" :
-      t == Node::FOLD_LOGICAL_OR ? "||" :
-      t == Node::FOLD_LOGICAL_AND ? "&&" :
-      t == Node::FOLD_BITWISE_OR ? "|" :
-      t == Node::FOLD_BITWISE_AND ? "&" :
-      t == Node::FOLD_BITWISE_XOR ? "^" :
-      t == Node::FOLD_BITWISE_LSHIFT ? "<<" :
-      t == Node::FOLD_BITWISE_RSHIFT ? ">>" :
-      t == Node::FOLD_POW ? "**" :
-      t == Node::FOLD_MOD ? "%" :
-      t == Node::FOLD_ADD ? "+" :
-      t == Node::FOLD_SUB ? "-" :
-      t == Node::FOLD_MUL ? "*" :
-      t == Node::FOLD_DIV ? "/" :
-      t == Node::FOLD_EQ ? "==" :
-      t == Node::FOLD_NE ? "!=" :
-      t == Node::FOLD_GE ? ">=" :
-      t == Node::FOLD_LE ? "<=" :
-      t == Node::FOLD_GT ? ">" :
-      t == Node::FOLD_LT ? "<" :
+      t == Node::FOLD_LOGICAL_OR ? "$||" :
+      t == Node::FOLD_LOGICAL_AND ? "$&&" :
+      t == Node::FOLD_BITWISE_OR ? "$|" :
+      t == Node::FOLD_BITWISE_AND ? "$&" :
+      t == Node::FOLD_BITWISE_XOR ? "$^" :
+      t == Node::FOLD_BITWISE_LSHIFT ? "$<<" :
+      t == Node::FOLD_BITWISE_RSHIFT ? "$>>" :
+      t == Node::FOLD_POW ? "$**" :
+      t == Node::FOLD_MOD ? "$%" :
+      t == Node::FOLD_ADD ? "$+" :
+      t == Node::FOLD_SUB ? "$-" :
+      t == Node::FOLD_MUL ? "$*" :
+      t == Node::FOLD_DIV ? "$/" :
+      t == Node::FOLD_EQ ? "$==" :
+      t == Node::FOLD_NE ? "$!=" :
+      t == Node::FOLD_GE ? "$>=" :
+      t == Node::FOLD_LE ? "$<=" :
+      t == Node::FOLD_GT ? "$>" :
+      t == Node::FOLD_LT ? "$<" :
       t == Node::LOGICAL_NEGATION ? "!" :
       t == Node::BITWISE_NEGATION ? "~" :
       t == Node::ARITHMETIC_NEGATION ? "-" :

@@ -59,6 +59,7 @@ namespace {
 %token T_LE
 %token T_GT
 %token T_LT
+%token T_FOLD
 %token T_WORLD_CAST
 %token T_ASSIGN
 %token T_ASSIGN_LOGICAL_OR
@@ -80,7 +81,7 @@ namespace {
 
   /* Operator precedence. */
 
-%left T_TERNARY
+%left T_TERNARY_L T_TERNARY_R
 %left T_LOGICAL_OR
 %left T_LOGICAL_AND
 %left T_EQ T_NE
@@ -91,9 +92,9 @@ namespace {
 %left T_BITWISE_LSHIFT T_BITWISE_RSHIFT
 %left T_ADD T_SUB
 %left T_MUL T_DIV T_MOD
-%right PREC_UNARY_L
+%right P_UNARY_L
 %left T_POW
-%left PREC_UNARY_R
+%left T_WORLD_CAST '['
 
   /* Types. */
 
@@ -120,10 +121,10 @@ expr_list
   ;
 
 expr
-  : t_expr T_TERNARY_L expr T_TERNARY_R expr
-{$$ = new Node(Node::TERNARY, $1, $3, $5);}
-  | t_expr
+  : t_expr
 {$$ = $1;}
+  | t_expr T_TERNARY_L expr T_TERNARY_R expr
+{$$ = new Node(Node::TERNARY, $1, $3, $5);}
   ;
 
 t_expr
@@ -173,57 +174,57 @@ t_expr
 {$$ = new Node(Node::GT, $1, $3);}
   | t_expr T_LT t_expr
 {$$ = new Node(Node::LT, $1, $3);}
-  | t_expr T_LOGICAL_OR %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_LOGICAL_OR, $1);}
-  | t_expr T_LOGICAL_AND %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_LOGICAL_AND, $1);}
-  | t_expr T_BITWISE_OR %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_BITWISE_OR, $1);}
-  | t_expr T_BITWISE_AND %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_BITWISE_AND, $1);}
-  | t_expr T_BITWISE_XOR %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_BITWISE_XOR, $1);}
-  | t_expr T_BITWISE_LSHIFT %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_BITWISE_LSHIFT, $1);}
-  | t_expr T_BITWISE_RSHIFT %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_BITWISE_RSHIFT, $1);}
-  | t_expr T_POW %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_POW, $1);}
-  | t_expr T_MOD %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_MOD, $1);}
-  | t_expr T_ADD %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_ADD, $1);}
-  | t_expr T_SUB %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_SUB, $1);}
-  | t_expr T_MUL %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_MUL, $1);}
-  | t_expr T_DIV %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_DIV, $1);}
-  | t_expr T_EQ %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_EQ, $1);}
-  | t_expr T_NE %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_NE, $1);}
-  | t_expr T_GE %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_GE, $1);}
-  | t_expr T_LE %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_LE, $1);}
-  | t_expr T_GT %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_GT, $1);}
-  | t_expr T_LT %prec PREC_UNARY_R
-{$$ = new Node(Node::FOLD_LT, $1);}
-  | T_LOGICAL_NEGATION t_expr %prec PREC_UNARY_L
+  | T_FOLD t_expr T_LOGICAL_OR
+{$$ = new Node(Node::FOLD_LOGICAL_OR, $2);}
+  | T_FOLD t_expr T_LOGICAL_AND
+{$$ = new Node(Node::FOLD_LOGICAL_AND, $2);}
+  | T_FOLD t_expr T_BITWISE_OR
+{$$ = new Node(Node::FOLD_BITWISE_OR, $2);}
+  | T_FOLD t_expr T_BITWISE_AND
+{$$ = new Node(Node::FOLD_BITWISE_AND, $2);}
+  | T_FOLD t_expr T_BITWISE_XOR
+{$$ = new Node(Node::FOLD_BITWISE_XOR, $2);}
+  | T_FOLD t_expr T_BITWISE_LSHIFT
+{$$ = new Node(Node::FOLD_BITWISE_LSHIFT, $2);}
+  | T_FOLD t_expr T_BITWISE_RSHIFT
+{$$ = new Node(Node::FOLD_BITWISE_RSHIFT, $2);}
+  | T_FOLD t_expr T_POW
+{$$ = new Node(Node::FOLD_POW, $2);}
+  | T_FOLD t_expr T_MOD
+{$$ = new Node(Node::FOLD_MOD, $2);}
+  | T_FOLD t_expr T_ADD
+{$$ = new Node(Node::FOLD_ADD, $2);}
+  | T_FOLD t_expr T_SUB
+{$$ = new Node(Node::FOLD_SUB, $2);}
+  | T_FOLD t_expr T_MUL
+{$$ = new Node(Node::FOLD_MUL, $2);}
+  | T_FOLD t_expr T_DIV
+{$$ = new Node(Node::FOLD_DIV, $2);}
+  | T_FOLD t_expr T_EQ
+{$$ = new Node(Node::FOLD_EQ, $2);}
+  | T_FOLD t_expr T_NE
+{$$ = new Node(Node::FOLD_NE, $2);}
+  | T_FOLD t_expr T_GE
+{$$ = new Node(Node::FOLD_GE, $2);}
+  | T_FOLD t_expr T_LE
+{$$ = new Node(Node::FOLD_LE, $2);}
+  | T_FOLD t_expr T_GT
+{$$ = new Node(Node::FOLD_GT, $2);}
+  | T_FOLD t_expr T_LT
+{$$ = new Node(Node::FOLD_LT, $2);}
+  | T_LOGICAL_NEGATION t_expr %prec P_UNARY_L
 {$$ = new Node(Node::LOGICAL_NEGATION, $2);}
-  | T_BITWISE_NEGATION t_expr %prec PREC_UNARY_L
+  | T_BITWISE_NEGATION t_expr %prec P_UNARY_L
 {$$ = new Node(Node::BITWISE_NEGATION, $2);}
-  | T_SUB t_expr %prec PREC_UNARY_L
+  | T_SUB t_expr %prec P_UNARY_L
 {$$ = new Node(Node::ARITHMETIC_NEGATION, $2);}
   | '[' expr ']'
 {$$ = new Node(Node::INT_CAST, $2);}
-  | t_expr T_WORLD_CAST %prec PREC_UNARY_R
+  | t_expr T_WORLD_CAST
 {$$ = new Node(Node::WORLD_CAST, $1);}
   | '(' expr ',' expr_list ')'
 {$$ = $4; $$->add_front($2); $$->type = Node::VECTOR_CONSTRUCT;}
-  | t_expr '[' expr ']' %prec PREC_UNARY_R
+  | t_expr '[' expr ']'
 {$$ = new Node(Node::VECTOR_INDEX, $1, $3);}
   ;
 
