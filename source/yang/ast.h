@@ -11,6 +11,8 @@ struct Node {
   enum node_type {
     ERROR,
     BLOCK,
+    EXPR_STMT,
+    RETURN_STMT,
     IDENTIFIER,
     INT_LITERAL,
     WORLD_LITERAL,

@@ -20,11 +20,13 @@ int yyerror(const char* message)
   /* Tokens. */
 
 %token T_EOF 0
+
 %token T_INT
 %token T_WORLD
 %token T_IF
 %token T_ELSE
 %token T_FOR
+%token T_RETURN
 %token T_GLOBAL
 %token T_EXPORT
 
@@ -115,7 +117,9 @@ stmt_list
 
 stmt
   : expr ';'
-{$$ = $1;}
+{$$ = new Node(Node::EXPR_STMT, $1);}
+  | T_RETURN expr ';'
+{$$ = new Node(Node::RETURN_STMT, $2);}
   | '{' stmt_list '}'
 {$$ = $2; $$->type = Node::BLOCK;}
   ;

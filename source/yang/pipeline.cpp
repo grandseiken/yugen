@@ -92,7 +92,6 @@ void YangProgram::generate_ir()
 
   if (llvm::verifyModule(*_module, llvm::ReturnStatusAction, &_error)) {
     log_err("Couldn't verify module:\n", _error);
-    _module = y::null;
   }
 }
 

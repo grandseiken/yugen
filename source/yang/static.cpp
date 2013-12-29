@@ -111,7 +111,35 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
   // not the operand type was intended to be int or world.
   switch (node.type) {
     case Node::BLOCK:
-      return *results.rbegin();
+    {
+      Type return_type = Type::ERROR;
+      bool any_type = false;
+      y::size first_index = 0;
+      for (y::size i = 0; i < results.size(); ++i) {
+        const Type& t = results[i];
+        if (t.is_error()) {
+          continue;
+        }
+        if (!any_type) {
+          return_type = t;
+          any_type = true;
+          first_index = i;
+          continue;
+        }
+        if (!return_type.is_error()) {
+          return_type = return_type.unify(t);
+          if (return_type.is_error()) {
+            error(node, "returning " + rs[first_index] + " and " + rs[i]);
+          }
+        }
+      }
+      return return_type;
+    }
+
+    case Node::EXPR_STMT:
+      return Type::ERROR;
+    case Node::RETURN_STMT:
+      return results[0];
 
     case Node::IDENTIFIER:
       error(node, "identifiers unsupported");

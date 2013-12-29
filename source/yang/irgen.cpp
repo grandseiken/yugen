@@ -25,7 +25,8 @@ void IrGenerator::generate(const Node& node)
       _builder.getContext(), "entry", function);
 
   _builder.SetInsertPoint(block);
-  _builder.CreateRet(walk(node));
+  walk(node);
+  _builder.CreateBr(_builder.GetInsertBlock());
 }
 
 llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
@@ -38,7 +39,25 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
 
   switch (node.type) {
     case Node::BLOCK:
+    {
+      auto parent = b.GetInsertBlock()->getParent();
+      auto after_block =
+          llvm::BasicBlock::Create(b.getContext(), "after", parent);
+      b.CreateBr(after_block);
+      b.SetInsertPoint(after_block);
       return *results.rbegin();
+    }
+    case Node::EXPR_STMT:
+      return results[0];
+    case Node::RETURN_STMT:
+    {
+      auto parent = b.GetInsertBlock()->getParent();
+      auto dead_block =
+          llvm::BasicBlock::Create(b.getContext(), "dead", parent);
+      llvm::Value* v = b.CreateRet(results[0]);
+      b.SetInsertPoint(dead_block);
+      return v;
+    }
 
     case Node::IDENTIFIER:
       // TODO.

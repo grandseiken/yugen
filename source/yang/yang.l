@@ -82,6 +82,7 @@ world {return T_WORLD;}
 if {return T_IF;}
 else {return T_ELSE;}
 for {return T_FOR;}
+return {return T_RETURN;}
 global {return T_GLOBAL;}
 export {return T_EXPORT;}
 

@@ -12,10 +12,14 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
         if (i) {
           s += " ";
         }
-        s += results[i] + ";";
+        s += results[i];
       }
       return "{" + s + "}";
     }
+    case Node::EXPR_STMT:
+      return results[0] + ";";
+    case Node::RETURN_STMT:
+      return "return " + results[0] + ";";
 
     case Node::IDENTIFIER:
       return node.string_value;
