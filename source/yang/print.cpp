@@ -67,7 +67,7 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
     case Node::FOLD_LE:
     case Node::FOLD_GT:
     case Node::FOLD_LT:
-      return "(" + results[0] + s + ")";
+      return "($" + results[0] + s + ")";
 
     case Node::LOGICAL_NEGATION:
     case Node::BITWISE_NEGATION:
