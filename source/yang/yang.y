@@ -91,6 +91,8 @@ int yyerror(const char* message)
   /* Types. */
 
 %type <node> program
+%type <node> stmt_list
+%type <node> stmt
 %type <node> expr_list
 %type <node> expr
 %type <node> t_expr
@@ -101,8 +103,21 @@ int yyerror(const char* message)
   /* Language grammar. */
 
 program
-  : expr T_EOF
+  : stmt T_EOF
 {$$ = ParseGlobals::parser_output = $1;}
+  ;
+
+stmt_list
+  :
+{$$ = new Node(Node::ERROR);}
+  | stmt_list stmt
+{$$ = $1; $$->add($2);}
+
+stmt
+  : expr ';'
+{$$ = $1;}
+  | '{' stmt_list '}'
+{$$ = $2; $$->type = Node::BLOCK;}
   ;
 
 expr_list

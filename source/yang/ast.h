@@ -10,6 +10,7 @@
 struct Node {
   enum node_type {
     ERROR,
+    BLOCK,
     IDENTIFIER,
     INT_LITERAL,
     WORLD_LITERAL,

@@ -110,6 +110,9 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
   // the erroneous 1 == 1. gives type INT, as the result would be INT whether or
   // not the operand type was intended to be int or world.
   switch (node.type) {
+    case Node::BLOCK:
+      return *results.rbegin();
+
     case Node::IDENTIFIER:
       error(node, "identifiers unsupported");
       return Type::ERROR;

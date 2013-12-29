@@ -37,6 +37,9 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
   }
 
   switch (node.type) {
+    case Node::BLOCK:
+      return *results.rbegin();
+
     case Node::IDENTIFIER:
       // TODO.
       return constant_int(0);
