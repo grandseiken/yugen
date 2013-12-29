@@ -27,6 +27,7 @@ public:
   bool is_int() const;
   bool is_world() const;
 
+  bool count_binary_match(const Type& t) const;
   Type unify(const Type& t) const;
   bool is(const Type& t) const;
 

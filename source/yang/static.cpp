@@ -1,4 +1,5 @@
 #include "static.h"
+#include "../common/algorithm.h"
 #include "../log.h"
 
 Type::Type(type_base base, y::size count)
@@ -56,6 +57,12 @@ bool Type::is_world() const
   return is_error() || _base == WORLD;
 }
 
+bool Type::count_binary_match(const Type& t) const
+{
+  return is_error() || t.is_error() ||
+      count() == t.count() || count() == 1 || t.count() == 1;
+}
+
 Type Type::unify(const Type& t) const
 {
   return *this != t ? ERROR : *this;
@@ -94,6 +101,13 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     rs.push_back(t.string());
   }
 
+  // To make the error messages useful, the general idea here is to fall back to
+  // the ERROR type only when the operands (up to errors) do not uniquely
+  // determine some result type.
+  // For example, the erroneous (1, 1) + (1, 1, 1) results in an ERROR type,
+  // since there's no way to decide if an int2 or int3 was intended. However,
+  // the erroneous 1 == 1. gives type INT, as the result would be INT whether or
+  // not the operand type was intended to be int or world.
   switch (node.type) {
     case Node::IDENTIFIER:
       error(node, "identifiers unsupported");
@@ -119,13 +133,14 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::BITWISE_XOR:
     case Node::BITWISE_LSHIFT:
     case Node::BITWISE_RSHIFT:
-      if (!results[0].is(results[1]) || !results[0].is_int()) {
+      if (!results[0].count_binary_match(results[1])) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
-      }
-      if (results[0].count() != results[1].count()) {
         return Type::ERROR;
       }
-      return Type(Type::INT, results[0].count());
+      else if (!results[0].is_int() || !results[1].is_int()) {
+        error(node, s + " applied to " + rs[0] + " and " + rs[1]);
+      }
+      return Type(Type::INT, y::max(results[0].count(), results[1].count()));
 
     case Node::POW:
     case Node::MOD:
@@ -133,12 +148,14 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::SUB:
     case Node::MUL:
     case Node::DIV:
-      if (!results[0].is(results[1]) ||
-          !(results[0].is_int() || results[0].is_world())) {
+      if (!results[0].count_binary_match(results[1]) ||
+          (!(results[0].is_int() && results[1].is_int()) &&
+           !(results[0].is_world() && results[1].is_world()))) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
         return Type::ERROR;
       }
-      return results[0].unify(results[1]);
+      return Type(results[0].base(),
+                  y::max(results[0].count(), results[1].count()));
 
     case Node::EQ:
     case Node::NE:
@@ -146,14 +163,15 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::LE:
     case Node::GT:
     case Node::LT:
-      if (!results[0].is(results[1]) ||
-          !(results[0].is_int() || results[0].is_world())) {
+      if (!results[0].count_binary_match(results[1])) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
-      }
-      if (results[0].count() != results[1].count()) {
         return Type::ERROR;
       }
-      return Type(Type::INT, results[0].count());
+      else if (!(results[0].is_int() && results[1].is_int()) &&
+               !(results[0].is_world() && results[1].is_world())) {
+        error(node, s + " applied to " + rs[0] + " and " + rs[1]);
+      }
+      return Type(Type::INT, y::max(results[0].count(), results[1].count()));
 
     case Node::FOLD_LOGICAL_OR:
     case Node::FOLD_LOGICAL_AND:

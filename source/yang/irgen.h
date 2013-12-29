@@ -38,6 +38,10 @@ private:
   llvm::Value* i2b(llvm::Value* v);
   llvm::Value* b2i(llvm::Value* v);
   llvm::Value* branch(llvm::Value* cond, llvm::Value* left, llvm::Value* right);
+
+  llvm::Value* binary(
+      llvm::Value* left, llvm::Value* right,
+      y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op);
   llvm::Value* fold(
       llvm::Value* value,
       y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,

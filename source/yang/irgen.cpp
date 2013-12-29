@@ -17,6 +17,7 @@ IrGenerator::~IrGenerator()
 
 void IrGenerator::generate(const Node& node)
 {
+  // Temporary: just create a default function to hold the single expression.
   auto function = llvm::Function::Create(
       llvm::FunctionType::get(int_type(), false),
       llvm::Function::ExternalLinkage, "main", &_module);
@@ -49,70 +50,121 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return branch(results[0], results[1], results[2]);
 
     case Node::LOGICAL_OR:
-      return b2i(b.CreateOr(i2b(results[0]), i2b(results[1]), "lor"));
+      return b2i(binary(
+          results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateOr(i2b(v), i2b(u), "lor");
+      }));
     case Node::LOGICAL_AND:
-      return b2i(b.CreateAnd(i2b(results[0]), i2b(results[1]), "land"));
+      return b2i(binary(
+          results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateAnd(i2b(v), i2b(u), "land");
+      }));
     case Node::BITWISE_OR:
-      return b.CreateOr(results[0], results[1], "or");
+      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateOr(v, u, "or");
+      });
     case Node::BITWISE_AND:
-      return b.CreateAnd(results[0], results[1], "and");
+      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateAnd(v, u, "and");
+      });
     case Node::BITWISE_XOR:
-      return b.CreateXor(results[0], results[1], "xor");
+      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateXor(v, u, "xor");
+      });
     case Node::BITWISE_LSHIFT:
-      return b.CreateShl(results[0], results[1], "lsh");
+      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateShl(v, u, "lsh");
+      });
     case Node::BITWISE_RSHIFT:
-      return b.CreateAShr(results[0], results[1], "rsh");
+      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return b.CreateAShr(v, u, "rsh");
+      });
 
     case Node::POW:
       // TODO.
       return results[0];
     case Node::MOD:
       // TODO: euclidean mod.
-      return types[0]->isIntOrIntVectorTy() ?
-          b.CreateSRem(results[0], results[1], "mod") :
-          b.CreateFRem(results[0], results[1], "fmod");
+      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateSRem(v, u, "mod") : b.CreateFRem(v, u, "fmod");
+      });
     case Node::ADD:
-      return types[0]->isIntOrIntVectorTy() ?
-          b.CreateAdd(results[0], results[1], "add") :
-          b.CreateFAdd(results[0], results[1], "fadd");
+      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateAdd(v, u, "add") : b.CreateFAdd(v, u, "fadd");
+      });
     case Node::SUB:
-      return types[0]->isIntOrIntVectorTy() ?
-          b.CreateSub(results[0], results[1], "sub") :
-          b.CreateFSub(results[0], results[1], "fsub");
+      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateSub(v, u, "sub") : b.CreateFSub(v, u, "fsub");
+      });
     case Node::MUL:
-      return types[0]->isIntOrIntVectorTy() ?
-          b.CreateMul(results[0], results[1], "mul") :
-          b.CreateFMul(results[0], results[1], "fmul");
+      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateMul(v, u, "mul") : b.CreateFMul(v, u, "fmul");
+      });
     case Node::DIV:
       // TODO: euclidean division.
-      return types[0]->isIntOrIntVectorTy() ?
-          b.CreateSDiv(results[0], results[1], "div") :
-          b.CreateFDiv(results[0], results[1], "fdiv");
+      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateSDiv(v, u, "div") : b.CreateFDiv(v, u, "fdib");
+      });
 
     case Node::EQ:
-      return b2i(types[0]->isIntOrIntVectorTy() ?
-          b.CreateICmpEQ(results[0], results[1], "eq") :
-          b.CreateFCmpOEQ(results[0], results[1], "feq"));
+      return b2i(
+          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateICmpEQ(v, u, "eq") : b.CreateFCmpOEQ(v, u, "feq");
+      }));
     case Node::NE:
-      return b2i(types[0]->isIntOrIntVectorTy() ?
-          b.CreateICmpNE(results[0], results[1], "ne") :
-          b.CreateFCmpONE(results[0], results[1], "fne"));
+      return b2i(
+          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateICmpNE(v, u, "ne") : b.CreateFCmpONE(v, u, "fne");
+      }));
     case Node::GE:
-      return b2i(types[0]->isIntOrIntVectorTy() ?
-          b.CreateICmpSGE(results[0], results[1], "ge") :
-          b.CreateFCmpOGE(results[0], results[1], "fge"));
+      return b2i(
+          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateICmpSGE(v, u, "ge") : b.CreateFCmpOGE(v, u, "fge");
+      }));
     case Node::LE:
-      return b2i(types[0]->isIntOrIntVectorTy() ?
-          b.CreateICmpSLE(results[0], results[1], "le") :
-          b.CreateFCmpOLE(results[0], results[1], "fle"));
+      return b2i(
+          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateICmpSLE(v, u, "le") : b.CreateFCmpOLE(v, u, "fle");
+      }));
     case Node::GT:
-      return b2i(types[0]->isIntOrIntVectorTy() ?
-          b.CreateICmpSGT(results[0], results[1], "gt") :
-          b.CreateFCmpOGT(results[0], results[1], "fgt"));
+      return b2i(
+          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateICmpSGT(v, u, "gt") : b.CreateFCmpOGT(v, u, "fgt");
+      }));
     case Node::LT:
-      return b2i(types[0]->isIntOrIntVectorTy() ?
-          b.CreateICmpSLT(results[0], results[1], "lt") :
-          b.CreateFCmpOLT(results[0], results[1], "flt"));
+      return b2i(
+          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+      {
+        return v->getType()->isIntOrIntVectorTy() ?
+           b.CreateICmpSLT(v, u, "lt") : b.CreateFCmpOLT(v, u, "flt");
+      }));
 
     case Node::FOLD_LOGICAL_OR:
       return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
@@ -370,11 +422,40 @@ llvm::Value* IrGenerator::branch(
   return phi;
 }
 
+llvm::Value* IrGenerator::binary(
+    llvm::Value* left, llvm::Value* right,
+    y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op)
+{
+  // If both scalar or vector, sizes must be equal, and we can directly operate
+  // on the values.
+  if (left->getType()->isVectorTy() == right->getType()->isVectorTy()) {
+    return op(left, right);
+  }
+
+  // Otherwise one is a scalar and one a vector (but having the same base type),
+  // and we need to extend the scalar to match the size of the vector.
+  bool is_left = left->getType()->isVectorTy();
+  y::size size = is_left ?
+      left->getType()->getVectorNumElements() :
+      right->getType()->getVectorNumElements();
+
+  llvm::Value* v = constant_vector(
+      left->getType()->isIntOrIntVectorTy() ?
+      constant_int(0) : constant_world(0), size);
+
+  for (y::size i = 0; i < size; ++i) {
+    v = _builder.CreateInsertElement(
+        v, is_left ? right : left, constant_int(i), "vec");
+  }
+  return is_left ? op(left, v) : op(v, right);
+}
+
 llvm::Value* IrGenerator::fold(
     llvm::Value* value,
     y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
     bool to_bool, bool with_ands)
 {
+  // Convert each argument to boolean, if necessary.
   y::vector<llvm::Value*> elements;
   for (y::size i = 0; i < value->getType()->getVectorNumElements(); ++i) {
     llvm::Value* v =
@@ -382,6 +463,7 @@ llvm::Value* IrGenerator::fold(
     elements.push_back(to_bool ? i2b(v) : v);
   }
 
+  // Usually, we just form the chain (((e0 op e1) op e2) ...).
   if (!with_ands) {
     llvm::Value* v = elements[0];
     for (y::size i = 1; i < elements.size(); ++i) {
@@ -390,6 +472,8 @@ llvm::Value* IrGenerator::fold(
     return v;
   }
 
+  // For comparisons that is not very useful, so instead form the chain
+  // (e0 op e1) && (e1 op e2) && ...
   y::vector<llvm::Value*> comparisons;
   for (y::size i = 1; i < elements.size(); ++i) {
     comparisons.push_back(op(elements[i - 1], elements[i]));
