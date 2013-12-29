@@ -56,8 +56,18 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
 
   /* Comments and whitespace. */
 
-<*>{tab} {yyerror("tab character");}
-<*>{whitespace_newline} {yyerror("end-of-line whitespace");}
+<*>{tab} {
+  yyerror("tab character");
+}
+<*>{whitespace_newline} {
+  yyerror("end-of-line whitespace");
+}
+<long_comment><<EOF>> {
+  yyerror("end-of-input inside comment");
+  BEGIN(INITIAL);
+  return T_EOF;
+}
+<INITIAL,line_comment><<EOF>> {return T_EOF;}
 <INITIAL>{long_comment_begin} {BEGIN(long_comment);}
 <INITIAL>{line_comment_begin} {BEGIN(line_comment);}
 <line_comment>{newline} {BEGIN(INITIAL);}

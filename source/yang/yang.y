@@ -19,6 +19,7 @@ int yyerror(const char* message)
 
   /* Tokens. */
 
+%token T_EOF 0
 %token T_INT
 %token T_WORLD
 %token T_IF
@@ -100,7 +101,7 @@ int yyerror(const char* message)
   /* Language grammar. */
 
 program
-  : expr
+  : expr T_EOF
 {$$ = ParseGlobals::parser_output = $1;}
   ;
 
@@ -220,3 +221,4 @@ t_expr
   ;
 
   /* Error-handling. */
+
