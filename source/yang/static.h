@@ -49,6 +49,7 @@ public:
 
 protected:
 
+  void preorder(const Node& node) override;
   Type visit(const Node& node, const result_list& results) override;
 
 private:

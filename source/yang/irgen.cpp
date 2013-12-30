@@ -15,18 +15,22 @@ IrGenerator::~IrGenerator()
 {
 }
 
-void IrGenerator::generate(const Node& node)
+void IrGenerator::preorder(const Node& node)
 {
-  // Temporary: just create a default function to hold the single expression.
-  auto function = llvm::Function::Create(
-      llvm::FunctionType::get(int_type(), false),
-      llvm::Function::ExternalLinkage, "main", &_module);
-  auto block = llvm::BasicBlock::Create(
-      _builder.getContext(), "entry", function);
+  switch (node.type) {
+    case Node::FUNCTION:
+    {
+      auto function = llvm::Function::Create(
+          llvm::FunctionType::get(int_type(), false),
+          llvm::Function::ExternalLinkage, node.string_value, &_module);
+      auto block = llvm::BasicBlock::Create(
+          _builder.getContext(), "entry", function);
 
-  _builder.SetInsertPoint(block);
-  walk(node);
-  _builder.CreateBr(_builder.GetInsertBlock());
+      _builder.SetInsertPoint(block);
+    }
+
+    default: {}
+  }
 }
 
 llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
@@ -40,6 +44,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
   switch (node.type) {
     case Node::PROGRAM:
     case Node::FUNCTION:
+      _builder.CreateBr(_builder.GetInsertBlock());
       return results[0];
 
     case Node::BLOCK:

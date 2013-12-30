@@ -94,6 +94,11 @@ bool StaticChecker::errors() const
   return _errors;
 }
 
+void StaticChecker::preorder(const Node& node)
+{
+  (void)node;
+}
+
 Type StaticChecker::visit(const Node& node, const result_list& results)
 {
   y::string s = "`" + Node::op_string(node.type) + "`";

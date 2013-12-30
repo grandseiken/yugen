@@ -88,7 +88,7 @@ void YangProgram::generate_ir()
   }
 
   IrGenerator irgen(*_module);
-  irgen.generate(*_ast);
+  irgen.walk(*_ast);
 
   if (llvm::verifyModule(*_module, llvm::ReturnStatusAction, &_error)) {
     log_err("Couldn't verify module:\n", _error);

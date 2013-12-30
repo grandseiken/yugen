@@ -76,6 +76,9 @@ int yyerror(const char* message)
   /* Operator precedence. */
 
 %left T_TERNARY_L T_TERNARY_R
+  /* TODO: Precedence for fold doesn't work right.
+     For example: $(1, 1) == (1, 1)&& parses but doesn't with bitwise &. */
+%left T_FOLD
 %left T_LOGICAL_OR
 %left T_LOGICAL_AND
 %left T_EQ T_NE
@@ -173,7 +176,7 @@ t_expr
 {$$ = new Node(Node::LOGICAL_AND, $1, $3);}
   | t_expr T_BITWISE_OR t_expr
 {$$ = new Node(Node::BITWISE_OR, $1, $3);}
-  | t_expr T_BITWISE_AND t_expr
+  | t_expr T_BITWISE_AND t_expr %prec T_FOLD
 {$$ = new Node(Node::BITWISE_AND, $1, $3);}
   | t_expr T_BITWISE_XOR t_expr
 {$$ = new Node(Node::BITWISE_XOR, $1, $3);}

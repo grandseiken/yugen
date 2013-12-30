@@ -29,6 +29,7 @@ public:
 
 protected:
 
+  virtual void preorder(N& node) = 0;
   virtual T visit(N& node, const result_list& results) = 0;
 
 };
@@ -44,6 +45,7 @@ T AstWalkerBase<T, Const>::walk(N& node)
   y::vector<stack_elem> stack;
 
   result_list root_output;
+  preorder(node);
   stack.push_back({&node, node.children.begin(), result_list()});
   while (true) {
     stack_elem& elem = *stack.rbegin();
@@ -58,6 +60,7 @@ T AstWalkerBase<T, Const>::walk(N& node)
     }
 
     N& next = **elem.it++;
+    preorder(next);
     stack.push_back({&next, next.children.begin(), result_list()});
   }
 }

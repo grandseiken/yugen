@@ -17,10 +17,9 @@ public:
   IrGenerator(llvm::Module& module);
   ~IrGenerator();
 
-  void generate(const Node& node);
-
 protected:
 
+  void preorder(const Node& node) override;
   llvm::Value* visit(const Node& node, const result_list& results) override;
 
 private:

@@ -7,6 +7,7 @@
 class AstPrinter : public ConstAstWalker<y::string> {
 protected:
 
+  void preorder(const Node& node) override;
   y::string visit(const Node& node, const result_list& results) override;
 
 };

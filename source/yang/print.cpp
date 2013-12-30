@@ -1,5 +1,10 @@
 #include "print.h"
 
+void AstPrinter::preorder(const Node& node)
+{
+  (void)node;
+}
+
 y::string AstPrinter::visit(const Node& node, const result_list& results)
 {
   y::string s = Node::op_string(node.type);
