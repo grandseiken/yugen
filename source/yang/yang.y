@@ -129,7 +129,8 @@ elem
 
 function
   : T_IDENTIFIER '(' ')' stmt
-{$$ = new Node(Node::FUNCTION, $4); $$->string_value = $1->string_value;}
+{$$ = new Node(Node::FUNCTION, $4);
+ $$->string_value = $1->string_value;}
   ;
 
 stmt_list
@@ -252,12 +253,55 @@ t_expr
 {$$ = new Node(Node::BITWISE_NEGATION, $2);}
   | T_SUB t_expr %prec P_UNARY_L
 {$$ = new Node(Node::ARITHMETIC_NEGATION, $2);}
+  | T_IDENTIFIER T_ASSIGN t_expr
+{$$ = new Node(Node::ASSIGN, $3);
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_LOGICAL_OR t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::LOGICAL_OR, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_LOGICAL_AND t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::LOGICAL_AND, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_BITWISE_OR t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::BITWISE_OR, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_BITWISE_AND t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::BITWISE_AND, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_BITWISE_XOR t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::BITWISE_XOR, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_BITWISE_LSHIFT t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::BITWISE_LSHIFT, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_BITWISE_RSHIFT t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::BITWISE_RSHIFT, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_POW t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::POW, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_MOD t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::MOD, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_ADD t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::ADD, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_SUB t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::SUB, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_MUL t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::MUL, $1, $3));
+ $$->string_value = $1->string_value;}
+  | T_IDENTIFIER T_ASSIGN_DIV t_expr
+{$$ = new Node(Node::ASSIGN, new Node(Node::DIV, $1, $3));
+ $$->string_value = $1->string_value;}
   | '[' expr ']'
 {$$ = new Node(Node::INT_CAST, $2);}
   | t_expr T_WORLD_CAST
 {$$ = new Node(Node::WORLD_CAST, $1);}
   | '(' expr ',' expr_list ')'
-{$$ = $4; $$->add_front($2); $$->type = Node::VECTOR_CONSTRUCT;}
+{$$ = $4; $$->add_front($2);
+ $$->type = Node::VECTOR_CONSTRUCT;}
   | t_expr '[' expr ']'
 {$$ = new Node(Node::VECTOR_INDEX, $1, $3);}
   ;
