@@ -105,6 +105,8 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
 
     case Node::ASSIGN:
       return "(" + node.string_value + " = " + results[0] + ")";
+    case Node::ASSIGN_VAR:
+      return "(var " + node.string_value + " = " + results[0] + ")";
 
     case Node::INT_CAST:
       return "[" + results[0] + "]";

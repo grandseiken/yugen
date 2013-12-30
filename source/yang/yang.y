@@ -21,6 +21,7 @@ int yyerror(const char* message)
 
 %token T_EOF 0
 
+%token T_VAR
 %token T_INT
 %token T_WORLD
 %token T_IF
@@ -254,6 +255,9 @@ expr
   | T_SUB expr %prec P_UNARY_L
 {$$ = new Node(Node::ARITHMETIC_NEGATION, $2);}
   /* Assignment operators. */
+  | T_VAR T_IDENTIFIER T_ASSIGN expr
+{$$ = new Node(Node::ASSIGN_VAR, $4);
+ $$->string_value = $2->string_value;}
   | T_IDENTIFIER T_ASSIGN expr
 {$$ = new Node(Node::ASSIGN, $3);
  $$->string_value = $1->string_value;}

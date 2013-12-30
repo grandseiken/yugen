@@ -292,13 +292,23 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       return results[0];
 
     case Node::ASSIGN:
+    {
+      if (!_symbol_table.has(node.string_value)) {
+        error(node, "undeclared identifier `" + node.string_value + "`");
+        return Type::ERROR;
+      }
+      Type& t = _symbol_table[node.string_value];
+      if (!t.is(results[0])) {
+        error(node, rs[0] + " assigned to `" + node.string_value +
+                    "` of type " + t.string());
+      }
+      t = results[0];
+      return results[0];
+    }
+
+    case Node::ASSIGN_VAR:
       if (_symbol_table.has_top(node.string_value)) {
-        Type t = _symbol_table[node.string_value];
-        if (!t.is(results[0])) {
-          error(node,
-                "`" + node.string_value + "` redefined from " +
-                t.string() + " to " + rs[0]);
-        }
+        error(node, "`" + node.string_value + "` redefined");
         _symbol_table.remove(node.string_value);
       }
       _symbol_table.add(node.string_value, results[0]);

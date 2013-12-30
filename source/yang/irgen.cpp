@@ -339,9 +339,10 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
 
     case Node::ASSIGN:
-      if (_symbol_table.has_top(node.string_value)) {
-        _symbol_table.remove(node.string_value);
-      }
+      _symbol_table[node.string_value] = results[0];
+      return results[0];
+
+    case Node::ASSIGN_VAR:
       _symbol_table.add(node.string_value, results[0]);
       return results[0];
 

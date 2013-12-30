@@ -77,6 +77,7 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
 
   /* Keywords. */
 
+var {return T_VAR;}
 int {return T_INT;}
 world {return T_WORLD;}
 if {return T_IF;}
