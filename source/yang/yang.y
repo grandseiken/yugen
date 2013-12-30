@@ -176,7 +176,7 @@ t_expr
 {$$ = new Node(Node::LOGICAL_AND, $1, $3);}
   | t_expr T_BITWISE_OR t_expr
 {$$ = new Node(Node::BITWISE_OR, $1, $3);}
-  | t_expr T_BITWISE_AND t_expr %prec T_FOLD
+  | t_expr T_BITWISE_AND t_expr
 {$$ = new Node(Node::BITWISE_AND, $1, $3);}
   | t_expr T_BITWISE_XOR t_expr
 {$$ = new Node(Node::BITWISE_XOR, $1, $3);}
