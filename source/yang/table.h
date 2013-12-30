@@ -3,6 +3,8 @@
 
 #include "../common/map.h"
 #include "../common/math.h"
+#include "../common/string.h"
+#include "../common/vector.h"
 
 template<typename T>
 class SymbolTable {
@@ -19,6 +21,7 @@ public:
   void remove(const y::string& symbol);
 
   bool has(const y::string& symbol) const;
+  bool has_top(const y::string& symbol) const;
   const T& operator[](const y::string& symbol) const;
   /***/ T& operator[](const y::string& symbol);
 
@@ -84,6 +87,12 @@ bool SymbolTable<T>::has(const y::string& symbol) const
     }
   }
   return false;
+}
+
+template<typename T>
+bool SymbolTable<T>::has_top(const y::string& symbol) const
+{
+  return _stack.rbegin()->find(symbol) != _stack.rbegin()->end();
 }
 
 template<typename T>

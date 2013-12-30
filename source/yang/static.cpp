@@ -75,14 +75,14 @@ bool Type::count_binary_match(const Type& t) const
       count() == t.count() || count() == 1 || t.count() == 1;
 }
 
-Type Type::unify(const Type& t) const
-{
-  return *this != t ? ERROR : *this;
-}
-
 bool Type::is(const Type& t) const
 {
   return *this == t || is_error() || t.is_error();
+}
+
+Type Type::unify(const Type& t) const
+{
+  return *this != t ? ERROR : *this;
 }
 
 bool Type::operator==(const Type& t) const
@@ -174,8 +174,11 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       return results[0];
 
     case Node::IDENTIFIER:
-      error(node, "identifiers unsupported");
-      return Type::ERROR;
+      if (!_symbol_table.has(node.string_value)) {
+        error(node, "undeclared identifier `" + node.string_value + "`");
+        _symbol_table.add(node.string_value, Type::ERROR);
+      }
+      return _symbol_table[node.string_value];
     case Node::INT_LITERAL:
       return Type::INT;
     case Node::WORLD_LITERAL:
@@ -286,6 +289,19 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         error(node, s + " applied to " + rs[0]);
         return Type::ERROR;
       }
+      return results[0];
+
+    case Node::ASSIGN:
+      if (_symbol_table.has_top(node.string_value)) {
+        Type t = _symbol_table[node.string_value];
+        if (!t.is(results[0])) {
+          error(node,
+                "`" + node.string_value + "` redefined from " +
+                t.string() + " to " + rs[0]);
+        }
+        _symbol_table.remove(node.string_value);
+      }
+      _symbol_table.add(node.string_value, results[0]);
       return results[0];
 
     case Node::INT_CAST:

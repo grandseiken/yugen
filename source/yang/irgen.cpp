@@ -8,6 +8,7 @@ namespace llvm {
 IrGenerator::IrGenerator(llvm::Module& module)
   : _module(module)
   , _builder(module.getContext())
+  , _symbol_table(y::null)
 {
 }
 
@@ -28,6 +29,9 @@ void IrGenerator::preorder(const Node& node)
 
       _builder.SetInsertPoint(block);
     }
+    case Node::BLOCK:
+      _symbol_table.push();
+      break;
 
     default: {}
   }
@@ -44,6 +48,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
   switch (node.type) {
     case Node::FUNCTION:
       _builder.CreateBr(_builder.GetInsertBlock());
+      _symbol_table.pop();
       return results[0];
 
     case Node::BLOCK:
@@ -53,6 +58,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
           llvm::BasicBlock::Create(b.getContext(), "after", parent);
       b.CreateBr(after_block);
       b.SetInsertPoint(after_block);
+      _symbol_table.pop();
       return *results.rbegin();
     }
     case Node::EXPR_STMT:
@@ -68,8 +74,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
 
     case Node::IDENTIFIER:
-      // TODO.
-      return constant_int(0);
+      return _symbol_table[node.string_value];
 
     case Node::INT_LITERAL:
       return constant_int(node.int_value);
@@ -332,6 +337,14 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
           b.CreateSub(cmp, results[0], "sub") :
           b.CreateFSub(cmp, results[0], "fsub");
     }
+
+    case Node::ASSIGN:
+      if (_symbol_table.has_top(node.string_value)) {
+        _symbol_table.remove(node.string_value);
+      }
+      _symbol_table.add(node.string_value, results[0]);
+      return results[0];
+
     case Node::INT_CAST:
     {
       llvm::Type* type = int_type();

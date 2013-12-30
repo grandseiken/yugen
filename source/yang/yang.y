@@ -302,7 +302,7 @@ expr
  $$->string_value = $2->string_value;}
   | T_DECREMENT T_IDENTIFIER %prec P_UNARY_L
 {$$ = new Node(Node::ASSIGN,
-               new Node(Node::ADD, $2, new Node(Node::INT_LITERAL, -1)));
+               new Node(Node::SUB, $2, new Node(Node::INT_LITERAL, 1)));
  $$->string_value = $2->string_value;}
   /* Type-conversion operators. */
   | '[' expr ']'

@@ -1,6 +1,7 @@
 #ifndef YANG__IRGEN_H
 #define YANG__IRGEN_H
 
+#include "table.h"
 #include "walker.h"
 #include "../common/function.h"
 #include <llvm/IR/IRBuilder.h>
@@ -48,6 +49,7 @@ private:
 
   llvm::Module& _module;
   llvm::IRBuilder<> _builder;
+  SymbolTable<llvm::Value*> _symbol_table;
 
 };
 
