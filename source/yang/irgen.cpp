@@ -42,7 +42,6 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
   }
 
   switch (node.type) {
-    case Node::PROGRAM:
     case Node::FUNCTION:
       _builder.CreateBr(_builder.GetInsertBlock());
       return results[0];
@@ -81,6 +80,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return branch(results[0], results[1], results[2]);
 
     case Node::LOGICAL_OR:
+      // TODO: short-circuiting.
       return b2i(binary(
           results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
       {

@@ -1,8 +1,19 @@
 #include "print.h"
 
+AstPrinter::AstPrinter()
+  : _indent(0)
+{
+}
+
 void AstPrinter::preorder(const Node& node)
 {
-  (void)node;
+  switch (node.type) {
+    case Node::BLOCK:
+      ++_indent;
+      break;
+
+    default: {}
+  }
 }
 
 y::string AstPrinter::visit(const Node& node, const result_list& results)
@@ -19,23 +30,21 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       return s;
     }
     case Node::FUNCTION:
-      return node.string_value + "() " + results[0];
+      return node.string_value + "()\n" + results[0];
 
     case Node::BLOCK:
     {
+      --_indent;
       y::string s = "";
       for (y::size i = 0; i < results.size(); ++i) {
-        if (i) {
-          s += " ";
-        }
         s += results[i];
       }
-      return "{" + s + "}";
+      return indent() + "{\n" + s + indent() + "}\n";
     }
     case Node::EXPR_STMT:
-      return results[0] + ";";
+      return indent() + results[0] + ";\n";
     case Node::RETURN_STMT:
-      return "return " + results[0] + ";";
+      return indent() + "return " + results[0] + ";\n";
 
     case Node::IDENTIFIER:
       return node.string_value;
@@ -94,6 +103,9 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
     case Node::ARITHMETIC_NEGATION:
       return "(" + s + results[0] + ")";
 
+    case Node::ASSIGN:
+      return "(" + node.string_value + " = " + results[0] + ")";
+
     case Node::INT_CAST:
       return "[" + results[0] + "]";
     case Node::WORLD_CAST:
@@ -116,4 +128,9 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
     default:
       return "";
   }
+}
+
+y::string AstPrinter::indent() const
+{
+  return y::string(2 * _indent, ' ');
 }

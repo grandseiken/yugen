@@ -2,6 +2,7 @@
 #define YANG__STATIC_H
 
 #include "walker.h"
+#include "table.h"
 
 // TYPE_ERROR is a special type assigned to expressions containing an error
 // where the type cannot be determined. Further errors involving a subtree
@@ -11,6 +12,7 @@ public:
 
   enum type_base {
     ERROR,
+    VOID,
     INT,
     WORLD,
   };
@@ -22,6 +24,7 @@ public:
   y::string string() const;
 
   bool is_error() const;
+  bool is_void() const;
   bool primitive() const;
   bool is_vector() const;
   bool is_int() const;
@@ -56,6 +59,7 @@ private:
 
   void error(const Node& node, const y::string& message);
 
+  SymbolTable<Type> _symbol_table;
   bool _errors;
 
 };

@@ -69,13 +69,15 @@ int yyerror(const char* message)
 %token T_ASSIGN_SUB
 %token T_ASSIGN_MUL
 %token T_ASSIGN_DIV
+%token T_INCREMENT
+%token T_DECREMENT
 %token <node> T_IDENTIFIER
 %token <node> T_INT_LITERAL
 %token <node> T_WORLD_LITERAL
 
   /* Operator precedence. */
 
-%left T_TERNARY_L T_TERNARY_R
+%right T_TERNARY_L T_TERNARY_R T_ASSIGN
   /* TODO: Precedence for fold doesn't work right.
      For example: $(1, 1) == (1, 1)&& parses but doesn't with bitwise &. */
 %left T_FOLD
@@ -103,7 +105,6 @@ int yyerror(const char* message)
 %type <node> stmt
 %type <node> expr_list
 %type <node> expr
-%type <node> t_expr
 %start program
 
 %%
@@ -156,153 +157,162 @@ expr_list
   ;
 
 expr
-  : t_expr
-{$$ = $1;}
-  | t_expr T_TERNARY_L expr T_TERNARY_R expr
-{$$ = new Node(Node::TERNARY, $1, $3, $5);}
-  ;
-
-t_expr
+  /* Miscellaeneous. */
   : '(' expr ')'
 {$$ = $2;}
+  | expr T_TERNARY_L expr T_TERNARY_R expr
+{$$ = new Node(Node::TERNARY, $1, $3, $5);}
   | T_IDENTIFIER
 {$$ = $1;}
   | T_INT_LITERAL
 {$$ = $1;}
   | T_WORLD_LITERAL
 {$$ = $1;}
-  | t_expr T_LOGICAL_OR t_expr
+  /* Binary operators. */
+  | expr T_LOGICAL_OR expr
 {$$ = new Node(Node::LOGICAL_OR, $1, $3);}
-  | t_expr T_LOGICAL_AND t_expr
+  | expr T_LOGICAL_AND expr
 {$$ = new Node(Node::LOGICAL_AND, $1, $3);}
-  | t_expr T_BITWISE_OR t_expr
+  | expr T_BITWISE_OR expr
 {$$ = new Node(Node::BITWISE_OR, $1, $3);}
-  | t_expr T_BITWISE_AND t_expr
+  | expr T_BITWISE_AND expr
 {$$ = new Node(Node::BITWISE_AND, $1, $3);}
-  | t_expr T_BITWISE_XOR t_expr
+  | expr T_BITWISE_XOR expr
 {$$ = new Node(Node::BITWISE_XOR, $1, $3);}
-  | t_expr T_BITWISE_LSHIFT t_expr
+  | expr T_BITWISE_LSHIFT expr
 {$$ = new Node(Node::BITWISE_LSHIFT, $1, $3);}
-  | t_expr T_BITWISE_RSHIFT t_expr
+  | expr T_BITWISE_RSHIFT expr
 {$$ = new Node(Node::BITWISE_RSHIFT, $1, $3);}
-  | t_expr T_POW t_expr
+  | expr T_POW expr
 {$$ = new Node(Node::POW, $1, $3);}
-  | t_expr T_MOD t_expr
+  | expr T_MOD expr
 {$$ = new Node(Node::MOD, $1, $3);}
-  | t_expr T_ADD t_expr
+  | expr T_ADD expr
 {$$ = new Node(Node::ADD, $1, $3);}
-  | t_expr T_SUB t_expr
+  | expr T_SUB expr
 {$$ = new Node(Node::SUB, $1, $3);}
-  | t_expr T_MUL t_expr
+  | expr T_MUL expr
 {$$ = new Node(Node::MUL, $1, $3);}
-  | t_expr T_DIV t_expr
+  | expr T_DIV expr
 {$$ = new Node(Node::DIV, $1, $3);}
-  | t_expr T_EQ t_expr
+  | expr T_EQ expr
 {$$ = new Node(Node::EQ, $1, $3);}
-  | t_expr T_NE t_expr
+  | expr T_NE expr
 {$$ = new Node(Node::NE, $1, $3);}
-  | t_expr T_GE t_expr
+  | expr T_GE expr
 {$$ = new Node(Node::GE, $1, $3);}
-  | t_expr T_LE t_expr
+  | expr T_LE expr
 {$$ = new Node(Node::LE, $1, $3);}
-  | t_expr T_GT t_expr
+  | expr T_GT expr
 {$$ = new Node(Node::GT, $1, $3);}
-  | t_expr T_LT t_expr
+  | expr T_LT expr
 {$$ = new Node(Node::LT, $1, $3);}
-  | T_FOLD t_expr T_LOGICAL_OR
+  /* Fold operators. */
+  | T_FOLD expr T_LOGICAL_OR
 {$$ = new Node(Node::FOLD_LOGICAL_OR, $2);}
-  | T_FOLD t_expr T_LOGICAL_AND
+  | T_FOLD expr T_LOGICAL_AND
 {$$ = new Node(Node::FOLD_LOGICAL_AND, $2);}
-  | T_FOLD t_expr T_BITWISE_OR
+  | T_FOLD expr T_BITWISE_OR
 {$$ = new Node(Node::FOLD_BITWISE_OR, $2);}
-  | T_FOLD t_expr T_BITWISE_AND
+  | T_FOLD expr T_BITWISE_AND
 {$$ = new Node(Node::FOLD_BITWISE_AND, $2);}
-  | T_FOLD t_expr T_BITWISE_XOR
+  | T_FOLD expr T_BITWISE_XOR
 {$$ = new Node(Node::FOLD_BITWISE_XOR, $2);}
-  | T_FOLD t_expr T_BITWISE_LSHIFT
+  | T_FOLD expr T_BITWISE_LSHIFT
 {$$ = new Node(Node::FOLD_BITWISE_LSHIFT, $2);}
-  | T_FOLD t_expr T_BITWISE_RSHIFT
+  | T_FOLD expr T_BITWISE_RSHIFT
 {$$ = new Node(Node::FOLD_BITWISE_RSHIFT, $2);}
-  | T_FOLD t_expr T_POW
+  | T_FOLD expr T_POW
 {$$ = new Node(Node::FOLD_POW, $2);}
-  | T_FOLD t_expr T_MOD
+  | T_FOLD expr T_MOD
 {$$ = new Node(Node::FOLD_MOD, $2);}
-  | T_FOLD t_expr T_ADD
+  | T_FOLD expr T_ADD
 {$$ = new Node(Node::FOLD_ADD, $2);}
-  | T_FOLD t_expr T_SUB
+  | T_FOLD expr T_SUB
 {$$ = new Node(Node::FOLD_SUB, $2);}
-  | T_FOLD t_expr T_MUL
+  | T_FOLD expr T_MUL
 {$$ = new Node(Node::FOLD_MUL, $2);}
-  | T_FOLD t_expr T_DIV
+  | T_FOLD expr T_DIV
 {$$ = new Node(Node::FOLD_DIV, $2);}
-  | T_FOLD t_expr T_EQ
+  | T_FOLD expr T_EQ
 {$$ = new Node(Node::FOLD_EQ, $2);}
-  | T_FOLD t_expr T_NE
+  | T_FOLD expr T_NE
 {$$ = new Node(Node::FOLD_NE, $2);}
-  | T_FOLD t_expr T_GE
+  | T_FOLD expr T_GE
 {$$ = new Node(Node::FOLD_GE, $2);}
-  | T_FOLD t_expr T_LE
+  | T_FOLD expr T_LE
 {$$ = new Node(Node::FOLD_LE, $2);}
-  | T_FOLD t_expr T_GT
+  | T_FOLD expr T_GT
 {$$ = new Node(Node::FOLD_GT, $2);}
-  | T_FOLD t_expr T_LT
+  | T_FOLD expr T_LT
 {$$ = new Node(Node::FOLD_LT, $2);}
-  | T_LOGICAL_NEGATION t_expr %prec P_UNARY_L
+  /* Prefix unary operators. */
+  | T_LOGICAL_NEGATION expr %prec P_UNARY_L
 {$$ = new Node(Node::LOGICAL_NEGATION, $2);}
-  | T_BITWISE_NEGATION t_expr %prec P_UNARY_L
+  | T_BITWISE_NEGATION expr %prec P_UNARY_L
 {$$ = new Node(Node::BITWISE_NEGATION, $2);}
-  | T_SUB t_expr %prec P_UNARY_L
+  | T_SUB expr %prec P_UNARY_L
 {$$ = new Node(Node::ARITHMETIC_NEGATION, $2);}
-  | T_IDENTIFIER T_ASSIGN t_expr
+  /* Assignment operators. */
+  | T_IDENTIFIER T_ASSIGN expr
 {$$ = new Node(Node::ASSIGN, $3);
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_LOGICAL_OR t_expr
+  | T_IDENTIFIER T_ASSIGN_LOGICAL_OR expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::LOGICAL_OR, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_LOGICAL_AND t_expr
+  | T_IDENTIFIER T_ASSIGN_LOGICAL_AND expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::LOGICAL_AND, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_BITWISE_OR t_expr
+  | T_IDENTIFIER T_ASSIGN_BITWISE_OR expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::BITWISE_OR, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_BITWISE_AND t_expr
+  | T_IDENTIFIER T_ASSIGN_BITWISE_AND expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::BITWISE_AND, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_BITWISE_XOR t_expr
+  | T_IDENTIFIER T_ASSIGN_BITWISE_XOR expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::BITWISE_XOR, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_BITWISE_LSHIFT t_expr
+  | T_IDENTIFIER T_ASSIGN_BITWISE_LSHIFT expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::BITWISE_LSHIFT, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_BITWISE_RSHIFT t_expr
+  | T_IDENTIFIER T_ASSIGN_BITWISE_RSHIFT expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::BITWISE_RSHIFT, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_POW t_expr
+  | T_IDENTIFIER T_ASSIGN_POW expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::POW, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_MOD t_expr
+  | T_IDENTIFIER T_ASSIGN_MOD expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::MOD, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_ADD t_expr
+  | T_IDENTIFIER T_ASSIGN_ADD expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::ADD, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_SUB t_expr
+  | T_IDENTIFIER T_ASSIGN_SUB expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::SUB, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_MUL t_expr
+  | T_IDENTIFIER T_ASSIGN_MUL expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::MUL, $1, $3));
  $$->string_value = $1->string_value;}
-  | T_IDENTIFIER T_ASSIGN_DIV t_expr
+  | T_IDENTIFIER T_ASSIGN_DIV expr %prec T_ASSIGN
 {$$ = new Node(Node::ASSIGN, new Node(Node::DIV, $1, $3));
  $$->string_value = $1->string_value;}
+  | T_INCREMENT T_IDENTIFIER %prec P_UNARY_L
+{$$ = new Node(Node::ASSIGN,
+               new Node(Node::ADD, $2, new Node(Node::INT_LITERAL, 1)));
+ $$->string_value = $2->string_value;}
+  | T_DECREMENT T_IDENTIFIER %prec P_UNARY_L
+{$$ = new Node(Node::ASSIGN,
+               new Node(Node::ADD, $2, new Node(Node::INT_LITERAL, -1)));
+ $$->string_value = $2->string_value;}
+  /* Type-conversion operators. */
   | '[' expr ']'
 {$$ = new Node(Node::INT_CAST, $2);}
-  | t_expr T_WORLD_CAST
+  | expr T_WORLD_CAST
 {$$ = new Node(Node::WORLD_CAST, $1);}
   | '(' expr ',' expr_list ')'
 {$$ = $4; $$->add_front($2);
  $$->type = Node::VECTOR_CONSTRUCT;}
-  | t_expr '[' expr ']'
+  | expr '[' expr ']'
 {$$ = new Node(Node::VECTOR_INDEX, $1, $3);}
   ;
 

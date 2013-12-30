@@ -4,9 +4,14 @@
 #include "../log.h"
 
 Type::Type(type_base base, y::size count)
-  : _base(count ? base : ERROR)
+  : _base(base)
   , _count(count)
 {
+  if (count == 0 ||
+      (count != 1 && base != INT && base != WORLD)) {
+    _base = ERROR;
+    _count = 1;
+  }
 }
 
 Type::type_base Type::base() const
@@ -22,6 +27,7 @@ y::size Type::count() const
 y::string Type::string() const
 {
   y::string s =
+      _base == VOID ? "void" :
       _base == INT ? "int" :
       _base == WORLD ? "world" : "error";
 
@@ -34,6 +40,11 @@ y::string Type::string() const
 bool Type::is_error() const
 {
   return _base == ERROR;
+}
+
+bool Type::is_void() const
+{
+  return _base == VOID;
 }
 
 bool Type::primitive() const
@@ -86,6 +97,7 @@ bool Type::operator!=(const Type& t) const
 
 StaticChecker::StaticChecker()
   : _errors(false)
+  , _symbol_table(Type::VOID)
 {
 }
 
@@ -96,7 +108,14 @@ bool StaticChecker::errors() const
 
 void StaticChecker::preorder(const Node& node)
 {
-  (void)node;
+  switch (node.type) {
+    case Node::FUNCTION:
+    case Node::BLOCK:
+      _symbol_table.push();
+      break;
+
+    default: {}
+  }
 }
 
 Type StaticChecker::visit(const Node& node, const result_list& results)
@@ -116,26 +135,25 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
   // not the operand type was intended to be int or world.
   switch (node.type) {
     case Node::PROGRAM:
-      return Type::ERROR;
+      return Type::VOID;
     case Node::FUNCTION:
-      if (results[0].is_error()) {
+      if (results[0].is_void()) {
         error(node, "not all code paths return a value");
       }
-      return Type::ERROR;
+      _symbol_table.pop();
+      return Type::VOID;
 
     case Node::BLOCK:
     {
-      Type return_type = Type::ERROR;
-      bool any_type = false;
+      Type return_type = Type::VOID;
       y::size first_index = 0;
       for (y::size i = 0; i < results.size(); ++i) {
         const Type& t = results[i];
-        if (t.is_error()) {
+        if (t.is_void()) {
           continue;
         }
-        if (!any_type) {
+        if (return_type.is_void()) {
           return_type = t;
-          any_type = true;
           first_index = i;
           continue;
         }
@@ -146,11 +164,12 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
           }
         }
       }
+      _symbol_table.pop();
       return return_type;
     }
 
     case Node::EXPR_STMT:
-      return Type::ERROR;
+      return Type::VOID;
     case Node::RETURN_STMT:
       return results[0];
 

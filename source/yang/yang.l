@@ -128,6 +128,8 @@ export {return T_EXPORT;}
 "-=" {return T_ASSIGN_SUB;}
 "*=" {return T_ASSIGN_MUL;}
 "/=" {return T_ASSIGN_DIV;}
+"++" {return T_INCREMENT;}
+"--" {return T_DECREMENT;}
 
   /* Identifiers and literals. */
 
