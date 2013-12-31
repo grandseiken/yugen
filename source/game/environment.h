@@ -87,14 +87,14 @@ public:
   // Constructs a new rope. Start and end positions will be ignored if the
   // corresponding script is non-null.
   Rope(y::size point_masses, y::world length,
-       Script* script_start, Script* script_end, 
+       Script* script_start, Script* script_end,
        const y::wvec2& start, const y::wvec2& end, const params& params,
        y::int32 layer, y::world depth,
        y::world size, const y::fvec4& colour);
 
   // Similar for a textured Rope.
   Rope(y::size point_masses, y::world length,
-       Script* script_start, Script* script_end, 
+       Script* script_start, Script* script_end,
        const y::wvec2& start, const y::wvec2& end, const params& params,
        y::int32 layer, y::world depth,
        const y::fvec4& colour, const Sprite& sprite,
@@ -134,7 +134,7 @@ private:
 
   y::unique<ScriptReference> _start;
   y::unique<ScriptReference> _end;
- 
+
 };
 
 class Environment : public y::no_copy {

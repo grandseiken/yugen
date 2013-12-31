@@ -125,7 +125,7 @@ void Particle::modify(const Derivatives<y::wvec2>& modify)
 
 Rope::Rope(
     y::size point_masses, y::world length,
-    Script* script_start, Script* script_end, 
+    Script* script_start, Script* script_end,
     const y::wvec2& start, const y::wvec2& end, const params& params,
     y::int32 layer, y::world depth,
     y::world size, const y::fvec4& colour)
@@ -144,7 +144,7 @@ Rope::Rope(
 
 Rope::Rope(
     y::size point_masses, y::world length,
-    Script* script_start, Script* script_end, 
+    Script* script_start, Script* script_end,
     const y::wvec2& start, const y::wvec2& end, const params& params,
     y::int32 layer, y::world depth,
     const y::fvec4& colour, const Sprite& sprite,
@@ -450,7 +450,7 @@ void Environment::render_physics(const GameRenderer& renderer) const
   gl.enable_blend(true);
 
   y::size i = 0;
-  auto render = [&](  
+  auto render = [&](
       const Sprite* sprite, const y::ivec2& frame_size, const y::ivec2& frame,
       const y::wvec2& pos, y::world depth, y::world size,
       const y::fvec4& colour)

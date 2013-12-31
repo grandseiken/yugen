@@ -119,8 +119,8 @@ private:
   bool _all_cells_preserved;
   WorldWindow::cell_list _preserved_cells;
 
-  // Script destruction callbacks remove it from the datastructures, so the scripts
-  // need to be destroyed first.
+  // Script destruction callbacks remove it from the datastructures, so the
+  // scripts need to be destroyed first.
   typedef y::list<y::unique<Script>> script_list;
   script_list _scripts;
 

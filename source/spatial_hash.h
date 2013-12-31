@@ -85,7 +85,8 @@ SpatialHash<T, V, N>::SpatialHash(y::size bucket_size)
 }
 
 template<typename T, typename V, y::size N>
-void SpatialHash<T, V, N>::update(const T& t, const coord& min, const coord& max)
+void SpatialHash<T, V, N>::update(
+    const T& t, const coord& min, const coord& max)
 {
   // We store objects in a bucket based on their centre, check for objects
   // in adjacent buckets, and keep a separate bucket for objects which
