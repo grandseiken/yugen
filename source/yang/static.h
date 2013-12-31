@@ -84,9 +84,9 @@ private:
     y::string name;
   };
 
+  bool _errors;
   function _current_function;
   SymbolTable<Type> _symbol_table;
-  bool _errors;
 
 };
 

@@ -81,6 +81,8 @@ void IrGenerator::infix(const Node& node, const result_list& results)
         b.SetInsertPoint(else_block);
       }
     }
+
+    default: {}
   }
 }
 

@@ -106,11 +106,14 @@ void YangProgram::optimise_ir()
 
   // Optimisation passes.
   // TODO: work out which optimisation passes to use.
-  optimiser.add(llvm::createBasicAliasAnalysisPass());
-  optimiser.add(llvm::createInstructionCombiningPass());
-  optimiser.add(llvm::createReassociatePass());
-  optimiser.add(llvm::createGVNPass());
-  optimiser.add(llvm::createCFGSimplificationPass());
+  for (y::size i = 0; i < 2; ++i) {
+    optimiser.add(llvm::createBasicAliasAnalysisPass());
+    optimiser.add(llvm::createPromoteMemoryToRegisterPass());
+    optimiser.add(llvm::createInstructionCombiningPass());
+    optimiser.add(llvm::createReassociatePass());
+    optimiser.add(llvm::createGVNPass());
+    optimiser.add(llvm::createCFGSimplificationPass());
+  }
 
   optimiser.run(*_module);
 }

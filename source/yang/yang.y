@@ -82,7 +82,10 @@ int yyerror(const char* message)
 %nonassoc T_ELSE
 %right T_TERNARY_L T_TERNARY_R T_ASSIGN
   /* TODO: Precedence for fold doesn't work right.
-     For example: $(1, 1) == (1, 1)&& parses but doesn't with bitwise &. */
+     For example: $(1, 1) == (1, 1)&& parses but doesn't with bitwise &.
+     Depends on relative precedence of infix operator with fold operator.
+     Doubtful whether this is fixable, but maybe some clever alternate syntax
+     is possible? */
 %left T_FOLD
 %left T_LOGICAL_OR
 %left T_LOGICAL_AND
@@ -115,8 +118,9 @@ int yyerror(const char* message)
   /* Language grammar. */
 
 program
-  : elem T_EOF
-{$$ = ParseGlobals::parser_output = new Node(Node::PROGRAM, $1);}
+  : elem_list T_EOF
+{$$ = ParseGlobals::parser_output = $1;
+ $$->type = Node::PROGRAM;}
   ;
 
 elem_list

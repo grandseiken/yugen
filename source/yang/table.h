@@ -17,7 +17,7 @@ public:
   void pop();
   y::size size() const;
 
-  bool add(const y::string& symbol, const T& t);
+  void add(const y::string& symbol, const T& t);
   void remove(const y::string& symbol);
 
   bool has(const y::string& symbol) const;
@@ -67,7 +67,7 @@ y::size SymbolTable<T>::size() const
 }
 
 template<typename T>
-bool SymbolTable<T>::add(const y::string& symbol, const T& t)
+void SymbolTable<T>::add(const y::string& symbol, const T& t)
 {
   _stack.rbegin()->emplace(symbol, t);
 }

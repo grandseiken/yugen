@@ -97,8 +97,8 @@ bool Type::operator!=(const Type& t) const
 
 StaticChecker::StaticChecker()
   : _errors(false)
-  , _symbol_table(Type::VOID)
   , _current_function{Type::VOID, ""}
+  , _symbol_table(Type::VOID)
 {
 }
 
