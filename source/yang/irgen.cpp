@@ -134,7 +134,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
 
     case Node::IDENTIFIER:
-      return _symbol_table[node.string_value];
+      return b.CreateLoad(_symbol_table[node.string_value], "load");
 
     case Node::INT_LITERAL:
       return constant_int(node.int_value);
@@ -399,12 +399,16 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
 
     case Node::ASSIGN:
-      _symbol_table[node.string_value] = results[0];
+      b.CreateStore(results[0], _symbol_table[node.string_value]);
       return results[0];
 
     case Node::ASSIGN_VAR:
-      _symbol_table.add(node.string_value, results[0]);
+    {
+      llvm::Value* v = b.CreateAlloca(types[0], y::null, node.string_value);
+      b.CreateStore(results[0], v);
+      _symbol_table.add(node.string_value, v);
       return results[0];
+    }
 
     case Node::INT_CAST:
     {
