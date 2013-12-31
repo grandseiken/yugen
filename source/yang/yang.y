@@ -158,6 +158,8 @@ stmt
 {$$ = new Node(Node::IF_STMT, $3, $5);}
   | T_IF '(' expr ')' stmt T_ELSE stmt
 {$$ = new Node(Node::IF_STMT, $3, $5, $7);}
+  | T_WHILE '(' expr ')' stmt
+{$$ = new Node(Node::WHILE_STMT, $3, $5);}
   | '{' stmt_list '}'
 {$$ = $2; $$->type = Node::BLOCK;}
   ;

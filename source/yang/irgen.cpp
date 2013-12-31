@@ -49,6 +49,16 @@ void IrGenerator::preorder(const Node& node)
       break;
     }
 
+    case Node::WHILE_STMT:
+    {
+      _symbol_table.push();
+      auto loop_block = llvm::BasicBlock::Create(b.getContext(), "loop");
+      auto merge_block = llvm::BasicBlock::Create(b.getContext(), "merge");
+      _symbol_table.add("%WHILE_STMT_LOOP_BLOCK%", loop_block);
+      _symbol_table.add("%WHILE_STMT_MERGE_BLOCK%", merge_block);
+      break;
+    }
+
     default: {}
   }
 }
@@ -80,6 +90,22 @@ void IrGenerator::infix(const Node& node, const result_list& results)
         parent->getBasicBlockList().push_back(else_block);
         b.SetInsertPoint(else_block);
       }
+      break;
+    }
+
+    case Node::WHILE_STMT:
+    {
+      auto parent = b.GetInsertBlock()->getParent();
+
+      auto loop_block =
+          (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_LOOP_BLOCK%"];
+      auto merge_block =
+          (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_MERGE_BLOCK%"];
+
+      b.CreateCondBr(i2b(results[0]), loop_block, merge_block);
+      parent->getBasicBlockList().push_back(loop_block);
+      b.SetInsertPoint(loop_block);
+      break;
     }
 
     default: {}
@@ -134,6 +160,19 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       b.SetInsertPoint(merge_block);
       return results[0];
     }
+    case Node::WHILE_STMT:
+    {
+      auto parent = b.GetInsertBlock()->getParent();
+      auto loop_block = 
+          (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_LOOP_BLOCK%"];
+      auto merge_block =
+          (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_MERGE_BLOCK%"];
+      _symbol_table.pop();
+      b.CreateCondBr(i2b(results[0]), loop_block, merge_block);
+      parent->getBasicBlockList().push_back(merge_block);
+      b.SetInsertPoint(merge_block);
+      return results[0];
+    }
 
     case Node::IDENTIFIER:
       return b.CreateLoad(_symbol_table[node.string_value], "load");
@@ -146,19 +185,44 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     case Node::TERNARY:
       return branch(results[0], results[1], results[2]);
 
+    // Logical OR and AND short-circuit. This interacts in a subtle way with
+    // vectorisation: we can short-circuit only when the left-hand operand is a
+    // primitive. (We could also check and short-circuit if the left-hand
+    // operand is an entirely zero or entirely non-zero vector. We currently
+    // don't.)
     case Node::LOGICAL_OR:
-      // TODO: short-circuiting.
-      return b2i(binary(
-          results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateOr(i2b(v), i2b(u), "lor");
-      }));
+    {
+      if (types[0]->isVectorTy()) {
+        return b2i(binary(
+            results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+        {
+          return b.CreateOr(i2b(v), i2b(u), "lor");
+        }));
+      }
+      llvm::Constant* constant = constant_int(1);
+      if (types[1]->isVectorTy()) {
+        constant = constant_vector(constant, types[1]->getVectorNumElements());
+      }
+      return branch(results[0], constant, b2i(i2b(results[1])));
+    }
     case Node::LOGICAL_AND:
-      return b2i(binary(
-          results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateAnd(i2b(v), i2b(u), "land");
-      }));
+    {
+      if (types[0]->isVectorTy()) {
+        return b2i(binary(
+            results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
+        {
+          return b.CreateAnd(i2b(v), i2b(u), "land");
+        }));
+      }
+      llvm::Constant* constant = constant_int(0);
+      if (types[1]->isVectorTy()) {
+        constant = constant_vector(constant, types[1]->getVectorNumElements());
+      }
+      return branch(results[0], b2i(i2b(results[1])), constant);
+    }
+
+    // Bitwise functions map directly to (vectorisations of) LLVM IR
+    // instructions.
     case Node::BITWISE_OR:
       return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
       {
@@ -406,7 +470,13 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
 
     case Node::ASSIGN_VAR:
     {
-      llvm::Value* v = b.CreateAlloca(types[0], y::null, node.string_value);
+      // Optimisation passes such as mem2reg work much better when memory
+      // locations are declared in the entry block (so they are guaranteed to
+      // execute once).
+      auto& entry_block =
+          ((llvm::Function*)b.GetInsertPoint()->getParent())->getEntryBlock();
+      llvm::IRBuilder<> entry(&entry_block, entry_block.begin());
+      llvm::Value* v = entry.CreateAlloca(types[0], y::null, node.string_value);
       b.CreateStore(results[0], v);
       _symbol_table.add(node.string_value, v);
       return results[0];
@@ -583,7 +653,7 @@ llvm::Value* IrGenerator::fold(
     return v;
   }
 
-  // For comparisons that is not very useful, so instead form the chain
+  // For comparisons that isn't very useful, so instead form the chain
   // (e0 op e1) && (e1 op e2) && ...
   y::vector<llvm::Value*> comparisons;
   for (y::size i = 1; i < elements.size(); ++i) {

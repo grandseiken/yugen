@@ -115,6 +115,7 @@ void StaticChecker::preorder(const Node& node)
       _current_function.name = node.string_value;
     case Node::BLOCK:
     case Node::IF_STMT:
+    case Node::WHILE_STMT:
       _symbol_table.push();
       break;
 
@@ -182,7 +183,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     {
       _symbol_table.pop();
       if (!results[0].is(Type::INT)) {
-        error(node, "branching on " + rs[0]);
+        error(node, "`if` branching on " + rs[0]);
       }
       // An IF_STMT definitely returns a value only if both branches definitely
       // return a value.
@@ -190,6 +191,12 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       Type right = results.size() > 2 ? results[2] : Type::VOID;
       return left.not_void() && right.not_void() ? left : Type::VOID;
     }
+    case Node::WHILE_STMT:
+      _symbol_table.pop();
+      if (!results[0].is(Type::INT)) {
+        error(node, "`while` branching on " + rs[0]);
+      }
+      return Type::VOID;
 
     case Node::IDENTIFIER:
       if (!_symbol_table.has(node.string_value)) {

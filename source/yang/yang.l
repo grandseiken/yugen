@@ -78,12 +78,16 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
   /* Keywords. */
 
 var {return T_VAR;}
-int {return T_INT;}
-world {return T_WORLD;}
 if {return T_IF;}
 else {return T_ELSE;}
-for {return T_FOR;}
+while {return T_WHILE;}
 return {return T_RETURN;}
+
+  /* As-yet-unused keywords. */
+
+for {return T_FOR;}
+int {return T_INT;}
+world {return T_WORLD;}
 global {return T_GLOBAL;}
 export {return T_EXPORT;}
 
@@ -114,6 +118,8 @@ export {return T_EXPORT;}
 "<" {return T_LT;}
 "$" {return T_FOLD;}
 "." {return T_WORLD_CAST;}
+
+  /* Assignment operators. */
 
 "=" {return T_ASSIGN;}
 "||=" {return T_ASSIGN_LOGICAL_OR;}
