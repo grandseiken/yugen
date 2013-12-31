@@ -104,15 +104,24 @@ void YangProgram::optimise_ir()
   llvm::PassManager optimiser;
   optimiser.add(new llvm::DataLayout(*_engine->getDataLayout()));
 
-  // Optimisation passes.
-  // TODO: work out which optimisation passes to use.
+  // Basic alias analysis and register promotion.
   optimiser.add(llvm::createBasicAliasAnalysisPass());
   optimiser.add(llvm::createPromoteMemoryToRegisterPass());
+
+  // Optimise instructions, and reassociate for constant propagation.
   optimiser.add(llvm::createInstructionCombiningPass());
   optimiser.add(llvm::createReassociatePass());
   optimiser.add(llvm::createGVNPass());
+
+  // Handle loops.
+  optimiser.add(llvm::createIndVarSimplifyPass());
+  optimiser.add(llvm::createLoopDeletionPass());
+
+  // Simplify the control-flow graph right at the end.
   optimiser.add(llvm::createCFGSimplificationPass());
 
+  // Run the optimisation passes.
+  // TODO: work out if there's others we should run, or in a different order.
   optimiser.run(*_module);
 }
 

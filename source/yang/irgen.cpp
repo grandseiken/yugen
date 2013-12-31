@@ -52,10 +52,17 @@ void IrGenerator::preorder(const Node& node)
     case Node::WHILE_STMT:
     {
       _symbol_table.push();
+      auto cond_block = llvm::BasicBlock::Create(b.getContext(), "cond");
       auto loop_block = llvm::BasicBlock::Create(b.getContext(), "loop");
       auto merge_block = llvm::BasicBlock::Create(b.getContext(), "merge");
+      _symbol_table.add("%WHILE_STMT_COND_BLOCK%", cond_block);
       _symbol_table.add("%WHILE_STMT_LOOP_BLOCK%", loop_block);
       _symbol_table.add("%WHILE_STMT_MERGE_BLOCK%", merge_block);
+
+      auto parent = b.GetInsertBlock()->getParent();
+      b.CreateBr(cond_block);
+      parent->getBasicBlockList().push_back(cond_block);
+      b.SetInsertPoint(cond_block);
       break;
     }
 
@@ -163,12 +170,12 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     case Node::WHILE_STMT:
     {
       auto parent = b.GetInsertBlock()->getParent();
-      auto loop_block = 
-          (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_LOOP_BLOCK%"];
+      auto cond_block =
+          (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_COND_BLOCK%"];
       auto merge_block =
           (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_MERGE_BLOCK%"];
       _symbol_table.pop();
-      b.CreateCondBr(i2b(results[0]), loop_block, merge_block);
+      b.CreateBr(cond_block);
       parent->getBasicBlockList().push_back(merge_block);
       b.SetInsertPoint(merge_block);
       return results[0];
