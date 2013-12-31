@@ -30,6 +30,7 @@ void IrGenerator::preorder(const Node& node)
       _builder.SetInsertPoint(block);
     }
     case Node::BLOCK:
+    case Node::IF_STMT:
       _symbol_table.push();
       break;
 
@@ -72,6 +73,9 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       b.SetInsertPoint(dead_block);
       return v;
     }
+    case Node::IF_STMT:
+      _symbol_table.pop();
+      return results[0];
 
     case Node::IDENTIFIER:
       return _symbol_table[node.string_value];

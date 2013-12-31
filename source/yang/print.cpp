@@ -45,6 +45,14 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       return indent() + results[0] + ";\n";
     case Node::RETURN_STMT:
       return indent() + "return " + results[0] + ";\n";
+    case Node::IF_STMT:
+    {
+      y::string s = indent() + "if (" + results[0] + ")\n" + results[1];
+      if (results.size() > 2) {
+        s += indent() + "else\n" + results[2];
+      }
+      return s;
+    }
 
     case Node::IDENTIFIER:
       return node.string_value;

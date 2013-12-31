@@ -31,8 +31,8 @@ public:
   // All of the following functions also return true if this is type ERROR.
   // True if this is type ERROR.
   bool is_error() const;
-  // True if this is type VOID.
-  bool is_void() const;
+  // True if this is not type VOID.
+  bool not_void() const;
   // True if this is type INT or WORLD with a count of 1.
   bool primitive() const;
   // True if this is type INT or WORLD with a count greater than 1.
@@ -78,6 +78,12 @@ private:
 
   void error(const Node& node, const y::string& message);
 
+  struct function {
+    Type return_type;
+    y::string name;
+  };
+
+  function _current_function;
   SymbolTable<Type> _symbol_table;
   bool _errors;
 

@@ -78,6 +78,8 @@ int yyerror(const char* message)
 
   /* Operator precedence. */
 
+%nonassoc T_IF
+%nonassoc T_ELSE
 %right T_TERNARY_L T_TERNARY_R T_ASSIGN
   /* TODO: Precedence for fold doesn't work right.
      For example: $(1, 1) == (1, 1)&& parses but doesn't with bitwise &. */
@@ -146,6 +148,10 @@ stmt
 {$$ = new Node(Node::EXPR_STMT, $1);}
   | T_RETURN expr ';'
 {$$ = new Node(Node::RETURN_STMT, $2);}
+  | T_IF '(' expr ')' stmt %prec T_IF
+{$$ = new Node(Node::IF_STMT, $3, $5);}
+  | T_IF '(' expr ')' stmt T_ELSE stmt
+{$$ = new Node(Node::IF_STMT, $3, $5, $7);}
   | '{' stmt_list '}'
 {$$ = $2; $$->type = Node::BLOCK;}
   ;

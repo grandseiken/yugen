@@ -19,6 +19,7 @@ struct Node {
     BLOCK,
     EXPR_STMT,
     RETURN_STMT,
+    IF_STMT,
 
     // Expressions.
     IDENTIFIER,

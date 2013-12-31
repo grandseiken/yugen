@@ -42,9 +42,9 @@ bool Type::is_error() const
   return _base == ERROR;
 }
 
-bool Type::is_void() const
+bool Type::not_void() const
 {
-  return _base == VOID;
+  return _base != VOID;
 }
 
 bool Type::primitive() const
@@ -98,6 +98,7 @@ bool Type::operator!=(const Type& t) const
 StaticChecker::StaticChecker()
   : _errors(false)
   , _symbol_table(Type::VOID)
+  , _current_function{Type::VOID, ""}
 {
 }
 
@@ -110,7 +111,10 @@ void StaticChecker::preorder(const Node& node)
 {
   switch (node.type) {
     case Node::FUNCTION:
+      _current_function.return_type = Type::INT;
+      _current_function.name = node.string_value;
     case Node::BLOCK:
+    case Node::IF_STMT:
       _symbol_table.push();
       break;
 
@@ -137,41 +141,48 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::PROGRAM:
       return Type::VOID;
     case Node::FUNCTION:
-      if (results[0].is_void()) {
+      if (!results[0].not_void()) {
         error(node, "not all code paths return a value");
       }
       _symbol_table.pop();
+      _current_function.return_type = Type::VOID;
+      _current_function.name = "";
       return Type::VOID;
 
     case Node::BLOCK:
     {
-      Type return_type = Type::VOID;
-      y::size first_index = 0;
-      for (y::size i = 0; i < results.size(); ++i) {
-        const Type& t = results[i];
-        if (t.is_void()) {
-          continue;
-        }
-        if (return_type.is_void()) {
-          return_type = t;
-          first_index = i;
-          continue;
-        }
-        if (!return_type.is_error()) {
-          return_type = return_type.unify(t);
-          if (return_type.is_error()) {
-            error(node, "returning " + rs[first_index] + " and " + rs[i]);
-          }
+      _symbol_table.pop();
+      // The code for RETURN_STMT checks return values against the function's
+      // return type. We don't really care what types might be here, just any
+      // non-void as a marker for ensuring all code paths return a value.
+      for (const Type& t : results) {
+        if (t.not_void()) {
+          return t;
         }
       }
-      _symbol_table.pop();
-      return return_type;
+      return Type::VOID;
     }
 
     case Node::EXPR_STMT:
       return Type::VOID;
     case Node::RETURN_STMT:
+      if (!results[0].is(_current_function.return_type)) {
+        error(node, "returning " + rs[0] + " from " +
+                    _current_function.return_type.string() + " function");
+      }
       return results[0];
+    case Node::IF_STMT:
+    {
+      _symbol_table.pop();
+      if (!results[0].is(Type::INT)) {
+        error(node, "branching on " + rs[0]);
+      }
+      // An IF_STMT definitely returns a value only if both branches definitely
+      // return a value.
+      Type left = results[1];
+      Type right = results.size() > 2 ? results[2] : Type::VOID;
+      return left.not_void() && right.not_void() ? left : Type::VOID;
+    }
 
     case Node::IDENTIFIER:
       if (!_symbol_table.has(node.string_value)) {
@@ -200,6 +211,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::BITWISE_XOR:
     case Node::BITWISE_LSHIFT:
     case Node::BITWISE_RSHIFT:
+      // Takes two integers and produces an integer, with vectorisation.
       if (!results[0].count_binary_match(results[1])) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
         return Type::ERROR;
@@ -215,6 +227,8 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::SUB:
     case Node::MUL:
     case Node::DIV:
+      // Takes two integers or worlds and produces a value of the same type,
+      // with vectorisation.
       if (!results[0].count_binary_match(results[1]) ||
           (!(results[0].is_int() && results[1].is_int()) &&
            !(results[0].is_world() && results[1].is_world()))) {
@@ -230,6 +244,8 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::LE:
     case Node::GT:
     case Node::LT:
+      // Takes two integers or worlds and produces an integer, with
+      // vectorisation.
       if (!results[0].count_binary_match(results[1])) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
         return Type::ERROR;
@@ -308,7 +324,9 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
 
     case Node::ASSIGN_VAR:
       if (_symbol_table.has_top(node.string_value)) {
-        error(node, "`" + node.string_value + "` redefined");
+        if (!_symbol_table[node.string_value].is_error()) {
+          error(node, "`" + node.string_value + "` redefined");
+        }
         _symbol_table.remove(node.string_value);
       }
       _symbol_table.add(node.string_value, results[0]);
@@ -367,5 +385,9 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
 void StaticChecker::error(const Node& node, const y::string& message)
 {
   _errors = true;
-  log_err(ParseGlobals::error(node.line, node.text, message));
+  y::string m = message;
+  if (_current_function.name.length()) {
+    m = "in function `" + _current_function.name + "`: " + m;
+  }
+  log_err(ParseGlobals::error(node.line, node.text, m));
 }
