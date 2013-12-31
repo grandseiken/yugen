@@ -25,11 +25,15 @@ public:
   // Implements an algorithm such that visit() will be called for each node in
   // the AST, with the passed result_list containing the results of the calls
   // to visit() for each of the node's children.
+  // Furthermore, for each node, preorder() will be called before any children
+  // are visited, and infix() once in between each visiting child with the
+  // partial result list.
   T walk(N& node);
 
 protected:
 
   virtual void preorder(N& node) = 0;
+  virtual void infix(N& node, const result_list& results) = 0;
   virtual T visit(N& node, const result_list& results) = 0;
 
 };
@@ -45,10 +49,17 @@ T AstWalkerBase<T, Const>::walk(N& node)
   y::vector<stack_elem> stack;
 
   result_list root_output;
-  preorder(node);
   stack.push_back({&node, node.children.begin(), result_list()});
   while (true) {
     stack_elem& elem = *stack.rbegin();
+    // Correctly handle calling preorder on zero-length nodes, but not
+    // duplicating the last preorder and visit on other nodes.
+    if (elem.it == elem.n->children.begin()) {
+      preorder(*elem.n);
+    }
+    else if (elem.it != elem.n->children.end()) {
+      infix(*elem.n, elem.results);
+    }
 
     if (elem.it == elem.n->children.end()) {
       if (stack.size() == 1) {
@@ -60,7 +71,6 @@ T AstWalkerBase<T, Const>::walk(N& node)
     }
 
     N& next = **elem.it++;
-    preorder(next);
     stack.push_back({&next, next.children.begin(), result_list()});
   }
 }

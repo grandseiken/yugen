@@ -21,6 +21,7 @@ public:
 protected:
 
   void preorder(const Node& node) override;
+  void infix(const Node& node, const result_list& results) override;
   llvm::Value* visit(const Node& node, const result_list& results) override;
 
 private:

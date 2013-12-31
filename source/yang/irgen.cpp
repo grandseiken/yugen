@@ -18,23 +18,69 @@ IrGenerator::~IrGenerator()
 
 void IrGenerator::preorder(const Node& node)
 {
+  auto& b = _builder;
+
   switch (node.type) {
     case Node::FUNCTION:
     {
       auto function = llvm::Function::Create(
           llvm::FunctionType::get(int_type(), false),
           llvm::Function::ExternalLinkage, node.string_value, &_module);
-      auto block = llvm::BasicBlock::Create(
-          _builder.getContext(), "entry", function);
+      auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
 
-      _builder.SetInsertPoint(block);
+      b.SetInsertPoint(block);
+      _symbol_table.push();
+      break;
     }
+
     case Node::BLOCK:
-    case Node::IF_STMT:
       _symbol_table.push();
       break;
 
+    case Node::IF_STMT:
+    {
+      _symbol_table.push();
+      auto then_block = llvm::BasicBlock::Create(b.getContext(), "then");
+      auto else_block = llvm::BasicBlock::Create(b.getContext(), "else");
+      auto merge_block = llvm::BasicBlock::Create(b.getContext(), "merge");
+      _symbol_table.add("%IF_STMT_THEN_BLOCK%", then_block);
+      _symbol_table.add("%IF_STMT_ELSE_BLOCK%", else_block);
+      _symbol_table.add("%IF_STMT_MERGE_BLOCK%", merge_block);
+      break;
+    }
+
     default: {}
+  }
+}
+
+void IrGenerator::infix(const Node& node, const result_list& results)
+{
+  auto& b = _builder;
+  switch (node.type) {
+    case Node::IF_STMT:
+    {
+      auto parent = b.GetInsertBlock()->getParent();
+
+      auto then_block =
+          (llvm::BasicBlock*)_symbol_table["%IF_STMT_THEN_BLOCK%"];
+      auto else_block =
+          (llvm::BasicBlock*)_symbol_table["%IF_STMT_ELSE_BLOCK%"];
+      auto merge_block =
+          (llvm::BasicBlock*)_symbol_table["%IF_STMT_MERGE_BLOCK%"];
+
+      if (results.size() == 1) {
+        bool has_else = node.children.size() > 2;
+        b.CreateCondBr(i2b(results[0]), then_block,
+                       has_else ? else_block : merge_block);
+        parent->getBasicBlockList().push_back(then_block);
+        b.SetInsertPoint(then_block);
+      }
+      if (results.size() == 2) {
+        b.CreateBr(merge_block);
+        parent->getBasicBlockList().push_back(else_block);
+        b.SetInsertPoint(else_block);
+      }
+    }
   }
 }
 
@@ -76,8 +122,16 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return v;
     }
     case Node::IF_STMT:
+    {
+      auto parent = b.GetInsertBlock()->getParent();
+      auto merge_block =
+          (llvm::BasicBlock*)_symbol_table["%IF_STMT_MERGE_BLOCK%"];
       _symbol_table.pop();
+      b.CreateBr(merge_block);
+      parent->getBasicBlockList().push_back(merge_block);
+      b.SetInsertPoint(merge_block);
       return results[0];
+    }
 
     case Node::IDENTIFIER:
       return _symbol_table[node.string_value];

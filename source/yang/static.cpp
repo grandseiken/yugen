@@ -122,6 +122,12 @@ void StaticChecker::preorder(const Node& node)
   }
 }
 
+void StaticChecker::infix(const Node& node, const result_list& results)
+{
+  (void)node;
+  (void)results;
+}
+
 Type StaticChecker::visit(const Node& node, const result_list& results)
 {
   y::string s = "`" + Node::op_string(node.type) + "`";
