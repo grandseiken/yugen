@@ -163,6 +163,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       return Type::VOID;
     }
 
+    case Node::EMPTY_STMT:
     case Node::EXPR_STMT:
       return Type::VOID;
     case Node::RETURN_STMT:

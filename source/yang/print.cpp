@@ -41,6 +41,8 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       }
       return indent() + "{\n" + s + indent() + "}\n";
     }
+    case Node::EMPTY_STMT:
+      return indent() + ";\n";
     case Node::EXPR_STMT:
       return indent() + results[0] + ";\n";
     case Node::RETURN_STMT:

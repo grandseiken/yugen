@@ -17,6 +17,7 @@ struct Node {
 
     // Statements.
     BLOCK,
+    EMPTY_STMT,
     EXPR_STMT,
     RETURN_STMT,
     IF_STMT,

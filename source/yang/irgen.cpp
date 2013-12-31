@@ -62,6 +62,8 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       _symbol_table.pop();
       return *results.rbegin();
     }
+    case Node::EMPTY_STMT:
+      return constant_int(0);
     case Node::EXPR_STMT:
       return results[0];
     case Node::RETURN_STMT:

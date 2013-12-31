@@ -144,7 +144,9 @@ stmt_list
 {$$ = $1; $$->add($2);}
 
 stmt
-  : expr ';'
+  : ';'
+{$$ = new Node(Node::EMPTY_STMT);}
+  | expr ';'
 {$$ = new Node(Node::EXPR_STMT, $1);}
   | T_RETURN expr ';'
 {$$ = new Node(Node::RETURN_STMT, $2);}
