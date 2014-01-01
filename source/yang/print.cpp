@@ -61,8 +61,10 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       }
       return s;
     }
-    case Node::WHILE_STMT:
-      return indent() + "while (" + results[0] + ")\n" + results[1];
+    case Node::FOR_STMT:
+      return indent() +
+          "for (" + results[0] + "; " + results[1] + "; " + results[2] + ")\n" +
+          results[3];
 
     case Node::IDENTIFIER:
       return node.string_value;

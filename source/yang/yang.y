@@ -27,6 +27,7 @@ int yyerror(const char* message)
 %token T_IF
 %token T_ELSE
 %token T_FOR
+%token T_WHILE
 %token T_RETURN
 %token T_GLOBAL
 %token T_EXPORT
@@ -109,6 +110,7 @@ int yyerror(const char* message)
 %type <node> function
 %type <node> stmt_list
 %type <node> stmt
+%type <node> opt_expr
 %type <node> expr_list
 %type <node> expr
 %start program
@@ -159,9 +161,22 @@ stmt
   | T_IF '(' expr ')' stmt T_ELSE stmt
 {$$ = new Node(Node::IF_STMT, $3, $5, $7);}
   | T_WHILE '(' expr ')' stmt
-{$$ = new Node(Node::WHILE_STMT, $3, $5);}
+{$$ = new Node(
+     Node::FOR_STMT,
+     new Node(Node::INT_LITERAL, 1), $3, new Node(Node::INT_LITERAL, 1));
+ $$->add($5);}
+  | T_FOR '(' opt_expr ';' opt_expr ';' opt_expr ')' stmt
+{$$ = new Node(Node::FOR_STMT, $3, $5, $7);
+ $$->add($9);}
   | '{' stmt_list '}'
 {$$ = $2; $$->type = Node::BLOCK;}
+  ;
+
+opt_expr
+  : expr
+{$$ = $1;}
+  |
+{$$ = new Node(Node::INT_LITERAL, 1);}
   ;
 
 expr_list

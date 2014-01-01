@@ -80,12 +80,12 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
 var {return T_VAR;}
 if {return T_IF;}
 else {return T_ELSE;}
+for {return T_FOR;}
 while {return T_WHILE;}
 return {return T_RETURN;}
 
   /* As-yet-unused keywords. */
 
-for {return T_FOR;}
 int {return T_INT;}
 world {return T_WORLD;}
 global {return T_GLOBAL;}

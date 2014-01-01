@@ -21,7 +21,7 @@ struct Node {
     EXPR_STMT,
     RETURN_STMT,
     IF_STMT,
-    WHILE_STMT,
+    FOR_STMT,
 
     // Expressions.
     IDENTIFIER,

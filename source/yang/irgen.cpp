@@ -49,20 +49,15 @@ void IrGenerator::preorder(const Node& node)
       break;
     }
 
-    case Node::WHILE_STMT:
+    case Node::FOR_STMT:
     {
       _symbol_table.push();
       auto cond_block = llvm::BasicBlock::Create(b.getContext(), "cond");
       auto loop_block = llvm::BasicBlock::Create(b.getContext(), "loop");
       auto merge_block = llvm::BasicBlock::Create(b.getContext(), "merge");
-      _symbol_table.add("%WHILE_STMT_COND_BLOCK%", cond_block);
-      _symbol_table.add("%WHILE_STMT_LOOP_BLOCK%", loop_block);
-      _symbol_table.add("%WHILE_STMT_MERGE_BLOCK%", merge_block);
-
-      auto parent = b.GetInsertBlock()->getParent();
-      b.CreateBr(cond_block);
-      parent->getBasicBlockList().push_back(cond_block);
-      b.SetInsertPoint(cond_block);
+      _symbol_table.add("%FOR_STMT_COND_BLOCK%", cond_block);
+      _symbol_table.add("%FOR_STMT_LOOP_BLOCK%", loop_block);
+      _symbol_table.add("%FOR_STMT_MERGE_BLOCK%", merge_block);
       break;
     }
 
@@ -100,18 +95,33 @@ void IrGenerator::infix(const Node& node, const result_list& results)
       break;
     }
 
-    case Node::WHILE_STMT:
+    case Node::FOR_STMT:
     {
       auto parent = b.GetInsertBlock()->getParent();
 
+      auto cond_block =
+          (llvm::BasicBlock*)_symbol_table["%FOR_STMT_COND_BLOCK%"];
       auto loop_block =
-          (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_LOOP_BLOCK%"];
+          (llvm::BasicBlock*)_symbol_table["%FOR_STMT_LOOP_BLOCK%"];
       auto merge_block =
-          (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_MERGE_BLOCK%"];
+          (llvm::BasicBlock*)_symbol_table["%FOR_STMT_MERGE_BLOCK%"];
 
-      b.CreateCondBr(i2b(results[0]), loop_block, merge_block);
-      parent->getBasicBlockList().push_back(loop_block);
-      b.SetInsertPoint(loop_block);
+      if (results.size() == 1) {
+        auto parent = b.GetInsertBlock()->getParent();
+        b.CreateBr(cond_block);
+        parent->getBasicBlockList().push_back(cond_block);
+        b.SetInsertPoint(cond_block);
+      }
+      if (results.size() == 2) {
+        b.CreateCondBr(i2b(results[1]), loop_block, merge_block);
+        parent->getBasicBlockList().push_back(loop_block);
+        b.SetInsertPoint(loop_block);
+      }
+      if (results.size() == 3) {
+        // Move to the beginning of the loop block so that the loop body is
+        // inserted before the afterthought.
+        b.SetInsertPoint(loop_block, loop_block->begin());
+      }
       break;
     }
 
@@ -167,14 +177,18 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       b.SetInsertPoint(merge_block);
       return results[0];
     }
-    case Node::WHILE_STMT:
+    case Node::FOR_STMT:
     {
       auto parent = b.GetInsertBlock()->getParent();
       auto cond_block =
-          (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_COND_BLOCK%"];
+          (llvm::BasicBlock*)_symbol_table["%FOR_STMT_COND_BLOCK%"];
       auto merge_block =
-          (llvm::BasicBlock*)_symbol_table["%WHILE_STMT_MERGE_BLOCK%"];
+          (llvm::BasicBlock*)_symbol_table["%FOR_STMT_MERGE_BLOCK%"];
       _symbol_table.pop();
+
+      // Move insert point to after the loop afterthought so that the
+      // terminator ends up in the right place.
+      b.SetInsertPoint(b.GetInsertBlock());
       b.CreateBr(cond_block);
       parent->getBasicBlockList().push_back(merge_block);
       b.SetInsertPoint(merge_block);
