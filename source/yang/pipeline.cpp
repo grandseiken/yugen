@@ -114,6 +114,9 @@ void YangProgram::optimise_ir()
   optimiser.add(llvm::createReassociatePass());
   optimiser.add(llvm::createGVNPass());
 
+  // Simplify the control-flow graph before tackling loops.
+  optimiser.add(llvm::createCFGSimplificationPass());
+
   // Handle loops.
   optimiser.add(llvm::createIndVarSimplifyPass());
   optimiser.add(llvm::createLoopIdiomPass());
@@ -122,7 +125,7 @@ void YangProgram::optimise_ir()
   optimiser.add(llvm::createLoopUnswitchPass());
   optimiser.add(llvm::createLoopDeletionPass());
 
-  // Simplify the control-flow graph right at the end.
+  // Simplify again and delete all the dead code.
   optimiser.add(llvm::createCFGSimplificationPass());
   optimiser.add(llvm::createAggressiveDCEPass());
 

@@ -141,6 +141,65 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     types.push_back(v->getType());
   }
 
+  auto binary_lambda = [&](llvm::Value* v, llvm::Value* u)
+  {
+    Node::node_type type =
+        node.type == Node::FOLD_LOGICAL_OR ? Node::LOGICAL_OR :
+        node.type == Node::FOLD_LOGICAL_AND ? Node::LOGICAL_AND :
+        node.type == Node::FOLD_BITWISE_OR ? Node::BITWISE_OR :
+        node.type == Node::FOLD_BITWISE_AND ? Node::BITWISE_AND :
+        node.type == Node::FOLD_BITWISE_XOR ? Node::BITWISE_XOR :
+        node.type == Node::FOLD_BITWISE_LSHIFT ? Node::BITWISE_LSHIFT :
+        node.type == Node::FOLD_BITWISE_RSHIFT ? Node::BITWISE_RSHIFT :
+        node.type == Node::FOLD_POW ? Node::POW :
+        node.type == Node::FOLD_MOD ? Node::MOD :
+        node.type == Node::FOLD_ADD ? Node::ADD :
+        node.type == Node::FOLD_SUB ? Node::SUB :
+        node.type == Node::FOLD_MUL ? Node::MUL :
+        node.type == Node::FOLD_DIV ? Node::DIV :
+        node.type == Node::FOLD_EQ ? Node::EQ :
+        node.type == Node::FOLD_NE ? Node::NE :
+        node.type == Node::FOLD_GE ? Node::GE :
+        node.type == Node::FOLD_LE ? Node::LE :
+        node.type == Node::FOLD_GT ? Node::GT :
+        node.type == Node::FOLD_LT ? Node::LT :
+        node.type;
+
+    if (v->getType()->isIntOrIntVectorTy()) {
+      return type == Node::LOGICAL_OR ? b.CreateOr(v, u, "lor") :
+             type == Node::LOGICAL_AND ? b.CreateAnd(v, u, "land") :
+             type == Node::BITWISE_OR ? b.CreateOr(v, u, "or") :
+             type == Node::BITWISE_AND ? b.CreateAnd(v, u, "and") :
+             type == Node::BITWISE_XOR ? b.CreateXor(v, u, "xor") :
+             type == Node::BITWISE_LSHIFT ? b.CreateShl(v, u, "lsh") :
+             type == Node::BITWISE_RSHIFT ? b.CreateAShr(v, u, "rsh") :
+             type == Node::MOD ? b.CreateSRem(v, u, "mod") :
+             type == Node::ADD ? b.CreateAdd(v, u, "add") :
+             type == Node::SUB ? b.CreateSub(v, u, "sub") :
+             type == Node::MUL ? b.CreateMul(v, u, "mul") :
+             type == Node::DIV ? b.CreateSDiv(v, u, "div") :
+             type == Node::EQ ? b.CreateICmpEQ(v, u, "eq") :
+             type == Node::NE ? b.CreateICmpNE(v, u, "ne") :
+             type == Node::GE ? b.CreateICmpSGE(v, u, "ge") :
+             type == Node::LE ? b.CreateICmpSLE(v, u, "le") :
+             type == Node::GT ? b.CreateICmpSGT(v, u, "gt") :
+             type == Node::LT ? b.CreateICmpSLT(v, u, "lt") :
+             y::null;
+    }
+    return type == Node::MOD ? b.CreateFRem(v, u, "fmod") :
+           type == Node::ADD ? b.CreateFAdd(v, u, "fadd") :
+           type == Node::SUB ? b.CreateFSub(v, u, "fsub") :
+           type == Node::MUL ? b.CreateFMul(v, u, "fmul") :
+           type == Node::DIV ? b.CreateFDiv(v, u, "fdiv") :
+           type == Node::EQ ? b.CreateFCmpOEQ(v, u, "feq") :
+           type == Node::NE ? b.CreateFCmpONE(v, u, "fne") :
+           type == Node::GE ? b.CreateFCmpOGE(v, u, "fge") :
+           type == Node::LE ? b.CreateFCmpOLE(v, u, "fle") :
+           type == Node::GT ? b.CreateFCmpOGT(v, u, "fgt") :
+           type == Node::LT ? b.CreateFCmpOLT(v, u, "flt") :
+           y::null;
+  };
+
   switch (node.type) {
     case Node::FUNCTION:
       _builder.CreateBr(_builder.GetInsertBlock());
@@ -217,7 +276,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return constant_world(node.world_value);
 
     case Node::TERNARY:
-      return branch(results[0], results[1], results[2]);
+      return b.CreateSelect(i2b(results[0]), results[1], results[2]);
 
     // Logical OR and AND short-circuit. This interacts in a subtle way with
     // vectorisation: we can short-circuit only when the left-hand operand is a
@@ -225,250 +284,76 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     // operand is an entirely zero or entirely non-zero vector. We currently
     // don't.)
     case Node::LOGICAL_OR:
-    {
-      if (types[0]->isVectorTy()) {
-        return b2i(binary(
-            results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-        {
-          return b.CreateOr(i2b(v), i2b(u), "lor");
-        }));
-      }
-      llvm::Constant* constant = constant_int(1);
-      if (types[1]->isVectorTy()) {
-        constant = constant_vector(constant, types[1]->getVectorNumElements());
-      }
-      return branch(results[0], constant, b2i(i2b(results[1])));
-    }
     case Node::LOGICAL_AND:
     {
       if (types[0]->isVectorTy()) {
-        return b2i(binary(
-            results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-        {
-          return b.CreateAnd(i2b(v), i2b(u), "land");
-        }));
+        return b2i(binary(i2b(results[0]), i2b(results[1]), binary_lambda));
       }
-      llvm::Constant* constant = constant_int(0);
+      llvm::Constant* constant =
+          constant_int(node.type == Node::LOGICAL_OR ? 1 : 0);
       if (types[1]->isVectorTy()) {
         constant = constant_vector(constant, types[1]->getVectorNumElements());
       }
-      return branch(results[0], b2i(i2b(results[1])), constant);
+      return node.type == Node::LOGICAL_OR ?
+          b.CreateSelect(i2b(results[0]), constant, b2i(i2b(results[1]))) :
+          b.CreateSelect(i2b(results[0]), b2i(i2b(results[1])), constant);
     }
 
-    // Bitwise functions map directly to (vectorisations of) LLVM IR
+    // Most binary operators map directly to (vectorisations of) LLVM IR
     // instructions.
     case Node::BITWISE_OR:
-      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateOr(v, u, "or");
-      });
     case Node::BITWISE_AND:
-      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateAnd(v, u, "and");
-      });
     case Node::BITWISE_XOR:
-      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateXor(v, u, "xor");
-      });
     case Node::BITWISE_LSHIFT:
-      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateShl(v, u, "lsh");
-      });
     case Node::BITWISE_RSHIFT:
-      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateAShr(v, u, "rsh");
-      });
+      return binary(results[0], results[1], binary_lambda);
 
     case Node::POW:
       // TODO.
       return results[0];
     case Node::MOD:
-      // TODO: euclidean mod.
-      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateSRem(v, u, "mod") : b.CreateFRem(v, u, "fmod");
-      });
     case Node::ADD:
-      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateAdd(v, u, "add") : b.CreateFAdd(v, u, "fadd");
-      });
     case Node::SUB:
-      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateSub(v, u, "sub") : b.CreateFSub(v, u, "fsub");
-      });
     case Node::MUL:
-      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateMul(v, u, "mul") : b.CreateFMul(v, u, "fmul");
-      });
     case Node::DIV:
-      // TODO: euclidean division.
-      return binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateSDiv(v, u, "div") : b.CreateFDiv(v, u, "fdib");
-      });
-
+      // TODO: euclidean mod and euclidean division.
+      return binary(results[0], results[1], binary_lambda);
     case Node::EQ:
-      return b2i(
-          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateICmpEQ(v, u, "eq") : b.CreateFCmpOEQ(v, u, "feq");
-      }));
     case Node::NE:
-      return b2i(
-          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateICmpNE(v, u, "ne") : b.CreateFCmpONE(v, u, "fne");
-      }));
     case Node::GE:
-      return b2i(
-          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateICmpSGE(v, u, "ge") : b.CreateFCmpOGE(v, u, "fge");
-      }));
     case Node::LE:
-      return b2i(
-          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateICmpSLE(v, u, "le") : b.CreateFCmpOLE(v, u, "fle");
-      }));
     case Node::GT:
-      return b2i(
-          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateICmpSGT(v, u, "gt") : b.CreateFCmpOGT(v, u, "fgt");
-      }));
     case Node::LT:
-      return b2i(
-          binary(results[0], results[1], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return v->getType()->isIntOrIntVectorTy() ?
-           b.CreateICmpSLT(v, u, "lt") : b.CreateFCmpOLT(v, u, "flt");
-      }));
+      return b2i(binary(results[0], results[1], binary_lambda));
 
     case Node::FOLD_LOGICAL_OR:
-      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateOr(v, u, "lor");
-      }, true));
     case Node::FOLD_LOGICAL_AND:
-      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateAnd(v, u, "land");
-      }, true));
+      return b2i(fold(results[0], binary_lambda, true));
+
     case Node::FOLD_BITWISE_OR:
-      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateOr(v, u, "or");
-      });
     case Node::FOLD_BITWISE_AND:
-      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateAnd(v, u, "and");
-      });
     case Node::FOLD_BITWISE_XOR:
-      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateXor(v, u, "xor");
-      });
     case Node::FOLD_BITWISE_LSHIFT:
-      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateShl(v, u, "lsh");
-      });
     case Node::FOLD_BITWISE_RSHIFT:
-      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return b.CreateAShr(v, u, "rsh");
-      });
+      return fold(results[0], binary_lambda);
 
     case Node::FOLD_POW:
       // TODO.
     case Node::FOLD_MOD:
-      // TODO: euclidean mod.
-      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateSRem(v, u, "mod") : b.CreateFRem(v, u, "fmod");
-      });
     case Node::FOLD_ADD:
-      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateAdd(v, u, "add") : b.CreateFAdd(v, u, "fadd");
-      });
     case Node::FOLD_SUB:
-      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateSub(v, u, "sub") : b.CreateFSub(v, u, "fsub");
-      });
     case Node::FOLD_MUL:
-      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateMul(v, u, "mul") : b.CreateFMul(v, u, "fmul");
-      });
     case Node::FOLD_DIV:
-      // TODO: euclidean division.
-      return fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateSDiv(v, u, "div") : b.CreateFDiv(v, u, "fdiv");
-      });
+      // TODO: euclidean mod and division.
+      return fold(results[0], binary_lambda);
 
     case Node::FOLD_EQ:
-      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateICmpEQ(v, u, "eq") : b.CreateFCmpOEQ(v, u, "feq");
-      }, false, true));
     case Node::FOLD_NE:
-      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateICmpNE(v, u, "ne") : b.CreateFCmpONE(v, u, "fne");
-      }, false, true));
     case Node::FOLD_GE:
-      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateICmpSGE(v, u, "ge") : b.CreateFCmpOGE(v, u, "fge");
-      }, false, true));
     case Node::FOLD_LE:
-      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateICmpSLE(v, u, "le") : b.CreateFCmpOLE(v, u, "fle");
-      }, false, true));
     case Node::FOLD_GT:
-      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateICmpSGT(v, u, "gt") : b.CreateFCmpOGT(v, u, "fgt");
-      }, false, true));
     case Node::FOLD_LT:
-      return b2i(fold(results[0], [&](llvm::Value* v, llvm::Value* u)
-      {
-        return types[0]->isIntOrIntVectorTy() ?
-            b.CreateICmpSLT(v, u, "lt") : b.CreateFCmpOLT(v, u, "flt");
-      }, false, true));
+      return b2i(fold(results[0], binary_lambda, false, true));
 
     case Node::LOGICAL_NEGATION:
     {
@@ -606,35 +491,6 @@ llvm::Value* IrGenerator::b2i(llvm::Value* v)
     type = vector_type(type, v->getType()->getVectorNumElements());
   }
   return _builder.CreateZExt(v, type, "int");
-}
-
-llvm::Value* IrGenerator::branch(
-    llvm::Value* cond, llvm::Value* left, llvm::Value* right)
-{
-  auto& b = _builder;
-  auto parent = b.GetInsertBlock()->getParent();
-
-  auto left_block = llvm::BasicBlock::Create(b.getContext(), "left", parent);
-  auto right_block = llvm::BasicBlock::Create(b.getContext(), "right");
-  auto merge_block = llvm::BasicBlock::Create(b.getContext(), "merge");
-
-  b.CreateCondBr(i2b(cond), left_block, right_block);
-  b.SetInsertPoint(left_block);
-  b.CreateBr(merge_block);
-  left_block = b.GetInsertBlock();
-
-  parent->getBasicBlockList().push_back(right_block);
-  b.SetInsertPoint(right_block);
-  b.CreateBr(merge_block);
-  right_block = b.GetInsertBlock();
-
-  parent->getBasicBlockList().push_back(merge_block);
-  b.SetInsertPoint(merge_block);
-  auto phi = b.CreatePHI(left->getType(), 2, "branch");
-
-  phi->addIncoming(left, left_block);
-  phi->addIncoming(right, right_block);
-  return phi;
 }
 
 llvm::Value* IrGenerator::binary(

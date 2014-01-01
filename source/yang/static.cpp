@@ -223,6 +223,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       return Type::WORLD;
 
     case Node::TERNARY:
+      // TODO: ternary vectorisation.
       if (!results[1].is(results[2])) {
         error(node, s + " applied to " + rs[1] + " and " + rs[2]);
       }
