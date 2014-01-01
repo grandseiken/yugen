@@ -28,6 +28,8 @@ int yyerror(const char* message)
 %token T_ELSE
 %token T_FOR
 %token T_WHILE
+%token T_BREAK
+%token T_CONTINUE
 %token T_RETURN
 %token T_GLOBAL
 %token T_EXPORT
@@ -168,6 +170,10 @@ stmt
   | T_FOR '(' opt_expr ';' opt_expr ';' opt_expr ')' stmt
 {$$ = new Node(Node::FOR_STMT, $3, $5, $7);
  $$->add($9);}
+  | T_BREAK ';'
+{$$ = new Node(Node::BREAK_STMT);}
+  | T_CONTINUE ';'
+{$$ = new Node(Node::CONTINUE_STMT);}
   | '{' stmt_list '}'
 {$$ = $2; $$->type = Node::BLOCK;}
   ;

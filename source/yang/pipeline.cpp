@@ -14,6 +14,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/PassManager.h>
 
@@ -115,10 +116,22 @@ void YangProgram::optimise_ir()
 
   // Handle loops.
   optimiser.add(llvm::createIndVarSimplifyPass());
+  optimiser.add(llvm::createLoopIdiomPass());
+  optimiser.add(llvm::createLoopRotatePass());
+  optimiser.add(llvm::createLoopUnrollPass());
+  optimiser.add(llvm::createLoopUnswitchPass());
   optimiser.add(llvm::createLoopDeletionPass());
 
   // Simplify the control-flow graph right at the end.
   optimiser.add(llvm::createCFGSimplificationPass());
+  optimiser.add(llvm::createAggressiveDCEPass());
+
+  // Interprocedural optimisations.
+  optimiser.add(llvm::createFunctionInliningPass());
+  optimiser.add(llvm::createIPConstantPropagationPass());
+  optimiser.add(llvm::createGlobalOptimizerPass());
+  optimiser.add(llvm::createDeadArgEliminationPass());
+  optimiser.add(llvm::createGlobalDCEPass());
 
   // Run the optimisation passes.
   // TODO: work out if there's others we should run, or in a different order.

@@ -81,6 +81,8 @@ var {return T_VAR;}
 if {return T_IF;}
 else {return T_ELSE;}
 for {return T_FOR;}
+break {return T_BREAK;}
+continue {return T_CONTINUE;}
 while {return T_WHILE;}
 return {return T_RETURN;}
 

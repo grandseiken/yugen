@@ -22,6 +22,8 @@ struct Node {
     RETURN_STMT,
     IF_STMT,
     FOR_STMT,
+    BREAK_STMT,
+    CONTINUE_STMT,
 
     // Expressions.
     IDENTIFIER,

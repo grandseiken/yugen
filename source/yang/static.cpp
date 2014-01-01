@@ -117,6 +117,9 @@ void StaticChecker::preorder(const Node& node)
     case Node::IF_STMT:
     case Node::FOR_STMT:
       _symbol_table.push();
+      // Insert a marker into the symbol table that break and continue
+      // statements can check for.
+      _symbol_table.add("%FOR_STMT%", Type::VOID);
       break;
 
     default: {}
@@ -195,6 +198,16 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       _symbol_table.pop();
       if (!results[1].is(Type::INT)) {
         error(node, "branching on " + rs[1]);
+      }
+      return Type::VOID;
+    case Node::BREAK_STMT:
+      if (!_symbol_table.has("%FOR_STMT%")) {
+        error(node, "`break` outside of loop body");
+      }
+      return Type::VOID;
+    case Node::CONTINUE_STMT:
+      if (!_symbol_table.has("%FOR_STMT%")) {
+        error(node, "`continue` outside of loop body");
       }
       return Type::VOID;
 
