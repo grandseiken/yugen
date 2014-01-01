@@ -115,12 +115,13 @@ void StaticChecker::preorder(const Node& node)
       _current_function.name = node.string_value;
     case Node::BLOCK:
     case Node::IF_STMT:
+      _symbol_table.push();
+      break;
     case Node::FOR_STMT:
       _symbol_table.push();
       // Insert a marker into the symbol table that break and continue
       // statements can check for.
       _symbol_table.add("%FOR_STMT%", Type::VOID);
-      break;
 
     default: {}
   }
