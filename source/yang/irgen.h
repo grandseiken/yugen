@@ -26,6 +26,7 @@ protected:
 
 private:
 
+  llvm::Type* void_type() const;
   llvm::Type* int_type() const;
   llvm::Type* world_type() const;
   llvm::Type* vector_type(llvm::Type* type, y::size n) const;

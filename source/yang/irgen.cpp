@@ -22,6 +22,17 @@ void IrGenerator::preorder(const Node& node)
   auto parent = b.GetInsertBlock() ? b.GetInsertBlock()->getParent() : y::null;
 
   switch (node.type) {
+    case Node::GLOBAL:
+    {
+      auto function = llvm::Function::Create(
+          llvm::FunctionType::get(void_type(), false),
+          llvm::Function::ExternalLinkage, "global", &_module);
+      auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
+
+      b.SetInsertPoint(block);
+      _symbol_table.push();
+      break;
+    }
     case Node::FUNCTION:
     {
       auto function = llvm::Function::Create(
@@ -91,7 +102,7 @@ void IrGenerator::preorder(const Node& node)
 void IrGenerator::infix(const Node& node, const result_list& results)
 {
   auto& b = _builder;
-  auto parent = b.GetInsertBlock()->getParent();
+  auto parent = b.GetInsertBlock() ? b.GetInsertBlock()->getParent() : y::null;
 
   switch (node.type) {
     case Node::IF_STMT:
@@ -165,7 +176,7 @@ void IrGenerator::infix(const Node& node, const result_list& results)
 llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
 {
   auto& b = _builder;
-  auto parent = b.GetInsertBlock()->getParent();
+  auto parent = b.GetInsertBlock() ? b.GetInsertBlock()->getParent() : y::null;
   y::vector<llvm::Type*> types;
   for (llvm::Value* v : results) {
     types.push_back(v->getType());
@@ -231,6 +242,10 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
   };
 
   switch (node.type) {
+    case Node::GLOBAL:
+      _builder.CreateRetVoid();
+      _symbol_table.pop();
+      return results[0];
     case Node::FUNCTION:
       _builder.CreateBr(_builder.GetInsertBlock());
       _symbol_table.pop();
@@ -475,6 +490,11 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     default:
       return y::null;
   }
+}
+
+llvm::Type* IrGenerator::void_type() const
+{
+  return llvm::Type::getVoidTy(_builder.getContext());
 }
 
 llvm::Type* IrGenerator::int_type() const

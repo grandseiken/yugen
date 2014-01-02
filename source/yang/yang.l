@@ -68,6 +68,7 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
   return T_EOF;
 }
 <INITIAL>{line_comment_begin} {BEGIN(line_comment);}
+<INITIAL>{long_comment_begin} {BEGIN(long_comment);}
 <line_comment>{newline} {BEGIN(INITIAL);}
 <long_comment>{long_comment_end} {BEGIN(INITIAL);}
 <line_comment,long_comment>{default} {}
@@ -75,6 +76,8 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
 
   /* Keywords. */
 
+global {return T_GLOBAL;}
+export {return T_EXPORT;}
 var {return T_VAR;}
 const {return T_CONST;}
 if {return T_IF;}
@@ -90,8 +93,6 @@ return {return T_RETURN;}
 
 int {return T_INT;}
 world {return T_WORLD;}
-global {return T_GLOBAL;}
-export {return T_EXPORT;}
 
   /* Operators. */
 

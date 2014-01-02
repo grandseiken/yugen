@@ -13,6 +13,7 @@ struct Node {
 
     // Top-level elements.
     PROGRAM,
+    GLOBAL,
     FUNCTION,
 
     // Statements.

@@ -21,6 +21,8 @@ int yyerror(const char* message)
 
 %token T_EOF 0
 
+%token T_GLOBAL
+%token T_EXPORT
 %token T_VAR
 %token T_CONST
 %token T_IF
@@ -33,8 +35,6 @@ int yyerror(const char* message)
 %token T_RETURN
 %token T_INT
 %token T_WORLD
-%token T_GLOBAL
-%token T_EXPORT
 
 %token T_TERNARY_L
 %token T_TERNARY_R
@@ -111,6 +111,8 @@ int yyerror(const char* message)
 %type <node> program
 %type <node> elem_list
 %type <node> elem
+%type <node> opt_export
+%type <node> global
 %type <node> function
 %type <node> stmt_list
 %type <node> stmt
@@ -137,8 +139,24 @@ elem_list
   ;
 
 elem
-  : function
-{$$ = $1;}
+  : opt_export global
+{$$ = $2;
+ $$->int_value = $1->int_value;}
+  | opt_export function
+{$$ = $2;
+ $$->int_value = $1->int_value;}
+  ;
+
+opt_export
+  : T_EXPORT
+{$$ = new Node(Node::INT_LITERAL, 1);}
+  |
+{$$ = new Node(Node::INT_LITERAL, 0);}
+  ;
+
+global
+  : T_GLOBAL stmt
+{$$ = new Node(Node::GLOBAL, $2);}
   ;
 
 function
@@ -379,3 +397,5 @@ expr
   /* TODO: assign more meaningful text/line/column values to Nodes. For example,
      binary operators should have the operator, or even the entire expression
      subtree, as the text. Error messages should print carets. */
+  /* TODO: error rules, and generally more permissive parsing with error-
+     -detection in the static analysis. */

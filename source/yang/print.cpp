@@ -36,7 +36,11 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       return s;
     }
     case Node::FUNCTION:
-      return node.string_value + "()\n" + results[0];
+      return (node.int_value ? "export " : "") +
+          node.string_value + "()\n" + results[0];
+    case Node::GLOBAL:
+      return (node.int_value ? "export " : "") +
+          y::string("global\n") + results[0];
 
     case Node::BLOCK:
     {

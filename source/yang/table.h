@@ -13,17 +13,30 @@ public:
   SymbolTable();
   explicit SymbolTable(const T& default_value);
 
+  // Push or pop a frame from the symbol table.
   void push();
   void pop();
+  // Depth of frames in the symbol table. Guaranteed to be at least 1.
   y::size size() const;
 
+  // Add or remove from the top frame.
   void add(const y::string& symbol, const T& t);
   void remove(const y::string& symbol);
 
+  // Add or remove from an arbitrary frame.
+  void add(const y::string& symbol, y::size frame, const T& t);
+  void remove(const y::string& symbol, y::size frame);
+
+  // Symbol existence for whole table, particular frames or top frame only.
   bool has(const y::string& symbol) const;
+  bool has(const y::string& symbol, y::size frame) const;
   bool has_top(const y::string& symbol) const;
+
+  // Value retrieval.
   const T& operator[](const y::string& symbol) const;
   /***/ T& operator[](const y::string& symbol);
+  const T& get(const y::string& symbol, y::size frame) const;
+  /***/ T& get(const y::string& symbol, y::size frame);
 
 private:
 
@@ -79,6 +92,22 @@ void SymbolTable<T>::remove(const y::string& symbol)
 }
 
 template<typename T>
+void SymbolTable<T>::add(const y::string& symbol, y::size frame, const T& t)
+{
+  if (frame < size()) {
+    _stack[frame].emplace(symbol, t);
+  }
+}
+
+template<typename T>
+void SymbolTable<T>::remove(const y::string& symbol, y::size frame)
+{
+  if (frame < size()) {
+    _stack[frame].erase(symbol);
+  }
+}
+
+template<typename T>
 bool SymbolTable<T>::has(const y::string& symbol) const
 {
   for (auto it = _stack.rbegin(); it != _stack.rend(); ++it) {
@@ -87,6 +116,12 @@ bool SymbolTable<T>::has(const y::string& symbol) const
     }
   }
   return false;
+}
+
+template<typename T>
+bool SymbolTable<T>::has(const y::string& symbol, y::size frame) const
+{
+  return frame < size() && _stack[frame].find(symbol) != _stack[frame].end();
 }
 
 template<typename T>
@@ -115,6 +150,32 @@ T& SymbolTable<T>::operator[](const y::string& symbol)
     if (jt != it->end()) {
       return jt->second;
     }
+  }
+  return _default;
+}
+
+template<typename T>
+const T& SymbolTable<T>::get(const y::string& symbol, y::size frame) const
+{
+  if (frame >= size()) {
+    return _default;
+  }
+  auto it = _stack[frame].find(symbol);
+  if (it != _stack[frame].end()) {
+    return it->second;
+  }
+  return _default;
+}
+
+template<typename T>
+T& SymbolTable<T>::get(const y::string& symbol, y::size frame)
+{
+  if (frame >= size()) {
+    return _default;
+  }
+  auto it = _stack[frame].find(symbol);
+  if (it != _stack[frame].end()) {
+    return it->second;
   }
   return _default;
 }

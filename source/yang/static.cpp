@@ -121,6 +121,10 @@ bool StaticChecker::errors() const
 void StaticChecker::preorder(const Node& node)
 {
   switch (node.type) {
+    case Node::GLOBAL:
+      _symbol_table.push();
+      _symbol_table.add("%GLOBAL%", Type::VOID);
+      break;
     case Node::FUNCTION:
       _current_function.return_type = Type::INT;
       _current_function.name = node.string_value;
@@ -163,6 +167,9 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
   switch (node.type) {
     case Node::PROGRAM:
       return Type::VOID;
+    case Node::GLOBAL:
+      _symbol_table.pop();
+      return Type::VOID;
     case Node::FUNCTION:
       if (!results[0].not_void()) {
         error(node, "not all code paths return a value");
@@ -190,7 +197,10 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::EXPR_STMT:
       return Type::VOID;
     case Node::RETURN_STMT:
-      if (!results[0].is(_current_function.return_type)) {
+      if (_symbol_table.has("%GLOBAL%")) {
+        error(node, "returning from `global`");
+      }
+      else if (!results[0].is(_current_function.return_type)) {
         error(node, "returning " + rs[0] + " from " +
                     _current_function.return_type.string() + " function");
       }
@@ -369,6 +379,20 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
 
     case Node::ASSIGN_VAR:
     case Node::ASSIGN_CONST:
+      // Within global blocks, use the top-level symbol table frame.
+      if (_symbol_table.has("%GLOBAL%")) {
+        if (_symbol_table.has(node.string_value, 0)) {
+          if (!_symbol_table.get(node.string_value, 0).is_error()) {
+            error(node, "`global` `" + node.string_value + "` redefined");
+          }
+          _symbol_table.remove(node.string_value, 0);
+        }
+        _symbol_table.add(node.string_value, 0, results[0]);
+        _symbol_table.get(node.string_value, 0).set_const(
+            node.type == Node::ASSIGN_CONST);
+        return results[0];
+      }
+
       if (_symbol_table.has_top(node.string_value)) {
         if (!_symbol_table[node.string_value].is_error()) {
           error(node, "`" + node.string_value + "` redefined");
