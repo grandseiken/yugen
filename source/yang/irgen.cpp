@@ -388,6 +388,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return results[0];
 
     case Node::ASSIGN_VAR:
+    case Node::ASSIGN_CONST:
     {
       // Optimisation passes such as mem2reg work much better when memory
       // locations are declared in the entry block (so they are guaranteed to
@@ -430,6 +431,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return v;
     }
     case Node::VECTOR_INDEX:
+      // TODO: vector index range-checking.
       return b.CreateExtractElement(results[0], results[1], "idx");
 
     default:

@@ -22,6 +22,7 @@ int yyerror(const char* message)
 %token T_EOF 0
 
 %token T_VAR
+%token T_CONST
 %token T_INT
 %token T_WORLD
 %token T_IF
@@ -204,7 +205,9 @@ expr
 {$$ = $1;}
   | T_WORLD_LITERAL
 {$$ = $1;}
+
   /* Binary operators. */
+
   | expr T_LOGICAL_OR expr
 {$$ = new Node(Node::LOGICAL_OR, $1, $3);}
   | expr T_LOGICAL_AND expr
@@ -243,7 +246,9 @@ expr
 {$$ = new Node(Node::GT, $1, $3);}
   | expr T_LT expr
 {$$ = new Node(Node::LT, $1, $3);}
+
   /* Fold operators. */
+
   | T_FOLD expr T_LOGICAL_OR
 {$$ = new Node(Node::FOLD_LOGICAL_OR, $2);}
   | T_FOLD expr T_LOGICAL_AND
@@ -282,16 +287,23 @@ expr
 {$$ = new Node(Node::FOLD_GT, $2);}
   | T_FOLD expr T_LT
 {$$ = new Node(Node::FOLD_LT, $2);}
+
   /* Prefix unary operators. */
+
   | T_LOGICAL_NEGATION expr %prec P_UNARY_L
 {$$ = new Node(Node::LOGICAL_NEGATION, $2);}
   | T_BITWISE_NEGATION expr %prec P_UNARY_L
 {$$ = new Node(Node::BITWISE_NEGATION, $2);}
   | T_SUB expr %prec P_UNARY_L
 {$$ = new Node(Node::ARITHMETIC_NEGATION, $2);}
+
   /* Assignment operators. */
+
   | T_VAR T_IDENTIFIER T_ASSIGN expr
 {$$ = new Node(Node::ASSIGN_VAR, $4);
+ $$->string_value = $2->string_value;}
+  | T_CONST T_IDENTIFIER T_ASSIGN expr
+{$$ = new Node(Node::ASSIGN_CONST, $4);
  $$->string_value = $2->string_value;}
   | T_IDENTIFIER T_ASSIGN expr
 {$$ = new Node(Node::ASSIGN, $3);
@@ -343,7 +355,9 @@ expr
 {$$ = new Node(Node::ASSIGN,
                new Node(Node::SUB, $2, new Node(Node::INT_LITERAL, 1)));
  $$->string_value = $2->string_value;}
+
   /* Type-conversion operators. */
+
   | '[' expr ']'
 {$$ = new Node(Node::INT_CAST, $2);}
   | expr T_WORLD_CAST

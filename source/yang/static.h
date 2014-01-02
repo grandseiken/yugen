@@ -21,10 +21,12 @@ public:
   // only if the base is type INT or WORLD. Invalid construction will result
   // in an ERROR type.
   Type(type_base b, y::size count = 1);
+  void set_const(bool is_const);
 
   // Return components of the type.
   type_base base() const;
   y::size count() const;
+  bool is_const() const;
   // Return a string representation of the type.
   y::string string() const;
 
@@ -60,6 +62,7 @@ private:
 
   type_base _base;
   y::size _count;
+  bool _const;
 
 };
 

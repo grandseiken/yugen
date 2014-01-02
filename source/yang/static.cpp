@@ -6,12 +6,18 @@
 Type::Type(type_base base, y::size count)
   : _base(base)
   , _count(count)
+  , _const(false)
 {
   if (count == 0 ||
       (count != 1 && base != INT && base != WORLD)) {
     _base = ERROR;
     _count = 1;
   }
+}
+
+void Type::set_const(bool is_const)
+{
+  _const = is_const;
 }
 
 Type::type_base Type::base() const
@@ -22,6 +28,11 @@ Type::type_base Type::base() const
 y::size Type::count() const
 {
   return _count;
+}
+
+bool Type::is_const() const
+{
+  return _const;
 }
 
 y::string Type::string() const
@@ -343,6 +354,9 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         return Type::ERROR;
       }
       Type& t = _symbol_table[node.string_value];
+      if (t.is_const()) {
+        error(node, "assignment to `const` `" + node.string_value + "`");
+      }
       if (!t.is(results[0])) {
         error(node, rs[0] + " assigned to `" + node.string_value +
                     "` of type " + t.string());
@@ -352,6 +366,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     }
 
     case Node::ASSIGN_VAR:
+    case Node::ASSIGN_CONST:
       if (_symbol_table.has_top(node.string_value)) {
         if (!_symbol_table[node.string_value].is_error()) {
           error(node, "`" + node.string_value + "` redefined");
@@ -359,6 +374,8 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         _symbol_table.remove(node.string_value);
       }
       _symbol_table.add(node.string_value, results[0]);
+      _symbol_table[node.string_value].set_const(
+          node.type == Node::ASSIGN_CONST);
       return results[0];
 
     case Node::INT_CAST:
