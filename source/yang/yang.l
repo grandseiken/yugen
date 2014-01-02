@@ -67,8 +67,6 @@ world_literal \.{digit}+|{digit}+\.({digit}+)?
   BEGIN(INITIAL);
   return T_EOF;
 }
-<INITIAL,line_comment><<EOF>> {return T_EOF;}
-<INITIAL>{long_comment_begin} {BEGIN(long_comment);}
 <INITIAL>{line_comment_begin} {BEGIN(line_comment);}
 <line_comment>{newline} {BEGIN(INITIAL);}
 <long_comment>{long_comment_end} {BEGIN(INITIAL);}
@@ -82,9 +80,10 @@ const {return T_CONST;}
 if {return T_IF;}
 else {return T_ELSE;}
 for {return T_FOR;}
+while {return T_WHILE;}
+do {return T_DO;}
 break {return T_BREAK;}
 continue {return T_CONTINUE;}
-while {return T_WHILE;}
 return {return T_RETURN;}
 
   /* As-yet-unused keywords. */

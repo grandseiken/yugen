@@ -22,6 +22,7 @@ struct Node {
     RETURN_STMT,
     IF_STMT,
     FOR_STMT,
+    DO_WHILE_STMT,
     BREAK_STMT,
     CONTINUE_STMT,
 

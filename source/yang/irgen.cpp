@@ -19,6 +19,7 @@ IrGenerator::~IrGenerator()
 void IrGenerator::preorder(const Node& node)
 {
   auto& b = _builder;
+  auto parent = b.GetInsertBlock() ? b.GetInsertBlock()->getParent() : y::null;
 
   switch (node.type) {
     case Node::FUNCTION:
@@ -60,6 +61,26 @@ void IrGenerator::preorder(const Node& node)
       _symbol_table.add("%FOR_STMT_LOOP_BLOCK%", loop_block);
       _symbol_table.add("%FOR_STMT_MERGE_BLOCK%", merge_block);
       _symbol_table.add("%FOR_STMT_AFTER_BLOCK%", after_block);
+      _symbol_table.add("%LOOP_BREAK_BLOCK%", merge_block);
+      _symbol_table.add("%LOOP_CONTINUE_BLOCK%", after_block);
+      break;
+    }
+
+    case Node::DO_WHILE_STMT:
+    {
+      _symbol_table.push();
+      auto loop_block = llvm::BasicBlock::Create(b.getContext(), "loop");
+      auto cond_block = llvm::BasicBlock::Create(b.getContext(), "cond");
+      auto merge_block = llvm::BasicBlock::Create(b.getContext(), "merge");
+      _symbol_table.add("%DO_WHILE_STMT_LOOP_BLOCK%", loop_block);
+      _symbol_table.add("%DO_WHILE_STMT_COND_BLOCK%", cond_block);
+      _symbol_table.add("%DO_WHILE_STMT_MERGE_BLOCK%", merge_block);
+      _symbol_table.add("%LOOP_BREAK_BLOCK%", merge_block);
+      _symbol_table.add("%LOOP_CONTINUE_BLOCK%", cond_block);
+
+      b.CreateBr(loop_block);
+      parent->getBasicBlockList().push_back(loop_block);
+      b.SetInsertPoint(loop_block);
       break;
     }
 
@@ -70,11 +91,11 @@ void IrGenerator::preorder(const Node& node)
 void IrGenerator::infix(const Node& node, const result_list& results)
 {
   auto& b = _builder;
+  auto parent = b.GetInsertBlock()->getParent();
+
   switch (node.type) {
     case Node::IF_STMT:
     {
-      auto parent = b.GetInsertBlock()->getParent();
-
       auto then_block =
           (llvm::BasicBlock*)_symbol_table["%IF_STMT_THEN_BLOCK%"];
       auto else_block =
@@ -99,8 +120,6 @@ void IrGenerator::infix(const Node& node, const result_list& results)
 
     case Node::FOR_STMT:
     {
-      auto parent = b.GetInsertBlock()->getParent();
-
       auto cond_block =
           (llvm::BasicBlock*)_symbol_table["%FOR_STMT_COND_BLOCK%"];
       auto loop_block =
@@ -111,7 +130,6 @@ void IrGenerator::infix(const Node& node, const result_list& results)
           (llvm::BasicBlock*)_symbol_table["%FOR_STMT_AFTER_BLOCK%"];
 
       if (results.size() == 1) {
-        auto parent = b.GetInsertBlock()->getParent();
         b.CreateBr(cond_block);
         parent->getBasicBlockList().push_back(cond_block);
         b.SetInsertPoint(cond_block);
@@ -129,6 +147,17 @@ void IrGenerator::infix(const Node& node, const result_list& results)
       break;
     }
 
+    case Node::DO_WHILE_STMT:
+    {
+      auto cond_block =
+          (llvm::BasicBlock*)_symbol_table["%DO_WHILE_STMT_COND_BLOCK%"];
+
+      b.CreateBr(cond_block);
+      parent->getBasicBlockList().push_back(cond_block);
+      b.SetInsertPoint(cond_block);
+      break;
+    }
+
     default: {}
   }
 }
@@ -136,6 +165,7 @@ void IrGenerator::infix(const Node& node, const result_list& results)
 llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
 {
   auto& b = _builder;
+  auto parent = b.GetInsertBlock()->getParent();
   y::vector<llvm::Type*> types;
   for (llvm::Value* v : results) {
     types.push_back(v->getType());
@@ -208,7 +238,6 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
 
     case Node::BLOCK:
     {
-      auto parent = b.GetInsertBlock()->getParent();
       auto after_block =
           llvm::BasicBlock::Create(b.getContext(), "after", parent);
       b.CreateBr(after_block);
@@ -222,7 +251,6 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return results[0];
     case Node::RETURN_STMT:
     {
-      auto parent = b.GetInsertBlock()->getParent();
       auto dead_block =
           llvm::BasicBlock::Create(b.getContext(), "dead", parent);
       llvm::Value* v = b.CreateRet(results[0]);
@@ -231,7 +259,6 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
     case Node::IF_STMT:
     {
-      auto parent = b.GetInsertBlock()->getParent();
       auto merge_block =
           (llvm::BasicBlock*)_symbol_table["%IF_STMT_MERGE_BLOCK%"];
       _symbol_table.pop();
@@ -242,7 +269,6 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
     case Node::FOR_STMT:
     {
-      auto parent = b.GetInsertBlock()->getParent();
       auto after_block =
           (llvm::BasicBlock*)_symbol_table["%FOR_STMT_AFTER_BLOCK%"];
       auto merge_block =
@@ -254,15 +280,27 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       b.SetInsertPoint(merge_block);
       return results[0];
     }
+    case Node::DO_WHILE_STMT:
+    {
+      auto loop_block =
+          (llvm::BasicBlock*)_symbol_table["%DO_WHILE_STMT_LOOP_BLOCK%"];
+      auto merge_block =
+          (llvm::BasicBlock*)_symbol_table["%DO_WHILE_STMT_MERGE_BLOCK%"];
+      _symbol_table.pop();
+
+      b.CreateCondBr(i2b(results[1]), loop_block, merge_block);
+      parent->getBasicBlockList().push_back(merge_block);
+      b.SetInsertPoint(merge_block);
+      return results[0];
+    }
     case Node::BREAK_STMT:
     case Node::CONTINUE_STMT:
     {
-      auto parent = b.GetInsertBlock()->getParent();
       auto dead_block =
           llvm::BasicBlock::Create(b.getContext(), "dead", parent);
       llvm::Value* v = b.CreateBr((llvm::BasicBlock*)_symbol_table[
-          node.type == Node::BREAK_STMT ? "%FOR_STMT_MERGE_BLOCK%" :
-                                          "%FOR_STMT_AFTER_BLOCK%"]);
+          node.type == Node::BREAK_STMT ? "%LOOP_BREAK_BLOCK%" :
+                                          "%LOOP_CONTINUE_BLOCK%"]);
       b.SetInsertPoint(dead_block);
       return v;
     }

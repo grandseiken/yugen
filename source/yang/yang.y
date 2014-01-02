@@ -23,15 +23,16 @@ int yyerror(const char* message)
 
 %token T_VAR
 %token T_CONST
-%token T_INT
-%token T_WORLD
 %token T_IF
 %token T_ELSE
 %token T_FOR
 %token T_WHILE
+%token T_DO
 %token T_BREAK
 %token T_CONTINUE
 %token T_RETURN
+%token T_INT
+%token T_WORLD
 %token T_GLOBAL
 %token T_EXPORT
 
@@ -171,6 +172,8 @@ stmt
   | T_FOR '(' opt_expr ';' opt_expr ';' opt_expr ')' stmt
 {$$ = new Node(Node::FOR_STMT, $3, $5, $7);
  $$->add($9);}
+  | T_DO stmt T_WHILE '(' expr ')' ';'
+{$$ = new Node(Node::DO_WHILE_STMT, $2, $5);}
   | T_BREAK ';'
 {$$ = new Node(Node::BREAK_STMT);}
   | T_CONTINUE ';'
@@ -371,3 +374,6 @@ expr
 
   /* Error-handling. */
 
+  /* TODO: assign more meaningful text/line/column values to Nodes. For example,
+     binary operators should have the operator, or even the entire expression
+     subtree, as the text. Error messages should print carets. */
