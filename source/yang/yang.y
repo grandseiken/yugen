@@ -299,6 +299,8 @@ expr
 {$$ = new Node(Node::BITWISE_NEGATION, $2);}
   | T_SUB expr %prec P_UNARY_L
 {$$ = new Node(Node::ARITHMETIC_NEGATION, $2);}
+  | T_ADD expr %prec P_UNARY_L
+{$$ = $2;}
 
   /* Assignment operators. */
 
