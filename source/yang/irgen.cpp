@@ -51,7 +51,7 @@ void IrGenerator::emit_global_functions()
   // Create allocator function.
   auto alloc = llvm::Function::Create(
       llvm::FunctionType::get(_global_data, false),
-      llvm::Function::ExternalLinkage, "global_alloc", &_module);
+      llvm::Function::ExternalLinkage, "!global_alloc", &_module);
   auto alloc_block = llvm::BasicBlock::Create(
       b.getContext(), "entry", alloc);
   b.SetInsertPoint(alloc_block);
@@ -72,7 +72,7 @@ void IrGenerator::emit_global_functions()
   // Create free function.
   auto free = llvm::Function::Create(
       llvm::FunctionType::get(void_type(), _global_data, false),
-      llvm::Function::ExternalLinkage, "global_free", &_module);
+      llvm::Function::ExternalLinkage, "!global_free", &_module);
   auto free_block = llvm::BasicBlock::Create(
       b.getContext(), "entry", free);
   b.SetInsertPoint(free_block);
@@ -88,7 +88,7 @@ void IrGenerator::emit_global_functions()
 
     auto getter = llvm::Function::Create(
         llvm::FunctionType::get(t, _global_data, false),
-        llvm::Function::ExternalLinkage, "global_get_" + pair.first, &_module);
+        llvm::Function::ExternalLinkage, "!global_get_" + pair.first, &_module);
     auto getter_block = llvm::BasicBlock::Create(
         b.getContext(), "entry", getter);
     auto it = getter->arg_begin();
@@ -100,7 +100,7 @@ void IrGenerator::emit_global_functions()
     y::vector<llvm::Type*> setter_args{_global_data, t};
     auto setter = llvm::Function::Create(
         llvm::FunctionType::get(void_type(), setter_args, false),
-        llvm::Function::ExternalLinkage, "global_set_" + pair.first, &_module);
+        llvm::Function::ExternalLinkage, "!global_set_" + pair.first, &_module);
     auto setter_block = llvm::BasicBlock::Create(
         b.getContext(), "entry", setter);
     it = setter->arg_begin();
