@@ -1,8 +1,8 @@
 #include "irgen.h"
 #include <llvm/IR/Module.h>
 
-  namespace llvm {
-    class LLVMContext;
+namespace llvm {
+  class LLVMContext;
 }
 
 IrGenerator::IrGenerator(llvm::Module& module,
