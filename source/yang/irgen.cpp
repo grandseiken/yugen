@@ -12,8 +12,6 @@ IrGenerator::IrGenerator(llvm::Module& module,
   , _builder(module.getContext())
   , _symbol_table(y::null)
 {
-  auto& b = _builder;
-
   // Set up the global data type. Since each program is designed to support
   // multiple independent instances running simultaeneously, the idea is to
   // define a structure type with a field for each global variable. Each
@@ -30,6 +28,15 @@ IrGenerator::IrGenerator(llvm::Module& module,
   }
   _global_data = llvm::PointerType::get(
       llvm::StructType::create(type_list, "global_data"), 0);
+}
+
+IrGenerator::~IrGenerator()
+{
+}
+
+void IrGenerator::emit_global_functions()
+{
+  auto& b = _builder;
 
   // Register malloc and free. Malloc takes a pointer argument, since
   // we computer sizeof with pointer arithmetic. (Conveniently, it's
@@ -54,8 +61,13 @@ IrGenerator::IrGenerator(llvm::Module& module,
       constant_int(0), _global_data, "null");
   size_of = b.CreateGEP(
       size_of, constant_int(1), "sizeof");
-  // Call malloc and return the pointer.
-  b.CreateRet(b.CreateCall(malloc_ptr, size_of, "call"));
+  // Call malloc, call each of the global initialisation functions, and return
+  // the pointer.
+  llvm::Value* v = b.CreateCall(malloc_ptr, size_of, "call");
+  for (llvm::Function* f : _global_inits) {
+    b.CreateCall(f, v);
+  }
+  b.CreateRet(v);
 
   // Create free function.
   auto free = llvm::Function::Create(
@@ -71,7 +83,8 @@ IrGenerator::IrGenerator(llvm::Module& module,
 
   // Create accessor functions for each field of the global structure.
   for (const auto pair : _global_numbering) {
-    llvm::Type* t = type_list[pair.second];
+    llvm::Type* t = _global_data->
+        getPointerElementType()->getStructElementType(pair.second);
 
     auto getter = llvm::Function::Create(
         llvm::FunctionType::get(t, _global_data, false),
@@ -101,10 +114,6 @@ IrGenerator::IrGenerator(llvm::Module& module,
   }
 }
 
-IrGenerator::~IrGenerator()
-{
-}
-
 void IrGenerator::preorder(const Node& node)
 {
   auto& b = _builder;
@@ -122,9 +131,18 @@ void IrGenerator::preorder(const Node& node)
       y::string name =
           node.type == Node::GLOBAL ? "global_init" : node.string_value;
 
+      // GLOBAL init functions don't need external linkage, since they are
+      // called automatically by the externally-visible global structure
+      // allocation function. Regular functions Nodes have their int_value
+      // set to 1 when defined using the `export` keyword.
+      auto linkage = node.type == Node::FUNCTION && node.int_value ?
+          llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
       auto function = llvm::Function::Create(
           llvm::FunctionType::get(return_type, _global_data, false),
-          llvm::Function::ExternalLinkage, name, &_module);
+          linkage, name, &_module);
+      if (node.type == Node::GLOBAL) {
+        _global_inits.push_back(function);
+      }
       auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
 
       b.SetInsertPoint(block);

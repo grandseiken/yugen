@@ -9,6 +9,7 @@
 
 namespace llvm {
   class Constant;
+  class Function;
   class Module;
   class Value;
 }
@@ -19,6 +20,11 @@ public:
   IrGenerator(llvm::Module& module,
               const SymbolTable<Type>::scope& globals);
   ~IrGenerator();
+
+  // Emit functions for allocating, freeing, reading and writing to instances
+  // of the global structure. This should be called after the tree has been
+  // walked!
+  void emit_global_functions();
 
 protected:
 
@@ -52,7 +58,11 @@ private:
       y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
       bool to_bool = false, bool with_ands = false);
 
+  // List of static initialisation functions.
+  y::vector<llvm::Function*> _global_inits;
+  // Map from global name to index in the global structure.
   y::map<y::string, y::size> _global_numbering;
+  // Type of the global structure.
   llvm::Type* _global_data;
 
   llvm::Module& _module;
