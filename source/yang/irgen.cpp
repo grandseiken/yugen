@@ -1,5 +1,6 @@
 #include "irgen.h"
 #include <llvm/IR/Module.h>
+#include "../log.h"
 
 namespace llvm {
   class LLVMContext;
@@ -30,7 +31,45 @@ IrGenerator::IrGenerator(llvm::Module& module,
   _global_data = llvm::PointerType::get(
       llvm::StructType::create(type_list, "global_data"), 0);
 
-  // Create accessor functions.
+  // Register malloc and free. Malloc takes a pointer argument, since
+  // we computer sizeof with pointer arithmetic. (Conveniently, it's
+  // also a type of the correct bit-width.)
+  auto malloc_ptr = llvm::Function::Create(
+      llvm::FunctionType::get(_global_data, _global_data, false),
+      llvm::Function::ExternalLinkage, "malloc", &_module);
+  auto free_ptr = llvm::Function::Create(
+      llvm::FunctionType::get(void_type(), _global_data, false),
+      llvm::Function::ExternalLinkage, "free", &_module);
+
+  // Create allocator function.
+  auto alloc = llvm::Function::Create(
+      llvm::FunctionType::get(_global_data, false),
+      llvm::Function::ExternalLinkage, "global_alloc", &_module);
+  auto alloc_block = llvm::BasicBlock::Create(
+      b.getContext(), "entry", alloc);
+  b.SetInsertPoint(alloc_block);
+
+  // Compute sizeof(_global_data) by indexing one past the null pointer.
+  llvm::Value* size_of = b.CreateIntToPtr(
+      constant_int(0), _global_data, "null");
+  size_of = b.CreateGEP(
+      size_of, constant_int(1), "sizeof");
+  // Call malloc and return the pointer.
+  b.CreateRet(b.CreateCall(malloc_ptr, size_of, "call"));
+
+  // Create free function.
+  auto free = llvm::Function::Create(
+      llvm::FunctionType::get(void_type(), _global_data, false),
+      llvm::Function::ExternalLinkage, "global_free", &_module);
+  auto free_block = llvm::BasicBlock::Create(
+      b.getContext(), "entry", free);
+  b.SetInsertPoint(free_block);
+  auto it = free->arg_begin();
+  it->setName("global");
+  b.CreateCall(free_ptr, it);
+  b.CreateRetVoid();
+
+  // Create accessor functions for each field of the global structure.
   for (const auto pair : _global_numbering) {
     llvm::Type* t = type_list[pair.second];
 
