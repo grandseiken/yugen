@@ -11,11 +11,13 @@ IrGenerator::IrGenerator(llvm::Module& module,
   , _builder(module.getContext())
   , _symbol_table(y::null)
 {
+  auto& b = _builder;
+
   // Set up the global data type. Since each program is designed to support
-  // multiple independent instances of it running simultaeneously, the idea
-  // is to define a structure type with a field for each global variable.
-  // Each function will take a pointer to the global data structure as an
-  // implicit first parameter.
+  // multiple independent instances running simultaeneously, the idea is to
+  // define a structure type with a field for each global variable. Each
+  // function will take a pointer to the global data structure as an implicit
+  // first parameter.
   y::vector<llvm::Type*> type_list;
   y::size number = 0;
   for (const auto& pair : globals) {
@@ -27,6 +29,37 @@ IrGenerator::IrGenerator(llvm::Module& module,
   }
   _global_data = llvm::PointerType::get(
       llvm::StructType::create(type_list, "global_data"), 0);
+
+  // Create accessor functions.
+  for (const auto pair : _global_numbering) {
+    llvm::Type* t = type_list[pair.second];
+
+    auto getter = llvm::Function::Create(
+        llvm::FunctionType::get(t, _global_data, false),
+        llvm::Function::ExternalLinkage, "global_get_" + pair.first, &_module);
+    auto getter_block = llvm::BasicBlock::Create(
+        b.getContext(), "entry", getter);
+    auto it = getter->arg_begin();
+    it->setName("global");
+    b.SetInsertPoint(getter_block);
+    b.CreateRet(
+        b.CreateLoad(global_ptr(it, pair.second), "load"));
+
+    y::vector<llvm::Type*> setter_args{_global_data, t};
+    auto setter = llvm::Function::Create(
+        llvm::FunctionType::get(void_type(), setter_args, false),
+        llvm::Function::ExternalLinkage, "global_set_" + pair.first, &_module);
+    auto setter_block = llvm::BasicBlock::Create(
+        b.getContext(), "entry", setter);
+    it = setter->arg_begin();
+    it->setName("global");
+    auto jt = it;
+    ++jt;
+    jt->setName("value");
+    b.SetInsertPoint(setter_block);
+    b.CreateStore(jt, global_ptr(it, pair.second));
+    b.CreateRetVoid();
+  }
 }
 
 IrGenerator::~IrGenerator()
@@ -47,7 +80,8 @@ void IrGenerator::preorder(const Node& node)
       // TODO: temporary int return type for all functions.
       llvm::Type* return_type =
           node.type == Node::GLOBAL ? void_type() : int_type();
-      y::string name = node.type == Node::GLOBAL ? "global" : node.string_value;
+      y::string name =
+          node.type == Node::GLOBAL ? "global_init" : node.string_value;
 
       auto function = llvm::Function::Create(
           llvm::FunctionType::get(return_type, _global_data, false),
@@ -342,14 +376,12 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
 
     case Node::IDENTIFIER:
-    {
       // Load the local variable, if it's there.
       if (_symbol_table.has(node.string_value)) {
         return b.CreateLoad(_symbol_table[node.string_value], "load");
       }
       // Otherwise it's a global, so look up in the global structure.
       return b.CreateLoad(global_ptr(node.string_value), "load");
-    }
 
     case Node::INT_LITERAL:
       return constant_int(node.int_value);
@@ -594,15 +626,18 @@ llvm::Value* IrGenerator::b2i(llvm::Value* v)
   return _builder.CreateZExt(v, type, "int");
 }
 
-llvm::Value* IrGenerator::global_ptr(const y::string& name)
+llvm::Value* IrGenerator::global_ptr(llvm::Value* ptr, y::size index)
 {
   // The first index indexes the global data pointer itself, i.e. to obtain
   // the one and only global data structure at that memory location.
-  y::vector<llvm::Value*> indexes{
-      constant_int(0), constant_int(_global_numbering[name])};
-  llvm::Value* v = _builder.CreateGEP(
-      _symbol_table["%GLOBAL_DATA%"], indexes, "global");
+  y::vector<llvm::Value*> indexes{constant_int(0), constant_int(index)};
+  llvm::Value* v = _builder.CreateGEP(ptr, indexes, "global");
   return v;
+}
+
+llvm::Value* IrGenerator::global_ptr(const y::string& name)
+{
+  return global_ptr(_symbol_table["%GLOBAL_DATA%"], _global_numbering[name]);
 }
 
 llvm::Value* IrGenerator::binary(

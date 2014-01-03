@@ -41,6 +41,7 @@ private:
 
   llvm::Value* i2b(llvm::Value* v);
   llvm::Value* b2i(llvm::Value* v);
+  llvm::Value* global_ptr(llvm::Value* ptr, y::size index);
   llvm::Value* global_ptr(const y::string& name);
 
   llvm::Value* binary(
