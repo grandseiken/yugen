@@ -2,6 +2,7 @@
 #define YANG__IRGEN_H
 
 #include "table.h"
+#include "type.h"
 #include "walker.h"
 #include "../common/function.h"
 #include <llvm/IR/IRBuilder.h>
@@ -15,7 +16,8 @@ namespace llvm {
 class IrGenerator : public ConstAstWalker<llvm::Value*> {
 public:
 
-  IrGenerator(llvm::Module& module);
+  IrGenerator(llvm::Module& module,
+              const SymbolTable<Type>::scope& globals);
   ~IrGenerator();
 
 protected:
@@ -39,6 +41,7 @@ private:
 
   llvm::Value* i2b(llvm::Value* v);
   llvm::Value* b2i(llvm::Value* v);
+  llvm::Value* global_ptr(const y::string& name);
 
   llvm::Value* binary(
       llvm::Value* left, llvm::Value* right,
@@ -47,6 +50,9 @@ private:
       llvm::Value* value,
       y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
       bool to_bool = false, bool with_ands = false);
+
+  y::map<y::string, y::size> _global_numbering;
+  llvm::Type* _global_data;
 
   llvm::Module& _module;
   llvm::IRBuilder<> _builder;

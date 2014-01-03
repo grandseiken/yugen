@@ -1,14 +1,19 @@
 #ifndef YANG__PIPELINE_H
 #define YANG__PIPELINE_H
 
+#include "../common/map.h"
 #include "../common/memory.h"
 #include "../common/string.h"
 #include "../common/vector.h"
 
+#include "type.h"
+
 struct Node;
+class Type;
 namespace llvm {
   class Module;
   class ExecutionEngine;
+  class Type;
 }
 
 class YangProgram {
@@ -32,6 +37,8 @@ private:
   y::string _error;
 
   y::unique<Node> _ast;
+  y::map<y::string, Type> _globals;
+
   y::unique<llvm::Module> _module;
   llvm::ExecutionEngine* _engine;
 

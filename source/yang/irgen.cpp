@@ -1,15 +1,32 @@
 #include "irgen.h"
 #include <llvm/IR/Module.h>
 
-namespace llvm {
-  class LLVMContext;
+  namespace llvm {
+    class LLVMContext;
 }
 
-IrGenerator::IrGenerator(llvm::Module& module)
+IrGenerator::IrGenerator(llvm::Module& module,
+                         const SymbolTable<Type>::scope& globals)
   : _module(module)
   , _builder(module.getContext())
   , _symbol_table(y::null)
 {
+  // Set up the global data type. Since each program is designed to support
+  // multiple independent instances of it running simultaeneously, the idea
+  // is to define a structure type with a field for each global variable.
+  // Each function will take a pointer to the global data structure as an
+  // implicit first parameter.
+  y::vector<llvm::Type*> type_list;
+  y::size number = 0;
+  for (const auto& pair : globals) {
+    llvm::Type* t = pair.second.is_int() ? int_type() : world_type();
+    t = pair.second.is_vector() ? vector_type(t, pair.second.count()) : t;
+
+    type_list.push_back(t);
+    _global_numbering[pair.first] = number++;
+  }
+  _global_data = llvm::PointerType::get(
+      llvm::StructType::create(type_list, "global_data"), 0);
 }
 
 IrGenerator::~IrGenerator()
@@ -23,25 +40,28 @@ void IrGenerator::preorder(const Node& node)
 
   switch (node.type) {
     case Node::GLOBAL:
-    {
-      auto function = llvm::Function::Create(
-          llvm::FunctionType::get(void_type(), false),
-          llvm::Function::ExternalLinkage, "global", &_module);
-      auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
-
-      b.SetInsertPoint(block);
       _symbol_table.push();
-      break;
-    }
+      _symbol_table.add("%GLOBAL%", y::null);
     case Node::FUNCTION:
     {
+      // TODO: temporary int return type for all functions.
+      llvm::Type* return_type =
+          node.type == Node::GLOBAL ? void_type() : int_type();
+      y::string name = node.type == Node::GLOBAL ? "global" : node.string_value;
+
       auto function = llvm::Function::Create(
-          llvm::FunctionType::get(int_type(), false),
-          llvm::Function::ExternalLinkage, node.string_value, &_module);
+          llvm::FunctionType::get(return_type, _global_data, false),
+          llvm::Function::ExternalLinkage, name, &_module);
       auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
 
       b.SetInsertPoint(block);
       _symbol_table.push();
+
+      // Store a special entry in the symbol table for the implicit global
+      // structure pointer.
+      auto it = function->arg_begin();
+      it->setName("global");
+      _symbol_table.add("%GLOBAL_DATA%", it);
       break;
     }
 
@@ -245,6 +265,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     case Node::GLOBAL:
       _builder.CreateRetVoid();
       _symbol_table.pop();
+      _symbol_table.pop();
       return results[0];
     case Node::FUNCTION:
       _builder.CreateBr(_builder.GetInsertBlock());
@@ -321,7 +342,14 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
 
     case Node::IDENTIFIER:
-      return b.CreateLoad(_symbol_table[node.string_value], "load");
+    {
+      // Load the local variable, if it's there.
+      if (_symbol_table.has(node.string_value)) {
+        return b.CreateLoad(_symbol_table[node.string_value], "load");
+      }
+      // Otherwise it's a global, so look up in the global structure.
+      return b.CreateLoad(global_ptr(node.string_value), "load");
+    }
 
     case Node::INT_LITERAL:
       return constant_int(node.int_value);
@@ -437,12 +465,25 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
 
     case Node::ASSIGN:
-      b.CreateStore(results[0], _symbol_table[node.string_value]);
+      // See Node::IDENTIFIER.
+      if (_symbol_table.has(node.string_value)) {
+        b.CreateStore(results[0], _symbol_table[node.string_value]);
+      }
+      else {
+        b.CreateStore(results[0], global_ptr(node.string_value));
+      }
       return results[0];
 
     case Node::ASSIGN_VAR:
     case Node::ASSIGN_CONST:
     {
+      // In a global block, rather than allocating anything we simply store into
+      // the prepared fields of the global structure.
+      if (_symbol_table.has("%GLOBAL%")) {
+        b.CreateStore(results[0], global_ptr(node.string_value));
+        return results[0];
+      }
+
       // Optimisation passes such as mem2reg work much better when memory
       // locations are declared in the entry block (so they are guaranteed to
       // execute once).
@@ -551,6 +592,17 @@ llvm::Value* IrGenerator::b2i(llvm::Value* v)
     type = vector_type(type, v->getType()->getVectorNumElements());
   }
   return _builder.CreateZExt(v, type, "int");
+}
+
+llvm::Value* IrGenerator::global_ptr(const y::string& name)
+{
+  // The first index indexes the global data pointer itself, i.e. to obtain
+  // the one and only global data structure at that memory location.
+  y::vector<llvm::Value*> indexes{
+      constant_int(0), constant_int(_global_numbering[name])};
+  llvm::Value* v = _builder.CreateGEP(
+      _symbol_table["%GLOBAL_DATA%"], indexes, "global");
+  return v;
 }
 
 llvm::Value* IrGenerator::binary(

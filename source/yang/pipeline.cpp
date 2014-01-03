@@ -50,6 +50,7 @@ YangProgram::YangProgram(const y::string& name, const y::string& contents)
   if (checker.errors()) {
     return;
   }
+  _globals = checker.global_variable_map();
   _ast = y::move_unique(output);
 }
 
@@ -88,7 +89,7 @@ void YangProgram::generate_ir()
     _module = y::null;
   }
 
-  IrGenerator irgen(*_module);
+  IrGenerator irgen(*_module, _globals);
   irgen.walk(*_ast);
 
   if (llvm::verifyModule(*_module, llvm::ReturnStatusAction, &_error)) {

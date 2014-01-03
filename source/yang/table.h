@@ -38,10 +38,13 @@ public:
   const T& get(const y::string& symbol, y::size frame) const;
   /***/ T& get(const y::string& symbol, y::size frame);
 
+  typedef y::map<y::string, T> scope;
+  const scope& frame(y::size frame) const;
+  const scope& top() const;
+
 private:
 
   T _default;
-  typedef y::map<y::string, T> scope;
   y::vector<scope> _stack;
 
 };
@@ -178,6 +181,22 @@ T& SymbolTable<T>::get(const y::string& symbol, y::size frame)
     return it->second;
   }
   return _default;
+}
+
+template<typename T>
+const typename SymbolTable<T>::scope& SymbolTable<T>::frame(
+    const y::size frame) const
+{
+  if (frame >= size()) {
+    return top();
+  }
+  return _stack[frame];
+}
+
+template<typename T>
+const typename SymbolTable<T>::scope& SymbolTable<T>::top() const
+{
+  return *_stack.rbegin();
 }
 
 #endif

@@ -2,75 +2,21 @@
 #define YANG__STATIC_H
 
 #include "table.h"
+#include "type.h"
 #include "walker.h"
-
-// TYPE_ERROR is a special type assigned to expressions containing an error
-// where the type cannot be determined. Further errors involving a value
-// of this type are suppressed (to avoid cascading error messages).
-class Type {
-public:
-
-  enum type_base {
-    ERROR,
-    VOID,
-    INT,
-    WORLD,
-  };
-
-  // A count greater than one constructs a vector type. This is allowed
-  // only if the base is type INT or WORLD. Invalid construction will result
-  // in an ERROR type.
-  Type(type_base b, y::size count = 1);
-  void set_const(bool is_const);
-
-  // Return components of the type.
-  type_base base() const;
-  y::size count() const;
-  bool is_const() const;
-  // Return a string representation of the type.
-  y::string string() const;
-
-  // All of the following functions also return true if this is type ERROR.
-  // True if this is type ERROR.
-  bool is_error() const;
-  // True if this is not type VOID.
-  bool not_void() const;
-  // True if this is type INT or WORLD with a count of 1.
-  bool primitive() const;
-  // True if this is type INT or WORLD with a count greater than 1.
-  bool is_vector() const;
-  // True if this is type INT (either primitive or vector).
-  bool is_int() const;
-  // True if this is type WORLD (either primitive or vector).
-  bool is_world() const;
-
-  // True if the vector element-counts of these types allow for interaction;
-  // that is, either the element-counts are the same (and they can interact
-  // point-wise), or either element-count is 1 (and the value can be implicitly
-  // vectorised), or either type is type ERROR.
-  bool count_binary_match(const Type& t) const;
-  // True if the given type is identical, or either is type ERROR.
-  bool is(const Type& t) const;
-  // If the given type is identical, returns it. Otherwise, returns type ERROR.
-  Type unify(const Type& t) const;
-
-  // Raw equality comparisons (ignoring ERROR). Don't use for type-checking.
-  bool operator==(const Type& t) const;
-  bool operator!=(const Type& t) const;
-
-private:
-
-  type_base _base;
-  y::size _count;
-  bool _const;
-
-};
 
 class StaticChecker : public ConstAstWalker<Type> {
 public:
 
   StaticChecker();
+
+  // True if any errors were detected during the checking. Otherwise, assuming
+  // there are no bugs in the compiler, we can generate the IR without worrying
+  // about malformed AST.
   bool errors() const;
+
+  // After checking, returns a mapping of global variable names to types.
+  const y::map<y::string, Type>& global_variable_map() const;
 
 protected:
 
