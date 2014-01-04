@@ -115,7 +115,7 @@ while [ $ANY -eq 0 ]; do
   U=$(get_new_deps "$NEW_DEPS" "$LINK_DEPS")
   INCLUDE_ANY=$?
 
-  NEW_DEPS="$T $Ui"
+  NEW_DEPS="$T $U"
   let ANY="$LINK_ANY * $INCLUDE_ANY"
 done
 
