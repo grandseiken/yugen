@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Usage:
 # ./deps.sh depfile buildfile file outdir make_link_deps
 DEPFILE=$1
@@ -115,7 +115,7 @@ while [ $ANY -eq 0 ]; do
   U=$(get_new_deps "$NEW_DEPS" "$LINK_DEPS")
   INCLUDE_ANY=$?
 
-  NEW_DEPS="$T $U"
+  NEW_DEPS="$T $Ui"
   let ANY="$LINK_ANY * $INCLUDE_ANY"
 done
 

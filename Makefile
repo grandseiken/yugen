@@ -12,7 +12,7 @@
 #   wc - print line counts of all code files
 #
 # External package dependencies:
-#   make
+#   make m4 texinfo texlive
 #   libz-dev libbz2-dev
 #   libglew-dev libgl-dev libx11-dev libjpeg-dev
 # For SFML:
