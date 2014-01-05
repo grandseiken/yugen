@@ -25,13 +25,25 @@ const y::map<y::string, Type>& StaticChecker::global_variable_map() const
 void StaticChecker::preorder(const Node& node)
 {
   switch (node.type) {
+    case Node::PROGRAM:
+      // Globals are stored in the first frame of the symbol table, so we add
+      // another frame for the functions to go in.
+      _symbol_table.push();
+      break;
     case Node::GLOBAL:
       _symbol_table.push();
       _symbol_table.add("%GLOBAL%", Type::VOID);
       break;
     case Node::FUNCTION:
+    {
+      // Insert the function into the table before adding the next frame.
+      Type t(Type::FUNCTION, Type(Type::INT));
+      t.set_const(true);
+      _symbol_table.add(node.string_value, t);
+
       _current_function.return_type = Type::INT;
       _current_function.name = node.string_value;
+    }
     case Node::BLOCK:
     case Node::IF_STMT:
       _symbol_table.push();
@@ -70,6 +82,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
   // not the operand type was intended to be int or world.
   switch (node.type) {
     case Node::PROGRAM:
+      _symbol_table.pop();
       return Type::VOID;
     case Node::GLOBAL:
       _symbol_table.pop();
@@ -271,7 +284,8 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       }
       Type& t = _symbol_table[node.string_value];
       if (t.is_const()) {
-        error(node, "assignment to `const` `" + node.string_value + "`");
+        error(node, "assignment to `" + node.string_value +
+                    "` of type " + t.string());
       }
       if (!t.is(results[0])) {
         error(node, rs[0] + " assigned to `" + node.string_value +

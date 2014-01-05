@@ -3,6 +3,7 @@
 
 #include "../common/math.h"
 #include "../common/string.h"
+#include "../common/vector.h"
 
 // TYPE_ERROR is a special type assigned to expressions containing an error
 // where the type cannot be determined. Further errors involving a value
@@ -15,12 +16,16 @@ public:
     VOID,
     INT,
     WORLD,
+    FUNCTION,
   };
 
   // A count greater than one constructs a vector type. This is allowed
-  // only if the base is type INT or WORLD. Invalid construction will result
-  // in an ERROR type.
-  Type(type_base b, y::size count = 1);
+  // only if the base is type INT or WORLD. This constructor can't create
+  // FUNCTION types. Invalid construction will result in an ERROR type.
+  Type(type_base base, y::size count = 1);
+  // Construct FUNCTION types. Passing anything other than FUNCTION
+  // will result in an error.
+  Type(type_base base, const Type& return_type);
   void set_const(bool is_const);
 
   // Return components of the type.
@@ -43,6 +48,13 @@ public:
   bool is_int() const;
   // True if this is type WORLD (either primitive or vector).
   bool is_world() const;
+  // True if this is type FUNCTION (with any argument and return types).
+  bool function() const;
+
+  // Access the element types. For FUNCTION types, the first element is the
+  // return type, and subsequent elements are argument types.
+  const y::vector<Type>& elements() const;
+  void add_element(const Type& type);
 
   // True if the vector element-counts of these types allow for interaction;
   // that is, either the element-counts are the same (and they can interact
@@ -60,9 +72,13 @@ public:
 
 private:
 
+  y::string string_internal() const;
+
   type_base _base;
   y::size _count;
   bool _const;
+
+  y::vector<Type> _elements;
 
 };
 

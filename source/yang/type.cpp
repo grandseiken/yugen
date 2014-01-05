@@ -5,10 +5,23 @@ Type::Type(type_base base, y::size count)
   , _count(count)
   , _const(false)
 {
-  if (count == 0 ||
+  if (base == FUNCTION || count == 0 ||
       (count != 1 && base != INT && base != WORLD)) {
     _base = ERROR;
     _count = 1;
+  }
+}
+
+Type::Type(type_base base, const Type& return_type)
+  : _base(FUNCTION)
+  , _count(1)
+  , _const(false)
+{
+  if (base != FUNCTION) {
+    _base = ERROR;
+  }
+  else {
+    _elements.push_back(return_type);
   }
 }
 
@@ -34,15 +47,7 @@ bool Type::is_const() const
 
 y::string Type::string() const
 {
-  y::string s =
-      _base == VOID ? "void" :
-      _base == INT ? "int" :
-      _base == WORLD ? "world" : "error";
-
-  if (_count > 1) {
-    s += y::to_string(_count);
-  }
-  return "`" + s + "`";
+  return "`" + string_internal() + "`";
 }
 
 bool Type::is_error() const
@@ -77,6 +82,21 @@ bool Type::is_world() const
   return is_error() || _base == WORLD;
 }
 
+bool Type::function() const
+{
+  return is_error() || _base == FUNCTION;
+}
+
+const y::vector<Type>& Type::elements() const
+{
+  return _elements;
+}
+
+void Type::add_element(const Type& type)
+{
+  _elements.push_back(type);
+}
+
 bool Type::count_binary_match(const Type& t) const
 {
   return is_error() || t.is_error() ||
@@ -103,4 +123,26 @@ bool Type::operator!=(const Type& t) const
   return !(*this == t);
 }
 
+y::string Type::string_internal() const
+{
+  if (_base == FUNCTION) {
+    y::string s = _elements[0].string_internal() + "(";
+    for (y::size i = 1; i < _elements.size(); ++i) {
+      if (i > 1) {
+        s += ", ";
+      }
+      s += _elements[i].string_internal();
+    }
+    return s + ")" + (_const ? " const" : "");
+  }
 
+  y::string s =
+      _base == VOID ? "void" :
+      _base == INT ? "int" :
+      _base == WORLD ? "world" : "error";
+
+  if (_count > 1) {
+    s += y::to_string(_count);
+  }
+  return s + (_const ? " const" : "");
+}
