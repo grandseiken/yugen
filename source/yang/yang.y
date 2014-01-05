@@ -104,7 +104,7 @@ int yyerror(const char* message)
 %left T_MUL T_DIV T_MOD
 %right P_UNARY_L
 %left T_POW
-%left T_WORLD_CAST '['
+%left T_WORLD_CAST '[' '('
 
   /* Types. */
 
@@ -220,6 +220,12 @@ expr
 {$$ = $2;}
   | expr T_TERNARY_L expr T_TERNARY_R expr
 {$$ = new Node(Node::TERNARY, $1, $3, $5);}
+  | expr '(' ')'
+{$$ = new Node(Node::CALL, $1);}
+  | expr '(' expr_list ')'
+{$$ = $3;
+ $$->add_front($1);
+ $$->type = Node::CALL;}
   | T_IDENTIFIER
 {$$ = $1;}
   | T_INT_LITERAL
@@ -386,7 +392,8 @@ expr
   | expr T_WORLD_CAST
 {$$ = new Node(Node::WORLD_CAST, $1);}
   | '(' expr ',' expr_list ')'
-{$$ = $4; $$->add_front($2);
+{$$ = $4;
+ $$->add_front($2);
  $$->type = Node::VECTOR_CONSTRUCT;}
   | expr '[' expr ']'
 {$$ = new Node(Node::VECTOR_INDEX, $1, $3);}

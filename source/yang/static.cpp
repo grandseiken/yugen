@@ -17,26 +17,25 @@ bool StaticChecker::errors() const
 
 const y::map<y::string, Type>& StaticChecker::global_variable_map() const
 {
-  // After checking, all that's left in the final frame of the symbol table
-  // is the global variables.
-  return _symbol_table.frame(0);
+  return _global_variable_map;
 }
 
 void StaticChecker::preorder(const Node& node)
 {
   switch (node.type) {
-    case Node::PROGRAM:
-      // Globals are stored in the first frame of the symbol table, so we add
-      // another frame for the functions to go in.
-      _symbol_table.push();
-      break;
     case Node::GLOBAL:
       _symbol_table.push();
       _symbol_table.add("%GLOBAL%", Type::VOID);
       break;
     case Node::FUNCTION:
     {
-      // Insert the function into the table before adding the next frame.
+      // Insert the function into the first frame before adding the next frame.
+      if (_symbol_table.has(node.string_value)) {
+        if (!_symbol_table[node.string_value].is_error()) {
+          error(node, "global `" + node.string_value + "` redefined");
+        }
+        _symbol_table.remove(node.string_value);
+      }
       Type t(Type::FUNCTION, Type(Type::INT));
       t.set_const(true);
       _symbol_table.add(node.string_value, t);
@@ -82,7 +81,6 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
   // not the operand type was intended to be int or world.
   switch (node.type) {
     case Node::PROGRAM:
-      _symbol_table.pop();
       return Type::VOID;
     case Node::GLOBAL:
       _symbol_table.pop();
@@ -115,7 +113,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       return Type::VOID;
     case Node::RETURN_STMT:
       if (_symbol_table.has("%GLOBAL%")) {
-        error(node, "returning from `global`");
+        error(node, "return statement inside `global`");
       }
       else if (!results[0].is(_current_function.return_type)) {
         error(node, "returning " + rs[0] + " from " +
@@ -172,6 +170,24 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         error(node, s + " branching on " + rs[0]);
       }
       return results[1].unify(results[2]);
+    case Node::CALL:
+      if (!results[0].function()) {
+        error(node, s + " applied to " + rs[0]);
+        return Type::ERROR;
+      }
+      if (!results[0].element_size(results.size())) {
+        error(node, rs[0] + " called with " +
+                    y::to_string(results.size() - 1) + " argument(s)");
+      }
+      else {
+        for (y::size i = 1; i < results.size(); ++i) {
+          if (!results[0].element_is(i, results[i])) {
+            error(node, rs[0] + " called with " + rs[i] +
+                        " in position " + y::to_string(i));
+          }
+        }
+      }
+      return results[0].elements()[0];
 
     case Node::LOGICAL_OR:
     case Node::LOGICAL_AND:
@@ -301,13 +317,16 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       if (_symbol_table.has("%GLOBAL%")) {
         if (_symbol_table.has(node.string_value, 0)) {
           if (!_symbol_table.get(node.string_value, 0).is_error()) {
-            error(node, "`global` `" + node.string_value + "` redefined");
+            error(node, "global `" + node.string_value + "` redefined");
           }
           _symbol_table.remove(node.string_value, 0);
         }
         _symbol_table.add(node.string_value, 0, results[0]);
         _symbol_table.get(node.string_value, 0).set_const(
             node.type == Node::ASSIGN_CONST);
+        // Store global in the global map for future use.
+        _global_variable_map.emplace(
+            node.string_value, _symbol_table.get(node.string_value, 0));
         return results[0];
       }
 

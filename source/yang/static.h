@@ -36,6 +36,7 @@ private:
   bool _errors;
   function _current_function;
   SymbolTable<Type> _symbol_table;
+  y::map<y::string, Type> _global_variable_map;
 
 };
 

@@ -32,6 +32,7 @@ struct Node {
     INT_LITERAL,
     WORLD_LITERAL,
     TERNARY,
+    CALL,
     LOGICAL_OR,
     LOGICAL_AND,
     BITWISE_OR,

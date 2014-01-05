@@ -97,6 +97,16 @@ void Type::add_element(const Type& type)
   _elements.push_back(type);
 }
 
+bool Type::element_size(y::size num_elements) const
+{
+  return is_error() || _elements.size() == num_elements;
+}
+
+bool Type::element_is(y::size index, const Type& type) const
+{
+  return is_error() || _elements[index].is(type);
+}
+
 bool Type::count_binary_match(const Type& t) const
 {
   return is_error() || t.is_error() ||

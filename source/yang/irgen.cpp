@@ -146,6 +146,9 @@ void IrGenerator::preorder(const Node& node)
       auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
 
       b.SetInsertPoint(block);
+      if (node.type == Node::FUNCTION) {
+        _symbol_table.add(node.string_value, function);
+      }
       _symbol_table.push();
 
       // Store a special entry in the symbol table for the implicit global
@@ -433,6 +436,10 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
 
     case Node::IDENTIFIER:
+      // If it's a function (constant global), just get the value.
+      if (!_symbol_table.index(node.string_value)) {
+        return _symbol_table.get(node.string_value, 0);
+      }
       // Load the local variable, if it's there.
       if (_symbol_table.has(node.string_value)) {
         return b.CreateLoad(_symbol_table[node.string_value], "load");
@@ -447,6 +454,16 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
 
     case Node::TERNARY:
       return b.CreateSelect(i2b(results[0]), results[1], results[2]);
+    case Node::CALL:
+    {
+      y::vector<llvm::Value*> args;
+      args.push_back(_symbol_table["%GLOBAL_DATA%"]);
+      for (y::size i = 1; i < results.size(); ++i) {
+        args.push_back(results[i]);
+      }
+      return b.CreateCall(results[0], args, "call");
+    }
+
 
     // Logical OR and AND short-circuit. This interacts in a subtle way with
     // vectorisation: we can short-circuit only when the left-hand operand is a
@@ -558,6 +575,8 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       if (_symbol_table.has(node.string_value)) {
         b.CreateStore(results[0], _symbol_table[node.string_value]);
       }
+      // We can't store values for globals in the symbol table since the lookup
+      // depends on the current function's global data argument.
       else {
         b.CreateStore(results[0], global_ptr(node.string_value));
       }

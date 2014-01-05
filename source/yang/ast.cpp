@@ -79,6 +79,7 @@ y::string Node::op_string(node_type t)
 {
   return
       t == Node::TERNARY ? "?:" :
+      t == Node::CALL ? "()" :
       t == Node::LOGICAL_OR ? "||" :
       t == Node::LOGICAL_AND ? "&&" :
       t == Node::BITWISE_OR ? "|" :

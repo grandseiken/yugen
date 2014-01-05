@@ -32,6 +32,9 @@ public:
   bool has(const y::string& symbol, y::size frame) const;
   bool has_top(const y::string& symbol) const;
 
+  // Get index of the topmost frame in which the symbol is defined.
+  y::size index(const y::string& symbol) const;
+
   // Value retrieval.
   const T& operator[](const y::string& symbol) const;
   /***/ T& operator[](const y::string& symbol);
@@ -131,6 +134,20 @@ template<typename T>
 bool SymbolTable<T>::has_top(const y::string& symbol) const
 {
   return _stack.rbegin()->find(symbol) != _stack.rbegin()->end();
+}
+
+template<typename T>
+y::size SymbolTable<T>::index(const y::string& symbol) const
+{
+  y::size i = _stack.size();
+  while (i) {
+    --i;
+    auto jt = _stack[i].find(symbol);
+    if (jt != _stack[i].end()) {
+      return i;
+    }
+  }
+  return _stack.size();
 }
 
 template<typename T>

@@ -55,6 +55,11 @@ public:
   // return type, and subsequent elements are argument types.
   const y::vector<Type>& elements() const;
   void add_element(const Type& type);
+  // True if this type has the given number of elements (or is type ERROR).
+  bool element_size(y::size num_elements) const;
+  // True if this type has given type at the given element index, or any
+  // type involved in type ERROR.
+  bool element_is(y::size index, const Type& type) const;
 
   // True if the vector element-counts of these types allow for interaction;
   // that is, either the element-counts are the same (and they can interact

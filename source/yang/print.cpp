@@ -86,6 +86,17 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
 
     case Node::TERNARY:
       return "(" + results[0] + " ? " + results[1] + " : " + results[2] + ")";
+    case Node::CALL:
+    {
+      y::string s = "(" + results[0] + "(";
+      for (y::size i = 1; i < results.size(); ++i) {
+        if (i > 1) {
+          s += ", ";
+        }
+        s += results[i];
+      }
+      return s + "))";
+    }
 
     case Node::LOGICAL_OR:
     case Node::LOGICAL_AND:
