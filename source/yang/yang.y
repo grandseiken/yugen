@@ -173,9 +173,11 @@ elem
   : opt_export global
 {$$ = $2;
  $$->int_value = $1->int_value;}
-  | opt_export function
+  | opt_export function ';'
 {$$ = $2;
  $$->int_value = $1->int_value;}
+  | ';'
+{$$ = new Node(Node::EMPTY_STMT);}
   ;
 
 opt_export
@@ -191,8 +193,8 @@ global
   ;
 
 function
-  : T_IDENTIFIER T_ASSIGN type stmt
-{$$ = new Node(Node::FUNCTION, $3, $4);
+  : T_IDENTIFIER T_ASSIGN expr
+{$$ = new Node(Node::ASSIGN_FUNCTION, $3);
  $$->string_value = $1->string_value;}
   ;
 
@@ -250,6 +252,8 @@ expr
   /* Miscellaeneous. */
   : '(' expr ')'
 {$$ = $2;}
+  | type stmt
+{$$ = new Node(Node::FUNCTION, $1, $2);}
   | expr T_TERNARY_L expr T_TERNARY_R expr
 {$$ = new Node(Node::TERNARY, $1, $3, $5);}
   | expr '(' ')'

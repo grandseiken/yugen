@@ -56,12 +56,14 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       }
       return s;
     }
-    case Node::FUNCTION:
-      return (node.int_value ? "export " : "") +
-          node.string_value + " " + results[0] + "\n" + results[1];
     case Node::GLOBAL:
       return (node.int_value ? "export " : "") +
           y::string("global\n") + results[0];
+    case Node::ASSIGN_FUNCTION:
+      return (node.int_value ? "export " : "") +
+          node.string_value + " " + results[0];
+    case Node::FUNCTION:
+      return results[0] + "\n" + results[1];
 
     case Node::BLOCK:
     {
@@ -70,7 +72,7 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       for (y::size i = 0; i < results.size(); ++i) {
         s += results[i];
       }
-      return indent() + "{\n" + s + indent() + "}\n";
+      return indent() + "{\n" + s + indent() + "}";
     }
     case Node::EMPTY_STMT:
       return indent() + ";\n";
@@ -80,19 +82,19 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       return indent() + "return " + results[0] + ";\n";
     case Node::IF_STMT:
     {
-      y::string s = indent() + "if (" + results[0] + ")\n" + results[1];
+      y::string s = indent() + "if (" + results[0] + ")\n" + results[1] + "\n";
       if (results.size() > 2) {
-        s += indent() + "else\n" + results[2];
+        s += indent() + "else\n" + results[2] + "\n";
       }
       return s;
     }
     case Node::FOR_STMT:
       return indent() +
           "for (" + results[0] + "; " + results[1] + "; " + results[2] + ")\n" +
-          results[3];
+          results[3] + "\n";
     case Node::DO_WHILE_STMT:
-      return indent() + "do\n" + results[0] +
-          indent() +"while (" + results[1] + ");\n";
+      return indent() + "do\n" + results[0] + "\n" +
+          indent() + "while (" + results[1] + ");\n";
     case Node::BREAK_STMT:
       return indent() + "break;\n";
     case Node::CONTINUE_STMT:

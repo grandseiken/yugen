@@ -32,6 +32,10 @@ public:
   bool has(const y::string& symbol, y::size frame) const;
   bool has_top(const y::string& symbol) const;
 
+  // Get list of symbols in a particular frame-range [min_frame, max_frame).
+  void get_symbols(y::vector<y::string>& output,
+                   y::size min_frame, y::size max_frame) const;
+
   // Get index of the topmost frame in which the symbol is defined.
   y::size index(const y::string& symbol) const;
 
@@ -137,9 +141,20 @@ bool SymbolTable<T>::has_top(const y::string& symbol) const
 }
 
 template<typename T>
+void SymbolTable<T>::get_symbols(y::vector<y::string>& output,
+                                 y::size min_frame, y::size max_frame) const
+{
+  for (y::size i = min_frame; i < max_frame && i < size(); ++i) {
+    for (const auto& pair : _stack[i]) {
+      output.push_back(pair.first);
+    }
+  }
+}
+
+template<typename T>
 y::size SymbolTable<T>::index(const y::string& symbol) const
 {
-  y::size i = _stack.size();
+  y::size i = size();
   while (i) {
     --i;
     auto jt = _stack[i].find(symbol);

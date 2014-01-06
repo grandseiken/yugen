@@ -24,10 +24,9 @@ void StaticChecker::preorder(const Node& node)
   switch (node.type) {
     case Node::GLOBAL:
       _symbol_table.push();
-      _symbol_table.add("%GLOBAL%", Type::VOID);
       break;
-    case Node::FUNCTION:
-      // Set current name and compute the return type.
+    case Node::ASSIGN_FUNCTION:
+      // Set current top-level function name.
       _current_function = node.string_value;
       break;
     case Node::BLOCK:
@@ -50,21 +49,13 @@ void StaticChecker::infix(const Node& node, const result_list& results)
   switch (node.type) {
     case Node::FUNCTION:
     {
-      // After computing the type, we can add the symbol table entry. Insert
-      // the function into the first frame before adding the next frame.
-      if (_symbol_table.has(node.string_value)) {
-        if (!_symbol_table[node.string_value].is_error()) {
-          error(node, "global `" + node.string_value + "` redefined");
-        }
-        _symbol_table.remove(node.string_value);
-      }
+      _symbol_table.push();
       Type t = results[0];
       if (!t.function()) {
         error(node, "function defined with non-function type " + t.string());
         t = Type::ERROR;
       }
       else {
-        t.set_const(true);
         y::set<y::string> arg_names;
         y::size elem = 0;
         for (const auto& ptr : node.children[0]->children) {
@@ -80,12 +71,24 @@ void StaticChecker::infix(const Node& node, const result_list& results)
           if (arg_names.find(name) != arg_names.end()) {
             error(node, "duplicate argument name `" + name + "`");
           }
-          _symbol_table.add(name, t.elements()[elem]);
+          _symbol_table.add(name, t.elements(elem));
           arg_names.insert(name);
           ++elem;
         }
       }
-      _symbol_table.add(node.string_value, t);
+      // Store the return type of the current function so that RETURN statements
+      // can check against it.
+      _symbol_table.add("%CURRENT_RETURN_TYPE%", t.elements(0));
+
+      // We currently don't implement closures at all, so we need to stick a
+      // bunch of overrides into an intermediate stack frame to avoid the locals
+      // from the enclosing scope being referenced, if any.
+      y::vector<y::string> locals;
+      // Starting at frame 1 finds all names except globals.
+      _symbol_table.get_symbols(locals, 1, _symbol_table.size());
+      for (const y::string& s : locals) {
+        _symbol_table.add(s, Type::ENCLOSING_FUNCTION);
+      }
       _symbol_table.push();
     }
 
@@ -134,19 +137,34 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::GLOBAL:
       _symbol_table.pop();
       return Type::VOID;
+    case Node::ASSIGN_FUNCTION:
+    {
+      if (!results[0].function()) {
+        error(node, "top-level assignment of type " + rs[0]);
+      }
+      if (_symbol_table.has_top(node.string_value)) {
+        if (!_symbol_table[node.string_value].is_error()) {
+          error(node, "global `" + node.string_value + "` redefined");
+        }
+        _symbol_table.remove(node.string_value);
+      }
+      // Top-level function variables are implicitly const.
+      Type t = results[0];
+      t.set_const(true);
+      _symbol_table.add(node.string_value, t);
+      _current_function = "";
+      return Type::VOID;
+    }
     case Node::FUNCTION:
     {
-      const Type& current =
-          _symbol_table.get(_current_function, 0);
-      const Type& current_return =
-          current.is_error() ? current : current.elements()[0];
-
+      const Type& current_return = _symbol_table["%CURRENT_RETURN_TYPE%"];
       if (current_return.not_void() && !results[1].not_void()) {
         error(node, "not all code paths return a value");
       }
+      // Pop intermediate local-variable-barrier frame as well.
       _symbol_table.pop();
-      _current_function = "";
-      return Type::VOID;
+      _symbol_table.pop();
+      return results[0];
     }
 
     case Node::BLOCK:
@@ -167,15 +185,13 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::EXPR_STMT:
       return Type::VOID;
     case Node::RETURN_STMT:
-      if (_symbol_table.has("%GLOBAL%")) {
+      // Return statement is (directly) within a global block if there is no
+      // %CURRENT_RETURN_TYPE% set at all.
+      if (!_symbol_table.has("%CURRENT_RETURN_TYPE%")) {
         error(node, "return statement inside `global`");
       }
       else {
-        const Type& current =
-            _symbol_table.get(_current_function, 0);
-        const Type& current_return =
-            current.is_error() ? current : current.elements()[0];
-
+        const Type& current_return = _symbol_table["%CURRENT_RETURN_TYPE%"];
         if (!results[0].is(current_return)) {
           error(node, "returning " + rs[0] + " from " +
                       current_return.string() + " function");
@@ -217,6 +233,11 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         error(node, "undeclared identifier `" + node.string_value + "`");
         _symbol_table.add(node.string_value, Type::ERROR);
       }
+      else if (_symbol_table[node.string_value] == Type::ENCLOSING_FUNCTION) {
+        error(node, "reference to `" + node.string_value +
+                    "` in enclosing function");
+        return Type::ERROR;
+      }
       return _symbol_table[node.string_value];
     case Node::INT_LITERAL:
       return Type::INT;
@@ -249,7 +270,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
           }
         }
       }
-      return results[0].elements()[0];
+      return results[0].elements(0);
 
     case Node::LOGICAL_OR:
     case Node::LOGICAL_AND:
@@ -358,9 +379,15 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     {
       if (!_symbol_table.has(node.string_value)) {
         error(node, "undeclared identifier `" + node.string_value + "`");
-        return Type::ERROR;
+        _symbol_table.add(node.string_value, results[0]);
+        return results[0];
       }
       Type& t = _symbol_table[node.string_value];
+      if (t == Type::ENCLOSING_FUNCTION) {
+        error(node, "reference to `" + node.string_value +
+                    "` in enclosing function");
+        return Type::ERROR;
+      }
       if (t.is_const()) {
         error(node, "assignment to `" + node.string_value +
                     "` of type " + t.string());
@@ -376,7 +403,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::ASSIGN_VAR:
     case Node::ASSIGN_CONST:
       // Within global blocks, use the top-level symbol table frame.
-      if (_symbol_table.has("%GLOBAL%")) {
+      if (!_symbol_table.has("%CURRENT_RETURN_TYPE%")) {
         if (_symbol_table.has(node.string_value, 0)) {
           if (!_symbol_table.get(node.string_value, 0).is_error()) {
             error(node, "global `" + node.string_value + "` redefined");

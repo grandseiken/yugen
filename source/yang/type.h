@@ -13,6 +13,9 @@ public:
 
   enum type_base {
     ERROR,
+    // Temporary type to indicate a name is in scope, but inaccessible as it
+    // lives in an enclosing function (and closures are not implemented).
+    ENCLOSING_FUNCTION,
     VOID,
     INT,
     WORLD,
@@ -53,7 +56,7 @@ public:
 
   // Access the element types. For FUNCTION types, the first element is the
   // return type, and subsequent elements are argument types.
-  const y::vector<Type>& elements() const;
+  const Type& elements(y::size index) const;
   void add_element(const Type& type);
   // True if this type has the given number of elements (or is type ERROR).
   bool element_size(y::size num_elements) const;

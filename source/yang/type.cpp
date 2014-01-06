@@ -1,4 +1,5 @@
 #include "type.h"
+#include "../common/algorithm.h"
 
 Type::Type(type_base base, y::size count)
   : _base(base)
@@ -87,9 +88,9 @@ bool Type::function() const
   return is_error() || _base == FUNCTION;
 }
 
-const y::vector<Type>& Type::elements() const
+const Type& Type::elements(y::size index) const
 {
-  return _elements;
+  return is_error() ? *this : _elements[y::min(index, _elements.size() - 1)];
 }
 
 void Type::add_element(const Type& type)

@@ -138,6 +138,11 @@ void YangProgram::optimise_ir()
   optimiser.add(llvm::createDeadArgEliminationPass());
   optimiser.add(llvm::createGlobalDCEPass());
 
+  // After function inlining run a few passes again.
+  optimiser.add(llvm::createInstructionCombiningPass());
+  optimiser.add(llvm::createReassociatePass());
+  optimiser.add(llvm::createGVNPass());
+
   // Run the optimisation passes.
   // TODO: work out if there's others we should run, or in a different order.
   optimiser.run(*_module);

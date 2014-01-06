@@ -168,6 +168,7 @@ void IrGenerator::preorder(const Node& node)
       auto it = function->arg_begin();
       it->setName("global");
       _symbol_table.add("%GLOBAL_DATA%", it);
+      _symbol_table.add("%CURRENT_FUNCTION%", function);
       break;
     }
 
@@ -233,17 +234,14 @@ void IrGenerator::infix(const Node& node, const result_list& results)
   switch (node.type) {
     case Node::FUNCTION:
     {
-      // Regular functions Nodes have their int_value set to 1 when defined
-      // using the `export` keyword.
-      auto linkage = node.int_value ?
-          llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
       auto function_type = (llvm::FunctionType*)results[0].type;
+      // Linkage will be set to external later for exported top-level functions.
       auto function = llvm::Function::Create(
-          function_type, linkage, node.string_value, &_module);
+          function_type, llvm::Function::InternalLinkage,
+          "anonymous", &_module);
       auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
 
       b.SetInsertPoint(block);
-      _symbol_table.add(node.string_value, function);
       _symbol_table.push();
 
       // The code for Node::TYPE_FUNCTION in visit() ensures it takes a global
@@ -268,6 +266,7 @@ void IrGenerator::infix(const Node& node, const result_list& results)
         _symbol_table.add(name, v);
         ++arg_num;
       }
+      _symbol_table.add("%CURRENT_FUNCTION%", function);
       break;
     }
 
@@ -440,6 +439,18 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       _symbol_table.pop();
       _symbol_table.pop();
       return results[0];
+    case Node::ASSIGN_FUNCTION:
+    {
+      // Top-level functions Nodes have their int_value set to 1 when defined
+      // using the `export` keyword.
+      auto function = (llvm::Function*)parent;
+      if (node.int_value) {
+        function->setLinkage(llvm::Function::ExternalLinkage);
+      }
+      function->setName(node.string_value);
+      _symbol_table.add(node.string_value, results[0]);
+      return results[0];
+    }
     case Node::FUNCTION:
     {
       auto function_type =
@@ -453,7 +464,13 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
         b.CreateBr(_builder.GetInsertBlock());
       }
       _symbol_table.pop();
-      return results[1];
+      // If this was a nested function, set the insert point back to the last
+      // block in the enclosing function.
+      if (_symbol_table.has("%CURRENT_FUNCTION%")) {
+        auto function = (llvm::Function*)_symbol_table["%CURRENT_FUNCTION%"];
+        b.SetInsertPoint(&*function->getBasicBlockList().rbegin());
+      }
+      return parent;
     }
 
     case Node::BLOCK:
