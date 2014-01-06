@@ -11,10 +11,22 @@ namespace llvm {
   class Constant;
   class Function;
   class Module;
+  class Type;
   class Value;
 }
 
-class IrGenerator : public ConstAstWalker<llvm::Value*> {
+struct IrGeneratorUnion {
+  IrGeneratorUnion(llvm::Type* type);
+  IrGeneratorUnion(llvm::Value* value);
+
+  operator llvm::Type*() const;
+  operator llvm::Value*() const;
+
+  llvm::Type* type;
+  llvm::Value* value;
+};
+
+class IrGenerator : public ConstAstWalker<IrGeneratorUnion> {
 public:
 
   IrGenerator(llvm::Module& module,
@@ -30,7 +42,7 @@ protected:
 
   void preorder(const Node& node) override;
   void infix(const Node& node, const result_list& results) override;
-  llvm::Value* visit(const Node& node, const result_list& results) override;
+  IrGeneratorUnion visit(const Node& node, const result_list& results) override;
 
 private:
 

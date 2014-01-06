@@ -51,6 +51,7 @@ digit [0-9]
 identifier {alpha}({alpha}|{digit})*
 int_literal {digit}+
 world_literal \.{digit}+|{digit}+\.({digit}+)?
+vector_size [1-9]{digit}*
 
 %%
 
@@ -89,10 +90,36 @@ break {return T_BREAK;}
 continue {return T_CONTINUE;}
 return {return T_RETURN;}
 
-  /* As-yet-unused keywords. */
+  /* Types. */
 
-int {return T_INT;}
-world {return T_WORLD;}
+void {
+  yylval.node = new Node(Node::TYPE_VOID);
+  return T_TYPE_LITERAL;
+}
+int {
+  yylval.node = new Node(Node::TYPE_INT, 1);
+  return T_TYPE_LITERAL;
+}
+int0 {
+  yylval.node = new Node(Node::TYPE_VOID);
+  return T_TYPE_LITERAL;
+}
+int{vector_size} {
+  yylval.node = new Node(Node::TYPE_INT, y::stoi(3 + yytext));
+  return T_TYPE_LITERAL;
+}
+world {
+  yylval.node = new Node(Node::TYPE_WORLD, 1);
+  return T_TYPE_LITERAL;
+}
+world0 {
+  yylval.node = new Node(Node::TYPE_VOID);
+  return T_TYPE_LITERAL;
+}
+world{vector_size} {
+  yylval.node = new Node(Node::TYPE_WORLD, y::stoi(5 + yytext));
+  return T_TYPE_LITERAL;
+}
 
   /* Operators. */
 

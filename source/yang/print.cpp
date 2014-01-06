@@ -25,8 +25,29 @@ void AstPrinter::infix(const Node& node, const result_list& results)
 y::string AstPrinter::visit(const Node& node, const result_list& results)
 {
   y::string s = Node::op_string(node.type);
+  y::string type_id = node.string_value.length() ? " " + node.string_value : "";
 
   switch (node.type) {
+    case Node::TYPE_VOID:
+      return "void" + type_id;
+    case Node::TYPE_INT:
+      return "int" +
+          (node.int_value ? y::to_string(node.int_value) : "") + type_id;
+    case Node::TYPE_WORLD:
+      return "world" +
+          (node.int_value ? y::to_string(node.int_value) : "") + type_id;
+    case Node::TYPE_FUNCTION:
+    {
+      y::string r = results[0] + "(";
+      for (y::size i = 1; i < results.size(); ++i) {
+        if (i > 1) {
+          r += ", ";
+        }
+        r += results[i];
+      }
+      return r + ")" + type_id;
+    }
+
     case Node::PROGRAM:
     {
       y::string s = "";
@@ -37,7 +58,7 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
     }
     case Node::FUNCTION:
       return (node.int_value ? "export " : "") +
-          node.string_value + "()\n" + results[0];
+          node.string_value + " " + results[0] + "\n" + results[1];
     case Node::GLOBAL:
       return (node.int_value ? "export " : "") +
           y::string("global\n") + results[0];

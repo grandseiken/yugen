@@ -33,8 +33,7 @@ int yyerror(const char* message)
 %token T_BREAK
 %token T_CONTINUE
 %token T_RETURN
-%token T_INT
-%token T_WORLD
+%token T_TYPE_LITERAL
 
 %token T_TERNARY_L
 %token T_TERNARY_R
@@ -80,6 +79,7 @@ int yyerror(const char* message)
 %token <node> T_IDENTIFIER
 %token <node> T_INT_LITERAL
 %token <node> T_WORLD_LITERAL
+%token <node> T_TYPE_LITERAL
 
   /* Operator precedence. */
 
@@ -108,6 +108,9 @@ int yyerror(const char* message)
 
   /* Types. */
 
+%type <node> type
+%type <node> type_list
+%type <node> opt_identifier
 %type <node> program
 %type <node> elem_list
 %type <node> elem
@@ -124,6 +127,34 @@ int yyerror(const char* message)
 %%
 
   /* Language grammar. */
+
+type
+  : T_TYPE_LITERAL
+{$$ = $1;}
+  | type '(' ')'
+{$$ = new Node(Node::TYPE_FUNCTION, $1);}
+  | type '(' type_list ')'
+{$$ = $3;
+ $$->type = Node::TYPE_FUNCTION;
+ $$->add_front($1);}
+  ;
+
+type_list
+  : type opt_identifier
+{$$ = new Node(Node::ERROR, $1);
+ $1->string_value = $2->string_value;}
+  | type_list ',' type opt_identifier
+{$$ = $1;
+ $$->add($3);
+ $3->string_value = $4->string_value;}
+  ;
+
+opt_identifier
+  : T_IDENTIFIER
+{$$ = $1;}
+  |
+{$$ = new Node(Node::IDENTIFIER, "");}
+  ;
 
 program
   : elem_list T_EOF
@@ -160,8 +191,8 @@ global
   ;
 
 function
-  : T_IDENTIFIER '(' ')' stmt
-{$$ = new Node(Node::FUNCTION, $4);
+  : T_IDENTIFIER type stmt
+{$$ = new Node(Node::FUNCTION, $2, $3);
  $$->string_value = $1->string_value;}
   ;
 
@@ -211,7 +242,8 @@ expr_list
   : expr
 {$$ = new Node(Node::ERROR, $1);}
   | expr_list ',' expr
-{$$ = $1; $$->add($3);}
+{$$ = $1;
+ $$->add($3);}
   ;
 
 expr

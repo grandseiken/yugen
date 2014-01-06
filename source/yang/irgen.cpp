@@ -6,6 +6,28 @@ namespace llvm {
   class LLVMContext;
 }
 
+IrGeneratorUnion::IrGeneratorUnion(llvm::Type* type)
+  : type(type)
+  , value(y::null)
+{
+}
+
+IrGeneratorUnion::IrGeneratorUnion(llvm::Value* value)
+  : type(y::null)
+  , value(value)
+{
+}
+
+IrGeneratorUnion::operator llvm::Type*() const
+{
+  return type;
+}
+
+IrGeneratorUnion::operator llvm::Value*() const
+{
+  return value;
+}
+
 IrGenerator::IrGenerator(llvm::Module& module,
                          const SymbolTable<Type>::scope& globals)
   : _module(module)
@@ -25,6 +47,10 @@ IrGenerator::IrGenerator(llvm::Module& module,
 
     type_list.push_back(t);
     _global_numbering[pair.first] = number++;
+  }
+  // Structures can't be empty, so add a dummy member (it's never used).
+  if (type_list.empty()) {
+    type_list.push_back(int_type());
   }
   _global_data = llvm::PointerType::get(
       llvm::StructType::create(type_list, "global_data"), 0);
@@ -121,34 +147,20 @@ void IrGenerator::preorder(const Node& node)
 
   switch (node.type) {
     case Node::GLOBAL:
+    {
       _symbol_table.push();
       _symbol_table.add("%GLOBAL%", y::null);
-    case Node::FUNCTION:
-    {
-      // TODO: temporary int return type for all functions.
-      llvm::Type* return_type =
-          node.type == Node::GLOBAL ? void_type() : int_type();
-      y::string name =
-          node.type == Node::GLOBAL ? "global_init" : node.string_value;
 
       // GLOBAL init functions don't need external linkage, since they are
       // called automatically by the externally-visible global structure
-      // allocation function. Regular functions Nodes have their int_value
-      // set to 1 when defined using the `export` keyword.
-      auto linkage = node.type == Node::FUNCTION && node.int_value ?
-          llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
+      // allocation function.
       auto function = llvm::Function::Create(
-          llvm::FunctionType::get(return_type, _global_data, false),
-          linkage, name, &_module);
-      if (node.type == Node::GLOBAL) {
-        _global_inits.push_back(function);
-      }
+          llvm::FunctionType::get(void_type(), _global_data, false),
+          llvm::Function::InternalLinkage, "global_init", &_module);
+      _global_inits.push_back(function);
       auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
 
       b.SetInsertPoint(block);
-      if (node.type == Node::FUNCTION) {
-        _symbol_table.add(node.string_value, function);
-      }
       _symbol_table.push();
 
       // Store a special entry in the symbol table for the implicit global
@@ -219,6 +231,46 @@ void IrGenerator::infix(const Node& node, const result_list& results)
   auto parent = b.GetInsertBlock() ? b.GetInsertBlock()->getParent() : y::null;
 
   switch (node.type) {
+    case Node::FUNCTION:
+    {
+      // Regular functions Nodes have their int_value set to 1 when defined
+      // using the `export` keyword.
+      auto linkage = node.int_value ?
+          llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
+      auto function_type = (llvm::FunctionType*)results[0].type;
+      auto function = llvm::Function::Create(
+          function_type, linkage, node.string_value, &_module);
+      auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
+
+      b.SetInsertPoint(block);
+      _symbol_table.add(node.string_value, function);
+      _symbol_table.push();
+
+      // The code for Node::TYPE_FUNCTION in visit() ensures it takes a global
+      // data structure pointer.
+      auto it = function->arg_begin();
+      it->setName("global");
+      _symbol_table.add("%GLOBAL_DATA%", it);
+      // Set up the arguments.
+      y::size arg_num = 0;
+      for (++it; it != function->arg_end(); ++it) {
+        const y::string& name =
+            node.children[0]->children[1 + arg_num]->string_value;
+        it->setName(name);
+
+        // Rather than reference argument values directly, we create an alloca
+        // and store the argument in there. This simplifies things, since we
+        // can emit the same IR code when referencing local variables or
+        // function arguments. 
+        llvm::Value* v = b.CreateAlloca(
+            function_type->getParamType(1 + arg_num), y::null, name);
+        b.CreateStore(it, v);
+        _symbol_table.add(name, v);
+        ++arg_num;
+      }
+      break;
+    }
+
     case Node::IF_STMT:
     {
       auto then_block =
@@ -287,13 +339,14 @@ void IrGenerator::infix(const Node& node, const result_list& results)
   }
 }
 
-llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
+IrGeneratorUnion IrGenerator::visit(const Node& node,
+                                    const result_list& results)
 {
   auto& b = _builder;
   auto parent = b.GetInsertBlock() ? b.GetInsertBlock()->getParent() : y::null;
   y::vector<llvm::Type*> types;
-  for (llvm::Value* v : results) {
-    types.push_back(v->getType());
+  for (const auto& v : results) {
+    types.push_back(v.value ? v.value->getType() : y::null);
   }
 
   auto binary_lambda = [&](llvm::Value* v, llvm::Value* u)
@@ -356,15 +409,44 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
   };
 
   switch (node.type) {
+    case Node::TYPE_VOID:
+      return void_type();
+    case Node::TYPE_INT:
+      return node.int_value > 1 ?
+          vector_type(int_type(), node.int_value) : int_type();
+    case Node::TYPE_WORLD:
+      return node.int_value > 1 ?
+          vector_type(world_type(), node.int_value) : world_type();
+    case Node::TYPE_FUNCTION:
+    {
+      y::vector<llvm::Type*> args;
+      args.push_back(_global_data);
+      for (y::size i = 1; i < results.size(); ++i) {
+        args.push_back(results[i]);
+      }
+      return llvm::FunctionType::get(results[0], args, false);
+    }
+
     case Node::GLOBAL:
-      _builder.CreateRetVoid();
+      b.CreateRetVoid();
       _symbol_table.pop();
       _symbol_table.pop();
       return results[0];
     case Node::FUNCTION:
-      _builder.CreateBr(_builder.GetInsertBlock());
+    {
+      auto function_type =
+          (llvm::FunctionType*)parent->getType()->getElementType();
+      if (function_type->getReturnType()->isVoidTy()) {
+        b.CreateRetVoid();
+      }
+      else {
+        // In a function that passes the static check, control never reaches
+        // this point; but the block must have a terminator.
+        b.CreateBr(_builder.GetInsertBlock());
+      }
       _symbol_table.pop();
-      return results[0];
+      return results[1];
+    }
 
     case Node::BLOCK:
     {
@@ -436,13 +518,14 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
 
     case Node::IDENTIFIER:
+      // Load the local variable, if it's there.
+      if (_symbol_table.has(node.string_value) &&
+          _symbol_table.index(node.string_value)) {
+        return b.CreateLoad(_symbol_table[node.string_value], "load");
+      }
       // If it's a function (constant global), just get the value.
       if (!_symbol_table.index(node.string_value)) {
         return _symbol_table.get(node.string_value, 0);
-      }
-      // Load the local variable, if it's there.
-      if (_symbol_table.has(node.string_value)) {
-        return b.CreateLoad(_symbol_table[node.string_value], "load");
       }
       // Otherwise it's a global, so look up in the global structure.
       return b.CreateLoad(global_ptr(node.string_value), "load");
@@ -453,6 +536,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return constant_world(node.world_value);
 
     case Node::TERNARY:
+      // TODO: this evaluates both arguments. Should definitely branch.
       return b.CreateSelect(i2b(results[0]), results[1], results[2]);
     case Node::CALL:
     {
@@ -560,7 +644,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
     }
     case Node::ARITHMETIC_NEGATION:
     {
-      llvm::Constant* cmp = results[0]->getType()->isIntOrIntVectorTy() ?
+      llvm::Constant* cmp = types[0]->isIntOrIntVectorTy() ?
           constant_int(0) : constant_world(0);
       if (types[0]->isVectorTy()) {
         cmp = constant_vector(cmp, types[0]->getVectorNumElements());
@@ -637,7 +721,7 @@ llvm::Value* IrGenerator::visit(const Node& node, const result_list& results)
       return b.CreateExtractElement(results[0], results[1], "idx");
 
     default:
-      return y::null;
+      return (llvm::Value*)y::null;
   }
 }
 

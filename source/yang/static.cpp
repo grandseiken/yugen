@@ -5,7 +5,6 @@
 
 StaticChecker::StaticChecker()
   : _errors(false)
-  , _current_function{Type::VOID, ""}
   , _symbol_table(Type::VOID)
 {
 }
@@ -28,21 +27,9 @@ void StaticChecker::preorder(const Node& node)
       _symbol_table.add("%GLOBAL%", Type::VOID);
       break;
     case Node::FUNCTION:
-    {
-      // Insert the function into the first frame before adding the next frame.
-      if (_symbol_table.has(node.string_value)) {
-        if (!_symbol_table[node.string_value].is_error()) {
-          error(node, "global `" + node.string_value + "` redefined");
-        }
-        _symbol_table.remove(node.string_value);
-      }
-      Type t(Type::FUNCTION, Type(Type::INT));
-      t.set_const(true);
-      _symbol_table.add(node.string_value, t);
-
-      _current_function.return_type = Type::INT;
-      _current_function.name = node.string_value;
-    }
+      // Set current name and compute the return type.
+      _current_function = node.string_value;
+      break;
     case Node::BLOCK:
     case Node::IF_STMT:
       _symbol_table.push();
@@ -60,8 +47,50 @@ void StaticChecker::preorder(const Node& node)
 
 void StaticChecker::infix(const Node& node, const result_list& results)
 {
-  (void)node;
-  (void)results;
+  switch (node.type) {
+    case Node::FUNCTION:
+    {
+      // After computing the type, we can add the symbol table entry. Insert
+      // the function into the first frame before adding the next frame.
+      if (_symbol_table.has(node.string_value)) {
+        if (!_symbol_table[node.string_value].is_error()) {
+          error(node, "global `" + node.string_value + "` redefined");
+        }
+        _symbol_table.remove(node.string_value);
+      }
+      Type t = results[0];
+      if (!t.function()) {
+        error(node, "function defined with non-function type " + t.string());
+        t = Type::ERROR;
+      }
+      else {
+        t.set_const(true);
+        y::set<y::string> arg_names;
+        y::size elem = 0;
+        for (const auto& ptr : node.children[0]->children) {
+          if (!elem) {
+            ++elem;
+            continue;
+          }
+          const y::string& name = ptr->string_value;
+          if (!name.length()) {
+            error(node, "function with unnamed argument");
+            continue;
+          }
+          if (arg_names.find(name) != arg_names.end()) {
+            error(node, "duplicate argument name `" + name + "`");
+          }
+          _symbol_table.add(name, t.elements()[elem]);
+          arg_names.insert(name);
+          ++elem;
+        }
+      }
+      _symbol_table.add(node.string_value, t);
+      _symbol_table.push();
+    }
+
+    default: {}
+  }
 }
 
 Type StaticChecker::visit(const Node& node, const result_list& results)
@@ -80,19 +109,45 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
   // the erroneous 1 == 1. gives type INT, as the result would be INT whether or
   // not the operand type was intended to be int or world.
   switch (node.type) {
+    case Node::TYPE_VOID:
+      return Type::VOID;
+    case Node::TYPE_INT:
+      return Type(Type::INT, node.int_value);
+    case Node::TYPE_WORLD:
+      return Type(Type::WORLD, node.int_value);
+    case Node::TYPE_FUNCTION:
+    {
+      Type t(Type::FUNCTION, results[0]);
+      for (y::size i = 1; i < results.size(); ++i) {
+        if (!results[i].not_void()) {
+          error(node, "function type with `void` argument type");
+          t.add_element(Type::ERROR);
+          continue;
+        }
+        t.add_element(results[i]);
+      }
+      return t;
+    }
+
     case Node::PROGRAM:
       return Type::VOID;
     case Node::GLOBAL:
       _symbol_table.pop();
       return Type::VOID;
     case Node::FUNCTION:
-      if (!results[0].not_void()) {
+    {
+      const Type& current =
+          _symbol_table.get(_current_function, 0);
+      const Type& current_return =
+          current.is_error() ? current : current.elements()[0];
+
+      if (current_return.not_void() && !results[1].not_void()) {
         error(node, "not all code paths return a value");
       }
       _symbol_table.pop();
-      _current_function.return_type = Type::VOID;
-      _current_function.name = "";
+      _current_function = "";
       return Type::VOID;
+    }
 
     case Node::BLOCK:
     {
@@ -115,9 +170,16 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       if (_symbol_table.has("%GLOBAL%")) {
         error(node, "return statement inside `global`");
       }
-      else if (!results[0].is(_current_function.return_type)) {
-        error(node, "returning " + rs[0] + " from " +
-                    _current_function.return_type.string() + " function");
+      else {
+        const Type& current =
+            _symbol_table.get(_current_function, 0);
+        const Type& current_return =
+            current.is_error() ? current : current.elements()[0];
+
+        if (!results[0].is(current_return)) {
+          error(node, "returning " + rs[0] + " from " +
+                      current_return.string() + " function");
+        }
       }
       return results[0];
     case Node::IF_STMT:
@@ -183,7 +245,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         for (y::size i = 1; i < results.size(); ++i) {
           if (!results[0].element_is(i, results[i])) {
             error(node, rs[0] + " called with " + rs[i] +
-                        " in position " + y::to_string(i));
+                        " in position " + y::to_string(i - 1));
           }
         }
       }
@@ -395,8 +457,8 @@ void StaticChecker::error(const Node& node, const y::string& message)
 {
   _errors = true;
   y::string m = message;
-  if (_current_function.name.length()) {
-    m = "in function `" + _current_function.name + "`: " + m;
+  if (_current_function.length()) {
+    m = "in function `" + _current_function + "`: " + m;
   }
   log_err(ParseGlobals::error(node.line, node.text, m));
 }

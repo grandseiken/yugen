@@ -11,6 +11,12 @@ struct Node {
   enum node_type {
     ERROR,
 
+    // Types.
+    TYPE_VOID,
+    TYPE_INT,
+    TYPE_WORLD,
+    TYPE_FUNCTION,
+
     // Top-level elements.
     PROGRAM,
     GLOBAL,
