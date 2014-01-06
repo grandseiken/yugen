@@ -545,6 +545,8 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
 
     case Node::TERNARY:
       // TODO: this evaluates both arguments. Should definitely branch.
+      // Furthermore, logical AND and logical OR are currently using
+      // select instead of branching. This is bad.
       return b.CreateSelect(i2b(results[0]), results[1], results[2]);
     case Node::CALL:
     {
@@ -588,7 +590,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       return binary(results[0], results[1], binary_lambda);
 
     case Node::POW:
-      // TODO.
+      // TODO: implement POW.
       return results[0];
     case Node::MOD:
     case Node::ADD:
@@ -617,7 +619,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       return fold(results[0], binary_lambda);
 
     case Node::FOLD_POW:
-      // TODO.
+      // TODO: implement FOLD_POW.
     case Node::FOLD_MOD:
     case Node::FOLD_ADD:
     case Node::FOLD_SUB:

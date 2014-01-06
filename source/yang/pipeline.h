@@ -9,13 +9,19 @@
 #include "type.h"
 
 struct Node;
-class Type;
 namespace llvm {
   class Module;
   class ExecutionEngine;
   class Type;
 }
 
+// General directions:
+// TODO: create YangInstances from YangPrograms, and use them to run instances
+// of the programs.
+// TODO: create YangPrograms from YangContexts or YangEnvironments which define
+// game-library functions and types. (Perhaps the standard library can be a kind
+// of YangContext, even.)
+// TODO: allow local function definitions and closures.
 class YangProgram {
 public:
 
