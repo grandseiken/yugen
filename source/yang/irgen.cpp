@@ -419,12 +419,20 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
           vector_type(world_type(), node.int_value) : world_type();
     case Node::TYPE_FUNCTION:
     {
+      // When passing functions as arguments and returning them from functions,
+      // we need to take use the pointer-type, as the bare type is not
+      // equivalent (and is not first-class in LLVM).
+      auto fn_ptr = [](llvm::Type* t)
+      {
+        return t->isFunctionTy() ? llvm::PointerType::get(t, 0) : t;
+      };
+
       y::vector<llvm::Type*> args;
       args.push_back(_global_data);
       for (y::size i = 1; i < results.size(); ++i) {
-        args.push_back(results[i]);
+        args.push_back(fn_ptr(results[i]));
       }
-      return llvm::FunctionType::get(results[0], args, false);
+      return llvm::FunctionType::get(fn_ptr(results[0]), args, false);
     }
 
     case Node::GLOBAL:

@@ -32,10 +32,10 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       return "void" + type_id;
     case Node::TYPE_INT:
       return "int" +
-          (node.int_value ? y::to_string(node.int_value) : "") + type_id;
+          (node.int_value > 1 ? y::to_string(node.int_value) : "") + type_id;
     case Node::TYPE_WORLD:
       return "world" +
-          (node.int_value ? y::to_string(node.int_value) : "") + type_id;
+          (node.int_value > 1 ? y::to_string(node.int_value) : "") + type_id;
     case Node::TYPE_FUNCTION:
     {
       y::string r = results[0] + "(";

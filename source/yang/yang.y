@@ -191,8 +191,8 @@ global
   ;
 
 function
-  : T_IDENTIFIER type stmt
-{$$ = new Node(Node::FUNCTION, $2, $3);
+  : T_IDENTIFIER T_ASSIGN type stmt
+{$$ = new Node(Node::FUNCTION, $3, $4);
  $$->string_value = $1->string_value;}
   ;
 
