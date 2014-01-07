@@ -86,11 +86,6 @@ int yyerror(const char* message)
 %nonassoc T_IF
 %nonassoc T_ELSE
 %right T_TERNARY_L T_TERNARY_R T_ASSIGN
-  /* TODO: Precedence for fold doesn't work right.
-     For example: $(1, 1) == (1, 1)&& parses but doesn't with bitwise &.
-     Depends on relative precedence of infix operator with fold operator.
-     Doubtful whether this is fixable, but maybe some clever alternate syntax
-     is possible? */
 %left T_FOLD
 %left T_LOGICAL_OR
 %left T_LOGICAL_AND
@@ -125,6 +120,17 @@ int yyerror(const char* message)
 %%
 
   /* Language grammar. */
+
+  /* TODO: Precedence for fold doesn't work quite right. For example,
+
+         $(1, 1) == (1, 1)&&
+
+     parses, but doesn't with bitwise & on the right.
+
+     Behaviour depends on relative precedence of infix operator with fold
+     operator. Doubtful that this is fixable, but maybe some clever alternate
+     syntax is possible? */
+
   /* TODO: with current syntax, a bare-statement function call requires a double
      semi-colon terminator, as in
 
@@ -155,7 +161,10 @@ int yyerror(const char* message)
      arguments in future, the type-construction should have higher precedence.
 
      Unfortunately, precedence rules don't seem to fix the conflict.
-     I'm not sure why. */
+     I'm not sure why.
+
+     Requiring function-types in function expressions would also work, but isn't
+     ideal. */
 
 type
   : T_TYPE_LITERAL
