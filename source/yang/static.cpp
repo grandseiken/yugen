@@ -29,6 +29,26 @@ void StaticChecker::preorder(const Node& node)
     case Node::GLOBAL_ASSIGN:
       // Set current top-level function name.
       _current_function = node.string_value;
+      // Fall-through to recursion handler.
+    case Node::ASSIGN_VAR:
+    case Node::ASSIGN_CONST:
+      // Super big hack: in order to allow recursion, the function has to have
+      // a name already in the scope of its body. This doesn't really make much
+      // sense with function-expressions, but we can use a hack where, if a
+      // function-expression appears immediately on the right-hand side of
+      // assignment to a name, we make a note and store it in the symbol table
+      // early.
+      //
+      // We don't allow different functions to be mutually-recursive, since that
+      // necessarily requires a two-phase approach. However, it's not all that
+      // important and can be achieved for any particular pair of functions by
+      // nesting, anyway.
+      // TODO: that doesn't actually work right now: it's considered an
+      // "enclosing function reference". Need to be careful about this,
+      // particularly with name-collision checking.
+      if (node.children[0]->type == Node::FUNCTION) {
+        _immediate_left_assign = node.string_value;
+      }
       break;
     case Node::BLOCK:
     case Node::IF_STMT:
@@ -40,6 +60,7 @@ void StaticChecker::preorder(const Node& node)
       // Insert a marker into the symbol table that break and continue
       // statements can check for.
       _symbol_table.add("%LOOP_BODY%", Type::VOID);
+      break;
 
     default: {}
   }
@@ -50,17 +71,40 @@ void StaticChecker::infix(const Node& node, const result_list& results)
   switch (node.type) {
     case Node::FUNCTION:
     {
-      // Only append an anonymous suffix if this isn't a top-level function.
-      if (_symbol_table.has("%CURRENT_RETURN_TYPE%")) {
-        _current_function += ".anon";
+      // Only append a suffix if this isn't a top-level function. Make use of
+      // the recursive name hack, if it's there.
+      if (inside_function()) {
+        _current_function += _immediate_left_assign.length() ?
+            "." + _immediate_left_assign : ".anon";
       }
-      _symbol_table.push();
       Type t = results[0];
       if (!t.function()) {
         error(node, "function defined with non-function type " + t.string());
         t = Type::ERROR;
       }
-      else {
+
+      // Functions need three symbol table frames: one to store the function's
+      // immediate-left-hand name for recursive lookup, and enclosing-function-
+      // -reference overrides; one for arguments; and one for the body.
+      y::vector<y::string> locals;
+      _symbol_table.get_symbols(locals, 1, _symbol_table.size());
+      _symbol_table.push();
+      // Do the recursive hack.
+      if (_immediate_left_assign.length()) {
+        _symbol_table.add(_immediate_left_assign, t);
+        _immediate_left_assign = "";
+      }
+      // We currently don't implement closures at all, so we need to stick a
+      // bunch of overrides into an intermediate stack frame to avoid the locals
+      // from the enclosing scope being referenced, if any.
+      // Starting at frame 1 finds all names except globals.
+      for (const y::string& s : locals) {
+        _symbol_table.add(s, Type::ENCLOSING_FUNCTION);
+      }
+
+      // Do the arguments.
+      _symbol_table.push();
+      if (!t.is_error()) {
         y::set<y::string> arg_names;
         y::size elem = 0;
         for (const auto& ptr : node.children[0]->children) {
@@ -81,20 +125,11 @@ void StaticChecker::infix(const Node& node, const result_list& results)
           ++elem;
         }
       }
-      // Store the return type of the current function so that RETURN statements
-      // can check against it.
-      _symbol_table.add("%CURRENT_RETURN_TYPE%", t.elements(0));
-
-      // We currently don't implement closures at all, so we need to stick a
-      // bunch of overrides into an intermediate stack frame to avoid the locals
-      // from the enclosing scope being referenced, if any.
-      y::vector<y::string> locals;
-      // Starting at frame 1 finds all names except globals.
-      _symbol_table.get_symbols(locals, 1, _symbol_table.size());
-      for (const y::string& s : locals) {
-        _symbol_table.add(s, Type::ENCLOSING_FUNCTION);
-      }
+      // Stores the return type of the current function and the fact we're
+      // inside a function.
+      enter_function(t.elements(0));
       _symbol_table.push();
+      break;
     }
 
     default: {}
@@ -129,8 +164,6 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       for (y::size i = 1; i < results.size(); ++i) {
         if (!results[i].not_void()) {
           error(node, "function type with `void` argument type");
-          t.add_element(Type::ERROR);
-          continue;
         }
         t.add_element(results[i]);
       }
@@ -163,16 +196,16 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     }
     case Node::FUNCTION:
     {
-      const Type& current_return = _symbol_table["%CURRENT_RETURN_TYPE%"];
-      if (current_return.not_void() && !results[1].not_void()) {
+      if (current_return_type().not_void() && !results[1].not_void()) {
         error(node, "not all code paths return a value");
       }
-      // Pop intermediate local-variable-barrier frame as well.
+      // Pop all the various symbol table frames a function uses.
       _symbol_table.pop();
       _symbol_table.pop();
-      if (_symbol_table.has("%CURRENT_RETURN_TYPE%")) {
+      _symbol_table.pop();
+      if (inside_function()) {
         _current_function =
-            _current_function.substr(0, _current_function.length() - 5);
+            _current_function.substr(0, _current_function.find_last_of('.'));
       }
       return results[0];
     }
@@ -195,13 +228,12 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::EXPR_STMT:
       return Type::VOID;
     case Node::RETURN_STMT:
-      // Return statement is (directly) within a global block if there is no
-      // %CURRENT_RETURN_TYPE% set at all.
-      if (!_symbol_table.has("%CURRENT_RETURN_TYPE%")) {
+      // If we're not in a function, we must be in a global block.
+      if (!inside_function()) {
         error(node, "return statement inside `global`");
       }
       else {
-        const Type& current_return = _symbol_table["%CURRENT_RETURN_TYPE%"];
+        const Type& current_return = current_return_type();
         if (!results[0].is(current_return)) {
           error(node, "returning " + rs[0] + " from " +
                       current_return.string() + " function");
@@ -417,7 +449,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       }
 
       // Within global blocks, use the top-level symbol table frame.
-      if (!_symbol_table.has("%CURRENT_RETURN_TYPE%")) {
+      if (!inside_function()) {
         if (_symbol_table.has(node.string_value, 0)) {
           if (!_symbol_table.get(node.string_value, 0).is_error()) {
             error(node, "global `" + node.string_value + "` redefined");
@@ -492,6 +524,21 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       error(node, "unimplemented construct");
       return Type::ERROR;
   }
+}
+
+void StaticChecker::enter_function(const Type& return_type)
+{
+  _symbol_table.add("%CURRENT_RETURN_TYPE%", return_type);
+}
+
+const Type& StaticChecker::current_return_type() const
+{
+  return _symbol_table["%CURRENT_RETURN_TYPE%"];
+}
+
+bool StaticChecker::inside_function() const
+{
+  return _symbol_table.has("%CURRENT_RETURN_TYPE%");
 }
 
 void StaticChecker::error(const Node& node, const y::string& message)

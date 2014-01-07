@@ -177,6 +177,15 @@ void IrGenerator::preorder(const Node& node)
       break;
     }
 
+    case Node::GLOBAL_ASSIGN:
+    case Node::ASSIGN_VAR:
+    case Node::ASSIGN_CONST:
+      // See static.cpp for details.
+      if (node.children[0]->type == Node::FUNCTION) {
+        _immediate_left_assign = node.string_value;
+      }
+      break;
+
     case Node::BLOCK:
       _symbol_table.push();
       break;
@@ -248,6 +257,16 @@ void IrGenerator::infix(const Node& node, const result_list& results)
 
       b.SetInsertPoint(block);
       _symbol_table.push();
+      // Recursive lookup handled similarly to arguments below.
+      if (_immediate_left_assign.length()) {
+        llvm::Value* v = b.CreateAlloca(
+            llvm::PointerType::get(function_type, 0), y::null,
+            _immediate_left_assign);
+        b.CreateStore(function, v);
+        _symbol_table.add(_immediate_left_assign, v);
+        _immediate_left_assign = "";
+      }
+      _symbol_table.push();
 
       // The code for Node::TYPE_FUNCTION in visit() ensures it takes a global
       // data structure pointer.
@@ -264,7 +283,7 @@ void IrGenerator::infix(const Node& node, const result_list& results)
         // Rather than reference argument values directly, we create an alloca
         // and store the argument in there. This simplifies things, since we
         // can emit the same IR code when referencing local variables or
-        // function arguments. 
+        // function arguments.
         llvm::Value* v = b.CreateAlloca(
             function_type->getParamType(1 + arg_num), y::null, name);
         b.CreateStore(it, v);
@@ -468,6 +487,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
         // this point; but the block must have a terminator.
         b.CreateBr(_builder.GetInsertBlock());
       }
+      _symbol_table.pop();
       _symbol_table.pop();
       // If this was a nested function, set the insert point back to the last
       // block in the enclosing function.

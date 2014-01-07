@@ -26,6 +26,10 @@ protected:
 
 private:
 
+  void enter_function(const Type& return_type);
+  const Type& current_return_type() const;
+  bool inside_function() const;
+
   void error(const Node& node, const y::string& message);
 
   struct function {
@@ -35,6 +39,8 @@ private:
 
   bool _errors;
   y::string _current_function;
+  y::string _immediate_left_assign;
+
   SymbolTable<Type> _symbol_table;
   y::map<y::string, Type> _global_variable_map;
 

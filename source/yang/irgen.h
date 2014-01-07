@@ -83,6 +83,7 @@ private:
   llvm::Module& _module;
   llvm::IRBuilder<> _builder;
   SymbolTable<llvm::Value*> _symbol_table;
+  y::string _immediate_left_assign;
 
 };
 
