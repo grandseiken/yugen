@@ -11,6 +11,8 @@
 class Type {
 public:
 
+  // When adding a new type, make sure to update the global data structure
+  // calculation in irgen.cpp!
   enum type_base {
     ERROR,
     // Temporary type to indicate a name is in scope, but inaccessible as it
@@ -58,6 +60,7 @@ public:
   // return type, and subsequent elements are argument types.
   const Type& elements(y::size index) const;
   void add_element(const Type& type);
+  y::size element_size() const;
   // True if this type has the given number of elements (or is type ERROR).
   bool element_size(y::size num_elements) const;
   // True if this type has given type at the given element index, or any

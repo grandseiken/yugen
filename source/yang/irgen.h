@@ -70,6 +70,9 @@ private:
       y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
       bool to_bool = false, bool with_ands = false);
 
+  // Get the equivalent LLVM type for a Yang type.
+  llvm::Type* get_llvm_type(const Type& t) const;
+
   // List of static initialisation functions.
   y::vector<llvm::Function*> _global_inits;
   // Map from global name to index in the global structure.

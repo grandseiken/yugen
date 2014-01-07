@@ -41,10 +41,16 @@ IrGenerator::IrGenerator(llvm::Module& module,
   // first parameter.
   y::vector<llvm::Type*> type_list;
   y::size number = 0;
+  // Since the global data structure may contain pointers to functions which
+  // themselves take said implicit argument, we need to use an opaque named
+  // struct create the potentially-recursive type.
+  auto global_struct = 
+      llvm::StructType::create(module.getContext(), "global_data");
+  _global_data = llvm::PointerType::get(global_struct, 0);
   for (const auto& pair : globals) {
-    llvm::Type* t = pair.second.is_int() ? int_type() : world_type();
-    t = pair.second.is_vector() ? vector_type(t, pair.second.count()) : t;
-
+    // Type-calculation must be kept up-to-date with new types, or globals of
+    // that type will fail.
+    llvm::Type* t = get_llvm_type(pair.second);
     type_list.push_back(t);
     _global_numbering[pair.first] = number++;
   }
@@ -52,8 +58,7 @@ IrGenerator::IrGenerator(llvm::Module& module,
   if (type_list.empty()) {
     type_list.push_back(int_type());
   }
-  _global_data = llvm::PointerType::get(
-      llvm::StructType::create(type_list, "global_data"), 0);
+  global_struct->setBody(type_list, false);
 }
 
 IrGenerator::~IrGenerator()
@@ -439,7 +444,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       _symbol_table.pop();
       _symbol_table.pop();
       return results[0];
-    case Node::ASSIGN_FUNCTION:
+    case Node::GLOBAL_ASSIGN:
     {
       // Top-level functions Nodes have their int_value set to 1 when defined
       // using the `export` keyword.
@@ -572,7 +577,8 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       for (y::size i = 1; i < results.size(); ++i) {
         args.push_back(results[i]);
       }
-      return b.CreateCall(results[0], args, "call");
+      // No name, since it may have type VOID.
+      return b.CreateCall(results[0], args);
     }
 
 
@@ -889,4 +895,25 @@ llvm::Value* IrGenerator::fold(
     v = _builder.CreateAnd(v, comparisons[i], "fold");
   }
   return v;
+}
+
+llvm::Type* IrGenerator::get_llvm_type(const Type& t) const
+{
+  if (t.function()) {
+    y::vector<llvm::Type*> args;
+    args.push_back(_global_data);
+    for (y::size i = 1; i < t.element_size(); ++i) {
+      args.push_back(get_llvm_type(t.elements(i)));
+    }
+    return llvm::PointerType::get(
+        llvm::FunctionType::get(get_llvm_type(t.elements(0)), args, false), 0);
+  }
+  if (t.is_int()) {
+    return t.is_vector() ? vector_type(int_type(), t.count()) : int_type();
+  }
+  if (t.is_world()) {
+    return t.is_vector() ?
+        vector_type(world_type(), t.count()) : world_type();
+  }
+  return void_type();
 }

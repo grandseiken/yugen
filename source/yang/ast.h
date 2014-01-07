@@ -20,7 +20,7 @@ struct Node {
     // Top-level elements.
     PROGRAM,
     GLOBAL,
-    ASSIGN_FUNCTION,
+    GLOBAL_ASSIGN,
     FUNCTION,
 
     // Statements.

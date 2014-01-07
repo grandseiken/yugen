@@ -98,6 +98,11 @@ void Type::add_element(const Type& type)
   _elements.push_back(type);
 }
 
+y::size Type::element_size() const
+{
+  return _elements.size();
+}
+
 bool Type::element_size(y::size num_elements) const
 {
   return is_error() || _elements.size() == num_elements;

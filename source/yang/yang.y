@@ -115,8 +115,6 @@ int yyerror(const char* message)
 %type <node> elem_list
 %type <node> elem
 %type <node> opt_export
-%type <node> global
-%type <node> function
 %type <node> stmt_list
 %type <node> stmt
 %type <node> opt_expr
@@ -127,6 +125,37 @@ int yyerror(const char* message)
 %%
 
   /* Language grammar. */
+  /* TODO: with current syntax, a bare-statement function call requires a double
+     semi-colon terminator, as in
+
+         void() 0;;
+
+     (one to terminate the statement, and one to terminate the function-call
+     expression). It makes perfect sense, and is unavoidable if we want to allow
+     bare statements (e.g. consider
+
+         var i = int() return 0;();
+
+     ...but it's somewhat ugly). */
+
+  /* TODO: relatedly, we should be able to add a rule for type parentheses like
+
+         '(' type ')'
+
+     but there are parses (which would be disambiguated by forced function-body
+     blocks) like
+
+         var f = int (int) return 0;
+
+     which could otherwise be interpreted as either a function taking and
+     returning int, or two nested function-expressions with invalid non-function
+     types.
+     For this example the precedence should not matter too much, as it's wrong
+     either way (no name for the argument), but in case we allow unnamed
+     arguments in future, the type-construction should have higher precedence.
+
+     Unfortunately, precedence rules don't seem to fix the conflict.
+     I'm not sure why. */
 
 type
   : T_TYPE_LITERAL
@@ -170,11 +199,12 @@ elem_list
   ;
 
 elem
-  : opt_export global
-{$$ = $2;
+  : opt_export T_GLOBAL stmt
+{$$ = new Node(Node::GLOBAL, $3);
  $$->int_value = $1->int_value;}
-  | opt_export function ';'
-{$$ = $2;
+  | opt_export T_IDENTIFIER T_ASSIGN expr ';'
+{$$ = new Node(Node::GLOBAL_ASSIGN, $4);
+ $$->string_value = $2->string_value;
  $$->int_value = $1->int_value;}
   | ';'
 {$$ = new Node(Node::EMPTY_STMT);}
@@ -185,17 +215,6 @@ opt_export
 {$$ = new Node(Node::INT_LITERAL, 1);}
   |
 {$$ = new Node(Node::INT_LITERAL, 0);}
-  ;
-
-global
-  : T_GLOBAL stmt
-{$$ = new Node(Node::GLOBAL, $2);}
-  ;
-
-function
-  : T_IDENTIFIER T_ASSIGN expr
-{$$ = new Node(Node::ASSIGN_FUNCTION, $3);
- $$->string_value = $1->string_value;}
   ;
 
 stmt_list

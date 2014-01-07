@@ -59,7 +59,7 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
     case Node::GLOBAL:
       return (node.int_value ? "export " : "") +
           y::string("global\n") + results[0];
-    case Node::ASSIGN_FUNCTION:
+    case Node::GLOBAL_ASSIGN:
       return (node.int_value ? "export " : "") +
           node.string_value + " " + results[0];
     case Node::FUNCTION:

@@ -23,9 +23,10 @@ void StaticChecker::preorder(const Node& node)
 {
   switch (node.type) {
     case Node::GLOBAL:
+      _current_function = ".global";
       _symbol_table.push();
       break;
-    case Node::ASSIGN_FUNCTION:
+    case Node::GLOBAL_ASSIGN:
       // Set current top-level function name.
       _current_function = node.string_value;
       break;
@@ -49,6 +50,10 @@ void StaticChecker::infix(const Node& node, const result_list& results)
   switch (node.type) {
     case Node::FUNCTION:
     {
+      // Only append an anonymous suffix if this isn't a top-level function.
+      if (_symbol_table.has("%CURRENT_RETURN_TYPE%")) {
+        _current_function += ".anon";
+      }
       _symbol_table.push();
       Type t = results[0];
       if (!t.function()) {
@@ -136,11 +141,12 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       return Type::VOID;
     case Node::GLOBAL:
       _symbol_table.pop();
+      _current_function = "";
       return Type::VOID;
-    case Node::ASSIGN_FUNCTION:
+    case Node::GLOBAL_ASSIGN:
     {
       if (!results[0].function()) {
-        error(node, "top-level assignment of type " + rs[0]);
+        error(node, "global assignment of type " + rs[0]);
       }
       if (_symbol_table.has_top(node.string_value)) {
         if (!_symbol_table[node.string_value].is_error()) {
@@ -164,6 +170,10 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       // Pop intermediate local-variable-barrier frame as well.
       _symbol_table.pop();
       _symbol_table.pop();
+      if (_symbol_table.has("%CURRENT_RETURN_TYPE%")) {
+        _current_function =
+            _current_function.substr(0, _current_function.length() - 5);
+      }
       return results[0];
     }
 
@@ -402,6 +412,10 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
 
     case Node::ASSIGN_VAR:
     case Node::ASSIGN_CONST:
+      if (!results[0].not_void()) {
+        error(node, "assignment of type " + rs[0]);
+      }
+
       // Within global blocks, use the top-level symbol table frame.
       if (!_symbol_table.has("%CURRENT_RETURN_TYPE%")) {
         if (_symbol_table.has(node.string_value, 0)) {

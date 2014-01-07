@@ -21,7 +21,15 @@ namespace llvm {
 // TODO: create YangPrograms from YangContexts or YangEnvironments which define
 // game-library functions and types. (Perhaps the standard library can be a kind
 // of YangContext, even.)
-// TODO: allow local function definitions and closures.
+// TODO: add some kind of built-in data structures, including at least a generic
+// map<K, V> type. May require garbage-collection, unless we place tight
+// restrictions on their usage (e.g. only global variables).
+// TODO: allow some kind of function recursion. This probably has to involve a
+// hack where an assignment (local or top-level) with a function-expression on
+// the immediate right-hand side causes it to be entered in the symbol-table
+// before the function body is processed. It would be nice if global functions
+// could be mutually-recursive, too, but that requires a two-pass approach.
+// TODO: possibly implement closures, if it seems feasible.
 class YangProgram {
 public:
 
