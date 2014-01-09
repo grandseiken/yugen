@@ -30,6 +30,11 @@ private:
   const Type& current_return_type() const;
   bool inside_function() const;
 
+  bool use_function_immediate_assign_hack(const Node& node) const;
+  void add_symbol_checking_collision(
+      const Node& node, const y::string& name, const Type& type);
+  void add_symbol_checking_collision(
+      const Node& node, const y::string& name, y::size index, const Type& type);
   void error(const Node& node, const y::string& message);
 
   struct function {

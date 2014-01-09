@@ -43,10 +43,7 @@ void StaticChecker::preorder(const Node& node)
       // necessarily requires a two-phase approach. However, it's not all that
       // important and can be achieved for any particular pair of functions by
       // nesting, anyway.
-      // TODO: that doesn't actually work right now: it's considered an
-      // "enclosing function reference". Need to be careful about this,
-      // particularly with name-collision checking.
-      if (node.children[0]->type == Node::FUNCTION) {
+      if (use_function_immediate_assign_hack(node)) {
         _immediate_left_assign = node.string_value;
       }
       break;
@@ -78,22 +75,27 @@ void StaticChecker::infix(const Node& node, const result_list& results)
             "." + _immediate_left_assign : ".anon";
       }
       Type t = results[0];
+      // Make sure it's const so functions can't set themselves to different
+      // values inside the body.
+      t.set_const(true);
       if (!t.function()) {
         error(node, "function defined with non-function type " + t.string());
         t = Type::ERROR;
       }
 
       // Functions need three symbol table frames: one to store the function's
-      // immediate-left-hand name for recursive lookup, and enclosing-function-
-      // -reference overrides; one for arguments; and one for the body.
-      y::vector<y::string> locals;
+      // enclosing-function-reference overrides; one for arguments; and one for
+      // the body. The immediate-name-assign hack goes in the previous frame.
+      y::set<y::string> locals;
       _symbol_table.get_symbols(locals, 1, _symbol_table.size());
-      _symbol_table.push();
       // Do the recursive hack.
       if (_immediate_left_assign.length()) {
-        _symbol_table.add(_immediate_left_assign, t);
+        add_symbol_checking_collision(
+            node, _immediate_left_assign,
+            inside_function() * (_symbol_table.size() - 1), t);
         _immediate_left_assign = "";
       }
+      _symbol_table.push();
       // We currently don't implement closures at all, so we need to stick a
       // bunch of overrides into an intermediate stack frame to avoid the locals
       // from the enclosing scope being referenced, if any.
@@ -180,17 +182,10 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     {
       if (!results[0].function()) {
         error(node, "global assignment of type " + rs[0]);
+        add_symbol_checking_collision(node, node.string_value, results[0]);
       }
-      if (_symbol_table.has_top(node.string_value)) {
-        if (!_symbol_table[node.string_value].is_error()) {
-          error(node, "global `" + node.string_value + "` redefined");
-        }
-        _symbol_table.remove(node.string_value);
-      }
-      // Top-level function variables are implicitly const.
-      Type t = results[0];
-      t.set_const(true);
-      _symbol_table.add(node.string_value, t);
+      // Otherwise, the symbol already exists by the immediate-name-assign
+      // recursion hack.
       _current_function = "";
       return Type::VOID;
     }
@@ -444,37 +439,40 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
 
     case Node::ASSIGN_VAR:
     case Node::ASSIGN_CONST:
+    {
       if (!results[0].not_void()) {
         error(node, "assignment of type " + rs[0]);
       }
 
+      if (use_function_immediate_assign_hack(node)) {
+        // Symbol has already been added by immediate-name-assign recursion
+        // hack. But, we may need to make it non-const and enter it in the
+        // global symbol table.
+        y::size index = inside_function() * (_symbol_table.size() - 1);
+        _symbol_table.get(node.string_value, index).set_const(
+            node.type == Node::ASSIGN_CONST);
+        if (!inside_function()) {
+          _global_variable_map.emplace(
+              node.string_value, _symbol_table.get(node.string_value, 0));
+        }
+        return results[0];
+      }
+
+      Type t = results[0];
+      t.set_const(node.type == Node::ASSIGN_CONST);
+
       // Within global blocks, use the top-level symbol table frame.
       if (!inside_function()) {
-        if (_symbol_table.has(node.string_value, 0)) {
-          if (!_symbol_table.get(node.string_value, 0).is_error()) {
-            error(node, "global `" + node.string_value + "` redefined");
-          }
-          _symbol_table.remove(node.string_value, 0);
-        }
-        _symbol_table.add(node.string_value, 0, results[0]);
-        _symbol_table.get(node.string_value, 0).set_const(
-            node.type == Node::ASSIGN_CONST);
+        add_symbol_checking_collision(node, node.string_value, 0, t);
         // Store global in the global map for future use.
         _global_variable_map.emplace(
             node.string_value, _symbol_table.get(node.string_value, 0));
         return results[0];
       }
 
-      if (_symbol_table.has_top(node.string_value)) {
-        if (!_symbol_table[node.string_value].is_error()) {
-          error(node, "`" + node.string_value + "` redefined");
-        }
-        _symbol_table.remove(node.string_value);
-      }
-      _symbol_table.add(node.string_value, results[0]);
-      _symbol_table[node.string_value].set_const(
-          node.type == Node::ASSIGN_CONST);
+      add_symbol_checking_collision(node, node.string_value, t);
       return results[0];
+    }
 
     case Node::INT_CAST:
       if (!results[0].is_world()) {
@@ -539,6 +537,31 @@ const Type& StaticChecker::current_return_type() const
 bool StaticChecker::inside_function() const
 {
   return _symbol_table.has("%CURRENT_RETURN_TYPE%");
+}
+  
+bool StaticChecker::use_function_immediate_assign_hack(const Node& node) const
+{
+  // Node should be type GLOBAL_ASSIGN, ASSIGN_VAR or ASSIGN_CONST.
+  return node.children[0]->type == Node::FUNCTION;
+}
+
+void StaticChecker::add_symbol_checking_collision(
+    const Node& node, const y::string& name, const Type& type)
+{
+  add_symbol_checking_collision(node, name, _symbol_table.size() - 1, type);
+}
+
+void StaticChecker::add_symbol_checking_collision(
+    const Node& node, const y::string& name, y::size index, const Type& type)
+{
+  if (_symbol_table.has(name, index)) {
+    if (!_symbol_table.get(name, index).is_error()) {
+      error(node, (index ? "" : "global ") +
+                  ("`" + name + "` redefined"));
+    }
+    _symbol_table.remove(name, index);
+  }
+  _symbol_table.add(name, index, type);
 }
 
 void StaticChecker::error(const Node& node, const y::string& message)

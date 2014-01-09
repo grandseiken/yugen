@@ -3,6 +3,7 @@
 
 #include "../common/map.h"
 #include "../common/math.h"
+#include "../common/set.h"
 #include "../common/string.h"
 #include "../common/vector.h"
 
@@ -27,13 +28,12 @@ public:
   void add(const y::string& symbol, y::size frame, const T& t);
   void remove(const y::string& symbol, y::size frame);
 
-  // Symbol existence for whole table, particular frames or top frame only.
+  // Symbol existence for whole table or a particular frame.
   bool has(const y::string& symbol) const;
   bool has(const y::string& symbol, y::size frame) const;
-  bool has_top(const y::string& symbol) const;
 
   // Get list of symbols in a particular frame-range [min_frame, max_frame).
-  void get_symbols(y::vector<y::string>& output,
+  void get_symbols(y::set<y::string>& output,
                    y::size min_frame, y::size max_frame) const;
 
   // Get index of the topmost frame in which the symbol is defined.
@@ -135,18 +135,12 @@ bool SymbolTable<T>::has(const y::string& symbol, y::size frame) const
 }
 
 template<typename T>
-bool SymbolTable<T>::has_top(const y::string& symbol) const
-{
-  return _stack.rbegin()->find(symbol) != _stack.rbegin()->end();
-}
-
-template<typename T>
-void SymbolTable<T>::get_symbols(y::vector<y::string>& output,
+void SymbolTable<T>::get_symbols(y::set<y::string>& output,
                                  y::size min_frame, y::size max_frame) const
 {
   for (y::size i = min_frame; i < max_frame && i < size(); ++i) {
     for (const auto& pair : _stack[i]) {
-      output.push_back(pair.first);
+      output.insert(pair.first);
     }
   }
 }
