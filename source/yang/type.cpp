@@ -56,6 +56,11 @@ bool Type::is_error() const
   return _base == ERROR;
 }
 
+bool Type::is_void() const
+{
+  return is_error() || _base == VOID;
+}
+
 bool Type::not_void() const
 {
   return _base != VOID;

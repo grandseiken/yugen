@@ -43,6 +43,8 @@ public:
   // All of the following functions also return true if this is type ERROR.
   // True if this is type ERROR.
   bool is_error() const;
+  // True if this is type VOID.
+  bool is_void() const;
   // True if this is not type VOID.
   bool not_void() const;
   // True if this is type INT or WORLD with a count of 1.

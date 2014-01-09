@@ -191,7 +191,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     }
     case Node::FUNCTION:
     {
-      if (current_return_type().not_void() && !results[1].not_void()) {
+      if (!current_return_type().is_void() && !results[1].not_void()) {
         error(node, "not all code paths return a value");
       }
       // Pop all the various symbol table frames a function uses.
@@ -202,7 +202,9 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         _current_function =
             _current_function.substr(0, _current_function.find_last_of('.'));
       }
-      return results[0];
+      // We've already reported an error in infix() is the first type is not
+      // a function type.
+      return results[0].function() ? results[0] : Type::ERROR;
     }
 
     case Node::BLOCK:
@@ -555,6 +557,8 @@ void StaticChecker::add_symbol_checking_collision(
     const Node& node, const y::string& name, y::size index, const Type& type)
 {
   if (_symbol_table.has(name, index)) {
+    // Skipping on error is debatable as to whether it really skips
+    // unnecessary messages, or rather hides real name collisions.
     if (!_symbol_table.get(name, index).is_error()) {
       error(node, (index ? "" : "global ") +
                   ("`" + name + "` redefined"));
