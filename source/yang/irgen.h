@@ -62,6 +62,10 @@ private:
   llvm::Value* global_ptr(llvm::Value* ptr, y::size index);
   llvm::Value* global_ptr(const y::string& name);
 
+  // Euclidean mod and div implementations.
+  llvm::Value* mod(llvm::Value* v, llvm::Value* u);
+  llvm::Value* div(llvm::Value* v, llvm::Value* u);
+
   llvm::Value* binary(
       llvm::Value* left, llvm::Value* right,
       y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op);

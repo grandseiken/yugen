@@ -404,11 +404,11 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
              type == Node::BITWISE_XOR ? b.CreateXor(v, u, "xor") :
              type == Node::BITWISE_LSHIFT ? b.CreateShl(v, u, "lsh") :
              type == Node::BITWISE_RSHIFT ? b.CreateAShr(v, u, "rsh") :
-             type == Node::MOD ? b.CreateSRem(v, u, "mod") :
+             type == Node::MOD ? mod(v, u) :
              type == Node::ADD ? b.CreateAdd(v, u, "add") :
              type == Node::SUB ? b.CreateSub(v, u, "sub") :
              type == Node::MUL ? b.CreateMul(v, u, "mul") :
-             type == Node::DIV ? b.CreateSDiv(v, u, "div") :
+             type == Node::DIV ? div(v, u) :
              type == Node::EQ ? b.CreateICmpEQ(v, u, "eq") :
              type == Node::NE ? b.CreateICmpNE(v, u, "ne") :
              type == Node::GE ? b.CreateICmpSGE(v, u, "ge") :
@@ -417,11 +417,11 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
              type == Node::LT ? b.CreateICmpSLT(v, u, "lt") :
              y::null;
     }
-    return type == Node::MOD ? b.CreateFRem(v, u, "fmod") :
+    return type == Node::MOD ? mod(v, u) :
            type == Node::ADD ? b.CreateFAdd(v, u, "fadd") :
            type == Node::SUB ? b.CreateFSub(v, u, "fsub") :
            type == Node::MUL ? b.CreateFMul(v, u, "fmul") :
-           type == Node::DIV ? b.CreateFDiv(v, u, "fdiv") :
+           type == Node::DIV ? div(v, u) :
            type == Node::EQ ? b.CreateFCmpOEQ(v, u, "feq") :
            type == Node::NE ? b.CreateFCmpONE(v, u, "fne") :
            type == Node::GE ? b.CreateFCmpOGE(v, u, "fge") :
@@ -640,7 +640,6 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     case Node::SUB:
     case Node::MUL:
     case Node::DIV:
-      // TODO: euclidean mod and euclidean division.
       return binary(results[0], results[1], binary_lambda);
     case Node::EQ:
     case Node::NE:
@@ -668,7 +667,6 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     case Node::FOLD_SUB:
     case Node::FOLD_MUL:
     case Node::FOLD_DIV:
-      // TODO: euclidean mod and division.
       return fold(results[0], binary_lambda);
 
     case Node::FOLD_EQ:
@@ -851,6 +849,52 @@ llvm::Value* IrGenerator::global_ptr(llvm::Value* ptr, y::size index)
 llvm::Value* IrGenerator::global_ptr(const y::string& name)
 {
   return global_ptr(_symbol_table["%GLOBAL_DATA%"], _global_numbering[name]);
+}
+
+llvm::Value* IrGenerator::mod(llvm::Value* v, llvm::Value* u)
+{
+  auto& b = _builder;
+  if (!v->getType()->isIntOrIntVectorTy()) {
+    return b.CreateFRem(v, u, "fmod");
+  }
+
+  // Implements the following algorithm:
+  // return (v >= 0 ? v : v * (1 - abs(u))) % abs(u);
+  auto v_check = b.CreateICmpSGE(v, constant_int(0), "mod");
+  auto u_check = b.CreateICmpSGE(u, constant_int(0), "mod");
+  auto u_abs = b.CreateSelect(
+      u_check, u, b.CreateSub(constant_int(0), u, "mod"), "mod");
+
+  auto lhs = b.CreateSelect(
+      v_check, v,
+      b.CreateMul(v, b.CreateSub(constant_int(1), u_abs, "mod"), "mod"));
+  return b.CreateSRem(lhs, u_abs, "mod");
+}
+
+llvm::Value* IrGenerator::div(llvm::Value* v, llvm::Value* u)
+{
+  auto& b = _builder;
+  if (!v->getType()->isIntOrIntVectorTy()) {
+    return b.CreateFDiv(v, u, "fdiv");
+  }
+
+  // Implements the following algorithm:
+  // bool sign = (v < 0) == (u < 0);
+  // int t = (v < 0 ? -(1 + v) : v) / abs(u);
+  // return (sign ? t : -(1 + t)) + (u < 0);
+  auto v_check = b.CreateICmpSLT(v, constant_int(0), "div");
+  auto u_check = b.CreateICmpSLT(u, constant_int(0), "div");
+  auto sign = b.CreateICmpEQ(v_check, u_check, "div");
+  auto u_abs = b.CreateSelect(
+      u_check, b.CreateSub(constant_int(0), u, "div"), u, "div");
+
+  auto t = b.CreateSelect(
+      v_check,
+      b.CreateSub(constant_int(-1), v, "div"), v, "div");
+  t = b.CreateSDiv(t, u_abs, "div");
+  b.CreateAdd(
+      b.CreateSelect(sign, t, b.CreateSub(constant_int(-1), t, "div"), "div"),
+      b2i(u_check), "div");
 }
 
 llvm::Value* IrGenerator::binary(
