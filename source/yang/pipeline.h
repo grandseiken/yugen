@@ -21,6 +21,8 @@ namespace llvm {
 // TODO: create YangPrograms from YangContexts or YangEnvironments which define
 // game-library functions and types. (Perhaps the standard library can be a kind
 // of YangContext, even.)
+// TODO: in particular, there should be a type corresponding to YangInstance,
+// with built-in functionality.
 // TODO: add some kind of built-in data structures, including at least a generic
 // map<K, V> type. May require garbage-collection, unless we place tight
 // restrictions on their usage (e.g. only global variables).

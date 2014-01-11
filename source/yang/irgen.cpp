@@ -741,23 +741,24 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
 
     case Node::INT_CAST:
     {
-      llvm::Type* type = int_type();
       llvm::Type* back_type = world_type();
-      llvm::Constant* u = constant_world(0);
+      llvm::Type* type = int_type();
+      llvm::Constant* zero = constant_world(0);
       if (types[0]->isVectorTy()) {
         y::size n = types[0]->getVectorNumElements();
-        type = vector_type(type, n);
         back_type = vector_type(back_type, n);
-        u = constant_vector(u, n);
+        type = vector_type(type, n);
+        zero = constant_vector(zero, n);
       }
       // Mathematical floor. Implements the algorithm:
       // return int(v) - (v < 0 && v != float(int(v)));
       auto cast = b.CreateFPToSI(results[0], type, "int");
       auto back = b.CreateSIToFP(cast, back_type, "int");
-      auto a_check = b.CreateFCmpOLT(results[0], u, "int");
+
+      auto a_check = b.CreateFCmpOLT(results[0], zero, "int");
       auto b_check = b.CreateFCmpONE(results[0], back, "int");
-      auto fix = b2i(b.CreateAnd(a_check, b_check, "int"));
-      return b.CreateSub(cast, fix, "int");
+      return b.CreateSub(cast,
+          b2i(b.CreateAnd(a_check, b_check, "int")), "int");
     }
     case Node::WORLD_CAST:
     {
