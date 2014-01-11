@@ -25,6 +25,7 @@ namespace llvm {
 // map<K, V> type. May require garbage-collection, unless we place tight
 // restrictions on their usage (e.g. only global variables).
 // TODO: possibly implement closures, if it seems feasible.
+// TODO: warnings: for example, unused variables.
 class YangProgram {
 public:
 

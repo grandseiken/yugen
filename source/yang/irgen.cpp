@@ -742,11 +742,22 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     case Node::INT_CAST:
     {
       llvm::Type* type = int_type();
+      llvm::Type* back_type = world_type();
+      llvm::Constant* u = constant_world(0);
       if (types[0]->isVectorTy()) {
-        type = vector_type(type, types[0]->getVectorNumElements());
+        y::size n = types[0]->getVectorNumElements();
+        type = vector_type(type, n);
+        back_type = vector_type(back_type, n);
+        u = constant_vector(u, n);
       }
-      // TODO: mathematical floor.
-      return b.CreateFPToSI(results[0], type, "int");
+      // Mathematical floor. Implements the algorithm:
+      // return int(v) - (v < 0 && v != float(int(v)));
+      auto cast = b.CreateFPToSI(results[0], type, "int");
+      auto back = b.CreateSIToFP(cast, back_type, "int");
+      auto a_check = b.CreateFCmpOLT(results[0], u, "int");
+      auto b_check = b.CreateFCmpONE(results[0], back, "int");
+      auto fix = b2i(b.CreateAnd(a_check, b_check, "int"));
+      return b.CreateSub(cast, fix, "int");
     }
     case Node::WORLD_CAST:
     {
@@ -768,8 +779,19 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       return v;
     }
     case Node::VECTOR_INDEX:
-      // TODO: vector index range-checking.
-      return b.CreateExtractElement(results[0], results[1], "idx");
+    {
+      // Indexing out-of-bounds produces constant zero.
+      llvm::Constant* zero = types[0]->isIntOrIntVectorTy() ?
+          constant_int(0) : constant_world(0);
+      auto ge = b.CreateICmpSGE(results[1], constant_int(0), "idx");
+      auto lt = b.CreateICmpSLT(
+          results[1], constant_int(types[0]->getVectorNumElements()), "idx");
+
+      auto in = b.CreateAnd(ge, lt, "idx");
+      return b.CreateSelect(
+          in, b.CreateExtractElement(results[0], results[1], "idx"),
+          zero, "idx");
+    }
 
     default:
       return (llvm::Value*)y::null;
@@ -892,7 +914,7 @@ llvm::Value* IrGenerator::div(llvm::Value* v, llvm::Value* u)
       v_check,
       b.CreateSub(constant_int(-1), v, "div"), v, "div");
   t = b.CreateSDiv(t, u_abs, "div");
-  b.CreateAdd(
+  return b.CreateAdd(
       b.CreateSelect(sign, t, b.CreateSub(constant_int(-1), t, "div"), "div"),
       b2i(u_check), "div");
 }
