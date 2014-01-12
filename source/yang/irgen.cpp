@@ -722,6 +722,8 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       return fold(results[0], binary_lambda);
 
     case Node::FOLD_POW:
+      // POW is the only right-associative fold operator.
+      return fold(results[0], binary_lambda, false, false, true);
     case Node::FOLD_MOD:
     case Node::FOLD_ADD:
     case Node::FOLD_SUB:
@@ -1073,7 +1075,7 @@ llvm::Value* IrGenerator::binary(
 llvm::Value* IrGenerator::fold(
     llvm::Value* value,
     y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
-    bool to_bool, bool with_ands)
+    bool to_bool, bool with_ands, bool right_assoc)
 {
   // Convert each argument to boolean, if necessary.
   y::vector<llvm::Value*> elements;
@@ -1085,9 +1087,18 @@ llvm::Value* IrGenerator::fold(
 
   // Usually, we just form the chain (((e0 op e1) op e2) ...).
   if (!with_ands) {
-    llvm::Value* v = elements[0];
-    for (y::size i = 1; i < elements.size(); ++i) {
-      v = op(v, elements[i]);
+    if (right_assoc) {
+      auto it = elements.rbegin();
+      llvm::Value* v = *it++;
+      for (; it != elements.rend(); ++it) {
+        v = op(*it, v);
+      }
+      return v;
+    }
+    auto it = elements.begin();
+    llvm::Value* v = *it++;
+    for (; it != elements.end(); ++it) {
+      v = op(*it, v);
     }
     return v;
   }
@@ -1099,6 +1110,7 @@ llvm::Value* IrGenerator::fold(
     comparisons.push_back(op(elements[i - 1], elements[i]));
   }
 
+  // Ignore right_assoc, since logical AND is associative.
   llvm::Value* v = comparisons[0];
   for (y::size i = 1; i < comparisons.size(); ++i) {
     v = _builder.CreateAnd(v, comparisons[i], "fold");

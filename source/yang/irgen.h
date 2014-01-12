@@ -77,7 +77,7 @@ private:
   llvm::Value* fold(
       llvm::Value* value,
       y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
-      bool to_bool = false, bool with_ands = false);
+      bool to_bool = false, bool with_ands = false, bool right_assoc = false);
 
   // Get the equivalent LLVM type for a Yang type.
   llvm::Type* get_llvm_type(const Type& t) const;
