@@ -882,15 +882,22 @@ llvm::Value* IrGenerator::mod(llvm::Value* v, llvm::Value* u)
   }
 
   // Implements the following algorithm:
-  // return (v >= 0 ? v : v * (1 - abs(u))) % abs(u);
+  // return (v >= 0 ? v : v + (|v| % |u| + |v| / |u|) * |u|) % |u|;
+  // There are simpler ways, but they are vulnerable to overflow errors.
+  // k = |v| % |u| + |v| / |u| is the smallest postive integer such that
+  // k * |u| >= |v|.
   auto v_check = b.CreateICmpSGE(v, constant_int(0), "mod");
   auto u_check = b.CreateICmpSGE(u, constant_int(0), "mod");
+  auto v_abs = b.CreateSelect(
+      v_check, v, b.CreateSub(constant_int(0), v, "mod"), "mod");
   auto u_abs = b.CreateSelect(
       u_check, u, b.CreateSub(constant_int(0), u, "mod"), "mod");
 
+  auto k = b.CreateAdd(b.CreateSRem(v_abs, u_abs, "mod"),
+                       b.CreateSDiv(v_abs, u_abs, "mod"), "mod");
   auto lhs = b.CreateSelect(
       v_check, v,
-      b.CreateMul(v, b.CreateSub(constant_int(1), u_abs, "mod"), "mod"));
+      b.CreateAdd(v, b.CreateMul(k, u_abs, "mod"), "mod"), "mod");
   return b.CreateSRem(lhs, u_abs, "mod");
 }
 
@@ -903,7 +910,7 @@ llvm::Value* IrGenerator::div(llvm::Value* v, llvm::Value* u)
 
   // Implements the following algorithm:
   // bool sign = (v < 0) == (u < 0);
-  // int t = (v < 0 ? -(1 + v) : v) / abs(u);
+  // int t = (v < 0 ? -(1 + v) : v) / |u|;
   // return (sign ? t : -(1 + t)) + (u < 0);
   auto v_check = b.CreateICmpSLT(v, constant_int(0), "div");
   auto u_check = b.CreateICmpSLT(u, constant_int(0), "div");

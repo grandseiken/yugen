@@ -38,8 +38,9 @@ namespace y {
   template<typename T>
   inline T euclidean_mod(const T& n, const T& d)
   {
+    T num = abs(n);
     T div = abs(d);
-    return (n < 0 ? n * (1 - div) : n) % div;
+    return (num < 0 ? num + (num % div + num / div) * div : num) % div;
   }
 
 }
