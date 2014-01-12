@@ -882,7 +882,7 @@ llvm::Value* IrGenerator::mod(llvm::Value* v, llvm::Value* u)
   }
 
   // Implements the following algorithm:
-  // return (v >= 0 ? v : v + (|v| % |u| + |v| / |u|) * |u|) % |u|;
+  // return (v >= 0 ? v : v + (bool(|v| % |u|) + |v| / |u|) * |u|) % |u|;
   // There are simpler ways, but they are vulnerable to overflow errors.
   // k = |v| % |u| + |v| / |u| is the smallest postive integer such that
   // k * |u| >= |v|.
@@ -893,7 +893,7 @@ llvm::Value* IrGenerator::mod(llvm::Value* v, llvm::Value* u)
   auto u_abs = b.CreateSelect(
       u_check, u, b.CreateSub(constant_int(0), u, "mod"), "mod");
 
-  auto k = b.CreateAdd(b.CreateSRem(v_abs, u_abs, "mod"),
+  auto k = b.CreateAdd(b2i(i2b(b.CreateSRem(v_abs, u_abs, "mod"))),
                        b.CreateSDiv(v_abs, u_abs, "mod"), "mod");
   auto lhs = b.CreateSelect(
       v_check, v,

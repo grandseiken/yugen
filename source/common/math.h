@@ -40,7 +40,7 @@ namespace y {
   {
     T num = abs(n);
     T div = abs(d);
-    return (num < 0 ? num + (num % div + num / div) * div : num) % div;
+    return (num < 0 ? num + (bool(num % div) + num / div) * div : num) % div;
   }
 
 }
