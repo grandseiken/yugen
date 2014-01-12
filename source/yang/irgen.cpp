@@ -6,6 +6,16 @@ namespace llvm {
   class LLVMContext;
 }
 
+namespace std {
+  template<>
+  struct hash<IrGenerator::metadata> {
+    y::size operator()(IrGenerator::metadata v) const
+    {
+      return v;
+    }
+  };
+}
+
 IrGeneratorUnion::IrGeneratorUnion(llvm::Type* type)
   : type(type)
   , value(y::null)
@@ -29,11 +39,11 @@ IrGeneratorUnion::operator llvm::Value*() const
 }
 
 IrGenerator::IrGenerator(llvm::Module& module,
-                         const SymbolTable<Type>::scope& globals)
+                         const y::map<y::string, Type>& globals)
   : _module(module)
   , _builder(module.getContext())
   , _symbol_table(y::null)
-  , _metadata_table(y::null)
+  , _metadata(y::null)
 {
   // Set up the global data type. Since each program is designed to support
   // multiple independent instances running simultaeneously, the idea is to
@@ -64,6 +74,7 @@ IrGenerator::IrGenerator(llvm::Module& module,
 
 IrGenerator::~IrGenerator()
 {
+  // Keep hash<metadata> in source file.
 }
 
 void IrGenerator::emit_global_functions()
@@ -154,9 +165,7 @@ void IrGenerator::preorder(const Node& node)
   switch (node.type) {
     case Node::GLOBAL:
     {
-      _metadata_table.push();
-      _metadata_table.add("%GLOBAL%", y::null);
-
+      _metadata.push();
       // GLOBAL init functions don't need external linkage, since they are
       // called automatically by the externally-visible global structure
       // allocation function.
@@ -166,6 +175,7 @@ void IrGenerator::preorder(const Node& node)
       _global_inits.push_back(function);
       auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
 
+      _metadata.add(GLOBAL_INIT_FUNCTION, function);
       b.SetInsertPoint(block);
       _symbol_table.push();
 
@@ -173,8 +183,8 @@ void IrGenerator::preorder(const Node& node)
       // structure pointer.
       auto it = function->arg_begin();
       it->setName("global");
-      _metadata_table.add("%GLOBAL_DATA%", it);
-      _metadata_table.add("%CURRENT_FUNCTION%", function);
+      _metadata.add(GLOBAL_DATA_PTR, it);
+      _metadata.add(FUNCTION, function);
       break;
     }
 
@@ -193,60 +203,38 @@ void IrGenerator::preorder(const Node& node)
 
     case Node::IF_STMT:
     {
-      _metadata_table.push();
+      _metadata.push();
       _symbol_table.push();
-      auto then_block =
-          llvm::BasicBlock::Create(b.getContext(), "then", parent);
-      auto merge_block =
-          llvm::BasicBlock::Create(b.getContext(), "merge", parent);
-      _metadata_table.add("%IF_STMT_THEN_BLOCK%", then_block);
-      _metadata_table.add("%IF_STMT_MERGE_BLOCK%", merge_block);
-
-      // Optional ELSE branch.
+      create_block(IF_THEN_BLOCK, "then");
+      create_block(MERGE_BLOCK, "merge");
       if (node.children.size() > 2) {
-        auto else_block =
-            llvm::BasicBlock::Create(b.getContext(), "else", parent);
-        _metadata_table.add("%IF_STMT_ELSE_BLOCK%", else_block);
+        create_block(IF_ELSE_BLOCK, "else");
       }
       break;
     }
 
     case Node::FOR_STMT:
     {
-      _metadata_table.push();
+      _metadata.push();
       _symbol_table.push();
-      auto cond_block =
-          llvm::BasicBlock::Create(b.getContext(), "cond", parent);
-      auto loop_block =
-          llvm::BasicBlock::Create(b.getContext(), "loop", parent);
-      auto after_block =
-          llvm::BasicBlock::Create(b.getContext(), "after", parent);
-      auto merge_block =
-          llvm::BasicBlock::Create(b.getContext(), "merge", parent);
-      _metadata_table.add("%FOR_STMT_COND_BLOCK%", cond_block);
-      _metadata_table.add("%FOR_STMT_LOOP_BLOCK%", loop_block);
-      _metadata_table.add("%FOR_STMT_MERGE_BLOCK%", merge_block);
-      _metadata_table.add("%FOR_STMT_AFTER_BLOCK%", after_block);
-      _metadata_table.add("%LOOP_BREAK_BLOCK%", merge_block);
-      _metadata_table.add("%LOOP_CONTINUE_BLOCK%", after_block);
+      create_block(LOOP_COND_BLOCK, "cond");
+      create_block(LOOP_BODY_BLOCK, "loop");
+      auto after_block = create_block(LOOP_AFTER_BLOCK, "after");
+      auto merge_block = create_block(MERGE_BLOCK, "merge");
+      _metadata.add(LOOP_BREAK_LABEL, merge_block);
+      _metadata.add(LOOP_CONTINUE_LABEL, after_block);
       break;
     }
 
     case Node::DO_WHILE_STMT:
     {
-      _metadata_table.push();
+      _metadata.push();
       _symbol_table.push();
-      auto loop_block =
-          llvm::BasicBlock::Create(b.getContext(), "loop", parent);
-      auto cond_block =
-          llvm::BasicBlock::Create(b.getContext(), "cond", parent);
-      auto merge_block =
-          llvm::BasicBlock::Create(b.getContext(), "merge", parent);
-      _metadata_table.add("%DO_WHILE_STMT_LOOP_BLOCK%", loop_block);
-      _metadata_table.add("%DO_WHILE_STMT_COND_BLOCK%", cond_block);
-      _metadata_table.add("%DO_WHILE_STMT_MERGE_BLOCK%", merge_block);
-      _metadata_table.add("%LOOP_BREAK_BLOCK%", merge_block);
-      _metadata_table.add("%LOOP_CONTINUE_BLOCK%", cond_block);
+      auto loop_block =create_block(LOOP_BODY_BLOCK, "loop");
+      auto cond_block = create_block(LOOP_COND_BLOCK, "cond");
+      auto merge_block = create_block(MERGE_BLOCK, "merge");
+      _metadata.add(LOOP_BREAK_LABEL, merge_block);
+      _metadata.add(LOOP_CONTINUE_LABEL, cond_block);
 
       b.CreateBr(loop_block);
       b.SetInsertPoint(loop_block);
@@ -265,7 +253,7 @@ void IrGenerator::infix(const Node& node, const result_list& results)
   switch (node.type) {
     case Node::FUNCTION:
     {
-      _metadata_table.push();
+      _metadata.push();
       auto function_type = (llvm::FunctionType*)results[0].type;
       // Linkage will be set to external later for exported top-level functions.
       auto function = llvm::Function::Create(
@@ -290,7 +278,7 @@ void IrGenerator::infix(const Node& node, const result_list& results)
       // data structure pointer.
       auto it = function->arg_begin();
       it->setName("global");
-      _metadata_table.add("%GLOBAL_DATA%", it);
+      _metadata.add(GLOBAL_DATA_PTR, it);
       // Set up the arguments.
       y::size arg_num = 0;
       for (++it; it != function->arg_end(); ++it) {
@@ -308,18 +296,15 @@ void IrGenerator::infix(const Node& node, const result_list& results)
         _symbol_table.add(name, v);
         ++arg_num;
       }
-      _metadata_table.add("%CURRENT_FUNCTION%", function);
+      _metadata.add(FUNCTION, function);
       break;
     }
 
     case Node::IF_STMT:
     {
-      auto then_block =
-          (llvm::BasicBlock*)_metadata_table["%IF_STMT_THEN_BLOCK%"];
-      auto else_block =
-          (llvm::BasicBlock*)_metadata_table["%IF_STMT_ELSE_BLOCK%"];
-      auto merge_block =
-          (llvm::BasicBlock*)_metadata_table["%IF_STMT_MERGE_BLOCK%"];
+      auto then_block = (llvm::BasicBlock*)_metadata[IF_THEN_BLOCK];
+      auto else_block = (llvm::BasicBlock*)_metadata[IF_ELSE_BLOCK];
+      auto merge_block = (llvm::BasicBlock*)_metadata[MERGE_BLOCK];
 
       if (results.size() == 1) {
         bool has_else = node.children.size() > 2;
@@ -336,14 +321,10 @@ void IrGenerator::infix(const Node& node, const result_list& results)
 
     case Node::FOR_STMT:
     {
-      auto cond_block =
-          (llvm::BasicBlock*)_metadata_table["%FOR_STMT_COND_BLOCK%"];
-      auto loop_block =
-          (llvm::BasicBlock*)_metadata_table["%FOR_STMT_LOOP_BLOCK%"];
-      auto merge_block =
-          (llvm::BasicBlock*)_metadata_table["%FOR_STMT_MERGE_BLOCK%"];
-      auto after_block =
-          (llvm::BasicBlock*)_metadata_table["%FOR_STMT_AFTER_BLOCK%"];
+      auto cond_block = (llvm::BasicBlock*)_metadata[LOOP_COND_BLOCK];
+      auto loop_block = (llvm::BasicBlock*)_metadata[LOOP_BODY_BLOCK];
+      auto after_block = (llvm::BasicBlock*)_metadata[LOOP_AFTER_BLOCK];
+      auto merge_block = (llvm::BasicBlock*)_metadata[MERGE_BLOCK];
 
       if (results.size() == 1) {
         b.CreateBr(cond_block);
@@ -362,9 +343,7 @@ void IrGenerator::infix(const Node& node, const result_list& results)
 
     case Node::DO_WHILE_STMT:
     {
-      auto cond_block =
-          (llvm::BasicBlock*)_metadata_table["%DO_WHILE_STMT_COND_BLOCK%"];
-
+      auto cond_block = (llvm::BasicBlock*)_metadata[LOOP_COND_BLOCK];
       b.CreateBr(cond_block);
       b.SetInsertPoint(cond_block);
       break;
@@ -378,28 +357,20 @@ void IrGenerator::infix(const Node& node, const result_list& results)
       }
 
       if (results.size() == 1) {
-        _metadata_table.push();
+        _metadata.push();
 
         // Blocks and branching are necessary (as opposed to a select instruction)
         // to short-circuit and avoiding evaluating the other path.
-        auto then_block =
-            llvm::BasicBlock::Create(b.getContext(), "then", parent);
-        auto else_block =
-            llvm::BasicBlock::Create(b.getContext(), "else", parent);
-        auto merge_block =
-            llvm::BasicBlock::Create(b.getContext(), "merge", parent);
-        _metadata_table.add("%TERNARY_THEN_BLOCK%", then_block);
-        _metadata_table.add("%TERNARY_ELSE_BLOCK%", else_block);
-        _metadata_table.add("%TERNARY_MERGE_BLOCK%", merge_block);
+        auto then_block = create_block(IF_THEN_BLOCK, "then");
+        auto else_block = create_block(IF_ELSE_BLOCK, "else");
+        create_block(MERGE_BLOCK, "merge");
 
         b.CreateCondBr(i2b(results[0]), then_block, else_block);
         b.SetInsertPoint(then_block);
       }
       if (results.size() == 2) {
-        auto else_block =
-            (llvm::BasicBlock*)_metadata_table["%TERNARY_ELSE_BLOCK%"];
-        auto merge_block =
-            (llvm::BasicBlock*)_metadata_table["%TERNARY_MERGE_BLOCK%"];
+        auto else_block = (llvm::BasicBlock*)_metadata[IF_ELSE_BLOCK];
+        auto merge_block = (llvm::BasicBlock*)_metadata[MERGE_BLOCK];
         b.CreateBr(merge_block);
         b.SetInsertPoint(else_block);
       }
@@ -417,15 +388,10 @@ void IrGenerator::infix(const Node& node, const result_list& results)
       if (results[0].value->getType()->isVectorTy()) {
         break;
       }
-      _metadata_table.push();
-
-      auto rhs_block =
-        llvm::BasicBlock::Create(b.getContext(), "rhs", parent);
-      auto merge_block =
-        llvm::BasicBlock::Create(b.getContext(), "merge", parent);
-      _metadata_table.add("%LOGICAL_OP_SOURCE_BLOCK%", b.GetInsertPoint());
-      _metadata_table.add("%LOGICAL_OP_RHS_BLOCK%", rhs_block);
-      _metadata_table.add("%LOGICAL_OP_MERGE_BLOCK%", merge_block);
+      _metadata.push();
+      _metadata.add(LOGICAL_OP_SOURCE_BLOCK, b.GetInsertPoint());
+      auto rhs_block = create_block(LOGICAL_OP_RHS_BLOCK, "rhs");
+      auto merge_block = create_block(MERGE_BLOCK, "merge");
 
       if (node.type == Node::LOGICAL_OR) {
         b.CreateCondBr(i2b(results[0]), merge_block, rhs_block);
@@ -540,7 +506,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     case Node::GLOBAL:
       b.CreateRetVoid();
       _symbol_table.pop();
-      _metadata_table.pop();
+      _metadata.pop();
       return results[0];
     case Node::GLOBAL_ASSIGN:
     {
@@ -568,11 +534,11 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       }
       _symbol_table.pop();
       _symbol_table.pop();
-      _metadata_table.pop();
+      _metadata.pop();
       // If this was a nested function, set the insert point back to the last
       // block in the enclosing function.
-      if (_metadata_table.has("%CURRENT_FUNCTION%")) {
-        auto function = (llvm::Function*)_metadata_table["%CURRENT_FUNCTION%"];
+      if (_metadata.has(FUNCTION)) {
+        auto function = (llvm::Function*)_metadata[FUNCTION];
         b.SetInsertPoint(&*function->getBasicBlockList().rbegin());
       }
       return parent;
@@ -601,22 +567,19 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     }
     case Node::IF_STMT:
     {
-      auto merge_block =
-          (llvm::BasicBlock*)_metadata_table["%IF_STMT_MERGE_BLOCK%"];
+      auto merge_block = (llvm::BasicBlock*)_metadata[MERGE_BLOCK];
       _symbol_table.pop();
-      _metadata_table.pop();
+      _metadata.pop();
       b.CreateBr(merge_block);
       b.SetInsertPoint(merge_block);
       return results[0];
     }
     case Node::FOR_STMT:
     {
-      auto after_block =
-          (llvm::BasicBlock*)_metadata_table["%FOR_STMT_AFTER_BLOCK%"];
-      auto merge_block =
-          (llvm::BasicBlock*)_metadata_table["%FOR_STMT_MERGE_BLOCK%"];
+      auto after_block = (llvm::BasicBlock*)_metadata[LOOP_AFTER_BLOCK];
+      auto merge_block = (llvm::BasicBlock*)_metadata[MERGE_BLOCK];
       _symbol_table.pop();
-      _metadata_table.pop();
+      _metadata.pop();
 
       b.CreateBr(after_block);
       b.SetInsertPoint(merge_block);
@@ -624,12 +587,10 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     }
     case Node::DO_WHILE_STMT:
     {
-      auto loop_block =
-          (llvm::BasicBlock*)_metadata_table["%DO_WHILE_STMT_LOOP_BLOCK%"];
-      auto merge_block =
-          (llvm::BasicBlock*)_metadata_table["%DO_WHILE_STMT_MERGE_BLOCK%"];
+      auto loop_block = (llvm::BasicBlock*)_metadata[LOOP_BODY_BLOCK];
+      auto merge_block = (llvm::BasicBlock*)_metadata[MERGE_BLOCK];
       _symbol_table.pop();
-      _metadata_table.pop();
+      _metadata.pop();
 
       b.CreateCondBr(i2b(results[1]), loop_block, merge_block);
       b.SetInsertPoint(merge_block);
@@ -640,9 +601,9 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     {
       auto dead_block =
           llvm::BasicBlock::Create(b.getContext(), "dead", parent);
-      llvm::Value* v = b.CreateBr((llvm::BasicBlock*)_metadata_table[
-          node.type == Node::BREAK_STMT ? "%LOOP_BREAK_BLOCK%" :
-                                          "%LOOP_CONTINUE_BLOCK%"]);
+      llvm::Value* v = b.CreateBr((llvm::BasicBlock*)_metadata[
+          node.type == Node::BREAK_STMT ? LOOP_BREAK_LABEL :
+                                          LOOP_CONTINUE_LABEL]);
       b.SetInsertPoint(dead_block);
       return v;
     }
@@ -671,13 +632,10 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
         // Vectorised ternary. Short-circuiting isn't possible.
         return b.CreateSelect(i2b(results[0]), results[1], results[2]);
       }
-      auto then_block =
-          (llvm::BasicBlock*)_metadata_table["%TERNARY_THEN_BLOCK%"];
-      auto else_block =
-          (llvm::BasicBlock*)_metadata_table["%TERNARY_ELSE_BLOCK%"];
-      auto merge_block =
-          (llvm::BasicBlock*)_metadata_table["%TERNARY_MERGE_BLOCK%"];
-      _metadata_table.pop();
+      auto then_block = (llvm::BasicBlock*)_metadata[IF_THEN_BLOCK];
+      auto else_block = (llvm::BasicBlock*)_metadata[IF_ELSE_BLOCK];
+      auto merge_block = (llvm::BasicBlock*)_metadata[MERGE_BLOCK];
+      _metadata.pop();
       b.CreateBr(merge_block);
       b.SetInsertPoint(merge_block);
       auto phi = b.CreatePHI(types[1], 2, "tern");
@@ -688,7 +646,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     case Node::CALL:
     {
       y::vector<llvm::Value*> args;
-      args.push_back(_metadata_table["%GLOBAL_DATA%"]);
+      args.push_back(_metadata[GLOBAL_DATA_PTR]);
       for (y::size i = 1; i < results.size(); ++i) {
         args.push_back(results[i]);
       }
@@ -703,13 +661,10 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
         // Short-circuiting isn't possible.
         return b2i(binary(i2b(results[0]), i2b(results[1]), binary_lambda));
       }
-      auto source_block =
-          (llvm::BasicBlock*)_metadata_table["%LOGICAL_OP_SOURCE_BLOCK%"];
-      auto rhs_block =
-          (llvm::BasicBlock*)_metadata_table["%LOGICAL_OP_RHS_BLOCK%"];
-      auto merge_block =
-          (llvm::BasicBlock*)_metadata_table["%LOGICAL_OP_MERGE_BLOCK%"];
-      _metadata_table.pop();
+      auto source_block = (llvm::BasicBlock*)_metadata[LOGICAL_OP_SOURCE_BLOCK];
+      auto rhs_block = (llvm::BasicBlock*)_metadata[LOGICAL_OP_RHS_BLOCK];
+      auto merge_block = (llvm::BasicBlock*)_metadata[MERGE_BLOCK];
+      _metadata.pop();
 
       auto rhs = b2i(i2b(results[1]));
       b.CreateBr(merge_block);
@@ -828,7 +783,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     {
       // In a global block, rather than allocating anything we simply store into
       // the prepared fields of the global structure.
-      if (_metadata_table.has("%GLOBAL%")) {
+      if (_metadata.has(GLOBAL_INIT_FUNCTION)) {
         b.CreateStore(results[0], global_ptr(node.string_value));
         return results[0];
       }
@@ -977,7 +932,7 @@ llvm::Value* IrGenerator::global_ptr(llvm::Value* ptr, y::size index)
 
 llvm::Value* IrGenerator::global_ptr(const y::string& name)
 {
-  return global_ptr(_metadata_table["%GLOBAL_DATA%"], _global_numbering[name]);
+  return global_ptr(_metadata[GLOBAL_DATA_PTR], _global_numbering[name]);
 }
 
 llvm::Value* IrGenerator::mod(llvm::Value* v, llvm::Value* u)
@@ -1127,4 +1082,14 @@ llvm::Type* IrGenerator::get_llvm_type(const Type& t) const
         vector_type(world_type(), t.count()) : world_type();
   }
   return void_type();
+}
+
+llvm::BasicBlock* IrGenerator::create_block(
+    metadata meta, const y::string& name)
+{
+  auto& b = _builder;
+  auto parent = b.GetInsertBlock() ? b.GetInsertBlock()->getParent() : y::null;
+  auto block = llvm::BasicBlock::Create(b.getContext(), name, parent);
+  _metadata.add(meta, block);
+  return block;
 }

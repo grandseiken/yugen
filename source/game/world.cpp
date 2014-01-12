@@ -39,6 +39,11 @@ WorldGeometry::WorldGeometry()
 {
 }
 
+WorldGeometry::~WorldGeometry()
+{
+  // Keep hash<Geometry> in source file.
+}
+
 void WorldGeometry::merge_geometry(const CellBlueprint& cell,
                                    const y::ivec2& coord)
 {

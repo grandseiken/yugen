@@ -251,19 +251,6 @@ bool GlProgram::check_name_exists(bool attribute, const y::string& name,
   return false;
 }
 
-namespace std {
-
-  y::size hash<y::pair<y::string, y::size>>::operator()(
-      const y::pair<y::string, y::size>& pair) const
-  {
-    y::size seed = 0;
-    boost::hash_combine(seed, pair.first);
-    boost::hash_combine(seed, pair.second);
-    return seed;
-  }
-
-}
-
 GLint GlProgram::get_uniform_location(const y::string& name) const
 {
   auto it = _uniform_single_map.find(name);

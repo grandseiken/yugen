@@ -142,7 +142,10 @@ int yyerror(const char* message)
 
          var i = int() return 0;();
 
-     ...but it's somewhat ugly). */
+     ...but it's somewhat ugly). Should investigate making terminating semicolon
+     optional in a statement consisting entirely of an assignment of a function-
+     -expression. It does go against the design goal of having no special-cases,
+     though. */
 
   /* TODO: relatedly, we should be able to add a rule for type parentheses like
 

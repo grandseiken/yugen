@@ -1,10 +1,10 @@
 #ifndef RENDER__GL_HANDLE_H
 #define RENDER__GL_HANDLE_H
 
-#include "../common/utility.h"
 #include "../common/map.h"
 #include "../common/memory.h"
 #include "../common/set.h"
+#include "../common/utility.h"
 #include "../common/vector.h"
 #include "../vector.h"
 #include <GL/glew.h>
@@ -184,15 +184,6 @@ protected:
   explicit GlShader(GLuint handle);
 
 };
-
-namespace std {
-
-  template<>
-  struct hash<y::pair<y::string, y::size>> {
-    y::size operator()(const y::pair<y::string, y::size>& pair) const;
-  };
-
-}
 
 // Lightweight handle to a GLSL shader program.
 class GlProgram : public GlHandle {

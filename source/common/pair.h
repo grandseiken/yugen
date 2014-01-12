@@ -24,8 +24,8 @@ namespace std {
       std::hash<U> u;
 
       y::size seed = 0;
-      boost::hash_combine(seed, u(arg.first));
-      boost::hash_combine(seed, t(arg.second));
+      boost::hash_combine(seed, t(arg.first));
+      boost::hash_combine(seed, u(arg.second));
       return seed;
     }
   };

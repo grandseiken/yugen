@@ -4,15 +4,14 @@
 #include "../common/map.h"
 #include "../common/math.h"
 #include "../common/set.h"
-#include "../common/string.h"
 #include "../common/vector.h"
 
-template<typename T>
+template<typename K, typename V>
 class SymbolTable {
 public:
 
   SymbolTable();
-  explicit SymbolTable(const T& default_value);
+  explicit SymbolTable(const V& default_value);
 
   // Push or pop a frame from the symbol table.
   void push();
@@ -21,104 +20,101 @@ public:
   y::size size() const;
 
   // Add or remove from the top frame.
-  void add(const y::string& symbol, const T& t);
-  void remove(const y::string& symbol);
+  void add(const K& symbol, const V& v);
+  void remove(const K& symbol);
 
   // Add or remove from an arbitrary frame.
-  void add(const y::string& symbol, y::size frame, const T& t);
-  void remove(const y::string& symbol, y::size frame);
+  void add(const K& symbol, y::size frame, const V& v);
+  void remove(const K& symbol, y::size frame);
 
   // Symbol existence for whole table or a particular frame.
-  bool has(const y::string& symbol) const;
-  bool has(const y::string& symbol, y::size frame) const;
+  bool has(const K& symbol) const;
+  bool has(const K& symbol, y::size frame) const;
 
   // Get list of symbols in a particular frame-range [min_frame, max_frame).
-  void get_symbols(y::set<y::string>& output,
+  void get_symbols(y::set<K>& output,
                    y::size min_frame, y::size max_frame) const;
 
   // Get index of the topmost frame in which the symbol is defined.
-  y::size index(const y::string& symbol) const;
+  y::size index(const K& symbol) const;
 
   // Value retrieval.
-  const T& operator[](const y::string& symbol) const;
-  /***/ T& operator[](const y::string& symbol);
-  const T& get(const y::string& symbol, y::size frame) const;
-  /***/ T& get(const y::string& symbol, y::size frame);
-
-  typedef y::map<y::string, T> scope;
-  const scope& frame(y::size frame) const;
-  const scope& top() const;
+  const V& operator[](const K& symbol) const;
+  /***/ V& operator[](const K& symbol);
+  const V& get(const K& symbol, y::size frame) const;
+  /***/ V& get(const K& symbol, y::size frame);
 
 private:
 
-  T _default;
+  V _default;
+  typedef y::map<K, V> scope;
   y::vector<scope> _stack;
 
 };
 
-template<typename T>
-SymbolTable<T>::SymbolTable()
+template<typename K, typename V>
+SymbolTable<K, V>::SymbolTable()
 {
   push();
 }
 
-template<typename T>
-SymbolTable<T>::SymbolTable(const T& default_value)
+template<typename K, typename V>
+SymbolTable<K, V>::SymbolTable(const V& default_value)
   : _default(default_value)
 {
   push();
 }
 
-template<typename T>
-void SymbolTable<T>::push()
+template<typename K, typename V>
+void SymbolTable<K, V>::push()
 {
   _stack.emplace_back();
 }
 
-template<typename T>
-void SymbolTable<T>::pop()
+template<typename K, typename V>
+void SymbolTable<K, V>::pop()
 {
   if (size() > 1) {
     _stack.pop_back();
   }
 }
 
-template<typename T>
-y::size SymbolTable<T>::size() const
+template<typename K, typename V>
+y::size SymbolTable<K, V>::size() const
 {
   return _stack.size();
 }
 
-template<typename T>
-void SymbolTable<T>::add(const y::string& symbol, const T& t)
+template<typename K, typename V>
+void SymbolTable<K, V>::add(const K& symbol, const V& v)
 {
-  _stack.rbegin()->emplace(symbol, t);
+  _stack.rbegin()->emplace(symbol, v);
 }
 
-template<typename T>
-void SymbolTable<T>::remove(const y::string& symbol)
+template<typename K, typename V>
+void SymbolTable<K, V>::remove(const K& symbol)
 {
   _stack.rbegin()->erase(symbol);
 }
 
-template<typename T>
-void SymbolTable<T>::add(const y::string& symbol, y::size frame, const T& t)
+template<typename K, typename V>
+void SymbolTable<K, V>::add(const K& symbol, y::size frame, const V& v)
 {
   if (frame < size()) {
-    _stack[frame].emplace(symbol, t);
+    _stack[frame].emplace(symbol, v);
   }
 }
 
-template<typename T>
-void SymbolTable<T>::remove(const y::string& symbol, y::size frame)
+template<typename K, typename V>
+void SymbolTable<K, V>::remove(const K& symbol, y::size frame)
 {
   if (frame < size()) {
     _stack[frame].erase(symbol);
   }
 }
 
-template<typename T>
-bool SymbolTable<T>::has(const y::string& symbol) const
+template<typename K, typename V>
+bool SymbolTable<K, V>::has(const K& symbol) const
 {
   for (auto it = _stack.rbegin(); it != _stack.rend(); ++it) {
     if (it->find(symbol) != it->end()) {
@@ -128,15 +124,15 @@ bool SymbolTable<T>::has(const y::string& symbol) const
   return false;
 }
 
-template<typename T>
-bool SymbolTable<T>::has(const y::string& symbol, y::size frame) const
+template<typename K, typename V>
+bool SymbolTable<K, V>::has(const K& symbol, y::size frame) const
 {
   return frame < size() && _stack[frame].find(symbol) != _stack[frame].end();
 }
 
-template<typename T>
-void SymbolTable<T>::get_symbols(y::set<y::string>& output,
-                                 y::size min_frame, y::size max_frame) const
+template<typename K, typename V>
+void SymbolTable<K, V>::get_symbols(y::set<K>& output,
+                                    y::size min_frame, y::size max_frame) const
 {
   for (y::size i = min_frame; i < max_frame && i < size(); ++i) {
     for (const auto& pair : _stack[i]) {
@@ -145,8 +141,8 @@ void SymbolTable<T>::get_symbols(y::set<y::string>& output,
   }
 }
 
-template<typename T>
-y::size SymbolTable<T>::index(const y::string& symbol) const
+template<typename K, typename V>
+y::size SymbolTable<K, V>::index(const K& symbol) const
 {
   y::size i = size();
   while (i) {
@@ -159,8 +155,8 @@ y::size SymbolTable<T>::index(const y::string& symbol) const
   return _stack.size();
 }
 
-template<typename T>
-const T& SymbolTable<T>::operator[](const y::string& symbol) const
+template<typename K, typename V>
+const V& SymbolTable<K, V>::operator[](const K& symbol) const
 {
   for (auto it = _stack.rbegin(); it != _stack.rend(); ++it) {
     auto jt = it->find(symbol);
@@ -171,8 +167,8 @@ const T& SymbolTable<T>::operator[](const y::string& symbol) const
   return _default;
 }
 
-template<typename T>
-T& SymbolTable<T>::operator[](const y::string& symbol)
+template<typename K, typename V>
+V& SymbolTable<K, V>::operator[](const K& symbol)
 {
   for (auto it = _stack.rbegin(); it != _stack.rend(); ++it) {
     auto jt = it->find(symbol);
@@ -183,8 +179,8 @@ T& SymbolTable<T>::operator[](const y::string& symbol)
   return _default;
 }
 
-template<typename T>
-const T& SymbolTable<T>::get(const y::string& symbol, y::size frame) const
+template<typename K, typename V>
+const V& SymbolTable<K, V>::get(const K& symbol, y::size frame) const
 {
   if (frame >= size()) {
     return _default;
@@ -196,8 +192,8 @@ const T& SymbolTable<T>::get(const y::string& symbol, y::size frame) const
   return _default;
 }
 
-template<typename T>
-T& SymbolTable<T>::get(const y::string& symbol, y::size frame)
+template<typename K, typename V>
+V& SymbolTable<K, V>::get(const K& symbol, y::size frame)
 {
   if (frame >= size()) {
     return _default;
@@ -207,22 +203,6 @@ T& SymbolTable<T>::get(const y::string& symbol, y::size frame)
     return it->second;
   }
   return _default;
-}
-
-template<typename T>
-const typename SymbolTable<T>::scope& SymbolTable<T>::frame(
-    const y::size frame) const
-{
-  if (frame >= size()) {
-    return top();
-  }
-  return _stack[frame];
-}
-
-template<typename T>
-const typename SymbolTable<T>::scope& SymbolTable<T>::top() const
-{
-  return *_stack.rbegin();
 }
 
 #endif

@@ -32,6 +32,7 @@ class WorldGeometry : public y::no_copy {
 public:
 
   WorldGeometry();
+  ~WorldGeometry();
 
   typedef SpatialHash<Geometry, y::world, 2> geometry_hash;
 

@@ -9,6 +9,7 @@ class StaticChecker : public ConstAstWalker<Type> {
 public:
 
   StaticChecker();
+  ~StaticChecker();
 
   // True if any errors were detected during the checking. Otherwise, assuming
   // there are no bugs in the compiler, we can generate the IR without worrying
@@ -46,7 +47,14 @@ private:
   y::string _current_function;
   y::string _immediate_left_assign;
 
-  SymbolTable<Type> _symbol_table;
+  enum metadata {
+    LOOP_BODY,
+    RETURN_TYPE,
+  };
+  friend std::hash<metadata>;
+
+  SymbolTable<metadata, Type> _metadata;
+  SymbolTable<y::string, Type> _symbol_table;
   y::map<y::string, Type> _global_variable_map;
 
 };

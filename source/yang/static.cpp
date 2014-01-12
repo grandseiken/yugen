@@ -3,10 +3,26 @@
 #include "../common/algorithm.h"
 #include "../log.h"
 
+namespace std {
+  template<>
+  struct hash<StaticChecker::metadata> {
+    y::size operator()(StaticChecker::metadata v) const
+    {
+      return v;
+    }
+  };
+}
+
 StaticChecker::StaticChecker()
   : _errors(false)
+  , _metadata(Type::VOID)
   , _symbol_table(Type::VOID)
 {
+}
+
+StaticChecker::~StaticChecker()
+{
+  // Keep hash<metadata> in source file.
 }
 
 bool StaticChecker::errors() const
@@ -54,9 +70,10 @@ void StaticChecker::preorder(const Node& node)
     case Node::DO_WHILE_STMT:
     case Node::FOR_STMT:
       _symbol_table.push();
+      _metadata.push();
       // Insert a marker into the symbol table that break and continue
       // statements can check for.
-      _symbol_table.add("%LOOP_BODY%", Type::VOID);
+      _metadata.add(LOOP_BODY, Type::VOID);
       break;
 
     default: {}
@@ -129,6 +146,7 @@ void StaticChecker::infix(const Node& node, const result_list& results)
       }
       // Stores the return type of the current function and the fact we're
       // inside a function.
+      _metadata.push();
       enter_function(t.elements(0));
       _symbol_table.push();
       break;
@@ -198,6 +216,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       _symbol_table.pop();
       _symbol_table.pop();
       _symbol_table.pop();
+      _metadata.pop();
       if (inside_function()) {
         _current_function =
             _current_function.substr(0, _current_function.find_last_of('.'));
@@ -252,17 +271,18 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::DO_WHILE_STMT:
     case Node::FOR_STMT:
       _symbol_table.pop();
+      _metadata.pop();
       if (!results[1].is(Type::INT)) {
         error(node, "branching on " + rs[1]);
       }
       return Type::VOID;
     case Node::BREAK_STMT:
-      if (!_symbol_table.has("%LOOP_BODY%")) {
+      if (!_metadata.has(LOOP_BODY)) {
         error(node, "`break` outside of loop body");
       }
       return Type::VOID;
     case Node::CONTINUE_STMT:
-      if (!_symbol_table.has("%LOOP_BODY%")) {
+      if (!_metadata.has(LOOP_BODY)) {
         error(node, "`continue` outside of loop body");
       }
       return Type::VOID;
@@ -548,17 +568,17 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
 
 void StaticChecker::enter_function(const Type& return_type)
 {
-  _symbol_table.add("%CURRENT_RETURN_TYPE%", return_type);
+  _metadata.add(RETURN_TYPE, return_type);
 }
 
 const Type& StaticChecker::current_return_type() const
 {
-  return _symbol_table["%CURRENT_RETURN_TYPE%"];
+  return _metadata[RETURN_TYPE];
 }
 
 bool StaticChecker::inside_function() const
 {
-  return _symbol_table.has("%CURRENT_RETURN_TYPE%");
+  return _metadata.has(RETURN_TYPE);
 }
   
 bool StaticChecker::use_function_immediate_assign_hack(const Node& node) const

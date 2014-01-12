@@ -30,7 +30,7 @@ class IrGenerator : public ConstAstWalker<IrGeneratorUnion> {
 public:
 
   IrGenerator(llvm::Module& module,
-              const SymbolTable<Type>::scope& globals);
+              const y::map<y::string, Type>& globals);
   ~IrGenerator();
 
   // Emit functions for allocating, freeing, reading and writing to instances
@@ -77,6 +77,31 @@ private:
   // Get the equivalent LLVM type for a Yang type.
   llvm::Type* get_llvm_type(const Type& t) const;
 
+  // Metadata symbols.
+  enum metadata {
+    GLOBAL_DATA_PTR,
+    GLOBAL_INIT_FUNCTION,
+    FUNCTION,
+
+    IF_THEN_BLOCK,
+    IF_ELSE_BLOCK,
+
+    LOOP_COND_BLOCK,
+    LOOP_BODY_BLOCK,
+    LOOP_AFTER_BLOCK,
+
+    LOOP_BREAK_LABEL,
+    LOOP_CONTINUE_LABEL,
+
+    LOGICAL_OP_SOURCE_BLOCK,
+    LOGICAL_OP_RHS_BLOCK,
+
+    MERGE_BLOCK,
+  };
+
+  // Create block and insert in the metadata table.
+  llvm::BasicBlock* create_block(metadata meta, const y::string& name);
+
   // List of static initialisation functions.
   y::vector<llvm::Function*> _global_inits;
   // Map from global name to index in the global structure.
@@ -86,13 +111,14 @@ private:
 
   llvm::Module& _module;
   llvm::IRBuilder<> _builder;
+
   // We keep a second symbol table for special metadata entries that don't
   // correspond to actual source code symbols; this way we can add scopes
   // that automatically pop metadata without interfering with scope lookup.
-  SymbolTable<llvm::Value*> _symbol_table;
-  // TODO: metadata table should really be indexed by some compile-time types
-  // other than strings and checked better.
-  SymbolTable<llvm::Value*> _metadata_table;
+  friend std::hash<metadata>;
+  SymbolTable<y::string, llvm::Value*> _symbol_table;
+  SymbolTable<metadata, llvm::Value*> _metadata;
+  // Metadata that isn't an llvm::Value.
   y::string _immediate_left_assign;
 
 };
