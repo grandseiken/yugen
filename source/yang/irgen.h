@@ -59,9 +59,14 @@ private:
 
   llvm::Value* i2b(llvm::Value* v);
   llvm::Value* b2i(llvm::Value* v);
+  llvm::Value* i2w(llvm::Value* v);
+  llvm::Value* w2i(llvm::Value* v);
+
   llvm::Value* global_ptr(llvm::Value* ptr, y::size index);
   llvm::Value* global_ptr(const y::string& name);
 
+  // Power implementation.
+  llvm::Value* pow(llvm::Value* v, llvm::Value* u);
   // Euclidean mod and div implementations.
   llvm::Value* mod(llvm::Value* v, llvm::Value* u);
   llvm::Value* div(llvm::Value* v, llvm::Value* u);

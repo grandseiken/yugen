@@ -449,6 +449,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
              type == Node::BITWISE_XOR ? b.CreateXor(v, u, "xor") :
              type == Node::BITWISE_LSHIFT ? b.CreateShl(v, u, "lsh") :
              type == Node::BITWISE_RSHIFT ? b.CreateAShr(v, u, "rsh") :
+             type == Node::POW ? pow(v, u) :
              type == Node::MOD ? mod(v, u) :
              type == Node::ADD ? b.CreateAdd(v, u, "add") :
              type == Node::SUB ? b.CreateSub(v, u, "sub") :
@@ -462,7 +463,8 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
              type == Node::LT ? b.CreateICmpSLT(v, u, "lt") :
              y::null;
     }
-    return type == Node::MOD ? mod(v, u) :
+    return type == Node::POW ? pow(v, u) :
+           type == Node::MOD ? mod(v, u) :
            type == Node::ADD ? b.CreateFAdd(v, u, "fadd") :
            type == Node::SUB ? b.CreateFSub(v, u, "fsub") :
            type == Node::MUL ? b.CreateFMul(v, u, "fmul") :
@@ -694,8 +696,6 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       return binary(results[0], results[1], binary_lambda);
 
     case Node::POW:
-      // TODO: implement POW.
-      return results[0];
     case Node::MOD:
     case Node::ADD:
     case Node::SUB:
@@ -722,7 +722,6 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       return fold(results[0], binary_lambda);
 
     case Node::FOLD_POW:
-      // TODO: implement FOLD_POW.
     case Node::FOLD_MOD:
     case Node::FOLD_ADD:
     case Node::FOLD_SUB:
@@ -801,34 +800,9 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     }
 
     case Node::INT_CAST:
-    {
-      llvm::Type* back_type = world_type();
-      llvm::Type* type = int_type();
-      llvm::Constant* zero = constant_world(0);
-      if (types[0]->isVectorTy()) {
-        y::size n = types[0]->getVectorNumElements();
-        back_type = vector_type(back_type, n);
-        type = vector_type(type, n);
-        zero = constant_vector(zero, n);
-      }
-      // Mathematical floor. Implements the algorithm:
-      // return int(v) - (v < 0 && v != float(int(v)));
-      auto cast = b.CreateFPToSI(results[0], type, "int");
-      auto back = b.CreateSIToFP(cast, back_type, "int");
-
-      auto a_check = b.CreateFCmpOLT(results[0], zero, "int");
-      auto b_check = b.CreateFCmpONE(results[0], back, "int");
-      return b.CreateSub(cast,
-          b2i(b.CreateAnd(a_check, b_check, "int")), "int");
-    }
+      return w2i(results[0]);
     case Node::WORLD_CAST:
-    {
-      llvm::Type* type = world_type();
-      if (types[0]->isVectorTy()) {
-        type = vector_type(type, types[0]->getVectorNumElements());
-      }
-      return b.CreateSIToFP(results[0], type, "wrld");
-    }
+      return i2w(results[0]);
 
     case Node::VECTOR_CONSTRUCT:
     {
@@ -921,6 +895,39 @@ llvm::Value* IrGenerator::b2i(llvm::Value* v)
   return _builder.CreateZExt(v, type, "int");
 }
 
+llvm::Value* IrGenerator::i2w(llvm::Value* v)
+{
+  llvm::Type* type = world_type();
+  if (v->getType()->isVectorTy()) {
+    type = vector_type(type, v->getType()->getVectorNumElements());
+  }
+  return _builder.CreateSIToFP(v, type, "wrld");
+}
+
+llvm::Value* IrGenerator::w2i(llvm::Value* v)
+{
+  auto& b = _builder;
+
+  llvm::Type* back_type = world_type();
+  llvm::Type* type = int_type();
+  llvm::Constant* zero = constant_world(0);
+  if (v->getType()->isVectorTy()) {
+    y::size n = v->getType()->getVectorNumElements();
+    back_type = vector_type(back_type, n);
+    type = vector_type(type, n);
+    zero = constant_vector(zero, n);
+  }
+  // Mathematical floor. Implements the algorithm:
+  // return int(v) - (v < 0 && v != float(int(v)));
+  auto cast = b.CreateFPToSI(v, type, "int");
+  auto back = b.CreateSIToFP(cast, back_type, "int");
+
+  auto a_check = b.CreateFCmpOLT(v, zero, "int");
+  auto b_check = b.CreateFCmpONE(v, back, "int");
+  return b.CreateSub(cast,
+      b2i(b.CreateAnd(a_check, b_check, "int")), "int");
+}
+
 llvm::Value* IrGenerator::global_ptr(llvm::Value* ptr, y::size index)
 {
   // The first index indexes the global data pointer itself, i.e. to obtain
@@ -933,6 +940,42 @@ llvm::Value* IrGenerator::global_ptr(llvm::Value* ptr, y::size index)
 llvm::Value* IrGenerator::global_ptr(const y::string& name)
 {
   return global_ptr(_metadata[GLOBAL_DATA_PTR], _global_numbering[name]);
+}
+
+llvm::Value* IrGenerator::pow(llvm::Value* v, llvm::Value* u)
+{
+  auto& b = _builder;
+  llvm::Type* t = v->getType();
+
+  y::vector<llvm::Type*> args{world_type(), world_type()};
+  // The pow function pointers should probably be given by some standard
+  // library interface, eventually.
+  auto pow_ptr = llvm::Function::Create(
+      llvm::FunctionType::get(world_type(), args, false),
+      llvm::Function::ExternalLinkage, "pow", &_module);
+
+  if (t->isIntOrIntVectorTy()) {
+    v = i2w(v);
+    u = i2w(u);
+  }
+
+  if (!t->isVectorTy()) {
+    y::vector<llvm::Value*> args{v, u};
+    llvm::Value* r = b.CreateCall(pow_ptr, args, "pow");
+    return t->isIntOrIntVectorTy() ? w2i(r) : r;
+  }
+
+  llvm::Value* result =
+      constant_vector(constant_world(0), t->getVectorNumElements());
+  for (y::size i = 0; i < t->getVectorNumElements(); ++i) {
+    llvm::Value* x = b.CreateExtractElement(v, constant_int(i), "pow");
+    llvm::Value* y = b.CreateExtractElement(u, constant_int(i), "pow");
+    y::vector<llvm::Value*> args{x, y};
+
+    llvm::Value* call = b.CreateCall(pow_ptr, args, "pow");
+    result = b.CreateInsertElement(result, call, constant_int(i), "pow");
+  }
+  return t->isIntOrIntVectorTy() ? w2i(result) : result;
 }
 
 llvm::Value* IrGenerator::mod(llvm::Value* v, llvm::Value* u)

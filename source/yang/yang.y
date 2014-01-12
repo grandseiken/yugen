@@ -98,7 +98,7 @@ int yyerror(const char* message)
 %left T_ADD T_SUB
 %left T_MUL T_DIV T_MOD
 %right P_UNARY_L
-%left T_POW
+%right T_POW
 %left T_WORLD_CAST '[' '('
 
   /* Types. */
