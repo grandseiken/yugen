@@ -86,7 +86,13 @@ private:
 
   llvm::Module& _module;
   llvm::IRBuilder<> _builder;
+  // We keep a second symbol table for special metadata entries that don't
+  // correspond to actual source code symbols; this way we can add scopes
+  // that automatically pop metadata without interfering with scope lookup.
   SymbolTable<llvm::Value*> _symbol_table;
+  // TODO: metadata table should really be indexed by some compile-time types
+  // other than strings and checked better.
+  SymbolTable<llvm::Value*> _metadata_table;
   y::string _immediate_left_assign;
 
 };

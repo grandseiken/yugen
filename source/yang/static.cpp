@@ -284,14 +284,34 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       return Type::WORLD;
 
     case Node::TERNARY:
-      // TODO: ternary vectorisation.
+    {
+      // The ternary operator vectorises, as in:
+      // (a, b) ? (c, d) : (e, f) is equivalent to (a ? c : e, b ? d : f).
+      //
+      // It could also vectorise on the right (similar to binary operators), as
+      // in: a ? (b, c) : d equivalent to a ? (b, c) : (d, d) or, also:
+      // (a, b) ? (c, d) : e equivalent to (a, b) ? (c, d) : (e, e).
+      // But, this is odd and confusing, so it's not allowed.
+      bool err = false;
       if (!results[1].is(results[2])) {
         error(node, s + " applied to " + rs[1] + " and " + rs[2]);
+        err = true;
       }
-      if (!results[0].is(Type::INT)) {
+      if (!results[0].is_int()) {
         error(node, s + " branching on " + rs[0]);
+        err = true;
+      }
+
+      if (results[0].is_vector() && !err &&
+          (!results[1].is_vector() || !results[2].is_vector() ||
+           results[0].count() != results[1].count() ||
+           results[0].count() != results[2].count())) {
+        error(node, "length-" + y::to_string(results[0].count()) +
+                    " vectorised branch applied to " +
+                    rs[1] + " and " + rs[2]);
       }
       return results[1].unify(results[2]);
+    }
     case Node::CALL:
       if (!results[0].function()) {
         error(node, s + " applied to " + rs[0]);
