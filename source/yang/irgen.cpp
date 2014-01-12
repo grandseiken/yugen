@@ -193,22 +193,33 @@ void IrGenerator::preorder(const Node& node)
     case Node::IF_STMT:
     {
       _symbol_table.push();
-      auto then_block = llvm::BasicBlock::Create(b.getContext(), "then");
-      auto else_block = llvm::BasicBlock::Create(b.getContext(), "else");
-      auto merge_block = llvm::BasicBlock::Create(b.getContext(), "merge");
+      auto then_block =
+          llvm::BasicBlock::Create(b.getContext(), "then", parent);
+      auto merge_block =
+          llvm::BasicBlock::Create(b.getContext(), "merge", parent);
       _symbol_table.add("%IF_STMT_THEN_BLOCK%", then_block);
-      _symbol_table.add("%IF_STMT_ELSE_BLOCK%", else_block);
       _symbol_table.add("%IF_STMT_MERGE_BLOCK%", merge_block);
+
+      // Optional ELSE branch.
+      if (node.children.size() > 2) {
+        auto else_block =
+            llvm::BasicBlock::Create(b.getContext(), "else", parent);
+        _symbol_table.add("%IF_STMT_ELSE_BLOCK%", else_block);
+      }
       break;
     }
 
     case Node::FOR_STMT:
     {
       _symbol_table.push();
-      auto cond_block = llvm::BasicBlock::Create(b.getContext(), "cond");
-      auto loop_block = llvm::BasicBlock::Create(b.getContext(), "loop");
-      auto after_block = llvm::BasicBlock::Create(b.getContext(), "after");
-      auto merge_block = llvm::BasicBlock::Create(b.getContext(), "merge");
+      auto cond_block =
+          llvm::BasicBlock::Create(b.getContext(), "cond", parent);
+      auto loop_block =
+          llvm::BasicBlock::Create(b.getContext(), "loop", parent);
+      auto after_block =
+          llvm::BasicBlock::Create(b.getContext(), "after", parent);
+      auto merge_block =
+          llvm::BasicBlock::Create(b.getContext(), "merge", parent);
       _symbol_table.add("%FOR_STMT_COND_BLOCK%", cond_block);
       _symbol_table.add("%FOR_STMT_LOOP_BLOCK%", loop_block);
       _symbol_table.add("%FOR_STMT_MERGE_BLOCK%", merge_block);
@@ -221,9 +232,12 @@ void IrGenerator::preorder(const Node& node)
     case Node::DO_WHILE_STMT:
     {
       _symbol_table.push();
-      auto loop_block = llvm::BasicBlock::Create(b.getContext(), "loop");
-      auto cond_block = llvm::BasicBlock::Create(b.getContext(), "cond");
-      auto merge_block = llvm::BasicBlock::Create(b.getContext(), "merge");
+      auto loop_block =
+          llvm::BasicBlock::Create(b.getContext(), "loop", parent);
+      auto cond_block =
+          llvm::BasicBlock::Create(b.getContext(), "cond", parent);
+      auto merge_block =
+          llvm::BasicBlock::Create(b.getContext(), "merge", parent);
       _symbol_table.add("%DO_WHILE_STMT_LOOP_BLOCK%", loop_block);
       _symbol_table.add("%DO_WHILE_STMT_COND_BLOCK%", cond_block);
       _symbol_table.add("%DO_WHILE_STMT_MERGE_BLOCK%", merge_block);
@@ -231,8 +245,24 @@ void IrGenerator::preorder(const Node& node)
       _symbol_table.add("%LOOP_CONTINUE_BLOCK%", cond_block);
 
       b.CreateBr(loop_block);
-      parent->getBasicBlockList().push_back(loop_block);
       b.SetInsertPoint(loop_block);
+      break;
+    }
+
+    case Node::TERNARY:
+    {
+      // Blocks and branching are necessary (as opposed to a select instruction)
+      // to short-circuit and avoiding evaluating the other path.
+      _symbol_table.push();
+      auto then_block =
+          llvm::BasicBlock::Create(b.getContext(), "then", parent);
+      auto else_block =
+          llvm::BasicBlock::Create(b.getContext(), "else", parent);
+      auto merge_block =
+          llvm::BasicBlock::Create(b.getContext(), "merge", parent);
+      _symbol_table.add("%TERNARY_THEN_BLOCK%", then_block);
+      _symbol_table.add("%TERNARY_ELSE_BLOCK%", else_block);
+      _symbol_table.add("%TERNARY_MERGE_BLOCK%", merge_block);
       break;
     }
 
@@ -307,12 +337,10 @@ void IrGenerator::infix(const Node& node, const result_list& results)
         bool has_else = node.children.size() > 2;
         b.CreateCondBr(i2b(results[0]), then_block,
                        has_else ? else_block : merge_block);
-        parent->getBasicBlockList().push_back(then_block);
         b.SetInsertPoint(then_block);
       }
       if (results.size() == 2) {
         b.CreateBr(merge_block);
-        parent->getBasicBlockList().push_back(else_block);
         b.SetInsertPoint(else_block);
       }
       break;
@@ -331,17 +359,14 @@ void IrGenerator::infix(const Node& node, const result_list& results)
 
       if (results.size() == 1) {
         b.CreateBr(cond_block);
-        parent->getBasicBlockList().push_back(cond_block);
         b.SetInsertPoint(cond_block);
       }
       if (results.size() == 2) {
         b.CreateCondBr(i2b(results[1]), loop_block, merge_block);
-        parent->getBasicBlockList().push_back(after_block);
         b.SetInsertPoint(after_block);
       }
       if (results.size() == 3) {
         b.CreateBr(cond_block);
-        parent->getBasicBlockList().push_back(loop_block);
         b.SetInsertPoint(loop_block);
       }
       break;
@@ -353,8 +378,57 @@ void IrGenerator::infix(const Node& node, const result_list& results)
           (llvm::BasicBlock*)_symbol_table["%DO_WHILE_STMT_COND_BLOCK%"];
 
       b.CreateBr(cond_block);
-      parent->getBasicBlockList().push_back(cond_block);
       b.SetInsertPoint(cond_block);
+      break;
+    }
+
+    case Node::TERNARY:
+    {
+      auto then_block =
+          (llvm::BasicBlock*)_symbol_table["%TERNARY_THEN_BLOCK%"];
+      auto else_block =
+          (llvm::BasicBlock*)_symbol_table["%TERNARY_ELSE_BLOCK%"];
+      auto merge_block =
+          (llvm::BasicBlock*)_symbol_table["%TERNARY_MERGE_BLOCK%"];
+
+      if (results.size() == 1) {
+        b.CreateCondBr(i2b(results[0]), then_block, else_block);
+        b.SetInsertPoint(then_block);
+      }
+      if (results.size() == 2) {
+        b.CreateBr(merge_block);
+        b.SetInsertPoint(else_block);
+      }
+      break;
+    }
+
+    // Logical OR and AND short-circuit. This interacts in a subtle way with
+    // vectorisation: we can short-circuit only when the left-hand operand is a
+    // primitive. (We could also check and short-circuit if the left-hand
+    // operand is an entirely zero or entirely non-zero vector. We currently
+    // don't; it seems a bit daft.)
+    case Node::LOGICAL_OR:
+    case Node::LOGICAL_AND:
+    {
+      if (results[0].value->getType()->isVectorTy()) {
+        break;
+      }
+
+      auto rhs_block =
+        llvm::BasicBlock::Create(b.getContext(), "rhs", parent);
+      auto merge_block =
+        llvm::BasicBlock::Create(b.getContext(), "merge", parent);
+      _symbol_table.add("%LOGICAL_OP_SOURCE_BLOCK%", b.GetInsertPoint());
+      _symbol_table.add("%LOGICAL_OP_RHS_BLOCK%", rhs_block);
+      _symbol_table.add("%LOGICAL_OP_MERGE_BLOCK%", merge_block);
+
+      if (node.type == Node::LOGICAL_OR) {
+        b.CreateCondBr(i2b(results[0]), merge_block, rhs_block);
+      }
+      else {
+        b.CreateCondBr(i2b(results[0]), rhs_block, merge_block);
+      }
+      b.SetInsertPoint(rhs_block);
       break;
     }
 
@@ -525,7 +599,6 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
           (llvm::BasicBlock*)_symbol_table["%IF_STMT_MERGE_BLOCK%"];
       _symbol_table.pop();
       b.CreateBr(merge_block);
-      parent->getBasicBlockList().push_back(merge_block);
       b.SetInsertPoint(merge_block);
       return results[0];
     }
@@ -538,7 +611,6 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       _symbol_table.pop();
 
       b.CreateBr(after_block);
-      parent->getBasicBlockList().push_back(merge_block);
       b.SetInsertPoint(merge_block);
       return results[0];
     }
@@ -551,7 +623,6 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       _symbol_table.pop();
 
       b.CreateCondBr(i2b(results[1]), loop_block, merge_block);
-      parent->getBasicBlockList().push_back(merge_block);
       b.SetInsertPoint(merge_block);
       return results[0];
     }
@@ -586,10 +657,21 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       return constant_world(node.world_value);
 
     case Node::TERNARY:
-      // TODO: this evaluates both arguments. Should definitely branch.
-      // Furthermore, logical AND and logical OR are currently using
-      // select instead of branching. This is bad.
-      return b.CreateSelect(i2b(results[0]), results[1], results[2]);
+    {
+      auto then_block =
+          (llvm::BasicBlock*)_symbol_table["%TERNARY_THEN_BLOCK%"];
+      auto else_block =
+          (llvm::BasicBlock*)_symbol_table["%TERNARY_ELSE_BLOCK%"];
+      auto merge_block =
+          (llvm::BasicBlock*)_symbol_table["%TERNARY_MERGE_BLOCK%"];
+      _symbol_table.pop();
+      b.CreateBr(merge_block);
+      b.SetInsertPoint(merge_block);
+      auto phi = b.CreatePHI(types[1], 2, "tern");
+      phi->addIncoming(results[1], then_block);
+      phi->addIncoming(results[2], else_block);
+      return phi;
+    }
     case Node::CALL:
     {
       y::vector<llvm::Value*> args;
@@ -601,26 +683,36 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       return b.CreateCall(results[0], args);
     }
 
-
-    // Logical OR and AND short-circuit. This interacts in a subtle way with
-    // vectorisation: we can short-circuit only when the left-hand operand is a
-    // primitive. (We could also check and short-circuit if the left-hand
-    // operand is an entirely zero or entirely non-zero vector. We currently
-    // don't.)
     case Node::LOGICAL_OR:
     case Node::LOGICAL_AND:
     {
       if (types[0]->isVectorTy()) {
+        // Short-circuiting isn't possible.
         return b2i(binary(i2b(results[0]), i2b(results[1]), binary_lambda));
       }
+      auto source_block =
+          (llvm::BasicBlock*)_symbol_table["%LOGICAL_OP_SOURCE_BLOCK%"];
+      auto rhs_block =
+          (llvm::BasicBlock*)_symbol_table["%LOGICAL_OP_RHS_BLOCK%"];
+      auto merge_block =
+          (llvm::BasicBlock*)_symbol_table["%LOGICAL_OP_MERGE_BLOCK%"];
+
+      auto rhs = b2i(i2b(results[1]));
+      b.CreateBr(merge_block);
+      b.SetInsertPoint(merge_block);
       llvm::Constant* constant =
           constant_int(node.type == Node::LOGICAL_OR ? 1 : 0);
+      llvm::Type* type = int_type();
       if (types[1]->isVectorTy()) {
-        constant = constant_vector(constant, types[1]->getVectorNumElements());
+        y::size n = types[1]->getVectorNumElements();
+        constant = constant_vector(constant, n);
+        type = vector_type(type, n);
       }
-      return node.type == Node::LOGICAL_OR ?
-          b.CreateSelect(i2b(results[0]), constant, b2i(i2b(results[1]))) :
-          b.CreateSelect(i2b(results[0]), b2i(i2b(results[1])), constant);
+
+      auto phi = b.CreatePHI(type, 2, "cut");
+      phi->addIncoming(constant, source_block);
+      phi->addIncoming(rhs, rhs_block);
+      return phi;
     }
 
     // Most binary operators map directly to (vectorisations of) LLVM IR
@@ -931,22 +1023,33 @@ llvm::Value* IrGenerator::binary(
     llvm::Value* left, llvm::Value* right,
     y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op)
 {
+  llvm::Type* l_type = left->getType();
+  llvm::Type* r_type = right->getType();
+
   // If both scalar or vector, sizes must be equal, and we can directly operate
   // on the values.
-  if (left->getType()->isVectorTy() == right->getType()->isVectorTy()) {
+  if (l_type->isVectorTy() == r_type->isVectorTy()) {
     return op(left, right);
   }
 
   // Otherwise one is a scalar and one a vector (but having the same base type),
   // and we need to extend the scalar to match the size of the vector.
-  bool is_left = left->getType()->isVectorTy();
+  bool is_left = l_type->isVectorTy();
   y::size size = is_left ?
-      left->getType()->getVectorNumElements() :
-      right->getType()->getVectorNumElements();
+      l_type->getVectorNumElements() : r_type->getVectorNumElements();
 
-  llvm::Value* v = constant_vector(
-      left->getType()->isIntOrIntVectorTy() ?
-      constant_int(0) : constant_world(0), size);
+  llvm::Value* v = y::null;
+  if (l_type->isIntOrIntVectorTy()) {
+    v = constant_vector(constant_int(0), size);
+    // Can't insert booleans into a vector of int_type()!
+    llvm::Type* i = is_left ? l_type->getVectorElementType() : l_type;
+    if (i->getIntegerBitWidth() == 1) {
+      v = i2b(v);
+    }
+  }
+  else {
+    v = constant_vector(constant_world(0), size);
+  }
 
   for (y::size i = 0; i < size; ++i) {
     v = _builder.CreateInsertElement(
