@@ -128,7 +128,16 @@ struct Node {
   // parser will leak. To avoid this, we keep a set of Nodes which have been
   // allocated but not inserted as children so they can be freed later.
   static y::set<Node*> orphans;
+};
 
+struct ParseGlobals {
+  static const y::string* lexer_input_contents;
+  static y::size lexer_input_offset;
+
+  static Node* parser_output;
+  static y::vector<y::string> errors;
+  static y::string error(
+      y::size line, const y::string& token, const y::string& message);
 };
 
 // End namespace yang.

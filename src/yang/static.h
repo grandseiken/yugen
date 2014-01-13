@@ -10,16 +10,15 @@ namespace yang {
 class StaticChecker : public ConstAstWalker<Type> {
 public:
 
-  StaticChecker();
+  typedef y::map<y::string, Type> symbol_frame;
+  StaticChecker(symbol_frame& export_functions, symbol_frame& export_globals,
+                symbol_frame& internal_functions);
   ~StaticChecker();
 
   // True if any errors were detected during the checking. Otherwise, assuming
   // there are no bugs in the compiler, we can generate the IR without worrying
   // about malformed AST.
   bool errors() const;
-
-  // After checking, returns a mapping of global variable names to types.
-  const y::map<y::string, Type>& global_variable_map() const;
 
 protected:
 
@@ -50,6 +49,7 @@ private:
   y::string _immediate_left_assign;
 
   enum metadata {
+    EXPORT_GLOBAL,
     LOOP_BODY,
     RETURN_TYPE,
   };
@@ -57,7 +57,10 @@ private:
 
   SymbolTable<metadata, Type> _metadata;
   SymbolTable<y::string, Type> _symbol_table;
-  y::map<y::string, Type> _global_variable_map;
+
+  symbol_frame& _export_functions;
+  symbol_frame& _export_globals;
+  symbol_frame& _internal_globals;
 
 };
 

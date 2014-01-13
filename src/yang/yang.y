@@ -2,7 +2,6 @@
 
 #include "yang.l.h"
 #include "../../src/yang/ast.h"
-#include "../../src/yang/pipeline.h"
 
 int yang_error(const char* message)
 {

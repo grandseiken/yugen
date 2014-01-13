@@ -2,7 +2,6 @@
 
 #include "../../src/common/algorithm.h"
 #include "../../src/yang/ast.h"
-#include "../../src/yang/pipeline.h"
 #include "yang.y.h"
 
   /* Handle lexer input from a string. */

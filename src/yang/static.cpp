@@ -15,10 +15,15 @@ namespace std {
 
 namespace yang {
 
-StaticChecker::StaticChecker()
+StaticChecker::StaticChecker(
+    symbol_frame& export_functions, symbol_frame& export_globals,
+    symbol_frame& internal_globals)
   : _errors(false)
   , _metadata(Type::VOID)
   , _symbol_table(Type::VOID)
+  , _export_functions(export_functions)
+  , _export_globals(export_globals)
+  , _internal_globals(internal_globals)
 {
 }
 
@@ -32,17 +37,14 @@ bool StaticChecker::errors() const
   return _errors;
 }
 
-const y::map<y::string, Type>& StaticChecker::global_variable_map() const
-{
-  return _global_variable_map;
-}
-
 void StaticChecker::preorder(const Node& node)
 {
   switch (node.type) {
     case Node::GLOBAL:
       _current_function = ".global";
       _symbol_table.push();
+      _metadata.push();
+      _metadata.add(EXPORT_GLOBAL, Type::VOID);
       break;
     case Node::GLOBAL_ASSIGN:
       // Set current top-level function name.
@@ -195,6 +197,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::PROGRAM:
       return Type::VOID;
     case Node::GLOBAL:
+      _metadata.pop();
       _symbol_table.pop();
       _current_function = "";
       return Type::VOID;
@@ -203,6 +206,9 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       if (!results[0].function()) {
         error(node, "global assignment of type " + rs[0]);
         add_symbol_checking_collision(node, node.string_value, results[0]);
+      }
+      if (node.int_value) {
+        _export_functions.emplace(node.string_value, results[0]);
       }
       // Otherwise, the symbol already exists by the immediate-name-assign
       // recursion hack.
@@ -488,6 +494,14 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         error(node, "assignment of type " + rs[0]);
       }
 
+      auto add_global = [&]()
+      {
+        auto& table = _metadata.has(EXPORT_GLOBAL) ?
+            _export_globals : _internal_globals;
+        table.emplace(
+            node.string_value, _symbol_table.get(node.string_value, 0));
+      };
+
       if (use_function_immediate_assign_hack(node)) {
         // Symbol has already been added by immediate-name-assign recursion
         // hack. But, we may need to make it non-const and enter it in the
@@ -496,8 +510,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         _symbol_table.get(node.string_value, index).set_const(
             node.type == Node::ASSIGN_CONST);
         if (!inside_function()) {
-          _global_variable_map.emplace(
-              node.string_value, _symbol_table.get(node.string_value, 0));
+          add_global();
         }
         return results[0];
       }
@@ -509,8 +522,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       if (!inside_function()) {
         add_symbol_checking_collision(node, node.string_value, 0, t);
         // Store global in the global map for future use.
-        _global_variable_map.emplace(
-            node.string_value, _symbol_table.get(node.string_value, 0));
+        add_global();
         return results[0];
       }
 

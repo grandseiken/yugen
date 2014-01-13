@@ -22,7 +22,8 @@ int yang_parse();
 
 namespace yang {
 
-Program::Program(const y::string& name, const y::string& contents)
+Program::Program(const y::string& name,
+                 const y::string& contents, bool optimise)
   : _name(name)
   , _ast(y::null)
   , _module(y::null)
@@ -47,13 +48,20 @@ Program::Program(const y::string& name, const y::string& contents)
     return;
   }
 
-  StaticChecker checker;
+  StaticChecker checker(_export_functions, _export_globals, _internal_globals);
   checker.walk(*output);
   if (checker.errors()) {
+    _export_functions.clear();
+    _export_globals.clear();
+    _internal_globals.clear();
     return;
   }
-  _globals = checker.global_variable_map();
   _ast = y::move_unique(output);
+
+  generate_ir();
+  if (optimise) {
+    optimise_ir();
+  }
 }
 
 Program::~Program()
@@ -62,7 +70,7 @@ Program::~Program()
 
 bool Program::success() const
 {
-  return bool(_ast);
+  return bool(_ast) && bool(_module);
 }
 
 y::string Program::print_ast() const
@@ -74,38 +82,66 @@ y::string Program::print_ast() const
   return printer.walk(*_ast) + '\n';
 }
 
-void Program::generate_ir()
+y::string Program::print_ir() const
 {
   if (!success()) {
-    return;
+    return "<error>";
   }
+  y::string output;
+  llvm::raw_string_ostream os(output);
+  _module->print(os, y::null);
+  return output;
+}
 
+const Program::symbol_table& Program::get_export_functions() const
+{
+  return _export_functions;
+}
+
+const Program::symbol_table& Program::get_export_globals() const
+{
+  return _export_globals;
+}
+
+const Program::symbol_table& Program::get_internal_globals() const
+{
+  return _internal_globals;
+}
+
+void Program::generate_ir()
+{
+  y::string error;
   llvm::InitializeNativeTarget();
   _module = y::move_unique(
       new llvm::Module(_name, llvm::getGlobalContext()));
 
   // TODO: unsure if I am supposed to delete the ExecutionEngine, or the Values.
-  _engine = llvm::EngineBuilder(_module.get()).setErrorStr(&_error).create();
+  _engine = llvm::EngineBuilder(_module.get()).setErrorStr(&error).create();
   if (!_engine) {
-    log_err("Couldn't create execution engine:\n", _error);
+    log_err("Couldn't create execution engine:\n", error);
     _module = y::null;
   }
 
-  IrGenerator irgen(*_module, _globals);
+  symbol_table all_globals;
+  for (const auto& pair : _export_globals) {
+    all_globals.insert(pair);
+  }
+  for (const auto& pair : _internal_globals) {
+    all_globals.insert(pair);
+  }
+
+  IrGenerator irgen(*_module, all_globals);
   irgen.walk(*_ast);
   irgen.emit_global_functions();
 
-  if (llvm::verifyModule(*_module, llvm::ReturnStatusAction, &_error)) {
-    log_err("Couldn't verify module:\n", _error);
+  if (llvm::verifyModule(*_module, llvm::ReturnStatusAction, &error)) {
+    log_err("Couldn't verify module:\n", error);
+    _module = y::null;
   }
 }
 
 void Program::optimise_ir()
 {
-  if (!_module) {
-    return;
-  }
-
   llvm::PassManager optimiser;
   optimiser.add(new llvm::DataLayout(*_engine->getDataLayout()));
 
@@ -151,48 +187,24 @@ void Program::optimise_ir()
   optimiser.run(*_module);
 }
 
-y::string Program::print_ir() const
+Instance::Instance(const Program& program)
+  : _program(program)
+  , _global_data(y::null)
 {
-  if (!_module) {
-    return "<error>";
-  }
-  y::string output;
-  llvm::raw_string_ostream os(output);
-  _module->print(os, y::null);
-  return output;
+  void* global_alloc = get_native_fp("!global_alloc");
+  _global_data = ((void* (*)())global_alloc)();
 }
 
-const y::string* ParseGlobals::lexer_input_contents = y::null;
-y::size ParseGlobals::lexer_input_offset = 0;
-
-Node* ParseGlobals::parser_output = y::null;
-y::vector<y::string> ParseGlobals::errors;
-
-y::string ParseGlobals::error(
-    y::size line, const y::string& token, const y::string& message)
+Instance::~Instance()
 {
-  bool replace = false;
-  y::string t = token;
-  y::size it;
-  while ((it = t.find('\n')) != y::string::npos) {
-    t.replace(it, 1 + it, "");
-    replace = true;
-  }
-  while ((it = t.find('\r')) != y::string::npos) {
-    t.replace(it, 1 + it, "");
-    replace = true;
-  }
-  while ((it = t.find('\t')) != y::string::npos) {
-    t.replace(it, 1 + it, " ");
-  }
-  if (replace) {
-    --line;
-  }
+  void* global_free = get_native_fp("!global_free");
+  ((void (*)(void*))global_free)(_global_data);
+}
 
-  y::sstream ss;
-  ss << "Error at line " << line <<
-      ", near `" << t << "`:\n\t" << message;
-  return ss.str();
+void* Instance::get_native_fp(const y::string& name)
+{
+  llvm::Function* ir_fp = _program._module->getFunction(name);
+  return _program._engine->getPointerToFunction(ir_fp);
 }
 
 // End namespace yang.

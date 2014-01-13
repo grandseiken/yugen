@@ -4,6 +4,7 @@
 #include "../common/map.h"
 #include "../common/memory.h"
 #include "../common/string.h"
+#include "../common/utility.h"
 #include "../common/vector.h"
 
 #include "type.h"
@@ -31,42 +32,55 @@ struct Node;
 // restrictions on their usage (e.g. only global variables).
 // TODO: possibly implement closures, if it seems feasible.
 // TODO: warnings: for example, unused variables.
-class Program {
+class Program : public y::no_copy {
 public:
 
-  Program(const y::string& name, const y::string& contents);
+  Program(const y::string& name,
+          const y::string& contents, bool optimise = true);
   ~Program();
 
   // Returns true if the contents parsed and checked successfully. Otherwise,
   // none of the following functions will do anything useful.
   bool success() const;
   y::string print_ast() const;
-
-  void generate_ir();
-  void optimise_ir();
   y::string print_ir() const;
+
+  typedef y::map<y::string, Type> symbol_table;
+  const symbol_table& get_export_functions() const;
+  const symbol_table& get_export_globals() const;
+  const symbol_table& get_internal_globals() const;
 
 private:
 
+  friend class Instance;
+
+  void generate_ir();
+  void optimise_ir();
+
+  symbol_table _export_functions;
+  symbol_table _export_globals;
+  symbol_table _internal_globals;
+
   y::string _name;
-  y::string _error;
-
   y::unique<Node> _ast;
-  y::map<y::string, Type> _globals;
-
   y::unique<llvm::Module> _module;
   llvm::ExecutionEngine* _engine;
 
 };
 
-struct ParseGlobals {
-  static const y::string* lexer_input_contents;
-  static y::size lexer_input_offset;
+class Instance : public y::no_copy {
+public:
 
-  static Node* parser_output;
-  static y::vector<y::string> errors;
-  static y::string error(
-      y::size line, const y::string& token, const y::string& message);
+  Instance(const Program& program);
+  ~Instance();
+
+private:
+
+  void* get_native_fp(const y::string& name);
+
+  const Program& _program;
+  void* _global_data;
+
 };
 
 // End namespace yang.

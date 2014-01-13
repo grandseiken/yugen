@@ -173,7 +173,7 @@ void IrGenerator::preorder(const Node& node)
       // allocation function.
       auto function = llvm::Function::Create(
           llvm::FunctionType::get(void_type(), _global_data, false),
-          llvm::Function::InternalLinkage, "global_init", &_module);
+          llvm::Function::InternalLinkage, "!global_init", &_module);
       _global_inits.push_back(function);
       auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
 
