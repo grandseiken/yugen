@@ -32,7 +32,7 @@ endif
 GEN= \
 	./gen
 SOURCE= \
-	./source
+	./src
 YUGEN_BINARY= \
 	$(OUTDIR)/yugen
 YEDIT_BINARY= \
@@ -249,7 +249,7 @@ endif
 # object files it depends on, generated in the .deps file.
 $(BINARIES): $(OUTDIR)/%: \
 	./depend/.build $(OUTDIR)/%.mkdir \
-	$$(__source$$(subst /,_,$$(subst $$(OUTDIR),,./$$@))_cpp_LINK)
+	$$(__src$$(subst /,_,$$(subst $$(OUTDIR),,./$$@))_cpp_LINK)
 	@echo Linking ./$@
 	$(CXX) -o ./$@ $(filter-out %.build,$(filter-out %.mkdir,$^)) $(LFLAGS)
 

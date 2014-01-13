@@ -39,7 +39,7 @@ function lint_cstyle
   lint_highlight '\} *else' 'Line \1 else line'
 }
 
-for file in source/*.* source/*/*; do
+for file in src/*.* src/*/*; do
   echo Linting: $file
   lint_common
   lint_cstyle

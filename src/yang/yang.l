@@ -1,8 +1,8 @@
 %{
 
-#include "../../source/common/algorithm.h"
-#include "../../source/yang/ast.h"
-#include "../../source/yang/pipeline.h"
+#include "../../src/common/algorithm.h"
+#include "../../src/yang/ast.h"
+#include "../../src/yang/pipeline.h"
 #include "yang.y.h"
 
   /* Handle lexer input from a string. */
