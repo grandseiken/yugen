@@ -5,13 +5,15 @@
 
 namespace std {
   template<>
-  struct hash<StaticChecker::metadata> {
-    y::size operator()(StaticChecker::metadata v) const
+  struct hash<yang::StaticChecker::metadata> {
+    y::size operator()(yang::StaticChecker::metadata v) const
     {
       return v;
     }
   };
 }
+
+namespace yang {
 
 StaticChecker::StaticChecker()
   : _errors(false)
@@ -616,4 +618,7 @@ void StaticChecker::error(const Node& node, const y::string& message)
     m = "in function `" + _current_function + "`: " + m;
   }
   log_err(ParseGlobals::error(node.line, node.text, m));
+}
+
+// End namespace yang.
 }

@@ -4,17 +4,19 @@
 #include "../../source/yang/ast.h"
 #include "../../source/yang/pipeline.h"
 
-int yyerror(const char* message)
+int yang_error(const char* message)
 {
-  ParseGlobals::errors.emplace_back(
-      ParseGlobals::error(yylineno, yytext, message));
+  yang::ParseGlobals::errors.emplace_back(
+      yang::ParseGlobals::error(yang_lineno, yang_text, message));
   return 0;
 }
+
+typedef yang::Node Node;
 
 %}
 
 %union {
-  struct Node* node;
+  yang::Node* node;
 }
 
   /* Tokens. */
@@ -199,7 +201,7 @@ opt_identifier
 
 program
   : elem_list T_EOF
-{$$ = ParseGlobals::parser_output = $1;
+{$$ = yang::ParseGlobals::parser_output = $1;
  $$->type = Node::PROGRAM;}
   ;
 

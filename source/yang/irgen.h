@@ -15,6 +15,8 @@ namespace llvm {
   class Value;
 }
 
+namespace yang {
+
 struct IrGeneratorUnion {
   IrGeneratorUnion(llvm::Type* type);
   IrGeneratorUnion(llvm::Value* value);
@@ -127,5 +129,8 @@ private:
   y::string _immediate_left_assign;
 
 };
+
+// End namespace yang.
+}
 
 #endif

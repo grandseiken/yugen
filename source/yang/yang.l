@@ -1,22 +1,22 @@
 %{
 
-#include "yang.y.h"
 #include "../../source/common/algorithm.h"
 #include "../../source/yang/ast.h"
 #include "../../source/yang/pipeline.h"
+#include "yang.y.h"
 
   /* Handle lexer input from a string. */
 
 #undef YY_INPUT
 #define YY_INPUT(b, r, m) lexer_input(b, &r, m)
-int yyerror(const char* message);
+int yang_error(const char* message);
 
 namespace {
 
   int lexer_input(char* buffer, y::size* bytes_read, y::size bytes_max)
   {
-    const y::string& in = *ParseGlobals::lexer_input_contents;
-    y::size& offset = ParseGlobals::lexer_input_offset;
+    const y::string& in = *yang::ParseGlobals::lexer_input_contents;
+    y::size& offset = yang::ParseGlobals::lexer_input_offset;
 
     *bytes_read = y::min(bytes_max, in.length() - offset);
     for (y::size i = 0; i < *bytes_read; ++i) {
@@ -27,6 +27,8 @@ namespace {
   }
 
 }
+
+typedef yang::Node Node;
 
 %}
 
@@ -58,13 +60,13 @@ vector_size [1-9]{digit}*
   /* Comments and whitespace. */
 
 <*>{tab} {
-  yyerror("tab character");
+  yang_error("tab character");
 }
 <*>{whitespace_newline} {
-  yyerror("end-of-line whitespace");
+  yang_error("end-of-line whitespace");
 }
 <long_comment><<EOF>> {
-  yyerror("end-of-input inside comment");
+  yang_error("end-of-input inside comment");
   BEGIN(INITIAL);
   return T_EOF;
 }
@@ -93,31 +95,31 @@ return {return T_RETURN;}
   /* Types. */
 
 void {
-  yylval.node = new Node(Node::TYPE_VOID);
+  yang_lval.node = new Node(Node::TYPE_VOID);
   return T_TYPE_LITERAL;
 }
 int {
-  yylval.node = new Node(Node::TYPE_INT, 1);
+  yang_lval.node = new Node(Node::TYPE_INT, 1);
   return T_TYPE_LITERAL;
 }
 int0 {
-  yylval.node = new Node(Node::TYPE_VOID);
+  yang_lval.node = new Node(Node::TYPE_VOID);
   return T_TYPE_LITERAL;
 }
 int{vector_size} {
-  yylval.node = new Node(Node::TYPE_INT, y::stoi(3 + yytext));
+  yang_lval.node = new Node(Node::TYPE_INT, y::stoi(3 + yang_text));
   return T_TYPE_LITERAL;
 }
 world {
-  yylval.node = new Node(Node::TYPE_WORLD, 1);
+  yang_lval.node = new Node(Node::TYPE_WORLD, 1);
   return T_TYPE_LITERAL;
 }
 world0 {
-  yylval.node = new Node(Node::TYPE_VOID);
+  yang_lval.node = new Node(Node::TYPE_VOID);
   return T_TYPE_LITERAL;
 }
 world{vector_size} {
-  yylval.node = new Node(Node::TYPE_WORLD, y::stoi(5 + yytext));
+  yang_lval.node = new Node(Node::TYPE_WORLD, y::stoi(5 + yang_text));
   return T_TYPE_LITERAL;
 }
 
@@ -171,26 +173,26 @@ world{vector_size} {
   /* Identifiers and literals. */
 
 true {
-  yylval.node = new Node(Node::INT_LITERAL, 1);
+  yang_lval.node = new Node(Node::INT_LITERAL, 1);
   return T_INT_LITERAL;
 }
 false {
-  yylval.node = new Node(Node::INT_LITERAL, 0);
+  yang_lval.node = new Node(Node::INT_LITERAL, 0);
   return T_INT_LITERAL;
 }
 {identifier} {
-  yylval.node = new Node(Node::IDENTIFIER, yytext);
+  yang_lval.node = new Node(Node::IDENTIFIER, yang_text);
   return T_IDENTIFIER;
 }
 {int_literal} {
-  yylval.node = new Node(Node::INT_LITERAL, y::stoi(yytext));
+  yang_lval.node = new Node(Node::INT_LITERAL, y::stoi(yang_text));
   return T_INT_LITERAL;
 }
 {world_literal} {
-  yylval.node = new Node(Node::WORLD_LITERAL, y::stod(yytext));
+  yang_lval.node = new Node(Node::WORLD_LITERAL, y::stod(yang_text));
   return T_WORLD_LITERAL;
 }
 
   /* Default. */
 
-{default} {return yytext[0];}
+{default} {return yang_text[0];}

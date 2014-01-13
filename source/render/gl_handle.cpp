@@ -1,6 +1,67 @@
 #include "gl_handle.h"
 #include "../log.h"
 
+namespace {
+
+void composite_type_to_base_and_length(GLenum type, GLenum& type_output,
+                                       y::size& length_output)
+{
+  length_output = 1;
+  type_output = 0;
+
+  switch (type) {
+    case GL_FLOAT_VEC4:
+      length_output = y::max(length_output, y::size(4));
+    case GL_FLOAT_VEC3:
+      length_output = y::max(length_output, y::size(3));
+    case GL_FLOAT_VEC2:
+      length_output = y::max(length_output, y::size(2));
+    case GL_FLOAT:
+      type_output = GL_FLOAT;
+      break;
+
+    case GL_INT_VEC4:
+      length_output = y::max(length_output, y::size(4));
+    case GL_INT_VEC3:
+      length_output = y::max(length_output, y::size(3));
+    case GL_INT_VEC2:
+      length_output = y::max(length_output, y::size(2));
+    case GL_INT:
+      type_output = GL_INT;
+      break;
+
+    case GL_UNSIGNED_INT_VEC4:
+      length_output = y::max(length_output, y::size(4));
+    case GL_UNSIGNED_INT_VEC3:
+      length_output = y::max(length_output, y::size(3));
+    case GL_UNSIGNED_INT_VEC2:
+      length_output = y::max(length_output, y::size(2));
+    case GL_UNSIGNED_INT:
+      type_output = GL_UNSIGNED_INT;
+      break;
+
+    case GL_BOOL_VEC4:
+      length_output = y::max(length_output, y::size(4));
+    case GL_BOOL_VEC3:
+      length_output = y::max(length_output, y::size(3));
+    case GL_BOOL_VEC2:
+      length_output = y::max(length_output, y::size(2));
+    case GL_BOOL:
+      type_output = GL_BOOL;
+      break;
+
+    case GL_DOUBLE:
+      type_output = GL_DOUBLE;
+      break;
+
+    default:
+      type_output = GL_INT;
+  }
+}
+
+// End anonymous namespace.
+}
+
 bool GlHandle::operator==(const GlHandle& handle) const
 {
   return _handle == handle._handle;
@@ -116,64 +177,6 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
 {
   arg.get_texture().bind(GL_TEXTURE0 + _texture_index);
   return bind_uniform(index, name, _texture_index++);
-}
-
-namespace {
-  void composite_type_to_base_and_length(GLenum type, GLenum& type_output,
-                                         y::size& length_output)
-  {
-    length_output = 1;
-    type_output = 0;
-
-    switch (type) {
-      case GL_FLOAT_VEC4:
-        length_output = y::max(length_output, y::size(4));
-      case GL_FLOAT_VEC3:
-        length_output = y::max(length_output, y::size(3));
-      case GL_FLOAT_VEC2:
-        length_output = y::max(length_output, y::size(2));
-      case GL_FLOAT:
-        type_output = GL_FLOAT;
-        break;
-
-      case GL_INT_VEC4:
-        length_output = y::max(length_output, y::size(4));
-      case GL_INT_VEC3:
-        length_output = y::max(length_output, y::size(3));
-      case GL_INT_VEC2:
-        length_output = y::max(length_output, y::size(2));
-      case GL_INT:
-        type_output = GL_INT;
-        break;
-
-      case GL_UNSIGNED_INT_VEC4:
-        length_output = y::max(length_output, y::size(4));
-      case GL_UNSIGNED_INT_VEC3:
-        length_output = y::max(length_output, y::size(3));
-      case GL_UNSIGNED_INT_VEC2:
-        length_output = y::max(length_output, y::size(2));
-      case GL_UNSIGNED_INT:
-        type_output = GL_UNSIGNED_INT;
-        break;
-
-      case GL_BOOL_VEC4:
-        length_output = y::max(length_output, y::size(4));
-      case GL_BOOL_VEC3:
-        length_output = y::max(length_output, y::size(3));
-      case GL_BOOL_VEC2:
-        length_output = y::max(length_output, y::size(2));
-      case GL_BOOL:
-        type_output = GL_BOOL;
-        break;
-
-      case GL_DOUBLE:
-        type_output = GL_DOUBLE;
-        break;
-
-      default:
-        type_output = GL_INT;
-    }
-  }
 }
 
 bool GlProgram::check_match(bool attribute, const y::string& name,

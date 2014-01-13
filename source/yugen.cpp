@@ -13,70 +13,73 @@
 #include <SFML/Window.hpp>
 
 namespace {
-  // A default bayer matrix for ordered dithering. Area should be at least the
-  // ratio of source colours to target colours (per channel); for example 24bpp
-  // to 9bpp gives 2^8/2^3 = 32 so at least 6x6. This one is 8x8.
-  const GLfloat bayer_d = 1.f / 65;
-  const GLfloat bayer_matrix[] = {
-      bayer_d * 1, bayer_d * 49, bayer_d * 13, bayer_d * 61,
-      bayer_d * 4, bayer_d * 52, bayer_d * 16, bayer_d * 64,
-      bayer_d * 33, bayer_d * 17, bayer_d * 45, bayer_d * 29,
-      bayer_d * 36, bayer_d * 20, bayer_d * 48, bayer_d * 32,
-      bayer_d * 9, bayer_d * 57, bayer_d * 5, bayer_d * 53,
-      bayer_d * 12, bayer_d * 60, bayer_d * 8, bayer_d * 56,
-      bayer_d * 41, bayer_d * 25, bayer_d * 37, bayer_d * 21,
-      bayer_d * 44, bayer_d * 28, bayer_d * 40, bayer_d * 24,
-      bayer_d * 3, bayer_d * 51, bayer_d * 15, bayer_d * 63,
-      bayer_d * 2, bayer_d * 50, bayer_d * 14, bayer_d * 62,
-      bayer_d * 35, bayer_d * 19, bayer_d * 47, bayer_d * 31,
-      bayer_d * 34, bayer_d * 18, bayer_d * 46, bayer_d * 30,
-      bayer_d * 11, bayer_d * 59, bayer_d * 7, bayer_d * 55,
-      bayer_d * 10, bayer_d * 58, bayer_d * 6, bayer_d * 54,
-      bayer_d * 43, bayer_d * 27, bayer_d * 39, bayer_d * 23,
-      bayer_d * 42, bayer_d * 26, bayer_d * 38, bayer_d * 22};
 
-  // Uses "a dither" algorithm based on http://pippin.gimp.org/a_dither.
-  enum a_dither_pattern {
-    XOR_PATTERN,
-    XOR_PATTERN_RGBSPLIT,
-    ADD_PATTERN,
-    ADD_PATTERN_RGBSPLIT,
-  };
+// A default bayer matrix for ordered dithering. Area should be at least the
+// ratio of source colours to target colours (per channel); for example 24bpp
+// to 9bpp gives 2^8/2^3 = 32 so at least 6x6. This one is 8x8.
+const GLfloat bayer_d = 1.f / 65;
+const GLfloat bayer_matrix[] = {
+    bayer_d * 1, bayer_d * 49, bayer_d * 13, bayer_d * 61,
+    bayer_d * 4, bayer_d * 52, bayer_d * 16, bayer_d * 64,
+    bayer_d * 33, bayer_d * 17, bayer_d * 45, bayer_d * 29,
+    bayer_d * 36, bayer_d * 20, bayer_d * 48, bayer_d * 32,
+    bayer_d * 9, bayer_d * 57, bayer_d * 5, bayer_d * 53,
+    bayer_d * 12, bayer_d * 60, bayer_d * 8, bayer_d * 56,
+    bayer_d * 41, bayer_d * 25, bayer_d * 37, bayer_d * 21,
+    bayer_d * 44, bayer_d * 28, bayer_d * 40, bayer_d * 24,
+    bayer_d * 3, bayer_d * 51, bayer_d * 15, bayer_d * 63,
+    bayer_d * 2, bayer_d * 50, bayer_d * 14, bayer_d * 62,
+    bayer_d * 35, bayer_d * 19, bayer_d * 47, bayer_d * 31,
+    bayer_d * 34, bayer_d * 18, bayer_d * 46, bayer_d * 30,
+    bayer_d * 11, bayer_d * 59, bayer_d * 7, bayer_d * 55,
+    bayer_d * 10, bayer_d * 58, bayer_d * 6, bayer_d * 54,
+    bayer_d * 43, bayer_d * 27, bayer_d * 39, bayer_d * 23,
+    bayer_d * 42, bayer_d * 26, bayer_d * 38, bayer_d * 22};
 
-  constexpr y::int32 a_dither_dim(a_dither_pattern pattern)
-  {
-    return pattern < ADD_PATTERN ? 512 : 256;
+// Uses "a dither" algorithm based on http://pippin.gimp.org/a_dither.
+enum a_dither_pattern {
+  XOR_PATTERN,
+  XOR_PATTERN_RGBSPLIT,
+  ADD_PATTERN,
+  ADD_PATTERN_RGBSPLIT,
+};
+
+constexpr y::int32 a_dither_dim(a_dither_pattern pattern)
+{
+  return pattern < ADD_PATTERN ? 512 : 256;
+}
+
+constexpr y::int32 a_dither_size(a_dither_pattern pattern)
+{
+  return 3 * a_dither_dim(pattern) * a_dither_dim(pattern);
+}
+
+GLfloat a_dither_compute(a_dither_pattern pattern, y::int32 n)
+{
+  y::size size = a_dither_dim(pattern);
+  y::int32 x = n % size;
+  y::int32 y = (n / size) % size;
+  y::int32 c = n / (size * size);
+
+  switch (pattern) {
+    case XOR_PATTERN:
+      return ((x ^ y * 149) * 1234 & 511) / 512.f;
+    case XOR_PATTERN_RGBSPLIT:
+      return (((x + c * 17) ^ y * 149) * 1234 & 511) / 512.f;
+    case ADD_PATTERN:
+      return ((x + y * 237) * 119 & 255) / 256.f;
+    case ADD_PATTERN_RGBSPLIT:
+      return (((x + c * 67) + y * 236) * 119 & 255) / 256.f;
+    default:
+      return .5f;
   }
 
-  constexpr y::int32 a_dither_size(a_dither_pattern pattern)
-  {
-    return 3 * a_dither_dim(pattern) * a_dither_dim(pattern);
-  }
+// End anonymous namespace.
+}
 
-  GLfloat a_dither_compute(a_dither_pattern pattern, y::int32 n)
-  {
-    y::size size = a_dither_dim(pattern);
-    y::int32 x = n % size;
-    y::int32 y = (n / size) % size;
-    y::int32 c = n / (size * size);
-
-    switch (pattern) {
-      case XOR_PATTERN:
-        return ((x ^ y * 149) * 1234 & 511) / 512.f;
-      case XOR_PATTERN_RGBSPLIT:
-        return (((x + c * 17) ^ y * 149) * 1234 & 511) / 512.f;
-      case ADD_PATTERN:
-        return ((x + y * 237) * 119 & 255) / 256.f;
-      case ADD_PATTERN_RGBSPLIT:
-        return (((x + c * 67) + y * 236) * 119 & 255) / 256.f;
-      default:
-        return .5f;
-    }
-  }
-
-  const bool use_a_dither = true;
-  const a_dither_pattern a_dither = ADD_PATTERN_RGBSPLIT;
-  GLfloat a_dither_matrix[a_dither_size(a_dither)];
+const bool use_a_dither = true;
+const a_dither_pattern a_dither = ADD_PATTERN_RGBSPLIT;
+GLfloat a_dither_matrix[a_dither_size(a_dither)];
 }
 
 Yugen::Yugen(RenderUtil& util, RunTiming& run_timing)

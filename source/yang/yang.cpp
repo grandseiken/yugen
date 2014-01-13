@@ -32,7 +32,7 @@ y::int32 main(y::int32 argc, char** argv)
     return 1;
   }
 
-  YangProgram program(path, contents);
+  yang::Program program(path, contents);
   if (!program.success()) {
     return 1;
   }

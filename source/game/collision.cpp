@@ -58,307 +58,308 @@ y::world get_projection(
 // Internal collision functions.
 namespace {
 
-  typedef CollisionData::entry_list entry_list;
-  typedef CollisionData::entry entry;
+typedef CollisionData::entry_list entry_list;
+typedef CollisionData::entry entry;
 
-  // Returns true if the line intersects the circle on more than a point.
-  // Finds t for intersection points of the form start + t * (end - start).
-  // Treats line as infinite; must check t in [0, 1] if the line is a segment.
-  bool line_intersects_circle(
-      const y::wvec2& start, const y::wvec2& end,
-      const y::wvec2& origin, y::world radius_sq,
-      y::world& t_0, y::world& t_1)
-  {
-    // Equation of line (for t in [0, 1]):
-    // f(t) = start + t * (end - start)
-    // Equation of circle:
-    // |x - origin| = radius
-    // Finds all t such that |g(t) - origin| = radius.
-    // These are the roots of the equation a * t^2 + b * t + c = 0.
-    y::wvec2 f_vec = (end - start);
+// Returns true if the line intersects the circle on more than a point.
+// Finds t for intersection points of the form start + t * (end - start).
+// Treats line as infinite; must check t in [0, 1] if the line is a segment.
+bool line_intersects_circle(
+    const y::wvec2& start, const y::wvec2& end,
+    const y::wvec2& origin, y::world radius_sq,
+    y::world& t_0, y::world& t_1)
+{
+  // Equation of line (for t in [0, 1]):
+  // f(t) = start + t * (end - start)
+  // Equation of circle:
+  // |x - origin| = radius
+  // Finds all t such that |g(t) - origin| = radius.
+  // These are the roots of the equation a * t^2 + b * t + c = 0.
+  y::wvec2 f_vec = (end - start);
 
-    y::world a = f_vec.length_squared();
-    y::world b = 2 * (start.dot(end) + start.dot(origin) -
-                      end.dot(origin) - start.length_squared());
-    y::world c = (start - origin).length_squared() - radius_sq;
+  y::world a = f_vec.length_squared();
+  y::world b = 2 * (start.dot(end) + start.dot(origin) -
+                    end.dot(origin) - start.length_squared());
+  y::world c = (start - origin).length_squared() - radius_sq;
 
-    y::world sqrtand = b * b - 4 * a * c;
+  y::world sqrtand = b * b - 4 * a * c;
 
-    // If no roots the line and circle do not meet. If one root they touch at a
-    // single point, so also cannot be blocking. If a is zero the line is a
-    // point.
-    if (sqrtand <= 0 || a == 0) {
-      return false;
-    }
-
-    y::world sqrted = sqrt(sqrtand);
-    t_0 = (-b + sqrted) / (2 * a);
-    t_1 = (-b - sqrted) / (2 * a);
-    return true;
+  // If no roots the line and circle do not meet. If one root they touch at a
+  // single point, so also cannot be blocking. If a is zero the line is a
+  // point.
+  if (sqrtand <= 0 || a == 0) {
+    return false;
   }
 
-  void get_geometries(y::vector<world_geometry>& output,
-                      const y::vector<y::wvec2>& vertices)
-  {
-    for (y::size i = 0; i < vertices.size(); ++i) {
-      output.push_back({vertices[i], vertices[(1 + i) % vertices.size()]});
-    }
-  }
+  y::world sqrted = sqrt(sqrtand);
+  t_0 = (-b + sqrted) / (2 * a);
+  t_1 = (-b - sqrted) / (2 * a);
+  return true;
+}
 
-  y::world get_projection_ratio(
-      const world_geometry& geometry,
-      const y::wvec2& vertex, const y::wvec2& move, bool tolerance)
-  {
-    return get_projection(geometry.start, geometry.end,
-                          vertex, move, tolerance);
+void get_geometries(y::vector<world_geometry>& output,
+                    const y::vector<y::wvec2>& vertices)
+{
+  for (y::size i = 0; i < vertices.size(); ++i) {
+    output.push_back({vertices[i], vertices[(1 + i) % vertices.size()]});
   }
+}
 
-  y::world get_projection_ratio(
-      const world_geometry& geometry,
-      const y::vector<y::wvec2>& vertices, const y::wvec2& move)
-  {
-    y::world min_ratio = 2;
+y::world get_projection_ratio(
+    const world_geometry& geometry,
+    const y::wvec2& vertex, const y::wvec2& move, bool tolerance)
+{
+  return get_projection(geometry.start, geometry.end,
+                        vertex, move, tolerance);
+}
+
+y::world get_projection_ratio(
+    const world_geometry& geometry,
+    const y::vector<y::wvec2>& vertices, const y::wvec2& move)
+{
+  y::world min_ratio = 2;
+  for (const y::wvec2& v : vertices) {
+    min_ratio = y::min(min_ratio,
+                       get_projection_ratio(geometry, v, move, true));
+  }
+  return min_ratio;
+}
+
+y::world get_projection_ratio(
+    const y::vector<world_geometry>& geometry,
+    const y::vector<y::wvec2>& vertices, const y::wvec2& move)
+{
+  y::world min_ratio = 2;
+  for (const world_geometry& g : geometry) {
     for (const y::wvec2& v : vertices) {
-      min_ratio = y::min(min_ratio,
-                         get_projection_ratio(geometry, v, move, true));
+      min_ratio = y::min(min_ratio, get_projection_ratio(g, v, move, true));
     }
-    return min_ratio;
   }
+  return min_ratio;
+}
 
-  y::world get_projection_ratio(
-      const y::vector<world_geometry>& geometry,
-      const y::vector<y::wvec2>& vertices, const y::wvec2& move)
-  {
-    y::world min_ratio = 2;
-    for (const world_geometry& g : geometry) {
-      for (const y::wvec2& v : vertices) {
-        min_ratio = y::min(min_ratio, get_projection_ratio(g, v, move, true));
-      }
+bool has_intersection(const world_geometry& a,
+                      const world_geometry& b)
+{
+  return get_projection_ratio(a, b.start, b.end - b.start, false) <= 1;
+}
+
+bool has_intersection(const y::vector<world_geometry>& a,
+                      const world_geometry& b)
+{
+  for (const world_geometry& g : a) {
+    if (has_intersection(g, b)) {
+      return true;
     }
-    return min_ratio;
   }
+  return false;
+}
 
-  bool has_intersection(const world_geometry& a,
-                        const world_geometry& b)
-  {
-    return get_projection_ratio(a, b.start, b.end - b.start, false) <= 1;
-  }
-
-  bool has_intersection(const y::vector<world_geometry>& a,
-                        const world_geometry& b)
-  {
-    for (const world_geometry& g : a) {
-      if (has_intersection(g, b)) {
-        return true;
-      }
+bool has_intersection(const y::vector<world_geometry>& a,
+                      const y::vector<world_geometry>& b)
+{
+  for (const world_geometry& g: b) {
+    if (has_intersection(a, g)) {
+      return true;
     }
-    return false;
+  }
+  return false;
+}
+
+y::world get_arc_projection(
+    const world_geometry& geometry,
+    const y::wvec2& vertex,
+    const y::wvec2& origin, y::world rotation)
+{
+  const world_geometry& g = geometry;
+  y::world t_0;
+  y::world t_1;
+  if (!line_intersects_circle(g.start, g.end, origin,
+                              (vertex - origin).length_squared(), t_0, t_1)) {
+    return y::abs(rotation);
   }
 
-  bool has_intersection(const y::vector<world_geometry>& a,
-                        const y::vector<world_geometry>& b)
+  // If any root t satisfies 0 <= t <= 1 then it is a block of the circle by
+  // the line, so find the angle and limit.
+  y::wvec2 g_vec = g.end - g.start;
+  y::world initial_angle = (vertex - origin).angle();
+  auto limit = [&](y::world t)
   {
-    for (const world_geometry& g: b) {
-      if (has_intersection(a, g)) {
-        return true;
-      }
+    static const y::world tolerance = 1.0 / 1024;
+    // Impact outside the line segment.
+    if (t < 0 || t > 1) {
+      return y::abs(rotation);
     }
-    return false;
-  }
-
-  y::world get_arc_projection(
-      const world_geometry& geometry,
-      const y::wvec2& vertex,
-      const y::wvec2& origin, y::world rotation)
-  {
-    const world_geometry& g = geometry;
-    y::world t_0;
-    y::world t_1;
-    if (!line_intersects_circle(g.start, g.end, origin,
-                                (vertex - origin).length_squared(), t_0, t_1)) {
+    y::wvec2 impact_rel = g.start + t * g_vec - origin;
+    // Skip if the collision is opposite the direction the line is defined
+    // in. This is done by forming a line from the origin in the direction
+    // of the collision line's normal, and checking which side of it the
+    // impact point is on. Similarly, this may now be duplicated logic as we
+    // have get_vertices_and_geometries_for_rotate.
+    y::world signed_distance = g_vec.dot(impact_rel);
+    if ((rotation > 0) != (signed_distance > 0)) {
       return y::abs(rotation);
     }
 
-    // If any root t satisfies 0 <= t <= 1 then it is a block of the circle by
-    // the line, so find the angle and limit.
-    y::wvec2 g_vec = g.end - g.start;
-    y::world initial_angle = (vertex - origin).angle();
-    auto limit = [&](y::world t)
-    {
-      static const y::world tolerance = 1.0 / 1024;
-      // Impact outside the line segment.
-      if (t < 0 || t > 1) {
-        return y::abs(rotation);
-      }
-      y::wvec2 impact_rel = g.start + t * g_vec - origin;
-      // Skip if the collision is opposite the direction the line is defined
-      // in. This is done by forming a line from the origin in the direction
-      // of the collision line's normal, and checking which side of it the
-      // impact point is on. Similarly, this may now be duplicated logic as we
-      // have get_vertices_and_geometries_for_rotate.
-      y::world signed_distance = g_vec.dot(impact_rel);
-      if ((rotation > 0) != (signed_distance > 0)) {
-        return y::abs(rotation);
-      }
-
-      y::world limiting_angle = impact_rel.angle();
-      // Finds the (absolute) limiting rotation in the direction of rotation
-      // (so it needs to be made negative again if the rotation is negative).
-      y::world limiting_rotation =
-          (rotation > 0 ? limiting_angle - initial_angle :
-                          initial_angle - limiting_angle) +
-          ((rotation > 0) != (limiting_angle > initial_angle) ? 2 * y::pi :
-                                                                0);
-      // Because of trigonometric inaccuracies and the fact that if we are a
-      // tiny bit out in the wrong direction the rotation will not be blocked
-      // at all, it's best to have a small amount of tolerance. The tolerance
-      // must depend on the distance from the center of rotation, as the
-      // distances get bigger.
-      if (2 * y::pi - limiting_rotation < tolerance / impact_rel.length()) {
-        return limiting_rotation - 2 * y::pi;
-      }
-      return limiting_rotation;
-    };
-
-    y::world limiting_rotation = y::min(limit(t_0), limit(t_1));
+    y::world limiting_angle = impact_rel.angle();
+    // Finds the (absolute) limiting rotation in the direction of rotation
+    // (so it needs to be made negative again if the rotation is negative).
+    y::world limiting_rotation =
+        (rotation > 0 ? limiting_angle - initial_angle :
+                        initial_angle - limiting_angle) +
+        ((rotation > 0) != (limiting_angle > initial_angle) ? 2 * y::pi :
+                                                              0);
+    // Because of trigonometric inaccuracies and the fact that if we are a
+    // tiny bit out in the wrong direction the rotation will not be blocked
+    // at all, it's best to have a small amount of tolerance. The tolerance
+    // must depend on the distance from the center of rotation, as the
+    // distances get bigger.
+    if (2 * y::pi - limiting_rotation < tolerance / impact_rel.length()) {
+      return limiting_rotation - 2 * y::pi;
+    }
     return limiting_rotation;
-  }
+  };
 
-  y::world get_arc_projection(
-      const world_geometry& geometry,
-      const y::vector<y::wvec2>& vertices,
-      const y::wvec2& origin, y::world rotation)
-  {
-    y::world limiting_rotation = y::abs(rotation);
+  y::world limiting_rotation = y::min(limit(t_0), limit(t_1));
+  return limiting_rotation;
+}
+
+y::world get_arc_projection(
+    const world_geometry& geometry,
+    const y::vector<y::wvec2>& vertices,
+    const y::wvec2& origin, y::world rotation)
+{
+  y::world limiting_rotation = y::abs(rotation);
+  for (const y::wvec2& v : vertices) {
+    limiting_rotation = y::min(limiting_rotation, get_arc_projection(
+                            geometry, v, origin, rotation));
+  }
+  return limiting_rotation;
+}
+
+y::world get_arc_projection(
+    const y::vector<world_geometry>& geometry,
+    const y::vector<y::wvec2>& vertices,
+    const y::wvec2& origin, y::world rotation)
+{
+  y::world limiting_rotation = y::abs(rotation);
+  for (const world_geometry& g : geometry) {
     for (const y::wvec2& v : vertices) {
       limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                              geometry, v, origin, rotation));
-    }
-    return limiting_rotation;
-  }
-
-  y::world get_arc_projection(
-      const y::vector<world_geometry>& geometry,
-      const y::vector<y::wvec2>& vertices,
-      const y::wvec2& origin, y::world rotation)
-  {
-    y::world limiting_rotation = y::abs(rotation);
-    for (const world_geometry& g : geometry) {
-      for (const y::wvec2& v : vertices) {
-        limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                                g, v, origin, rotation));
-      }
-    }
-    return limiting_rotation;
-  }
-
-  // This filtering looks like an optimisation, but actually affects whether
-  // collision will happen 'on a point'. Not a big deal.
-  Body::bounds get_bounds(
-      const entry_list& bodies, y::int32 collide_mask,
-      const y::wvec2& origin, y::world rotation)
-  {
-    y::wvec2 min;
-    y::wvec2 max;
-    bool first = true;
-    for (const entry& e : bodies) {
-      if (!e->collide_mask || (collide_mask &&
-                               !(e->collide_mask & collide_mask))) {
-        continue;
-      }
-      auto bounds = e->get_bounds(origin, rotation);
-      min = first ? bounds.first : y::min(min, bounds.first);
-      max = first ? bounds.second : y::max(max, bounds.second);
-      first = false;
-    }
-    return y::make_pair(min, max);
-  }
-
-  Body::bounds get_full_rotation_bounds(
-      const entry_list& bodies, y::int32 collide_mask,
-      const y::wvec2& origin, y::world rotation, const y::wvec2& offset)
-  {
-    y::wvec2 min;
-    y::wvec2 max;
-    bool first = true;
-    for (const entry& e : bodies) {
-      if (!e->collide_mask || (collide_mask &&
-                               !(e->collide_mask & collide_mask))) {
-        continue;
-      }
-      auto bounds = e->get_full_rotation_bounds(origin, rotation, offset);
-      min = first ? bounds.first : y::min(min, bounds.first);
-      max = first ? bounds.second : y::max(max, bounds.second);
-      first = false;
-    }
-    return y::make_pair(min, max);
-  }
-
-  // Get only the vertices and geometries oriented in the direction of a move.
-  void get_vertices_and_geometries_for_move(
-      y::vector<world_geometry>& geometry_output,
-      y::vector<y::wvec2>& vertex_output,
-      const y::wvec2& move, const y::vector<y::wvec2>& vertices)
-  {
-    bool first_keep = false;
-    bool keep = false;
-
-    for (y::size i = 0; i < vertices.size(); ++i) {
-      const y::wvec2& a = vertices[i];
-      const y::wvec2& b = vertices[(1 + i) % vertices.size()];
-
-      bool last_keep = keep;
-      keep = move.cross(b - a) > 0;
-      if (!i) {
-        first_keep = keep;
-      }
-
-      if (keep) {
-        geometry_output.push_back({a, b});
-      }
-      if (i && (keep || last_keep)) {
-        vertex_output.push_back(vertices[i]);
-      }
-    }
-    if (!vertices.empty() && (keep || first_keep)) {
-      vertex_output.push_back(vertices[0]);
+                              g, v, origin, rotation));
     }
   }
+  return limiting_rotation;
+}
 
-  // Similar for rotation.
-  void get_vertices_and_geometries_for_rotate(
-      y::vector<world_geometry>& geometry_output,
-      y::vector<y::wvec2>& vertex_output,
-      y::world rotate, const y::wvec2& origin,
-      const y::vector<y::wvec2>& vertices)
-  {
-    bool first_keep = false;
-    bool keep = false;
-
-    for (y::size i = 0; i < vertices.size(); ++i) {
-      const y::wvec2& a = vertices[i];
-      const y::wvec2& b = vertices[(1 + i) % vertices.size()];
-
-      bool last_keep = keep;
-      y::wvec2 v = (rotate < 0 ? b : a) - origin;
-      y::wvec2 rotate_normal{-v[yy], v[xx]};
-      keep = rotate_normal.cross(rotate < 0 ? a - b : b - a) > 0;
-      if (!i) {
-        first_keep = keep;
-      }
-
-      if (keep) {
-        geometry_output.push_back({a, b});
-      }
-      if (i && (keep || last_keep)) {
-        vertex_output.push_back(vertices[i]);
-      }
+// This filtering looks like an optimisation, but actually affects whether
+// collision will happen 'on a point'. Not a big deal.
+Body::bounds get_bounds(
+    const entry_list& bodies, y::int32 collide_mask,
+    const y::wvec2& origin, y::world rotation)
+{
+  y::wvec2 min;
+  y::wvec2 max;
+  bool first = true;
+  for (const entry& e : bodies) {
+    if (!e->collide_mask || (collide_mask &&
+                             !(e->collide_mask & collide_mask))) {
+      continue;
     }
-    if (!vertices.empty() && (keep || first_keep)) {
-      vertex_output.push_back(vertices[0]);
+    auto bounds = e->get_bounds(origin, rotation);
+    min = first ? bounds.first : y::min(min, bounds.first);
+    max = first ? bounds.second : y::max(max, bounds.second);
+    first = false;
+  }
+  return y::make_pair(min, max);
+}
+
+Body::bounds get_full_rotation_bounds(
+    const entry_list& bodies, y::int32 collide_mask,
+    const y::wvec2& origin, y::world rotation, const y::wvec2& offset)
+{
+  y::wvec2 min;
+  y::wvec2 max;
+  bool first = true;
+  for (const entry& e : bodies) {
+    if (!e->collide_mask || (collide_mask &&
+                             !(e->collide_mask & collide_mask))) {
+      continue;
+    }
+    auto bounds = e->get_full_rotation_bounds(origin, rotation, offset);
+    min = first ? bounds.first : y::min(min, bounds.first);
+    max = first ? bounds.second : y::max(max, bounds.second);
+    first = false;
+  }
+  return y::make_pair(min, max);
+}
+
+// Get only the vertices and geometries oriented in the direction of a move.
+void get_vertices_and_geometries_for_move(
+    y::vector<world_geometry>& geometry_output,
+    y::vector<y::wvec2>& vertex_output,
+    const y::wvec2& move, const y::vector<y::wvec2>& vertices)
+{
+  bool first_keep = false;
+  bool keep = false;
+
+  for (y::size i = 0; i < vertices.size(); ++i) {
+    const y::wvec2& a = vertices[i];
+    const y::wvec2& b = vertices[(1 + i) % vertices.size()];
+
+    bool last_keep = keep;
+    keep = move.cross(b - a) > 0;
+    if (!i) {
+      first_keep = keep;
+    }
+
+    if (keep) {
+      geometry_output.push_back({a, b});
+    }
+    if (i && (keep || last_keep)) {
+      vertex_output.push_back(vertices[i]);
     }
   }
+  if (!vertices.empty() && (keep || first_keep)) {
+    vertex_output.push_back(vertices[0]);
+  }
+}
 
+// Similar for rotation.
+void get_vertices_and_geometries_for_rotate(
+    y::vector<world_geometry>& geometry_output,
+    y::vector<y::wvec2>& vertex_output,
+    y::world rotate, const y::wvec2& origin,
+    const y::vector<y::wvec2>& vertices)
+{
+  bool first_keep = false;
+  bool keep = false;
+
+  for (y::size i = 0; i < vertices.size(); ++i) {
+    const y::wvec2& a = vertices[i];
+    const y::wvec2& b = vertices[(1 + i) % vertices.size()];
+
+    bool last_keep = keep;
+    y::wvec2 v = (rotate < 0 ? b : a) - origin;
+    y::wvec2 rotate_normal{-v[yy], v[xx]};
+    keep = rotate_normal.cross(rotate < 0 ? a - b : b - a) > 0;
+    if (!i) {
+      first_keep = keep;
+    }
+
+    if (keep) {
+      geometry_output.push_back({a, b});
+    }
+    if (i && (keep || last_keep)) {
+      vertex_output.push_back(vertices[i]);
+    }
+  }
+  if (!vertices.empty() && (keep || first_keep)) {
+    vertex_output.push_back(vertices[0]);
+  }
+}
+
+// End anonymous namespace.
 }
 
 // Must be kept in sync with collide.lua.

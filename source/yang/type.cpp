@@ -1,6 +1,8 @@
 #include "type.h"
 #include "../common/algorithm.h"
 
+namespace yang {
+
 Type::Type(type_base base, y::size count)
   : _base(base)
   , _count(count)
@@ -166,4 +168,7 @@ y::string Type::string_internal() const
     s += y::to_string(_count);
   }
   return s + (_const ? " const" : "");
+}
+
+// End namespace yang.
 }

@@ -8,31 +8,34 @@
 
 #include "type.h"
 
-struct Node;
 namespace llvm {
   class Module;
   class ExecutionEngine;
   class Type;
 }
 
+namespace yang {
+
+struct Node;
+
 // General directions:
-// TODO: create YangInstances from YangPrograms, and use them to run instances
-// of the programs.
-// TODO: create YangPrograms from YangContexts or YangEnvironments which define
-// game-library functions and types. (Perhaps the standard library can be a kind
-// of YangContext, even.)
-// TODO: in particular, there should be a type corresponding to YangInstance,
-// with built-in functionality.
+// TODO: create Instances from Programs, and use them to run instances of the
+// programs.
+// TODO: create Programs from Contexts or nvironments which define game-library
+// functions and types. (Perhaps the standard library can be a kind of Context,
+// even.)
+// TODO: in particular, there should be a type corresponding to Instance, with
+// built-in functionality.
 // TODO: add some kind of built-in data structures, including at least a generic
 // map<K, V> type. May require garbage-collection, unless we place tight
 // restrictions on their usage (e.g. only global variables).
 // TODO: possibly implement closures, if it seems feasible.
 // TODO: warnings: for example, unused variables.
-class YangProgram {
+class Program {
 public:
 
-  YangProgram(const y::string& name, const y::string& contents);
-  ~YangProgram();
+  Program(const y::string& name, const y::string& contents);
+  ~Program();
 
   // Returns true if the contents parsed and checked successfully. Otherwise,
   // none of the following functions will do anything useful.
@@ -65,5 +68,8 @@ struct ParseGlobals {
   static y::string error(
       y::size line, const y::string& token, const y::string& message);
 };
+
+// End namespace yang.
+}
 
 #endif

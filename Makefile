@@ -288,14 +288,14 @@ $(GEN)/%.l.h: \
 $(GEN)/%.l.cc: \
 	$(SOURCE)/%.l $(GEN)/%.mkdir ./depend/flex.build
 	@echo Compiling ./$<
-	$(FLEX) -o $@ --header-file=$(@:.cc=.h) $<
+	$(FLEX) -P yang_ -o $@ --header-file=$(@:.cc=.h) $<
 $(GEN)/%.y.h: \
 	$(GEN)/%.y.cc
 	touch $@ $<
 $(GEN)/%.y.cc: \
 	$(SOURCE)/%.y $(GEN)/%.mkdir ./depend/byacc.build
 	@echo Compiling ./$<
-	$(YACC) -d -v -o $@ $<
+	$(YACC) -p yang_ -d -v -o $@ $<
 
 # Ensure a directory exists.
 .PRECIOUS: ./%.mkdir

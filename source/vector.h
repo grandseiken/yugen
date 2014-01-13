@@ -15,569 +15,570 @@ namespace proto {
 
 namespace y {
 
-  template<y::size N>
-  struct element_accessor {
-    element_accessor() {}
-  };
+template<y::size N>
+struct element_accessor {
+  element_accessor() {}
+};
 
-  // Mathematical vector over components of type T with dimension N. When
-  // non_strict is true, includes functions that aren't strictly canon
-  // mathematically, but are nonetheless useful, for example componentwise
-  // multiplication of two vectors.
-  template<typename T, y::size N, bool non_strict = true>
-  class vec {
-  public:
+// Mathematical vector over components of type T with dimension N. When
+// non_strict is true, includes functions that aren't strictly canon
+// mathematically, but are nonetheless useful, for example componentwise
+// multiplication of two vectors.
+template<typename T, y::size N, bool non_strict = true>
+class vec {
+public:
 
-    typedef vec<T, N, non_strict> V;
-    T elements[N];
+  typedef vec<T, N, non_strict> V;
+  T elements[N];
 
-    vec()
-      : elements{0}
-    {
-    }
-
-    template<typename... U,
-             typename y::enable_if<N == sizeof...(U), bool>::type = 0>
-    vec(U... args)
-      : elements{args...}
-    {
-    }
-
-    vec(const T args[N])
-      : elements{args}
-    {
-    }
-
-    vec(const V& arg)
-      : elements{}
-    {
-      operator=(arg);
-    }
-
-    vec(V&& arg) noexcept = default;
-
-    template<typename U>
-    explicit vec(const vec<U, N>& arg)
-      : elements{}
-    {
-      for (y::size i = 0; i < N; ++i) {
-        elements[i] = T(arg.elements[i]);
-      }
-    }
-
-    V& operator=(const V& arg)
-    {
-      for (y::size i = 0; i < N; ++i) {
-        elements[i] = arg.elements[i];
-      }
-      return *this;
-    }
-
-    V& operator=(V&& arg) noexcept = default;
-
-    T& operator[](y::size i)
-    {
-      return elements[i];
-    }
-
-    const T& operator[](y::size i) const
-    {
-      return elements[i];
-    }
-
-    template<y::size M, typename y::enable_if<(N > M), bool>::type = 0>
-    T& operator[](const element_accessor<M>& e)
-    {
-      (void)e;
-      return elements[M];
-    }
-
-    template<y::size M, typename y::enable_if<(N > M), bool>::type = 0>
-    const T& operator[](const element_accessor<M>& e) const
-    {
-      (void)e;
-      return elements[M];
-    }
-
-    bool operator==(const V& arg) const
-    {
-      for (y::size i = 0; i < N; ++i) {
-        if (elements[i] != arg.elements[i]) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    bool operator!=(const V& arg) const
-    {
-      return !operator==(arg);
-    }
-
-    V operator+(const V& arg) const
-    {
-      V v;
-      for (y::size i = 0; i < N; ++i) {
-        v[i] = elements[i] + arg[i];
-      }
-      return v;
-    }
-
-    V operator-(const V& arg) const
-    {
-      V v;
-      for (y::size i = 0; i < N; ++i) {
-        v[i] = elements[i] - arg[i];
-      }
-      return v;
-    }
-
-    V operator*(const T& arg) const
-    {
-      V v;
-      for (y::size i = 0; i < N; ++i) {
-        v[i] = elements[i] * arg;
-      }
-      return v;
-    }
-
-    V operator/(const T& arg) const
-    {
-      V v;
-      for (y::size i = 0; i < N; ++i) {
-        v[i] = elements[i] / arg;
-      }
-      return v;
-    }
-
-    template<typename y::enable_if<non_strict, bool>::type = 0>
-    V operator*(const V& arg) const
-    {
-      V v;
-      for (y::size i = 0; i < N; ++i) {
-        v[i] = elements[i] * arg[i];
-      }
-      return v;
-    }
-
-    template<typename y::enable_if<non_strict, bool>::type = 0>
-    V operator/(const V& arg) const
-    {
-      V v;
-      for (y::size i = 0; i < N; ++i) {
-        v[i] = elements[i] / arg[i];
-      }
-      return v;
-    }
-
-    V operator-() const
-    {
-      return V().operator-(*this);
-    }
-
-    V normalised() const
-    {
-      return operator/(length() ? length() : 1);
-    }
-
-    V& operator+=(const V& arg)
-    {
-      return operator=(operator+(arg));
-    }
-
-    V& operator-=(const V& arg)
-    {
-      return operator=(operator-(arg));
-    }
-
-    V& operator*=(const T& arg)
-    {
-      return operator=(operator*(arg));
-    }
-
-    V& operator/=(const T& arg)
-    {
-      return operator=(operator/(arg));
-    }
-
-    template<typename y::enable_if<non_strict, bool>::type = 0>
-    V& operator*=(const V& arg)
-    {
-      return operator=(operator*(arg));
-    }
-
-    template<typename y::enable_if<non_strict, bool>::type = 0>
-    V& operator/=(const V& arg)
-    {
-      return operator=(operator/(arg));
-    }
-
-    template<typename y::enable_if<non_strict, bool>::type = 0>
-    bool operator<(const V& arg) const
-    {
-      for (y::size i = 0; i < N; ++i) {
-        if (elements[i] >= arg.elements[i]) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    template<typename y::enable_if<non_strict, bool>::type = 0>
-    bool operator>(const V& arg) const
-    {
-      for (y::size i = 0; i < N; ++i) {
-        if (elements[i] <= arg.elements[i]) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    template<typename y::enable_if<non_strict, bool>::type = 0>
-    bool operator<=(const V& arg) const
-    {
-      for (y::size i = 0; i < N; ++i) {
-        if (elements[i] > arg.elements[i]) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    template<typename y::enable_if<non_strict, bool>::type = 0>
-    bool operator>=(const V& arg) const
-    {
-      for (y::size i = 0; i < N; ++i) {
-        if (elements[i] < arg.elements[i]) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    V& normalise()
-    {
-      return operator=(normalised());
-    } 
-
-    T dot(const V& arg) const
-    {
-      T t = 0;
-      for (y::size i = 0; i < N; ++i) {
-        t += elements[i] * arg.elements[i];
-      }
-      return t;
-    }
-
-    T length_squared() const
-    {
-      return dot(*this);
-    }
-
-    T length() const
-    {
-      return sqrt(length_squared());
-    }
-
-    template<
-        typename U = T,
-        typename y::enable_if<N == 2 &&
-                              y::is_same<T, U>::value, bool>::type = 0>
-    T cross(const V& arg) const
-    {
-      return elements[0] * arg[1] - arg[0] * elements[1];
-    }
-
-    template<
-        typename U = T,
-        typename y::enable_if<N == 3 &&
-                              y::is_same<T, U>::value, bool>::type = 0>
-    V cross(const V& arg) const
-    {
-      return V(elements[1] * arg[2] - elements[2] * arg[1],
-               elements[2] * arg[0] - elements[0] * arg[2],
-               elements[0] * arg[1] - elements[1] * arg[0]);
-    }
-
-    template<
-        typename U = T,
-        typename y::enable_if<N == 2 &&
-                              y::is_same<T, U>::value, bool>::type = 0>
-    V rotate(T angle) const
-    {
-      const V row_0(cos(angle), -sin(angle));
-      const V row_1(sin(angle), cos(angle));
-      return V{dot(row_0), dot(row_1)};
-    }
-
-    template<
-        typename U = T,
-        typename y::enable_if<N == 2 &&
-                              y::is_same<T, U>::value, bool>::type = 0>
-    auto angle() const -> decltype(atan(T()))
-    {
-      if (!elements[0] && !elements[1]) {
-        return 0;
-      }
-      return atan2(elements[1], elements[0]);
-    }
-
-    auto angle(const V& arg) const -> decltype(acos(T()))
-    {
-      if (!length() || !arg.length()) {
-        return acos(T());
-      }
-      return acos(dot(arg) / (length() * arg.length()));
-    }
-
-    template<
-        typename U = T,
-        typename y::enable_if<N == 2 &&
-                              y::is_same<T, U>::value, bool>::type = 0>
-    static V from_angle(T angle)
-    {
-      return V{T(cos(angle)), T(sin(angle))};
-    }
-
-    bool in_region(const V& origin, const V& size) const
-    {
-      for (y::size i = 0; i < N; ++i) {
-        if (elements[i] < origin[i] || elements[i] >= origin[i] + size[i]) {
-          return false;
-        }
-      }
-      return true;
-    }
- 
-    V euclidean_div(const V& arg) const
-    {
-      vec<T, N> v;
-      for (y::size i = 0; i < N; ++i) {
-        v[i] = y::euclidean_div(elements[i], arg[i]);
-      }
-      return v;
-    }
-
-    V euclidean_mod(const V& arg) const
-    {
-      vec<T, N> v;
-      for (y::size i = 0; i < N; ++i) {
-        v[i] = y::euclidean_mod(elements[i], arg[i]);
-      }
-      return v;
-    }
-
-  };
-
-  template<typename T, y::size N, bool non_strict>
-  vec<T, N, non_strict> operator*(const T& t, const vec<T, N, non_strict>& v)
+  vec()
+    : elements{0}
   {
-    vec<T, N> u;
-    for (y::size i = 0; i < N; ++i) {
-      u[i] = t * v[i];
-    }
-    return u;
   }
 
-  template<typename T, y::size N>
-  vec<T, N> operator/(const T& t, const vec<T, N>& v)
+  template<typename... U,
+           typename y::enable_if<N == sizeof...(U), bool>::type = 0>
+  vec(U... args)
+    : elements{args...}
   {
-    vec<T, N> u;
-    for (y::size i = 0; i < N; ++i) {
-      u[i] = t / v[i];
-    }
-    return u;
   }
 
-  template<typename T, y::size N>
-  vec<T, N> abs(const vec<T, N>& v)
+  vec(const T args[N])
+    : elements{args}
   {
-    vec<T, N> u;
-    for (y::size i = 0; i < N; ++i) {
-      u[i] = abs(v[i]);
-    }
-    return u;
   }
 
-  template<typename T, y::size N>
-  vec<T, N> pow(const T& a, const vec<T, N>& b)
+  vec(const V& arg)
+    : elements{}
   {
-    vec<T, N> v;
-    for (y::size i = 0; i < N; ++i) {
-      v[i] = pow(a, b[i]);
-    }
-    return v;
+    operator=(arg);
   }
 
-  template<typename T, y::size N>
-  vec<T, N> pow(const vec<T, N>& a, const T& b)
-  {
-    vec<T, N> v;
-    for (y::size i = 0; i < N; ++i) {
-      v[i] = pow(a[i], b);
-    }
-    return v;
-  }
+  vec(V&& arg) noexcept = default;
 
-  template<typename T, y::size N>
-  vec<T, N> pow(const vec<T, N>& a, const vec<T, N>& b)
-  {
-    vec<T, N> v;
-    for (y::size i = 0; i < N; ++i) {
-      v[i] = pow(a[i], b[i]);
-    }
-    return v;
-  }
-
-  template<typename T, y::size N>
-  vec<T, N> min(const vec<T, N>& a, const vec<T, N>& b)
-  {
-    vec<T, N> v;
-    for (y::size i = 0; i < N; ++i) {
-      v[i] = min(a[i], b[i]);
-    }
-    return v;
-  }
-
-  template<typename T, y::size N>
-  vec<T, N> max(const vec<T, N>& a, const vec<T, N>& b)
-  {
-    vec<T, N> v;
-    for (y::size i = 0; i < N; ++i) {
-      v[i] = max(a[i], b[i]);
-    }
-    return v;
-  }
-
-  template<typename T, y::size N, bool non_strict>
-  y::ostream& operator<<(y::ostream& o, const vec<T, N, non_strict>& arg)
+  template<typename U>
+  explicit vec(const vec<U, N>& arg)
+    : elements{}
   {
     for (y::size i = 0; i < N; ++i) {
-      if (i) {
-        o << ", ";
-      }
-      o << arg.elements[i];
+      elements[i] = T(arg.elements[i]);
     }
-    return o;
   }
 
-  template<typename T, y::size N, bool non_strict>
-  class vec_iterator : public boost::iterator_facade<
-      vec_iterator<T, N, non_strict>,
-      const vec<T, N, non_strict>, boost::forward_traversal_tag> {
-  public:
-
-    typedef vec<T, N, non_strict> V;
-    vec_iterator() : _finished(true) {}
-
-    vec_iterator(const V& min, const V& max)
-      : _min(min)
-      , _size(max - min)
-      , _value(min)
-      , _finished(false)
-    {
-    }
-
-    explicit operator bool() const
-    {
-      return !_finished;
-    }
-    
-  private:
-
-    friend class boost::iterator_core_access;
-
-    void increment()
-    {
-      for (y::size i = 0; i < N; ++i) {
-        if (++_value.elements[i] < (_min + _size).elements[i]) {
-          break;
-        }
-        _value.elements[i] = _min.elements[i];
-        _finished = 1 + i == N;
-      }
-    }
-
-    bool equal(const vec_iterator& arg) const
-    {
-      if (_finished && arg._finished) {
-        return true; 
-      }
-      if (_finished != arg._finished) {
-        return false;
-      }
-      return _value == arg._value;
-    }
-
-    const V& dereference() const
-    {
-      return _value;
-    }
-
-    V _min;
-    V _size;
-    V _value;
-    bool _finished;
-
-  };
-
-  template<typename T, y::size N, bool non_strict>
-  vec_iterator<T, N, non_strict> cartesian(const vec<T, N, non_strict>& min,
-                                           const vec<T, N, non_strict>& max)
+  V& operator=(const V& arg)
   {
-    return vec_iterator<T, N, non_strict>(min, max);
+    for (y::size i = 0; i < N; ++i) {
+      elements[i] = arg.elements[i];
+    }
+    return *this;
   }
 
-  template<typename T, y::size N, bool non_strict>
-  vec_iterator<T, N, non_strict> cartesian(const vec<T, N, non_strict>& max)
+  V& operator=(V&& arg) noexcept = default;
+
+  T& operator[](y::size i)
   {
-    return cartesian(vec<T, N, non_strict>(), max);
+    return elements[i];
   }
 
-  // Perhaps this should go to a geometry.h or similar header.
-  template<typename T>
-  bool line_intersects_rect(const vec<T, 2>& start, const vec<T, 2>& end,
-                            const vec<T, 2>& min, const vec<T, 2>& max)
+  const T& operator[](y::size i) const
   {
-    vec<T, 2> line_min = y::min(start, end);
-    vec<T, 2> line_max = y::max(start, end);
+    return elements[i];
+  }
 
-    // Check bounds.
-    if (!(line_min < max && line_max > min)) {
-      return false;
-    }
+  template<y::size M, typename y::enable_if<(N > M), bool>::type = 0>
+  T& operator[](const element_accessor<M>& e)
+  {
+    (void)e;
+    return elements[M];
+  }
 
-    // Check equation of line.
-    if (start[0] - end[0] != 0) {
-      T m = (end[1] - start[1]) / (end[0] - start[0]);
-      T y_neg = end[1] + m * (min[0] - end[0]);
-      T y_pos = end[1] + m * (max[0] - end[0]);
+  template<y::size M, typename y::enable_if<(N > M), bool>::type = 0>
+  const T& operator[](const element_accessor<M>& e) const
+  {
+    (void)e;
+    return elements[M];
+  }
 
-      if ((max[1] < y_neg && max[1] < y_pos) ||
-          (min[1] >= y_neg && min[1] >= y_pos)) {
+  bool operator==(const V& arg) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] != arg.elements[i]) {
         return false;
       }
     }
-
     return true;
   }
 
-  typedef vec<int32, 2> ivec2;
-  typedef vec<int32, 3> ivec3;
-  typedef vec<float, 2> fvec2;
-  typedef vec<float, 4> fvec4;
-  typedef vec<world, 2> wvec2;
+  bool operator!=(const V& arg) const
+  {
+    return !operator==(arg);
+  }
 
-  typedef vec_iterator<int32, 2, true> ivec2_iterator;
-  typedef vec_iterator<int32, 3, true> ivec3_iterator;
-  typedef vec_iterator<float, 2, true> fvec2_iterator;
-  typedef vec_iterator<float, 4, true> fvec4_iterator;
-  typedef vec_iterator<world, 4, true> wvec2_iterator;
+  V operator+(const V& arg) const
+  {
+    V v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = elements[i] + arg[i];
+    }
+    return v;
+  }
 
-  void save_to_proto(const y::ivec2& v, proto::ivec2& proto);
-  void load_from_proto(y::ivec2& v, const proto::ivec2& proto);
+  V operator-(const V& arg) const
+  {
+    V v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = elements[i] - arg[i];
+    }
+    return v;
+  }
 
+  V operator*(const T& arg) const
+  {
+    V v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = elements[i] * arg;
+    }
+    return v;
+  }
+
+  V operator/(const T& arg) const
+  {
+    V v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = elements[i] / arg;
+    }
+    return v;
+  }
+
+  template<typename y::enable_if<non_strict, bool>::type = 0>
+  V operator*(const V& arg) const
+  {
+    V v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = elements[i] * arg[i];
+    }
+    return v;
+  }
+
+  template<typename y::enable_if<non_strict, bool>::type = 0>
+  V operator/(const V& arg) const
+  {
+    V v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = elements[i] / arg[i];
+    }
+    return v;
+  }
+
+  V operator-() const
+  {
+    return V().operator-(*this);
+  }
+
+  V normalised() const
+  {
+    return operator/(length() ? length() : 1);
+  }
+
+  V& operator+=(const V& arg)
+  {
+    return operator=(operator+(arg));
+  }
+
+  V& operator-=(const V& arg)
+  {
+    return operator=(operator-(arg));
+  }
+
+  V& operator*=(const T& arg)
+  {
+    return operator=(operator*(arg));
+  }
+
+  V& operator/=(const T& arg)
+  {
+    return operator=(operator/(arg));
+  }
+
+  template<typename y::enable_if<non_strict, bool>::type = 0>
+  V& operator*=(const V& arg)
+  {
+    return operator=(operator*(arg));
+  }
+
+  template<typename y::enable_if<non_strict, bool>::type = 0>
+  V& operator/=(const V& arg)
+  {
+    return operator=(operator/(arg));
+  }
+
+  template<typename y::enable_if<non_strict, bool>::type = 0>
+  bool operator<(const V& arg) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] >= arg.elements[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template<typename y::enable_if<non_strict, bool>::type = 0>
+  bool operator>(const V& arg) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] <= arg.elements[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template<typename y::enable_if<non_strict, bool>::type = 0>
+  bool operator<=(const V& arg) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] > arg.elements[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template<typename y::enable_if<non_strict, bool>::type = 0>
+  bool operator>=(const V& arg) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] < arg.elements[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  V& normalise()
+  {
+    return operator=(normalised());
+  } 
+
+  T dot(const V& arg) const
+  {
+    T t = 0;
+    for (y::size i = 0; i < N; ++i) {
+      t += elements[i] * arg.elements[i];
+    }
+    return t;
+  }
+
+  T length_squared() const
+  {
+    return dot(*this);
+  }
+
+  T length() const
+  {
+    return sqrt(length_squared());
+  }
+
+  template<
+      typename U = T,
+      typename y::enable_if<N == 2 &&
+                            y::is_same<T, U>::value, bool>::type = 0>
+  T cross(const V& arg) const
+  {
+    return elements[0] * arg[1] - arg[0] * elements[1];
+  }
+
+  template<
+      typename U = T,
+      typename y::enable_if<N == 3 &&
+                            y::is_same<T, U>::value, bool>::type = 0>
+  V cross(const V& arg) const
+  {
+    return V(elements[1] * arg[2] - elements[2] * arg[1],
+             elements[2] * arg[0] - elements[0] * arg[2],
+             elements[0] * arg[1] - elements[1] * arg[0]);
+  }
+
+  template<
+      typename U = T,
+      typename y::enable_if<N == 2 &&
+                            y::is_same<T, U>::value, bool>::type = 0>
+  V rotate(T angle) const
+  {
+    const V row_0(cos(angle), -sin(angle));
+    const V row_1(sin(angle), cos(angle));
+    return V{dot(row_0), dot(row_1)};
+  }
+
+  template<
+      typename U = T,
+      typename y::enable_if<N == 2 &&
+                            y::is_same<T, U>::value, bool>::type = 0>
+  auto angle() const -> decltype(atan(T()))
+  {
+    if (!elements[0] && !elements[1]) {
+      return 0;
+    }
+    return atan2(elements[1], elements[0]);
+  }
+
+  auto angle(const V& arg) const -> decltype(acos(T()))
+  {
+    if (!length() || !arg.length()) {
+      return acos(T());
+    }
+    return acos(dot(arg) / (length() * arg.length()));
+  }
+
+  template<
+      typename U = T,
+      typename y::enable_if<N == 2 &&
+                            y::is_same<T, U>::value, bool>::type = 0>
+  static V from_angle(T angle)
+  {
+    return V{T(cos(angle)), T(sin(angle))};
+  }
+
+  bool in_region(const V& origin, const V& size) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] < origin[i] || elements[i] >= origin[i] + size[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  V euclidean_div(const V& arg) const
+  {
+    vec<T, N> v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = y::euclidean_div(elements[i], arg[i]);
+    }
+    return v;
+  }
+
+  V euclidean_mod(const V& arg) const
+  {
+    vec<T, N> v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = y::euclidean_mod(elements[i], arg[i]);
+    }
+    return v;
+  }
+
+};
+
+template<typename T, y::size N, bool non_strict>
+vec<T, N, non_strict> operator*(const T& t, const vec<T, N, non_strict>& v)
+{
+  vec<T, N> u;
+  for (y::size i = 0; i < N; ++i) {
+    u[i] = t * v[i];
+  }
+  return u;
+}
+
+template<typename T, y::size N>
+vec<T, N> operator/(const T& t, const vec<T, N>& v)
+{
+  vec<T, N> u;
+  for (y::size i = 0; i < N; ++i) {
+    u[i] = t / v[i];
+  }
+  return u;
+}
+
+template<typename T, y::size N>
+vec<T, N> abs(const vec<T, N>& v)
+{
+  vec<T, N> u;
+  for (y::size i = 0; i < N; ++i) {
+    u[i] = abs(v[i]);
+  }
+  return u;
+}
+
+template<typename T, y::size N>
+vec<T, N> pow(const T& a, const vec<T, N>& b)
+{
+  vec<T, N> v;
+  for (y::size i = 0; i < N; ++i) {
+    v[i] = pow(a, b[i]);
+  }
+  return v;
+}
+
+template<typename T, y::size N>
+vec<T, N> pow(const vec<T, N>& a, const T& b)
+{
+  vec<T, N> v;
+  for (y::size i = 0; i < N; ++i) {
+    v[i] = pow(a[i], b);
+  }
+  return v;
+}
+
+template<typename T, y::size N>
+vec<T, N> pow(const vec<T, N>& a, const vec<T, N>& b)
+{
+  vec<T, N> v;
+  for (y::size i = 0; i < N; ++i) {
+    v[i] = pow(a[i], b[i]);
+  }
+  return v;
+}
+
+template<typename T, y::size N>
+vec<T, N> min(const vec<T, N>& a, const vec<T, N>& b)
+{
+  vec<T, N> v;
+  for (y::size i = 0; i < N; ++i) {
+    v[i] = min(a[i], b[i]);
+  }
+  return v;
+}
+
+template<typename T, y::size N>
+vec<T, N> max(const vec<T, N>& a, const vec<T, N>& b)
+{
+  vec<T, N> v;
+  for (y::size i = 0; i < N; ++i) {
+    v[i] = max(a[i], b[i]);
+  }
+  return v;
+}
+
+template<typename T, y::size N, bool non_strict>
+y::ostream& operator<<(y::ostream& o, const vec<T, N, non_strict>& arg)
+{
+  for (y::size i = 0; i < N; ++i) {
+    if (i) {
+      o << ", ";
+    }
+    o << arg.elements[i];
+  }
+  return o;
+}
+
+template<typename T, y::size N, bool non_strict>
+class vec_iterator : public boost::iterator_facade<
+    vec_iterator<T, N, non_strict>,
+    const vec<T, N, non_strict>, boost::forward_traversal_tag> {
+public:
+
+  typedef vec<T, N, non_strict> V;
+  vec_iterator() : _finished(true) {}
+
+  vec_iterator(const V& min, const V& max)
+    : _min(min)
+    , _size(max - min)
+    , _value(min)
+    , _finished(false)
+  {
+  }
+
+  explicit operator bool() const
+  {
+    return !_finished;
+  }
+  
+private:
+
+  friend class boost::iterator_core_access;
+
+  void increment()
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (++_value.elements[i] < (_min + _size).elements[i]) {
+        break;
+      }
+      _value.elements[i] = _min.elements[i];
+      _finished = 1 + i == N;
+    }
+  }
+
+  bool equal(const vec_iterator& arg) const
+  {
+    if (_finished && arg._finished) {
+      return true; 
+    }
+    if (_finished != arg._finished) {
+      return false;
+    }
+    return _value == arg._value;
+  }
+
+  const V& dereference() const
+  {
+    return _value;
+  }
+
+  V _min;
+  V _size;
+  V _value;
+  bool _finished;
+
+};
+
+template<typename T, y::size N, bool non_strict>
+vec_iterator<T, N, non_strict> cartesian(const vec<T, N, non_strict>& min,
+                                         const vec<T, N, non_strict>& max)
+{
+  return vec_iterator<T, N, non_strict>(min, max);
+}
+
+template<typename T, y::size N, bool non_strict>
+vec_iterator<T, N, non_strict> cartesian(const vec<T, N, non_strict>& max)
+{
+  return cartesian(vec<T, N, non_strict>(), max);
+}
+
+// Perhaps this should go to a geometry.h or similar header.
+template<typename T>
+bool line_intersects_rect(const vec<T, 2>& start, const vec<T, 2>& end,
+                          const vec<T, 2>& min, const vec<T, 2>& max)
+{
+  vec<T, 2> line_min = y::min(start, end);
+  vec<T, 2> line_max = y::max(start, end);
+
+  // Check bounds.
+  if (!(line_min < max && line_max > min)) {
+    return false;
+  }
+
+  // Check equation of line.
+  if (start[0] - end[0] != 0) {
+    T m = (end[1] - start[1]) / (end[0] - start[0]);
+    T y_neg = end[1] + m * (min[0] - end[0]);
+    T y_pos = end[1] + m * (max[0] - end[0]);
+
+    if ((max[1] < y_neg && max[1] < y_pos) ||
+        (min[1] >= y_neg && min[1] >= y_pos)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+typedef vec<int32, 2> ivec2;
+typedef vec<int32, 3> ivec3;
+typedef vec<float, 2> fvec2;
+typedef vec<float, 4> fvec4;
+typedef vec<world, 2> wvec2;
+
+typedef vec_iterator<int32, 2, true> ivec2_iterator;
+typedef vec_iterator<int32, 3, true> ivec3_iterator;
+typedef vec_iterator<float, 2, true> fvec2_iterator;
+typedef vec_iterator<float, 4, true> fvec4_iterator;
+typedef vec_iterator<world, 4, true> wvec2_iterator;
+
+void save_to_proto(const y::ivec2& v, proto::ivec2& proto);
+void load_from_proto(y::ivec2& v, const proto::ivec2& proto);
+
+// End namespace y.
 }
 
 template<bool>

@@ -18,9 +18,11 @@
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/PassManager.h>
 
-int yyparse();
+int yang_parse();
 
-YangProgram::YangProgram(const y::string& name, const y::string& contents)
+namespace yang {
+
+Program::Program(const y::string& name, const y::string& contents)
   : _name(name)
   , _ast(y::null)
   , _module(y::null)
@@ -30,7 +32,7 @@ YangProgram::YangProgram(const y::string& name, const y::string& contents)
   ParseGlobals::parser_output = y::null;
   ParseGlobals::errors.clear();
 
-  yyparse();
+  yang_parse();
   y::unique<Node> output = y::move_unique(ParseGlobals::parser_output);
   Node::orphans.erase(output.get());
   for (Node* node : Node::orphans) {
@@ -54,16 +56,16 @@ YangProgram::YangProgram(const y::string& name, const y::string& contents)
   _ast = y::move_unique(output);
 }
 
-YangProgram::~YangProgram()
+Program::~Program()
 {
 }
 
-bool YangProgram::success() const
+bool Program::success() const
 {
   return bool(_ast);
 }
 
-y::string YangProgram::print_ast() const
+y::string Program::print_ast() const
 {
   if (!success()) {
     return "<error>";
@@ -72,7 +74,7 @@ y::string YangProgram::print_ast() const
   return printer.walk(*_ast) + '\n';
 }
 
-void YangProgram::generate_ir()
+void Program::generate_ir()
 {
   if (!success()) {
     return;
@@ -98,7 +100,7 @@ void YangProgram::generate_ir()
   }
 }
 
-void YangProgram::optimise_ir()
+void Program::optimise_ir()
 {
   if (!_module) {
     return;
@@ -149,7 +151,7 @@ void YangProgram::optimise_ir()
   optimiser.run(*_module);
 }
 
-y::string YangProgram::print_ir() const
+y::string Program::print_ir() const
 {
   if (!_module) {
     return "<error>";
@@ -191,4 +193,7 @@ y::string ParseGlobals::error(
   ss << "Error at line " << line <<
       ", near `" << t << "`:\n\t" << message;
   return ss.str();
+}
+
+// End namespace yang.
 }

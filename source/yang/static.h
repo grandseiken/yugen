@@ -5,6 +5,8 @@
 #include "type.h"
 #include "walker.h"
 
+namespace yang {
+
 class StaticChecker : public ConstAstWalker<Type> {
 public:
 
@@ -58,5 +60,8 @@ private:
   y::map<y::string, Type> _global_variable_map;
 
 };
+
+// End namespace yang.
+}
 
 #endif

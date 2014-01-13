@@ -7,6 +7,8 @@
 #include "../common/string.h"
 #include "../common/vector.h"
 
+namespace yang {
+
 struct Node {
   enum node_type {
     ERROR,
@@ -128,5 +130,8 @@ struct Node {
   static y::set<Node*> orphans;
 
 };
+
+// End namespace yang.
+}
 
 #endif

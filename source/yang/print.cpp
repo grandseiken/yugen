@@ -1,5 +1,7 @@
 #include "print.h"
 
+namespace yang {
+
 AstPrinter::AstPrinter()
   : _indent(0)
 {
@@ -202,4 +204,7 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
 y::string AstPrinter::indent() const
 {
   return y::string(2 * _indent, ' ');
+}
+
+// End namespace yang.
 }

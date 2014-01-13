@@ -8,13 +8,15 @@ namespace llvm {
 
 namespace std {
   template<>
-  struct hash<IrGenerator::metadata> {
-    y::size operator()(IrGenerator::metadata v) const
+  struct hash<yang::IrGenerator::metadata> {
+    y::size operator()(yang::IrGenerator::metadata v) const
     {
       return v;
     }
   };
 }
+
+namespace yang {
 
 IrGeneratorUnion::IrGeneratorUnion(llvm::Type* type)
   : type(type)
@@ -1147,4 +1149,7 @@ llvm::BasicBlock* IrGenerator::create_block(
   auto block = llvm::BasicBlock::Create(b.getContext(), name, parent);
   _metadata.add(meta, block);
   return block;
+}
+
+// End namespace yang.
 }

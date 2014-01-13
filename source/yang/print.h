@@ -4,6 +4,8 @@
 #include "walker.h"
 #include "../common/string.h"
 
+namespace yang {
+
 class AstPrinter : public ConstAstWalker<y::string> {
 public:
 
@@ -21,5 +23,8 @@ private:
   y::size _indent;
 
 };
+
+// End namespace yang.
+}
 
 #endif

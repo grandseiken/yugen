@@ -5,6 +5,8 @@
 #include "../common/string.h"
 #include "../common/vector.h"
 
+namespace yang {
+
 // TYPE_ERROR is a special type assigned to expressions containing an error
 // where the type cannot be determined. Further errors involving a value
 // of this type are suppressed (to avoid cascading error messages).
@@ -94,5 +96,8 @@ private:
   y::vector<Type> _elements;
 
 };
+
+// End namespace yang.
+}
 
 #endif

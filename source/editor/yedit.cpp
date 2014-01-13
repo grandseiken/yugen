@@ -10,6 +10,49 @@
 
 #include <SFML/Window.hpp>
 
+namespace {
+
+bool used(const Tileset& tileset, const CellBlueprint& cell)
+{
+  return cell.is_tileset_used(tileset);
+}
+
+bool used(const Tileset& tileset, const CellMap& map)
+{
+  for (auto it = map.get_cartesian(); it; ++it) {
+    if (!map.is_coord_used(*it)) {
+      continue;
+    }
+    if (used(tileset, *map.get_coord(*it))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool used(const LuaFile& script, const CellMap& map)
+{
+  for (const ScriptBlueprint& s : map.get_scripts()) {
+    if (script.path == s.path) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool used(const CellBlueprint& cell, const CellMap& map)
+{
+  for (auto it = map.get_cartesian(); it; ++it) {
+    if (map.get_coord(*it) == &cell) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// End anonymous namespace.
+}
+
 Yedit::Yedit(Filesystem& output, Databank& bank, RenderUtil& util)
   : _output(output)
   , _bank(bank)
@@ -129,46 +172,6 @@ void Yedit::update()
       _bank.maps.insert(result, y::move_unique(new CellMap()));
     }
     _input_result.success = false;
-  }
-}
-
-namespace {
-  bool used(const Tileset& tileset, const CellBlueprint& cell)
-  {
-    return cell.is_tileset_used(tileset);
-  }
-
-  bool used(const Tileset& tileset, const CellMap& map)
-  {
-    for (auto it = map.get_cartesian(); it; ++it) {
-      if (!map.is_coord_used(*it)) {
-        continue;
-      }
-      if (used(tileset, *map.get_coord(*it))) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool used(const LuaFile& script, const CellMap& map)
-  {
-    for (const ScriptBlueprint& s : map.get_scripts()) {
-      if (script.path == s.path) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool used(const CellBlueprint& cell, const CellMap& map)
-  {
-    for (auto it = map.get_cartesian(); it; ++it) {
-      if (map.get_coord(*it) == &cell) {
-        return true;
-      }
-    }
-    return false;
   }
 }
 

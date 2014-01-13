@@ -6,6 +6,8 @@
 #include "../common/set.h"
 #include "../common/vector.h"
 
+namespace yang {
+
 template<typename K, typename V>
 class SymbolTable {
 public:
@@ -203,6 +205,9 @@ V& SymbolTable<K, V>::get(const K& symbol, y::size frame)
     return it->second;
   }
   return _default;
+}
+
+// End namespace yang.
 }
 
 #endif

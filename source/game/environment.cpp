@@ -11,50 +11,51 @@
 
 namespace {
 
-  // Returns the normal of the first wall collided with.
-  y::wvec2 mass_collider_update(
-      Derivatives<y::wvec2>& mass, const WorldWindow& world)
-  {
-    mass.d += mass.d2;
+// Returns the normal of the first wall collided with.
+y::wvec2 mass_collider_update(
+    Derivatives<y::wvec2>& mass, const WorldWindow& world)
+{
+  mass.d += mass.d2;
 
-    bool collision = false;
-    y::world min_ratio = 1;
-    y::wvec2 nearest_normal;
+  bool collision = false;
+  y::world min_ratio = 1;
+  y::wvec2 nearest_normal;
 
-    y::wvec2 min = mass.v - y::wvec2{4., 4.};
-    y::wvec2 max = mass.v + y::wvec2{4., 4.};
-    auto it = world.get_geometry().search(
-        y::min(min, min + mass.d), y::max(max, max + mass.d));
+  y::wvec2 min = mass.v - y::wvec2{4., 4.};
+  y::wvec2 max = mass.v + y::wvec2{4., 4.};
+  auto it = world.get_geometry().search(
+      y::min(min, min + mass.d), y::max(max, max + mass.d));
 
-    for (; it && min_ratio > 0.; ++it) {
-      // Set Collision::collider_move for details.
-      y::wvec2 start = y::wvec2(it->start);
-      y::wvec2 end = y::wvec2(it->end);
-      y::wvec2 vec = end - start;
-      y::wvec2 normal{vec[yy], -vec[xx]};
+  for (; it && min_ratio > 0.; ++it) {
+    // Set Collision::collider_move for details.
+    y::wvec2 start = y::wvec2(it->start);
+    y::wvec2 end = y::wvec2(it->end);
+    y::wvec2 vec = end - start;
+    y::wvec2 normal{vec[yy], -vec[xx]};
 
-      if (normal.dot(-mass.d) <= 0) {
-        continue;
-      }
-
-      y::world ratio = get_projection(start, end, mass.v, mass.d, true);
-      if (min_ratio > ratio) {
-        collision = true;
-        min_ratio = ratio;
-        nearest_normal = normal;
-      }
+    if (normal.dot(-mass.d) <= 0) {
+      continue;
     }
 
-    if (collision) {
-      mass.v += y::max(0., min_ratio) * mass.d;
-      return nearest_normal;
+    y::world ratio = get_projection(start, end, mass.v, mass.d, true);
+    if (min_ratio > ratio) {
+      collision = true;
+      min_ratio = ratio;
+      nearest_normal = normal;
     }
-    else {
-      mass.v += mass.d;
-    }
-    return y::wvec2();
   }
 
+  if (collision) {
+    mass.v += y::max(0., min_ratio) * mass.d;
+    return nearest_normal;
+  }
+  else {
+    mass.v += mass.d;
+  }
+  return y::wvec2();
+}
+
+// End anonymous namespace.
 }
 
 Particle::Particle(

@@ -1,9 +1,11 @@
 #include "ast.h"
 #include "../../gen/yang/yang.l.h"
 
+namespace yang {
+
 Node::Node(node_type type)
-  : line(yylineno)
-  , text(yytext ? yytext : "")
+  : line(yang_lineno)
+  , text(yang_text ? yang_text : "")
   , type(type)
   , int_value(0)
   , world_value(0)
@@ -33,8 +35,8 @@ Node::Node(node_type type, Node* a, Node* b, Node* c)
 }
 
 Node::Node(node_type type, y::int32 value)
-  : line(yylineno)
-  , text(yytext ? yytext : "")
+  : line(yang_lineno)
+  , text(yang_text ? yang_text : "")
   , type(type)
   , int_value(value)
   , world_value(0)
@@ -43,8 +45,8 @@ Node::Node(node_type type, y::int32 value)
 }
 
 Node::Node(node_type type, y::world value)
-  : line(yylineno)
-  , text(yytext ? yytext : "")
+  : line(yang_lineno)
+  , text(yang_text ? yang_text : "")
   , type(type)
   , int_value(0)
   , world_value(value)
@@ -53,8 +55,8 @@ Node::Node(node_type type, y::world value)
 }
 
 Node::Node(node_type type, y::string value)
-  : line(yylineno)
-  , text(yytext ? yytext : "")
+  : line(yang_lineno)
+  , text(yang_text ? yang_text : "")
   , type(type)
   , int_value(0)
   , world_value(0)
@@ -129,3 +131,6 @@ y::string Node::op_string(node_type t)
 }
 
 y::set<Node*> Node::orphans;
+
+// End namespace yang.
+}
