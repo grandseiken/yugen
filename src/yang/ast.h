@@ -8,6 +8,7 @@
 #include "../common/vector.h"
 
 namespace yang {
+namespace internal {
 
 struct Node {
   enum node_type {
@@ -140,7 +141,8 @@ struct ParseGlobals {
       y::size line, const y::string& token, const y::string& message);
 };
 
-// End namespace yang.
+// End namespace yang::internal.
+}
 }
 
 #endif

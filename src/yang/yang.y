@@ -5,17 +5,17 @@
 
 int yang_error(const char* message)
 {
-  yang::ParseGlobals::errors.emplace_back(
-      yang::ParseGlobals::error(yang_lineno, yang_text, message));
+  yang::internal::ParseGlobals::errors.emplace_back(
+      yang::internal::ParseGlobals::error(yang_lineno, yang_text, message));
   return 0;
 }
 
-typedef yang::Node Node;
+typedef yang::internal::Node Node;
 
 %}
 
 %union {
-  yang::Node* node;
+  yang::internal::Node* node;
 }
 
   /* Tokens. */
@@ -200,7 +200,7 @@ opt_identifier
 
 program
   : elem_list T_EOF
-{$$ = yang::ParseGlobals::parser_output = $1;
+{$$ = yang::internal::ParseGlobals::parser_output = $1;
  $$->type = Node::PROGRAM;}
   ;
 

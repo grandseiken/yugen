@@ -5,8 +5,8 @@
 
 namespace std {
   template<>
-  struct hash<yang::StaticChecker::metadata> {
-    y::size operator()(yang::StaticChecker::metadata v) const
+  struct hash<yang::internal::StaticChecker::metadata> {
+    y::size operator()(yang::internal::StaticChecker::metadata v) const
     {
       return v;
     }
@@ -14,16 +14,14 @@ namespace std {
 }
 
 namespace yang {
+namespace internal {
 
-StaticChecker::StaticChecker(
-    symbol_frame& export_functions, symbol_frame& export_globals,
-    symbol_frame& internal_globals)
+StaticChecker::StaticChecker(symbol_frame& functions, symbol_frame& globals)
   : _errors(false)
   , _metadata(Type::VOID)
   , _symbol_table(Type::VOID)
-  , _export_functions(export_functions)
-  , _export_globals(export_globals)
-  , _internal_globals(internal_globals)
+  , _functions(functions)
+  , _globals(globals)
 {
 }
 
@@ -44,7 +42,9 @@ void StaticChecker::preorder(const Node& node)
       _current_function = ".global";
       _symbol_table.push();
       _metadata.push();
-      _metadata.add(EXPORT_GLOBAL, Type::VOID);
+      if (node.int_value) {
+        _metadata.add(EXPORT_GLOBAL, Type::VOID);
+      }
       break;
     case Node::GLOBAL_ASSIGN:
       // Set current top-level function name.
@@ -207,11 +207,12 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         error(node, "global assignment of type " + rs[0]);
         add_symbol_checking_collision(node, node.string_value, results[0]);
       }
-      if (node.int_value) {
-        _export_functions.emplace(node.string_value, results[0]);
-      }
       // Otherwise, the symbol already exists by the immediate-name-assign
       // recursion hack.
+      const Type& t = _symbol_table.get(node.string_value, 0);
+      if (!t.is_error()) {
+        _functions.emplace(node.string_value, t.external(true));
+      }
       _current_function = "";
       return Type::VOID;
     }
@@ -496,10 +497,11 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
 
       auto add_global = [&]()
       {
-        auto& table = _metadata.has(EXPORT_GLOBAL) ?
-            _export_globals : _internal_globals;
-        table.emplace(
-            node.string_value, _symbol_table.get(node.string_value, 0));
+        const Type& t = _symbol_table.get(node.string_value, 0);
+        if (!t.is_error()) {
+          bool exported = _metadata.has(EXPORT_GLOBAL);
+          _globals.emplace(node.string_value, t.external(exported));
+        }
       };
 
       if (use_function_immediate_assign_hack(node)) {
@@ -632,5 +634,6 @@ void StaticChecker::error(const Node& node, const y::string& message)
   log_err(ParseGlobals::error(node.line, node.text, m));
 }
 
-// End namespace yang.
+// End namespace yang::internal.
+}
 }

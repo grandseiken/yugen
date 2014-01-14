@@ -17,7 +17,9 @@ namespace llvm {
 
 namespace yang {
 
-struct Node;
+namespace internal {
+  struct Node;
+}
 
 // General directions:
 // TODO: create Instances from Programs, and use them to run instances of the
@@ -46,9 +48,8 @@ public:
   y::string print_ir() const;
 
   typedef y::map<y::string, Type> symbol_table;
-  const symbol_table& get_export_functions() const;
-  const symbol_table& get_export_globals() const;
-  const symbol_table& get_internal_globals() const;
+  const symbol_table& get_functions() const;
+  const symbol_table& get_globals() const;
 
 private:
 
@@ -57,12 +58,11 @@ private:
   void generate_ir();
   void optimise_ir();
 
-  symbol_table _export_functions;
-  symbol_table _export_globals;
-  symbol_table _internal_globals;
+  symbol_table _functions;
+  symbol_table _globals;
 
   y::string _name;
-  y::unique<Node> _ast;
+  y::unique<internal::Node> _ast;
   y::unique<llvm::Module> _module;
   llvm::ExecutionEngine* _engine;
 

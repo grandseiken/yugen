@@ -2,6 +2,7 @@
 #include "../../gen/yang/yang.l.h"
 
 namespace yang {
+namespace internal {
 
 Node::Node(node_type type)
   : line(yang_lineno)
@@ -165,5 +166,6 @@ y::string ParseGlobals::error(
   return ss.str();
 }
 
-// End namespace yang.
+// End namespace yang::internal.
+}
 }

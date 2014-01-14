@@ -1,6 +1,7 @@
 #include "print.h"
 
 namespace yang {
+namespace internal {
 
 AstPrinter::AstPrinter()
   : _indent(0)
@@ -63,7 +64,7 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
           y::string("global\n") + results[0];
     case Node::GLOBAL_ASSIGN:
       return (node.int_value ? "export " : "") +
-          node.string_value + " " + results[0];
+          node.string_value + " = " + results[0];
     case Node::FUNCTION:
       return results[0] + "\n" + results[1];
 
@@ -206,5 +207,6 @@ y::string AstPrinter::indent() const
   return y::string(2 * _indent, ' ');
 }
 
-// End namespace yang.
+// End namespace yang::internal.
+}
 }

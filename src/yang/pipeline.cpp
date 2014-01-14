@@ -28,32 +28,32 @@ Program::Program(const y::string& name,
   , _ast(y::null)
   , _module(y::null)
 {
-  ParseGlobals::lexer_input_contents = &contents;
-  ParseGlobals::lexer_input_offset = 0;
-  ParseGlobals::parser_output = y::null;
-  ParseGlobals::errors.clear();
+  internal::ParseGlobals::lexer_input_contents = &contents;
+  internal::ParseGlobals::lexer_input_offset = 0;
+  internal::ParseGlobals::parser_output = y::null;
+  internal::ParseGlobals::errors.clear();
 
   yang_parse();
-  y::unique<Node> output = y::move_unique(ParseGlobals::parser_output);
-  Node::orphans.erase(output.get());
-  for (Node* node : Node::orphans) {
+  y::unique<internal::Node> output =
+      y::move_unique(internal::ParseGlobals::parser_output);
+  internal::Node::orphans.erase(output.get());
+  for (internal::Node* node : internal::Node::orphans) {
     y::move_unique(node);
   }
-  Node::orphans.clear();
+  internal::Node::orphans.clear();
 
-  for (const y::string& s : ParseGlobals::errors) {
+  for (const y::string& s : internal::ParseGlobals::errors) {
     log_err(s);
   }
-  if (ParseGlobals::errors.size()) {
+  if (internal::ParseGlobals::errors.size()) {
     return;
   }
 
-  StaticChecker checker(_export_functions, _export_globals, _internal_globals);
+  internal::StaticChecker checker(_functions, _globals);
   checker.walk(*output);
   if (checker.errors()) {
-    _export_functions.clear();
-    _export_globals.clear();
-    _internal_globals.clear();
+    _functions.clear();
+    _globals.clear();
     return;
   }
   _ast = y::move_unique(output);
@@ -78,7 +78,7 @@ y::string Program::print_ast() const
   if (!success()) {
     return "<error>";
   }
-  AstPrinter printer;
+  internal::AstPrinter printer;
   return printer.walk(*_ast) + '\n';
 }
 
@@ -93,19 +93,14 @@ y::string Program::print_ir() const
   return output;
 }
 
-const Program::symbol_table& Program::get_export_functions() const
+const Program::symbol_table& Program::get_functions() const
 {
-  return _export_functions;
+  return _functions;
 }
 
-const Program::symbol_table& Program::get_export_globals() const
+const Program::symbol_table& Program::get_globals() const
 {
-  return _export_globals;
-}
-
-const Program::symbol_table& Program::get_internal_globals() const
-{
-  return _internal_globals;
+  return _globals;
 }
 
 void Program::generate_ir()
@@ -122,15 +117,7 @@ void Program::generate_ir()
     _module = y::null;
   }
 
-  symbol_table all_globals;
-  for (const auto& pair : _export_globals) {
-    all_globals.insert(pair);
-  }
-  for (const auto& pair : _internal_globals) {
-    all_globals.insert(pair);
-  }
-
-  IrGenerator irgen(*_module, all_globals);
+  internal::IrGenerator irgen(*_module, _globals);
   irgen.walk(*_ast);
   irgen.emit_global_functions();
 

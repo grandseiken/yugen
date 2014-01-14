@@ -1,18 +1,19 @@
 #ifndef YANG__STATIC_H
 #define YANG__STATIC_H
 
+#include "internal_type.h"
 #include "table.h"
 #include "type.h"
 #include "walker.h"
 
 namespace yang {
+namespace internal {
 
 class StaticChecker : public ConstAstWalker<Type> {
 public:
 
-  typedef y::map<y::string, Type> symbol_frame;
-  StaticChecker(symbol_frame& export_functions, symbol_frame& export_globals,
-                symbol_frame& internal_functions);
+  typedef y::map<y::string, yang::Type> symbol_frame;
+  StaticChecker(symbol_frame& functions, symbol_frame& globals);
   ~StaticChecker();
 
   // True if any errors were detected during the checking. Otherwise, assuming
@@ -58,13 +59,13 @@ private:
   SymbolTable<metadata, Type> _metadata;
   SymbolTable<y::string, Type> _symbol_table;
 
-  symbol_frame& _export_functions;
-  symbol_frame& _export_globals;
-  symbol_frame& _internal_globals;
+  symbol_frame& _functions;
+  symbol_frame& _globals;
 
 };
 
-// End namespace yang.
+// End namespace yang::internal.
+}
 }
 
 #endif

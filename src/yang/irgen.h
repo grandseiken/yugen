@@ -16,6 +16,7 @@ namespace llvm {
 }
 
 namespace yang {
+namespace internal {
 
 struct IrGeneratorUnion {
   IrGeneratorUnion(llvm::Type* type);
@@ -31,8 +32,8 @@ struct IrGeneratorUnion {
 class IrGenerator : public ConstAstWalker<IrGeneratorUnion> {
 public:
 
-  IrGenerator(llvm::Module& module,
-              const y::map<y::string, Type>& globals);
+  typedef y::map<y::string, yang::Type> symbol_frame;
+  IrGenerator(llvm::Module& module, symbol_frame& globals);
   ~IrGenerator();
 
   // Emit functions for allocating, freeing, reading and writing to instances
@@ -82,7 +83,7 @@ private:
       bool to_bool = false, bool with_ands = false, bool right_assoc = false);
 
   // Get the equivalent LLVM type for a Yang type.
-  llvm::Type* get_llvm_type(const Type& t) const;
+  llvm::Type* get_llvm_type(const yang::Type& t) const;
 
   // Metadata symbols.
   enum metadata {
@@ -130,7 +131,8 @@ private:
 
 };
 
-// End namespace yang.
+// End namespace yang::internal.
+}
 }
 
 #endif

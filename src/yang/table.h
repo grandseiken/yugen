@@ -7,6 +7,7 @@
 #include "../common/vector.h"
 
 namespace yang {
+namespace internal {
 
 template<typename K, typename V>
 class SymbolTable {
@@ -207,7 +208,8 @@ V& SymbolTable<K, V>::get(const K& symbol, y::size frame)
   return _default;
 }
 
-// End namespace yang.
+// End namespace yang::internal.
+}
 }
 
 #endif

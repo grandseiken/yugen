@@ -14,8 +14,8 @@ namespace {
 
   int lexer_input(char* buffer, y::size* bytes_read, y::size bytes_max)
   {
-    const y::string& in = *yang::ParseGlobals::lexer_input_contents;
-    y::size& offset = yang::ParseGlobals::lexer_input_offset;
+    const y::string& in = *yang::internal::ParseGlobals::lexer_input_contents;
+    y::size& offset = yang::internal::ParseGlobals::lexer_input_offset;
 
     *bytes_read = y::min(bytes_max, in.length() - offset);
     for (y::size i = 0; i < *bytes_read; ++i) {
@@ -27,7 +27,7 @@ namespace {
 
 }
 
-typedef yang::Node Node;
+typedef yang::internal::Node Node;
 
 %}
 

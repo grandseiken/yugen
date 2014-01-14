@@ -5,6 +5,7 @@
 #include "../common/string.h"
 
 namespace yang {
+namespace internal {
 
 class AstPrinter : public ConstAstWalker<y::string> {
 public:
@@ -24,7 +25,8 @@ private:
 
 };
 
-// End namespace yang.
+// End namespace yang::internal.
+}
 }
 
 #endif

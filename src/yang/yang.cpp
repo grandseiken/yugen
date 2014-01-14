@@ -36,6 +36,14 @@ y::int32 main(y::int32 argc, char** argv)
   if (!program.success()) {
     return 1;
   }
+  for (const auto& pair : program.get_globals()) {
+    if (pair.second.is_exported()) {
+      log_info("global [", pair.second.string(), "] ", pair.first);
+    }
+  }
+  for (const auto& pair : program.get_functions()) {
+    log_info("function [", pair.second.string(), "] ", pair.first);
+  }
 
   log_info("Source:\n", program.print_ast());
   log_info("IR:\n", program.print_ir());

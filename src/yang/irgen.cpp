@@ -8,8 +8,8 @@ namespace llvm {
 
 namespace std {
   template<>
-  struct hash<yang::IrGenerator::metadata> {
-    y::size operator()(yang::IrGenerator::metadata v) const
+  struct hash<yang::internal::IrGenerator::metadata> {
+    y::size operator()(yang::internal::IrGenerator::metadata v) const
     {
       return v;
     }
@@ -17,6 +17,7 @@ namespace std {
 }
 
 namespace yang {
+namespace internal {
 
 IrGeneratorUnion::IrGeneratorUnion(llvm::Type* type)
   : type(type)
@@ -40,8 +41,7 @@ IrGeneratorUnion::operator llvm::Value*() const
   return value;
 }
 
-IrGenerator::IrGenerator(llvm::Module& module,
-                         const y::map<y::string, Type>& globals)
+IrGenerator::IrGenerator(llvm::Module& module, symbol_frame& globals)
   : _module(module)
   , _builder(module.getContext())
   , _symbol_table(y::null)
@@ -1120,23 +1120,29 @@ llvm::Value* IrGenerator::fold(
   return v;
 }
 
-llvm::Type* IrGenerator::get_llvm_type(const Type& t) const
+llvm::Type* IrGenerator::get_llvm_type(const yang::Type& t) const
 {
-  if (t.function()) {
+  if (t.is_function()) {
     y::vector<llvm::Type*> args;
     args.push_back(_global_data);
-    for (y::size i = 1; i < t.element_size(); ++i) {
-      args.push_back(get_llvm_type(t.elements(i)));
+    for (y::size i = 0; i < t.get_function_num_args(); ++i) {
+      args.push_back(get_llvm_type(t.get_function_arg_type(i)));
     }
     return llvm::PointerType::get(
-        llvm::FunctionType::get(get_llvm_type(t.elements(0)), args, false), 0);
+        llvm::FunctionType::get(
+            get_llvm_type(t.get_function_return_type()), args, false), 0);
   }
   if (t.is_int()) {
-    return t.is_vector() ? vector_type(int_type(), t.count()) : int_type();
+    return int_type();
   }
   if (t.is_world()) {
-    return t.is_vector() ?
-        vector_type(world_type(), t.count()) : world_type();
+    return world_type();
+  }
+  if (t.is_int_vector()) {
+    return vector_type(int_type(), t.get_vector_size());
+  }
+  if (t.is_world_vector()) {
+    return vector_type(world_type(), t.get_vector_size());
   }
   return void_type();
 }
@@ -1151,5 +1157,6 @@ llvm::BasicBlock* IrGenerator::create_block(
   return block;
 }
 
-// End namespace yang.
+// End namespace yang::internal.
+}
 }

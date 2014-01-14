@@ -5,6 +5,7 @@
 #include "../common/pair.h"
 
 namespace yang {
+namespace internal {
 
 template<bool Const>
 struct AstWalkerNodeType {};
@@ -82,7 +83,8 @@ using AstWalker = AstWalkerBase<T, false>;
 template<typename T>
 using ConstAstWalker = AstWalkerBase<T, true>;
 
-// End namespace yang.
+// End namespace yang::internal.
+}
 }
 
 #endif
