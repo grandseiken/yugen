@@ -9,6 +9,7 @@
 
 namespace llvm {
   class Constant;
+  class ExecutionEngine;
   class Function;
   class Module;
   class Type;
@@ -33,7 +34,8 @@ class IrGenerator : public ConstAstWalker<IrGeneratorUnion> {
 public:
 
   typedef y::map<y::string, yang::Type> symbol_frame;
-  IrGenerator(llvm::Module& module, symbol_frame& globals);
+  IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
+              symbol_frame& globals);
   ~IrGenerator();
 
   // Emit functions for allocating, freeing, reading and writing to instances
@@ -48,6 +50,10 @@ protected:
   IrGeneratorUnion visit(const Node& node, const result_list& results) override;
 
 private:
+
+  // Get an LLVM function pointer to a native function.
+  llvm::Function* get_native_function(
+      const y::string& name, void* native_fp, llvm::FunctionType* type) const;
 
   llvm::Type* void_type() const;
   llvm::Type* int_type() const;
@@ -118,6 +124,7 @@ private:
   llvm::Type* _global_data;
 
   llvm::Module& _module;
+  llvm::ExecutionEngine& _engine;
   llvm::IRBuilder<> _builder;
 
   // We keep a second symbol table for special metadata entries that don't

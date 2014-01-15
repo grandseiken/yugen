@@ -1,4 +1,5 @@
 #include "irgen.h"
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/IR/Module.h>
 #include "../log.h"
 
@@ -41,8 +42,10 @@ IrGeneratorUnion::operator llvm::Value*() const
   return value;
 }
 
-IrGenerator::IrGenerator(llvm::Module& module, symbol_frame& globals)
+IrGenerator::IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
+                         symbol_frame& globals)
   : _module(module)
+  , _engine(engine)
   , _builder(module.getContext())
   , _symbol_table(y::null)
   , _metadata(y::null)
@@ -86,15 +89,12 @@ void IrGenerator::emit_global_functions()
   // Register malloc and free. Malloc takes a pointer argument, since
   // we computer sizeof with pointer arithmetic. (Conveniently, it's
   // also a type of the correct bit-width.)
-  // TODO: defining a function called `malloc` or `free` in the program
-  // completely breaks this. We need to resolve functions only in the
-  // linked binary. Similarly for `pow` and so on.
-  auto malloc_ptr = llvm::Function::Create(
-      llvm::FunctionType::get(_global_data, _global_data, false),
-      llvm::Function::ExternalLinkage, "malloc", &_module);
-  auto free_ptr = llvm::Function::Create(
-      llvm::FunctionType::get(void_type(), _global_data, false),
-      llvm::Function::ExternalLinkage, "free", &_module);
+  auto malloc_ptr = get_native_function(
+      "malloc", (void*)&malloc,
+      llvm::FunctionType::get(_global_data, _global_data, false));
+  auto free_ptr = get_native_function(
+      "free", (void*)&free,
+      llvm::FunctionType::get(void_type(), _global_data, false));
 
   // Create allocator function.
   auto alloc = llvm::Function::Create(
@@ -841,6 +841,19 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
   }
 }
 
+llvm::Function* IrGenerator::get_native_function(
+    const y::string& name, void* native_fp, llvm::FunctionType* type) const
+{
+  // We use special !-prefixed names for native functions so that they can't
+  // be confused with regular user-defined functions (e.g. "malloc" is not
+  // reserved).
+  llvm::Function* llvm_function = llvm::Function::Create(
+      type, llvm::Function::ExternalLinkage, "!" + name, &_module);
+  // We need to explicitly link the LLVM function to the native function.
+  _engine.addGlobalMapping(llvm_function, native_fp);
+  return llvm_function;
+}
+
 llvm::Type* IrGenerator::void_type() const
 {
   return llvm::Type::getVoidTy(_builder.getContext());
@@ -955,11 +968,9 @@ llvm::Value* IrGenerator::pow(llvm::Value* v, llvm::Value* u)
   llvm::Type* t = v->getType();
 
   y::vector<llvm::Type*> args{world_type(), world_type()};
-  // The pow function pointers should probably be given by some standard
-  // library interface, eventually.
-  auto pow_ptr = llvm::Function::Create(
-      llvm::FunctionType::get(world_type(), args, false),
-      llvm::Function::ExternalLinkage, "pow", &_module);
+  auto pow_ptr = get_native_function(
+      "pow", (void*)&::pow,
+      llvm::FunctionType::get(world_type(), args, false));
 
   if (t->isIntOrIntVectorTy()) {
     v = i2w(v);

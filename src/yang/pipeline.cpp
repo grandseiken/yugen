@@ -111,13 +111,18 @@ void Program::generate_ir()
       new llvm::Module(_name, llvm::getGlobalContext()));
 
   // TODO: unsure if I am supposed to delete the ExecutionEngine, or the Values.
+  // Update: fairly sure the engine takes ownership of the module; so the
+  // engine alone should be deleted.
   _engine = llvm::EngineBuilder(_module.get()).setErrorStr(&error).create();
   if (!_engine) {
     log_err("Couldn't create execution engine:\n", error);
     _module = y::null;
   }
+  // Disable implicit searching so we don't accidentally resolve linked-in
+  // functions.
+  _engine->DisableSymbolSearching();
 
-  internal::IrGenerator irgen(*_module, _globals);
+  internal::IrGenerator irgen(*_module, *_engine, _globals);
   irgen.walk(*_ast);
   irgen.emit_global_functions();
 
