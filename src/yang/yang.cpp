@@ -47,5 +47,9 @@ y::int32 main(y::int32 argc, char** argv)
 
   log_info("Source:\n", program.print_ast());
   log_info("IR:\n", program.print_ir());
+
+  // TODO: test.
+  yang::Instance instance(program);
+  log_info("value of global `foo`: ", instance.get_global<y::int32>("foo"));
   return 0;
 }

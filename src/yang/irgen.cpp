@@ -86,6 +86,9 @@ void IrGenerator::emit_global_functions()
   // Register malloc and free. Malloc takes a pointer argument, since
   // we computer sizeof with pointer arithmetic. (Conveniently, it's
   // also a type of the correct bit-width.)
+  // TODO: defining a function called `malloc` or `free` in the program
+  // completely breaks this. We need to resolve functions only in the
+  // linked binary. Similarly for `pow` and so on.
   auto malloc_ptr = llvm::Function::Create(
       llvm::FunctionType::get(_global_data, _global_data, false),
       llvm::Function::ExternalLinkage, "malloc", &_module);

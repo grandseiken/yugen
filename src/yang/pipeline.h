@@ -6,6 +6,7 @@
 #include "../common/string.h"
 #include "../common/utility.h"
 #include "../common/vector.h"
+#include "../log.h"
 
 #include "type.h"
 
@@ -22,9 +23,7 @@ namespace internal {
 }
 
 // General directions:
-// TODO: create Instances from Programs, and use them to run instances of the
-// programs.
-// TODO: create Programs from Contexts or nvironments which define game-library
+// TODO: create Programs from Contexts or Environments which define game-library
 // functions and types. (Perhaps the standard library can be a kind of Context,
 // even.)
 // TODO: in particular, there should be a type corresponding to Instance, with
@@ -74,14 +73,47 @@ public:
   Instance(const Program& program);
   ~Instance();
 
+  // TODO: type-checking with some sort of templated yang::TypeInfo metadata
+  // struct.
+  template<typename Type>
+  Type get_global(const y::string& name) const;
+  template<typename Type>
+  void set_global(const y::string& name, const Type& value);
+  // TODO: call functions.
+
 private:
 
-  void* get_native_fp(const y::string& name);
+  void* get_native_fp(const y::string& name) const;
 
   const Program& _program;
   void* _global_data;
 
 };
+
+template<typename Type>
+Type Instance::get_global(const y::string& name) const
+{
+  if (_program._globals.find(name) == _program._globals.end()) {
+    log_err(_program._name +
+            ": requested global `" + name + "` does not exist");
+    return Type();
+  }
+  void* native = get_native_fp("!global_get_" + name);
+  return ((Type(*)(void*))native)(_global_data);
+}
+
+template<typename Type>
+void Instance::set_global(const y::string& name, const Type& value)
+{
+  if (_program._globals.find(name) == _program._globals.end()) {
+    log_err(_program._name +
+            ": requested global `" + name + "` does not exist");
+  }
+  else {
+    void* native = get_native_fp("!global_set_" + name);
+    ((void(*)(void*, Type))native)(_global_data, value);
+  }
+}
 
 // End namespace yang.
 }

@@ -54,12 +54,11 @@ void StaticChecker::preorder(const Node& node)
     case Node::ASSIGN_CONST:
       // Super big hack: in order to allow recursion, the function has to have
       // a name already in the scope of its body. This doesn't really make much
-      // sense with function-expressions, but we can use a hack where, if a
-      // function-expression appears immediately on the right-hand side of
-      // assignment to a name, we make a note and store it in the symbol table
-      // early.
+      // sense with function-expressions! But, we can use a hack where, if a
+      // function-expression appears on the immediate right-hand side of an
+      // assignment, we make a note and store it in the symbol table early.
       //
-      // We don't allow different functions to be mutually-recursive, since that
+      // We don't allow different functions to be mutually recursive, since that
       // necessarily requires a two-phase approach. However, it's not all that
       // important and can be achieved for any particular pair of functions by
       // nesting, anyway.

@@ -188,7 +188,7 @@ Instance::~Instance()
   ((void (*)(void*))global_free)(_global_data);
 }
 
-void* Instance::get_native_fp(const y::string& name)
+void* Instance::get_native_fp(const y::string& name) const
 {
   llvm::Function* ir_fp = _program._module->getFunction(name);
   return _program._engine->getPointerToFunction(ir_fp);

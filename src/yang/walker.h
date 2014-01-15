@@ -29,8 +29,8 @@ public:
   // the AST, with the passed result_list containing the results of the calls
   // to visit() for each of the node's children.
   // Furthermore, for each node, preorder() will be called before any children
-  // are visited, and infix() once in between each visiting child with the
-  // partial result list.
+  // are visited, and infix() will be called in-between visiting each child,
+  // with a partial result list.
   T walk(N& node);
 
 protected:
