@@ -50,6 +50,6 @@ y::int32 main(y::int32 argc, char** argv)
 
   // TODO: test.
   yang::Instance instance(program);
-  log_info("value of global `foo`: ", instance.get_global<y::int32>("foo"));
+  log_info("value of global `foo`: ", instance.get_global<yang::int32>("foo"));
   return 0;
 }
