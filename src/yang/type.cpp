@@ -88,6 +88,24 @@ const Type& Type::get_function_arg_type(y::size index) const
   return index < _elements.size() ? void_type : _elements[1 + index];
 }
 
+bool Type::operator==(const Type& t) const
+{
+  if (_elements.size() != t._elements.size()) {
+    return false;
+  }
+  for (y::size i = 0; i < _elements.size(); ++i) {
+    if (_elements[i] != t._elements[i]) {
+      return false;
+    }
+  }
+  return _base == t._base && _count == t._count;
+}
+
+bool Type::operator!=(const Type& t) const
+{
+  return !operator==(t);
+}
+
 Type::Type()
   : _exported(false)
   , _const(false)

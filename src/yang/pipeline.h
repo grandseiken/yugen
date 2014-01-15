@@ -9,6 +9,7 @@
 #include "../log.h"
 
 #include "type.h"
+#include "type_info.h"
 
 namespace llvm {
   class Module;
@@ -31,6 +32,7 @@ namespace internal {
 // TODO: add some kind of built-in data structures, including at least a generic
 // map<K, V> type. May require garbage-collection, unless we place tight
 // restrictions on their usage (e.g. only global variables).
+// TODO: add a LuaValue-like generic value class.
 // TODO: possibly implement closures, if it seems feasible.
 // TODO: warnings: for example, unused variables.
 class Program : public y::no_copy {
@@ -73,46 +75,46 @@ public:
   Instance(const Program& program);
   ~Instance();
 
-  // TODO: type-checking with some sort of templated yang::TypeInfo metadata
-  // struct.
-  template<typename Type>
-  Type get_global(const y::string& name) const;
-  template<typename Type>
-  void set_global(const y::string& name, const Type& value);
+  template<typename T>
+  T get_global(const y::string& name) const;
+  template<typename T>
+  void set_global(const y::string& name, const T& value);
   // TODO: call functions.
 
 private:
 
   void* get_native_fp(const y::string& name) const;
 
+  // Runtime check that global exists and has the correct type.
+  bool check_global(const y::string& name, const Type& type) const;
+
   const Program& _program;
   void* _global_data;
 
 };
 
-template<typename Type>
-Type Instance::get_global(const y::string& name) const
+template<typename T>
+T Instance::get_global(const y::string& name) const
 {
-  if (_program._globals.find(name) == _program._globals.end()) {
-    log_err(_program._name +
-            ": requested global `" + name + "` does not exist");
-    return Type();
+  // TypeInfo representation() will fail at compile-time for completely
+  // unsupported types.
+  internal::TypeInfo<T> info;
+  if (!check_global(name, info.representation())) {
+    return T();
   }
   void* native = get_native_fp("!global_get_" + name);
-  return ((Type(*)(void*))native)(_global_data);
+  return ((T(*)(void*))native)(_global_data);
 }
 
-template<typename Type>
-void Instance::set_global(const y::string& name, const Type& value)
+template<typename T>
+void Instance::set_global(const y::string& name, const T& value)
 {
-  if (_program._globals.find(name) == _program._globals.end()) {
-    log_err(_program._name +
-            ": requested global `" + name + "` does not exist");
+  internal::TypeInfo<T> info;
+  if (!check_global(name, info.representation())) {
+    return;
   }
-  else {
-    void* native = get_native_fp("!global_set_" + name);
-    ((void(*)(void*, Type))native)(_global_data, value);
-  }
+  void* native = get_native_fp("!global_set_" + name);
+  ((void(*)(void*, T))native)(_global_data, value);
 }
 
 // End namespace yang.

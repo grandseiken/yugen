@@ -9,6 +9,8 @@ namespace yang {
 
 namespace internal {
   class Type;
+  template<typename T>
+  struct TypeInfo;
 }
 
 class Type {
@@ -38,9 +40,14 @@ public:
   const Type& get_function_return_type() const;
   const Type& get_function_arg_type(y::size index) const;
 
+  bool operator==(const Type& t) const;
+  bool operator!=(const Type& t) const;
+
 private:
 
   friend class internal::Type;
+  template<typename T>
+  friend struct internal::TypeInfo;
   Type();
 
   enum type_base {

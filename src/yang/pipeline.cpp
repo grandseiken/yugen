@@ -194,5 +194,21 @@ void* Instance::get_native_fp(const y::string& name) const
   return _program._engine->getPointerToFunction(ir_fp);
 }
 
+bool Instance::check_global(const y::string& name, const Type& t) const
+{
+  auto it = _program._globals.find(name);
+  if (it == _program._globals.end()) {
+    log_err(_program._name +
+            ": requested global `" + name + "` does not exist");
+    return false;
+  }
+  if (t != it->second) {
+    log_err(_program._name + ": requested global `" + it->second.string() +
+            " " + name + "` via incorrect type `" + t.string() + "`");
+    return false;
+  }
+  return true;
+}
+
 // End namespace yang.
 }
