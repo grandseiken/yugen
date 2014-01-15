@@ -20,16 +20,15 @@ struct element_accessor {
   element_accessor() {}
 };
 
-// Mathematical vector over components of type T with dimension N. When
-// non_strict is true, includes functions that aren't strictly canon
-// mathematically, but are nonetheless useful, for example componentwise
-// multiplication of two vectors.
-template<typename T, y::size N, bool non_strict = true>
+// N-dimensional mathematical vector over elements of type T.
+template<typename T, y::size N>
 class vec {
 public:
 
-  typedef vec<T, N, non_strict> V;
+  typedef vec<T, N> V;
   T elements[N];
+
+  // Constructors.
 
   vec()
     : elements{0}
@@ -65,6 +64,8 @@ public:
     }
   }
 
+  // Assignment.
+
   V& operator=(const V& arg)
   {
     for (y::size i = 0; i < N; ++i) {
@@ -74,6 +75,8 @@ public:
   }
 
   V& operator=(V&& arg) noexcept = default;
+
+  // Indexing.
 
   T& operator[](y::size i)
   {
@@ -99,6 +102,9 @@ public:
     return elements[M];
   }
 
+  // Comparison operators. Relational operators return true iff all of the
+  // element-wise comparisons return true.
+
   bool operator==(const V& arg) const
   {
     for (y::size i = 0; i < N; ++i) {
@@ -114,6 +120,48 @@ public:
     return !operator==(arg);
   }
 
+  bool operator<(const V& arg) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] >= arg.elements[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool operator>(const V& arg) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] <= arg.elements[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool operator<=(const V& arg) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] > arg.elements[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool operator>=(const V& arg) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] < arg.elements[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Binary operators.
+
   V operator+(const V& arg) const
   {
     V v;
@@ -128,6 +176,24 @@ public:
     V v;
     for (y::size i = 0; i < N; ++i) {
       v[i] = elements[i] - arg[i];
+    }
+    return v;
+  }
+
+  V operator*(const V& arg) const
+  {
+    V v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = elements[i] * arg[i];
+    }
+    return v;
+  }
+
+  V operator/(const V& arg) const
+  {
+    V v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = elements[i] / arg[i];
     }
     return v;
   }
@@ -150,35 +216,7 @@ public:
     return v;
   }
 
-  template<typename y::enable_if<non_strict, bool>::type = 0>
-  V operator*(const V& arg) const
-  {
-    V v;
-    for (y::size i = 0; i < N; ++i) {
-      v[i] = elements[i] * arg[i];
-    }
-    return v;
-  }
-
-  template<typename y::enable_if<non_strict, bool>::type = 0>
-  V operator/(const V& arg) const
-  {
-    V v;
-    for (y::size i = 0; i < N; ++i) {
-      v[i] = elements[i] / arg[i];
-    }
-    return v;
-  }
-
-  V operator-() const
-  {
-    return V().operator-(*this);
-  }
-
-  V normalised() const
-  {
-    return operator/(length() ? length() : 1);
-  }
+  // Shortcut assignment operators.
 
   V& operator+=(const V& arg)
   {
@@ -188,6 +226,16 @@ public:
   V& operator-=(const V& arg)
   {
     return operator=(operator-(arg));
+  }
+
+  V& operator*=(const V& arg)
+  {
+    return operator=(operator*(arg));
+  }
+
+  V& operator/=(const V& arg)
+  {
+    return operator=(operator/(arg));
   }
 
   V& operator*=(const T& arg)
@@ -200,74 +248,21 @@ public:
     return operator=(operator/(arg));
   }
 
-  template<typename y::enable_if<non_strict, bool>::type = 0>
-  V& operator*=(const V& arg)
+  // Unary operators and mathematical functions.
+
+  V operator-() const
   {
-    return operator=(operator*(arg));
+    return V().operator-(*this);
   }
 
-  template<typename y::enable_if<non_strict, bool>::type = 0>
-  V& operator/=(const V& arg)
+  V normalised() const
   {
-    return operator=(operator/(arg));
-  }
-
-  template<typename y::enable_if<non_strict, bool>::type = 0>
-  bool operator<(const V& arg) const
-  {
-    for (y::size i = 0; i < N; ++i) {
-      if (elements[i] >= arg.elements[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  template<typename y::enable_if<non_strict, bool>::type = 0>
-  bool operator>(const V& arg) const
-  {
-    for (y::size i = 0; i < N; ++i) {
-      if (elements[i] <= arg.elements[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  template<typename y::enable_if<non_strict, bool>::type = 0>
-  bool operator<=(const V& arg) const
-  {
-    for (y::size i = 0; i < N; ++i) {
-      if (elements[i] > arg.elements[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  template<typename y::enable_if<non_strict, bool>::type = 0>
-  bool operator>=(const V& arg) const
-  {
-    for (y::size i = 0; i < N; ++i) {
-      if (elements[i] < arg.elements[i]) {
-        return false;
-      }
-    }
-    return true;
+    return operator/(length() ? length() : 1);
   }
 
   V& normalise()
   {
     return operator=(normalised());
-  } 
-
-  T dot(const V& arg) const
-  {
-    T t = 0;
-    for (y::size i = 0; i < N; ++i) {
-      t += elements[i] * arg.elements[i];
-    }
-    return t;
   }
 
   T length_squared() const
@@ -279,6 +274,19 @@ public:
   {
     return sqrt(length_squared());
   }
+
+  // Dot product.
+
+  T dot(const V& arg) const
+  {
+    T t = 0;
+    for (y::size i = 0; i < N; ++i) {
+      t += elements[i] * arg.elements[i];
+    }
+    return t;
+  }
+
+  // Cross productions for two and three dimensions.
 
   template<
       typename U = T,
@@ -299,6 +307,8 @@ public:
              elements[2] * arg[0] - elements[0] * arg[2],
              elements[0] * arg[1] - elements[1] * arg[0]);
   }
+
+  // Polar coordinate functions.
 
   template<
       typename U = T,
@@ -340,15 +350,7 @@ public:
     return V{T(cos(angle)), T(sin(angle))};
   }
 
-  bool in_region(const V& origin, const V& size) const
-  {
-    for (y::size i = 0; i < N; ++i) {
-      if (elements[i] < origin[i] || elements[i] >= origin[i] + size[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
+  // Euclidean division and modulo operators.
 
   V euclidean_div(const V& arg) const
   {
@@ -368,10 +370,42 @@ public:
     return v;
   }
 
+  V euclidean_div(const T& arg) const
+  {
+    vec<T, N> v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = y::euclidean_div(elements[i], arg);
+    }
+    return v;
+  }
+
+  V euclidean_mod(const T& arg) const
+  {
+    vec<T, N> v;
+    for (y::size i = 0; i < N; ++i) {
+      v[i] = y::euclidean_mod(elements[i], arg);
+    }
+    return v;
+  }
+
+  // Check if a vector lies in a particular region.
+
+  bool in_region(const V& origin, const V& size) const
+  {
+    for (y::size i = 0; i < N; ++i) {
+      if (elements[i] < origin[i] || elements[i] >= origin[i] + size[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
 };
 
-template<typename T, y::size N, bool non_strict>
-vec<T, N, non_strict> operator*(const T& t, const vec<T, N, non_strict>& v)
+// Binary operators with a single element on the left.
+
+template<typename T, y::size N>
+vec<T, N> operator*(const T& t, const vec<T, N>& v)
 {
   vec<T, N> u;
   for (y::size i = 0; i < N; ++i) {
@@ -389,6 +423,8 @@ vec<T, N> operator/(const T& t, const vec<T, N>& v)
   }
   return u;
 }
+
+// Miscellaenous element-wise mathematical functions.
 
 template<typename T, y::size N>
 vec<T, N> abs(const vec<T, N>& v)
@@ -450,8 +486,10 @@ vec<T, N> max(const vec<T, N>& a, const vec<T, N>& b)
   return v;
 }
 
-template<typename T, y::size N, bool non_strict>
-y::ostream& operator<<(y::ostream& o, const vec<T, N, non_strict>& arg)
+// Writing string representation to stream.
+
+template<typename T, y::size N>
+y::ostream& operator<<(y::ostream& o, const vec<T, N>& arg)
 {
   for (y::size i = 0; i < N; ++i) {
     if (i) {
@@ -462,13 +500,15 @@ y::ostream& operator<<(y::ostream& o, const vec<T, N, non_strict>& arg)
   return o;
 }
 
-template<typename T, y::size N, bool non_strict>
+// Iterator for traversing hyperrectangles in integer-coordinate vector space.
+
+template<typename T, y::size N>
 class vec_iterator : public boost::iterator_facade<
-    vec_iterator<T, N, non_strict>,
-    const vec<T, N, non_strict>, boost::forward_traversal_tag> {
+    vec_iterator<T, N>,
+    const vec<T, N>, boost::forward_traversal_tag> {
 public:
 
-  typedef vec<T, N, non_strict> V;
+  typedef vec<T, N> V;
   vec_iterator() : _finished(true) {}
 
   vec_iterator(const V& min, const V& max)
@@ -522,20 +562,20 @@ private:
 
 };
 
-template<typename T, y::size N, bool non_strict>
-vec_iterator<T, N, non_strict> cartesian(const vec<T, N, non_strict>& min,
-                                         const vec<T, N, non_strict>& max)
+template<typename T, y::size N>
+vec_iterator<T, N> cartesian(const vec<T, N>& min, const vec<T, N>& max)
 {
-  return vec_iterator<T, N, non_strict>(min, max);
+  return vec_iterator<T, N>(min, max);
 }
 
-template<typename T, y::size N, bool non_strict>
-vec_iterator<T, N, non_strict> cartesian(const vec<T, N, non_strict>& max)
+template<typename T, y::size N>
+vec_iterator<T, N> cartesian(const vec<T, N>& max)
 {
-  return cartesian(vec<T, N, non_strict>(), max);
+  return cartesian(vec<T, N>(), max);
 }
 
 // Perhaps this should go to a geometry.h or similar header.
+
 template<typename T>
 bool line_intersects_rect(const vec<T, 2>& start, const vec<T, 2>& end,
                           const vec<T, 2>& min, const vec<T, 2>& max)
@@ -563,23 +603,37 @@ bool line_intersects_rect(const vec<T, 2>& start, const vec<T, 2>& end,
   return true;
 }
 
+// Standard typedefs.
+
 typedef vec<int32, 2> ivec2;
 typedef vec<int32, 3> ivec3;
+typedef vec<int32, 4> ivec4;
 typedef vec<float, 2> fvec2;
+typedef vec<float, 3> fvec3;
 typedef vec<float, 4> fvec4;
 typedef vec<world, 2> wvec2;
+typedef vec<world, 3> wvec3;
+typedef vec<world, 4> wvec4;
 
-typedef vec_iterator<int32, 2, true> ivec2_iterator;
-typedef vec_iterator<int32, 3, true> ivec3_iterator;
-typedef vec_iterator<float, 2, true> fvec2_iterator;
-typedef vec_iterator<float, 4, true> fvec4_iterator;
-typedef vec_iterator<world, 4, true> wvec2_iterator;
+typedef vec_iterator<int32, 2> ivec2_iterator;
+typedef vec_iterator<int32, 3> ivec3_iterator;
+typedef vec_iterator<int32, 4> ivec4_iterator;
+typedef vec_iterator<float, 2> fvec2_iterator;
+typedef vec_iterator<float, 3> fvec3_iterator;
+typedef vec_iterator<float, 4> fvec4_iterator;
+typedef vec_iterator<world, 2> wvec2_iterator;
+typedef vec_iterator<world, 3> wvec3_iterator;
+typedef vec_iterator<world, 4> wvec4_iterator;
+
+// Serialisation.
 
 void save_to_proto(const y::ivec2& v, proto::ivec2& proto);
 void load_from_proto(y::ivec2& v, const proto::ivec2& proto);
 
 // End namespace y.
 }
+
+// Standard accessor types for 4-element vectors.
 
 template<bool>
 struct element_accessor_instance {
@@ -599,6 +653,8 @@ namespace {
   static const y::element_accessor<2>& bb = element_accessor_instance<true>::z;
   static const y::element_accessor<3>& aa = element_accessor_instance<true>::w;
 }
+
+// Vector hash function.
 
 namespace std {
 

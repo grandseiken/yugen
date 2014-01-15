@@ -50,7 +50,7 @@ public:
     const SpatialHash<T, V, N>& _hash;
     coord _min;
     coord _max;
-    y::vec_iterator<y::int32, N, true> _i;
+    y::vec_iterator<y::int32, N> _i;
     typename bucket::const_iterator _j;
 
   };
