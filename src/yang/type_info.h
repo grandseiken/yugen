@@ -63,6 +63,9 @@ struct TypeInfo<yang::world> {
 // the call sites wouldn't know which convention to use.
 // Supporting first-class interop of vectors with y::vecs is a must-have
 // feature.
+// Here's an idea: for every function *type* used in the program, we can create
+// a wrapper function which takes a function of that as an argument and converts
+// to a compatible ABI.
 template<y::size N>
 struct TypeInfo<int32_vec<N>> {
   yang::Type representation() const
