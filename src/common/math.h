@@ -8,6 +8,7 @@
 namespace y {
 
 typedef std::size_t size;
+typedef std::intptr_t intptr;
 
 typedef int8_t int8;
 typedef int16_t int16;

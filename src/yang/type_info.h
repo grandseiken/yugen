@@ -57,7 +57,12 @@ struct TypeInfo<yang::world> {
 };
 
 // TODO: vector TypeInfo doesn't work; not sure what the calling conventions
-// for vectors are.
+// for vectors are. Or if they exist at all. If not, will need to convert
+// functions with vector arguments to value-structs of some kind. It'd be
+// nice to only do that for export functions, but without additional machinery
+// the call sites wouldn't know which convention to use.
+// Supporting first-class interop of vectors with y::vecs is a must-have
+// feature.
 template<y::size N>
 struct TypeInfo<int32_vec<N>> {
   yang::Type representation() const

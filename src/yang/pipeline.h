@@ -83,7 +83,8 @@ public:
 
 private:
 
-  void* get_native_fp(const y::string& name) const;
+  typedef void (*void_fp)();
+  void_fp get_native_fp(const y::string& name) const;
 
   // Runtime check that global exists and has the correct type.
   bool check_global(const y::string& name, const Type& type) const;
@@ -102,8 +103,8 @@ T Instance::get_global(const y::string& name) const
   if (!check_global(name, info.representation())) {
     return T();
   }
-  void* native = get_native_fp("!global_get_" + name);
-  return ((T(*)(void*))native)(_global_data);
+  void_fp native = get_native_fp("!global_get_" + name);
+  return ((T (*)(void*))native)(_global_data);
 }
 
 template<typename T>
@@ -113,8 +114,8 @@ void Instance::set_global(const y::string& name, const T& value)
   if (!check_global(name, info.representation())) {
     return;
   }
-  void* native = get_native_fp("!global_set_" + name);
-  ((void(*)(void*, T))native)(_global_data, value);
+  void_fp native = get_native_fp("!global_set_" + name);
+  ((void (*)(void*, T))native)(_global_data, value);
 }
 
 // End namespace yang.

@@ -90,10 +90,10 @@ void IrGenerator::emit_global_functions()
   // we computer sizeof with pointer arithmetic. (Conveniently, it's
   // also a type of the correct bit-width.)
   auto malloc_ptr = get_native_function(
-      "malloc", (void*)&malloc,
+      "malloc", (void_fp)&malloc,
       llvm::FunctionType::get(_global_data, _global_data, false));
   auto free_ptr = get_native_function(
-      "free", (void*)&free,
+      "free", (void_fp)&free,
       llvm::FunctionType::get(void_type(), _global_data, false));
 
   // Create allocator function.
@@ -165,7 +165,6 @@ void IrGenerator::emit_global_functions()
 void IrGenerator::preorder(const Node& node)
 {
   auto& b = _builder;
-  auto parent = b.GetInsertBlock() ? b.GetInsertBlock()->getParent() : y::null;
 
   switch (node.type) {
     case Node::GLOBAL:
@@ -253,55 +252,11 @@ void IrGenerator::preorder(const Node& node)
 void IrGenerator::infix(const Node& node, const result_list& results)
 {
   auto& b = _builder;
-  auto parent = b.GetInsertBlock() ? b.GetInsertBlock()->getParent() : y::null;
 
   switch (node.type) {
     case Node::FUNCTION:
     {
-      _metadata.push();
-      auto function_type = (llvm::FunctionType*)results[0].type;
-      // Linkage will be set to external later for exported top-level functions.
-      auto function = llvm::Function::Create(
-          function_type, llvm::Function::InternalLinkage,
-          "anonymous", &_module);
-      auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
-
-      b.SetInsertPoint(block);
-      _symbol_table.push();
-      // Recursive lookup handled similarly to arguments below.
-      if (_immediate_left_assign.length()) {
-        llvm::Value* v = b.CreateAlloca(
-            llvm::PointerType::get(function_type, 0), y::null,
-            _immediate_left_assign);
-        b.CreateStore(function, v);
-        _symbol_table.add(_immediate_left_assign, v);
-        _immediate_left_assign = "";
-      }
-      _symbol_table.push();
-
-      // The code for Node::TYPE_FUNCTION in visit() ensures it takes a global
-      // data structure pointer.
-      auto it = function->arg_begin();
-      it->setName("global");
-      _metadata.add(GLOBAL_DATA_PTR, it);
-      // Set up the arguments.
-      y::size arg_num = 0;
-      for (++it; it != function->arg_end(); ++it) {
-        const y::string& name =
-            node.children[0]->children[1 + arg_num]->string_value;
-        it->setName(name);
-
-        // Rather than reference argument values directly, we create an alloca
-        // and store the argument in there. This simplifies things, since we
-        // can emit the same IR code when referencing local variables or
-        // function arguments.
-        llvm::Value* v = b.CreateAlloca(
-            function_type->getParamType(1 + arg_num), y::null, name);
-        b.CreateStore(it, v);
-        _symbol_table.add(name, v);
-        ++arg_num;
-      }
-      _metadata.add(FUNCTION, function);
+      create_function(node, (llvm::FunctionType*)results[0].type);
       break;
     }
 
@@ -517,9 +472,9 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       return results[0];
     case Node::GLOBAL_ASSIGN:
     {
+      auto function = (llvm::Function*)parent;
       // Top-level functions Nodes have their int_value set to 1 when defined
       // using the `export` keyword.
-      auto function = (llvm::Function*)parent;
       if (node.int_value) {
         function->setLinkage(llvm::Function::ExternalLinkage);
       }
@@ -842,7 +797,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
 }
 
 llvm::Function* IrGenerator::get_native_function(
-    const y::string& name, void* native_fp, llvm::FunctionType* type) const
+    const y::string& name, void_fp native_fp, llvm::FunctionType* type) const
 {
   // We use special !-prefixed names for native functions so that they can't
   // be confused with regular user-defined functions (e.g. "malloc" is not
@@ -850,8 +805,58 @@ llvm::Function* IrGenerator::get_native_function(
   llvm::Function* llvm_function = llvm::Function::Create(
       type, llvm::Function::ExternalLinkage, "!" + name, &_module);
   // We need to explicitly link the LLVM function to the native function.
-  _engine.addGlobalMapping(llvm_function, native_fp);
+  // More (technically) undefined behaviour here.
+  _engine.addGlobalMapping(llvm_function, (void*)(y::intptr)native_fp);
   return llvm_function;
+}
+
+void IrGenerator::create_function(
+    const Node& node, llvm::FunctionType* function_type)
+{
+  auto& b = _builder;
+  _metadata.push();
+
+  // Linkage will be set later if necessary.
+  auto function = llvm::Function::Create(
+      function_type, llvm::Function::InternalLinkage,
+      "anonymous", &_module);
+  auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
+
+  b.SetInsertPoint(block);
+  _symbol_table.push();
+  // Recursive lookup handled similarly to arguments below.
+  if (_immediate_left_assign.length()) {
+    llvm::Value* v = b.CreateAlloca(
+        llvm::PointerType::get(function_type, 0), y::null,
+        _immediate_left_assign);
+    b.CreateStore(function, v);
+    _symbol_table.add(_immediate_left_assign, v);
+    _immediate_left_assign.clear();
+  }
+  _symbol_table.push();
+
+  // The code for Node::TYPE_FUNCTION in visit() ensures it takes a global
+  // data structure pointer.
+  auto it = function->arg_begin();
+  it->setName("global");
+  _metadata.add(GLOBAL_DATA_PTR, it);
+  // Set up the arguments.
+  y::size arg_num = 0;
+  for (++it; it != function->arg_end(); ++it) {
+    const y::string& name =
+        node.children[0]->children[1 + arg_num]->string_value;
+
+    // Rather than reference argument values directly, we create an alloca
+    // and store the argument in there. This simplifies things, since we
+    // can emit the same IR code when referencing local variables or
+    // function arguments.
+    llvm::Value* alloc = b.CreateAlloca(
+        function_type->getParamType(1 + arg_num), y::null, name);
+    b.CreateStore(it, alloc);
+    _symbol_table.add(name, alloc);
+    ++arg_num;
+  }
+  _metadata.add(FUNCTION, function);
 }
 
 llvm::Type* IrGenerator::void_type() const
@@ -969,7 +974,7 @@ llvm::Value* IrGenerator::pow(llvm::Value* v, llvm::Value* u)
 
   y::vector<llvm::Type*> args{world_type(), world_type()};
   auto pow_ptr = get_native_function(
-      "pow", (void*)&::pow,
+      "pow", (void_fp)&::pow,
       llvm::FunctionType::get(world_type(), args, false));
 
   if (t->isIntOrIntVectorTy()) {

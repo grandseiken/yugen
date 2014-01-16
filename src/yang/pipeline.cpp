@@ -183,20 +183,26 @@ Instance::Instance(const Program& program)
   : _program(program)
   , _global_data(y::null)
 {
-  void* global_alloc = get_native_fp("!global_alloc");
+  void_fp global_alloc = get_native_fp("!global_alloc");
   _global_data = ((void* (*)())global_alloc)();
 }
 
 Instance::~Instance()
 {
-  void* global_free = get_native_fp("!global_free");
+  void_fp global_free = get_native_fp("!global_free");
   ((void (*)(void*))global_free)(_global_data);
 }
 
-void* Instance::get_native_fp(const y::string& name) const
+Instance::void_fp Instance::get_native_fp(const y::string& name) const
 {
   llvm::Function* ir_fp = _program._module->getFunction(name);
-  return _program._engine->getPointerToFunction(ir_fp);
+  void* void_p = _program._engine->getPointerToFunction(ir_fp);
+  // ISO C++ forbids casting between pointer-to-function and pointer-to-object!
+  // Unfortunately, due to dependence on dlsym, there doesn't seem to be any
+  // way around this (technically) defined behaviour. I guess it should work
+  // in practice. Also occurs in irgen.cpp.
+  // TODO: maybe it can be resolved somehow?
+  return (void_fp)(y::intptr)void_p;
 }
 
 bool Instance::check_global(const y::string& name, const Type& t) const
