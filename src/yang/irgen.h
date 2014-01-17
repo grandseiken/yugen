@@ -59,6 +59,10 @@ private:
   // Tools for functions and calling conventions.
   void create_function(
       const Node& node, llvm::FunctionType* function_type);
+  // Generate trampoline function for converting C calling convention to LLVM
+  // calling convention.
+  llvm::Function* create_to_yang_cc_trampoline(
+      llvm::FunctionType* function_type);
 
   // General helper functions.
   llvm::Type* void_type() const;

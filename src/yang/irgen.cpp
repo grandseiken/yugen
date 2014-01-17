@@ -134,9 +134,12 @@ void IrGenerator::emit_global_functions()
     llvm::Type* t = _global_data->
         getPointerElementType()->getStructElementType(pair.second);
 
+    auto function_type = llvm::FunctionType::get(t, _global_data, false);
     auto getter = llvm::Function::Create(
-        llvm::FunctionType::get(t, _global_data, false),
-        llvm::Function::ExternalLinkage, "!global_get_" + pair.first, &_module);
+        function_type, llvm::Function::ExternalLinkage,
+        "!global_get_" + pair.first, &_module);
+    create_to_yang_cc_trampoline(function_type);
+
     auto getter_block = llvm::BasicBlock::Create(
         b.getContext(), "entry", getter);
     auto it = getter->arg_begin();
@@ -146,9 +149,12 @@ void IrGenerator::emit_global_functions()
         b.CreateLoad(global_ptr(it, pair.second), "load"));
 
     y::vector<llvm::Type*> setter_args{_global_data, t};
+    function_type = llvm::FunctionType::get(void_type(), setter_args, false);
     auto setter = llvm::Function::Create(
-        llvm::FunctionType::get(void_type(), setter_args, false),
-        llvm::Function::ExternalLinkage, "!global_set_" + pair.first, &_module);
+        function_type, llvm::Function::ExternalLinkage,
+        "!global_set_" + pair.first, &_module);
+    create_to_yang_cc_trampoline(function_type);
+
     auto setter_block = llvm::BasicBlock::Create(
         b.getContext(), "entry", setter);
     it = setter->arg_begin();
@@ -820,9 +826,11 @@ void IrGenerator::create_function(
   auto function = llvm::Function::Create(
       function_type, llvm::Function::InternalLinkage,
       "anonymous", &_module);
-  auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
+  create_to_yang_cc_trampoline(function_type);
 
+  auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
   b.SetInsertPoint(block);
+
   _symbol_table.push();
   // Recursive lookup handled similarly to arguments below.
   if (_immediate_left_assign.length()) {
@@ -857,6 +865,101 @@ void IrGenerator::create_function(
     ++arg_num;
   }
   _metadata.add(FUNCTION, function);
+}
+
+llvm::Function* IrGenerator::create_to_yang_cc_trampoline(
+    llvm::FunctionType* function_type)
+{
+  // TODO: unique these, and allow lookup for use.
+  auto& b = _builder;
+  // LLVM bytecode calling convention has some significant drawbacks that make
+  // it unsuitable for direct interop with native code. Most importantly,
+  // calling convention for vectors in undefined; vectors can't be passed
+  // directly at all. More subtly, calling convention for value structures
+  // may be target-dependent.
+  //
+  // It's possible this implementation is overly conservative, but it's
+  // definitely going to work. Essentially, we unpack vectors into individual
+  // values, and convert return values to pointer arguments; the trampoline
+  // takes the actual function to be called as the final argument.
+  y::vector<llvm::Type*> args;
+  auto add_type = [&](llvm::Type* t, bool to_ptr)
+  {
+    if (!t->isVectorTy()) {
+      args.push_back(to_ptr ? llvm::PointerType::get(t, 0) : t);
+      return;
+    }
+    for (y::size i = 0; i < t->getVectorNumElements(); ++i) {
+      auto elem = t->getVectorElementType();
+      args.push_back(to_ptr ? llvm::PointerType::get(elem, 0) : elem);
+    }
+  };
+
+  auto return_type = function_type->getReturnType();
+  y::size return_args =
+      return_type->isVoidTy() ? 0 :
+      return_type->isVectorTy() ? return_type->getVectorNumElements() : 1;
+
+  // Construct the type of the trampoline function.
+  if (!return_type->isVoidTy()) {
+    add_type(return_type, true);
+  }
+  for (auto it = function_type->param_begin();
+       it != function_type->param_end(); ++it) {
+    add_type(*it, false);
+  }
+  args.push_back(llvm::PointerType::get(function_type, 0));
+  auto ext_function_type = llvm::FunctionType::get(void_type(), args, false);
+
+  // Generate the function code.
+  auto function = llvm::Function::Create(
+      ext_function_type, llvm::Function::ExternalLinkage,
+      "trampoline", &_module);
+  auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
+  b.SetInsertPoint(block);
+
+  y::vector<llvm::Value*> call_args;
+  auto callee = --function->arg_end();
+
+  // Translate trampoline arguments to an LLVM-internal argument list.
+  auto jt = function->arg_begin();
+  for (y::size i = 0; i < return_args; ++i) {
+    ++jt;
+  }
+  for (auto it = function_type->param_begin();
+       it != function_type->param_end(); ++it) {
+    if (!(*it)->isVectorTy()) {
+      call_args.push_back(jt++);
+      continue;
+    }
+    y::size size = (*it)->getVectorNumElements();
+    llvm::Value* v = (*it)->isIntOrIntVectorTy() ?
+        constant_vector(constant_int(0), size) :
+        constant_vector(constant_world(0), size);
+
+    for (y::size i = 0; i < size; ++i) {
+      v = b.CreateInsertElement(v, jt, constant_int(i), "vec");
+      ++jt;
+    }
+    call_args.push_back(v);
+  }
+
+  // Do the call and translate the result back to native calling convention.
+  llvm::Value* result = b.CreateCall(callee, call_args);
+  if (!return_type->isVectorTy()) {
+    if (!return_type->isVoidTy()) {
+      b.CreateStore(result, function->arg_begin());
+    }
+  }
+  else {
+    auto it = function->arg_begin();
+    for (y::size i = 0; i < return_type->getVectorNumElements(); ++i) {
+      llvm::Value* v = b.CreateExtractElement(result, constant_int(i), "vec");
+      b.CreateStore(v, it++);
+    }
+  }
+  b.CreateRetVoid();
+  return function;
 }
 
 llvm::Type* IrGenerator::void_type() const

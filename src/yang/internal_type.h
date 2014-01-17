@@ -15,8 +15,11 @@ namespace internal {
 class Type {
 public:
 
-  // When adding a new type, make sure to update the global data structure
-  // calculation in irgen.cpp, and user-facing equivalent in type.h!
+  // When adding a new type, make sure to update:
+  // - the user-facing equivalent in type.h;
+  // - the global data-structure calculation in irgen.cpp;
+  // - the trampoline function generation, also in irgen.cpp;
+  // - all the other obvious places. There are definitely a lot.
   enum type_base {
     ERROR,
     // Temporary type to indicate a name is in scope, but inaccessible as it
