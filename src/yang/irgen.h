@@ -43,6 +43,9 @@ public:
   // walked!
   void emit_global_functions();
 
+  typedef y::map<y::string, llvm::Function*> trampoline_map;
+  const trampoline_map& get_trampoline_map() const;
+
 protected:
 
   void preorder(const Node& node) override;
@@ -134,6 +137,8 @@ private:
 
   // Generated trampolines.
   y::map<llvm::FunctionType*, llvm::Function*> _trampoline_functions;
+  // Map from function name to corresponding trampoline.
+  trampoline_map _trampoline_map;
 
   llvm::Module& _module;
   llvm::ExecutionEngine& _engine;

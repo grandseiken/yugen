@@ -134,11 +134,11 @@ void IrGenerator::emit_global_functions()
     llvm::Type* t = _global_data->
         getPointerElementType()->getStructElementType(pair.second);
 
+    y::string name = "!global_get_" + pair.first;
     auto function_type = llvm::FunctionType::get(t, _global_data, false);
     auto getter = llvm::Function::Create(
-        function_type, llvm::Function::ExternalLinkage,
-        "!global_get_" + pair.first, &_module);
-    create_trampoline_function(function_type);
+        function_type, llvm::Function::ExternalLinkage, name, &_module);
+    _trampoline_map.emplace(name, create_trampoline_function(function_type));
 
     auto getter_block = llvm::BasicBlock::Create(
         b.getContext(), "entry", getter);
@@ -148,12 +148,12 @@ void IrGenerator::emit_global_functions()
     b.CreateRet(
         b.CreateLoad(global_ptr(it, pair.second), "load"));
 
+    name = "!global_set_" + pair.first;
     y::vector<llvm::Type*> setter_args{_global_data, t};
     function_type = llvm::FunctionType::get(void_type(), setter_args, false);
     auto setter = llvm::Function::Create(
-        function_type, llvm::Function::ExternalLinkage,
-        "!global_set_" + pair.first, &_module);
-    create_trampoline_function(function_type);
+        function_type, llvm::Function::ExternalLinkage, name, &_module);
+    _trampoline_map.emplace(name, create_trampoline_function(function_type));
 
     auto setter_block = llvm::BasicBlock::Create(
         b.getContext(), "entry", setter);
@@ -166,6 +166,11 @@ void IrGenerator::emit_global_functions()
     b.CreateStore(jt, global_ptr(it, pair.second));
     b.CreateRetVoid();
   }
+}
+
+const IrGenerator::trampoline_map& IrGenerator::get_trampoline_map() const
+{
+  return _trampoline_map;
 }
 
 void IrGenerator::preorder(const Node& node)
@@ -479,6 +484,10 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     case Node::GLOBAL_ASSIGN:
     {
       auto function = (llvm::Function*)parent;
+      auto function_type =
+          (llvm::FunctionType*)function->getType()->getPointerElementType();
+      _trampoline_map.emplace(
+          node.string_value, create_trampoline_function(function_type));
       // Top-level functions Nodes have their int_value set to 1 when defined
       // using the `export` keyword.
       if (node.int_value) {
@@ -826,7 +835,6 @@ void IrGenerator::create_function(
   auto function = llvm::Function::Create(
       function_type, llvm::Function::InternalLinkage,
       "anonymous", &_module);
-  create_trampoline_function(function_type);
 
   auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
   b.SetInsertPoint(block);
