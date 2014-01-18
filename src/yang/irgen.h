@@ -135,8 +135,9 @@ private:
   // Type of the global structure.
   llvm::Type* _global_data;
 
-  // Generated trampolines.
-  y::map<llvm::FunctionType*, llvm::Function*> _trampoline_functions;
+  // Generated trampolines (mapped from type of function the trampoline is
+  // useful for).
+  y::map<llvm::FunctionType*, llvm::Function*> _trampoline_uniqueness_hash;
   // Map from function name to corresponding trampoline.
   trampoline_map _trampoline_map;
 

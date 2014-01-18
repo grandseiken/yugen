@@ -130,6 +130,7 @@ void Program::generate_ir()
     log_err("Couldn't verify module:\n", error);
     _module = y::null;
   }
+  _trampoline_map = irgen.get_trampoline_map();
 }
 
 void Program::optimise_ir()
@@ -205,7 +206,8 @@ Instance::void_fp Instance::get_native_fp(const y::string& name) const
   return (void_fp)(y::intptr)void_p;
 }
 
-bool Instance::check_global(const y::string& name, const Type& t) const
+bool Instance::check_global(const y::string& name, const Type& t,
+                            bool for_modification) const
 {
   auto it = _program._globals.find(name);
   if (it == _program._globals.end()) {
@@ -216,6 +218,11 @@ bool Instance::check_global(const y::string& name, const Type& t) const
   if (t != it->second) {
     log_err(_program._name + ": requested global `" + it->second.string() +
             " " + name + "` via incorrect type `" + t.string() + "`");
+    return false;
+  }
+  if (for_modification && (it->second.is_const() || !it->second.is_exported())) {
+    log_err(_program._name + ": `" + it->second.string() + " " + name +
+            "` cannot be modified externally");
     return false;
   }
   return true;

@@ -1,6 +1,7 @@
 #ifndef YANG__TYPE_INFO_H
 #define YANG__TYPE_INFO_H
 
+#include "../common/function.h"
 #include "../common/math.h"
 #include "../vector.h"
 #include "type.h"
@@ -15,11 +16,6 @@ template<y::size N, typename y::enable_if<(N > 1), bool>::type = 0>
 using world_vec = y::vec<world, N>;
 
 namespace internal {
-
-struct TypeInfoHelper {
-  static yang::Type int32_vector_representation(y::size n);
-  static yang::Type world_vector_representation(y::size n);
-};
 
 template<typename T>
 struct TypeInfo {};
@@ -56,16 +52,6 @@ struct TypeInfo<yang::world> {
   }
 };
 
-// TODO: vector TypeInfo doesn't work; not sure what the calling conventions
-// for vectors are. Or if they exist at all. If not, will need to convert
-// functions with vector arguments to value-structs of some kind. It'd be
-// nice to only do that for export functions, but without additional machinery
-// the call sites wouldn't know which convention to use.
-// Supporting first-class interop of vectors with y::vecs is a must-have
-// feature.
-// Here's an idea: for every function *type* used in the program, we can create
-// a wrapper function which takes a function of that as an argument and converts
-// to a compatible ABI.
 template<y::size N>
 struct TypeInfo<int32_vec<N>> {
   yang::Type representation() const
@@ -85,6 +71,58 @@ struct TypeInfo<world_vec<N>> {
     t._base = yang::Type::WORLD;
     t._count = N;
     return t;
+  }
+};
+
+// Standard bind function requires explicit placeholders for all elements, which
+// makes it unusable in the variadic setting. We only need to bind one argument
+// at a time.
+template<typename R, typename A, typename... Args>
+y::function<R(Args...)> bind_first(
+    const y::function<R(A, Args...)>& function, const A& arg)
+{
+  return [=](Args... args)
+  {
+    return function(arg, args...);
+  };
+}
+
+// Function call instrumentation for converting native types to the Yang calling
+// convention.
+template<typename R, typename... Args>
+struct TrampolineCall {};
+
+template<typename R>
+struct TrampolineCall<R> {
+  typedef R (*fp_type)();
+  typedef y::function<R()> f_type;
+
+  R operator()(fp_type function) const
+  {
+    return function();
+  }
+
+  R operator()(const f_type& function) const
+  {
+    return function();
+  }
+};
+
+template<typename R, typename A, typename... Args>
+struct TrampolineCall<R, A, Args...> {
+  typedef R (*fp_type)(A, Args...);
+  typedef y::function<R(A, Args...)> f_type;
+
+  R operator()(fp_type function, const A& arg, const Args&... args) const
+  {
+    return operator()(f_type(function), arg, args...);
+  }
+
+  R operator()(const f_type& function, const A& arg, const Args&... args) const
+  {
+    typedef TrampolineCall<R, Args...> next_type;
+    next_type next;
+    return next(bind_first(function, arg), args...);
   }
 };
 

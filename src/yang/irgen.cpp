@@ -880,8 +880,8 @@ llvm::Function* IrGenerator::create_trampoline_function(
 {
   // LLVM types are uniqued, so using them directly as keys for the trampoline
   // cache makes sense.
-  auto it = _trampoline_functions.find(function_type);
-  if (it != _trampoline_functions.end()) {
+  auto it = _trampoline_uniqueness_hash.find(function_type);
+  if (it != _trampoline_uniqueness_hash.end()) {
     return it->second;  
   }
 
@@ -973,7 +973,7 @@ llvm::Function* IrGenerator::create_trampoline_function(
     }
   }
   b.CreateRetVoid();
-  _trampoline_functions.emplace(function_type, function);
+  _trampoline_uniqueness_hash.emplace(function_type, function);
   return function;
 }
 
