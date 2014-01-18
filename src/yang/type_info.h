@@ -6,9 +6,6 @@
 #include "../vector.h"
 #include "type.h"
 
-#include <boost/mpl/list.hpp>
-#include <boost/mpl/insert_range.hpp>
-
 namespace yang {
 
 typedef y::int32 int32;
@@ -92,11 +89,33 @@ y::function<R(Args...)> bind_first(
   };
 }
 
+// Boost's metaprogramming list implementation fakes variadic templates for
+// C++03 compatibility. This makes extracting the type-list directly as a
+// comma-separated type list for constructing e.g. function pointer types
+// difficult.
+//
+// This is a real variadic type list supporting the functionality we need.
+template<typename... T>
+struct List {};
+template<typename T, typename U>
+struct Join {
+  typedef List<T, U> type;
+};
+template<typename T, typename... U>
+struct Join<T, List<U...>> {
+  typedef List<T, U...> type;
+};
+template<typename... T, typename U>
+struct Join<List<T...>, U> {
+  typedef List<T..., U> type;
+};
+template<typename... T, typename... U>
+struct Join<List<T...>, List<U...>> {
+  typedef List<T..., U...> type;
+};
+
 // Templates for converting native function types into the corresponding
 // Yang trampoline function types.
-template<typename... Args>
-using List = boost::mpl::list<Args...>;
-
 template<typename... Args>
 struct Functions {
   typedef void (*fp_type)(Args...);
@@ -124,16 +143,15 @@ struct TrampolineReturn<vec<T, 2>> {
 };
 template <typename T, y::size N>
 struct TrampolineReturn<vec<T, N>> {
-  typedef typename boost::mpl::push_front<
-      typename TrampolineReturn<vec<T, N - 1>>::type, T*>::type type;
+  typedef typename Join<
+      T*, typename TrampolineReturn<vec<T, N - 1>>::type>::type type;
 };
 
 template<typename... Args>
 struct TrampolineArgs {};
 template<typename A, typename... Args>
 struct TrampolineArgs<A, Args...> {
-  typedef typename boost::mpl::push_front<
-      typename TrampolineArgs<Args...>::type, A>::type type;
+  typedef typename Join<A, typename TrampolineArgs<Args...>::type>::type type;
 };
 template<>
 struct TrampolineArgs<> {
@@ -142,22 +160,19 @@ struct TrampolineArgs<> {
 template<typename T, typename... Args>
 struct TrampolineArgs<vec<T, 2>, Args...> {
   typedef typename TrampolineArgs<Args...>::type rest;
-  typedef typename boost::mpl::push_front<
-      typename boost::mpl::push_front<rest, T>::type, T>::type type;
+  typedef typename Join<List<T, T>, rest>::type type;
 };
 template<typename T, y::size N, typename... Args>
 struct TrampolineArgs<vec<T, N>, Args...> {
   typedef typename TrampolineArgs<vec<T, N - 1>, Args...>::type rest;
-  typedef typename boost::mpl::push_front<rest, T>::type type;
+  typedef typename Join<T, rest>::type type;
 };
 
 template<typename R, typename... Args>
 struct TrampolineType {
   typedef typename TrampolineReturn<R>::type ret_type;
   typedef typename TrampolineArgs<Args...>::type args_type;
-  typedef typename boost::mpl::insert_range<
-      args_type,
-      typename boost::mpl::begin<args_type>::type, ret_type>::type cat_type;
+  typedef typename Join<ret_type, args_type>::type cat_type;
   typedef typename FunctionsFromList<cat_type>::fp_type fp_type;
   typedef typename FunctionsFromList<cat_type>::f_type f_type;
 };
@@ -194,8 +209,8 @@ struct TrampolineCallArgs< A, Args...> {
 // TrampolineCall for a primitive return.
 template<typename R, typename... Args>
 struct TrampolineCall {
-  typedef void (*fp_type)(R*, Args...);
-  typedef y::function<void(R*, Args...)> f_type;
+  typedef typename TrampolineType<R, Args...>::fp_type fp_type;
+  typedef typename TrampolineType<R, Args...>::f_type f_type;
 
   R operator()(const f_type& function, const Args&... args) const
   {
@@ -209,8 +224,8 @@ struct TrampolineCall {
 // TrampolineCall for a void return.
 template<typename... Args> 
 struct TrampolineCall<void, Args...> {
-  typedef void (*fp_type)(Args...);
-  typedef y::function<void(Args...)> f_type;
+  typedef typename TrampolineType<void, Args...>::fp_type fp_type;
+  typedef typename TrampolineType<void, Args...>::f_type f_type;
 
   void operator()(const f_type& function, const Args&... args) const
   {
