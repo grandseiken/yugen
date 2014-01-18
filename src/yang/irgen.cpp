@@ -934,15 +934,19 @@ llvm::Function* IrGenerator::create_trampoline_function(
 
   y::vector<llvm::Value*> call_args;
   auto callee = --function->arg_end();
+  callee->setName("target");
 
   // Translate trampoline arguments to an LLVM-internal argument list.
   auto jt = function->arg_begin();
   for (y::size i = 0; i < return_args; ++i) {
+    jt->setName("r" + y::to_string(i));
     ++jt;
   }
+  y::size i = 0;
   for (auto it = function_type->param_begin();
-       it != function_type->param_end(); ++it) {
+       it != function_type->param_end(); ++it, ++i) {
     if (!(*it)->isVectorTy()) {
+      jt->setName("a" + y::to_string(i));
       call_args.push_back(jt++);
       continue;
     }
@@ -951,7 +955,8 @@ llvm::Function* IrGenerator::create_trampoline_function(
         constant_vector(constant_int(0), size) :
         constant_vector(constant_world(0), size);
 
-    for (y::size i = 0; i < size; ++i) {
+    for (y::size j = 0; j < size; ++j) {
+      jt->setName("a" + y::to_string(i) + "_" + y::to_string(j));
       v = b.CreateInsertElement(v, jt, constant_int(i), "vec");
       ++jt;
     }

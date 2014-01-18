@@ -88,41 +88,59 @@ y::function<R(Args...)> bind_first(
 }
 
 // Function call instrumentation for converting native types to the Yang calling
-// convention.
-template<typename R, typename... Args>
-struct TrampolineCall {};
+// convention for trampoline functions. TrampolineArgs unpacks the argument
+// list; TrampolineCall unpacks the return value.
+template<typename... Args>
+struct TrampolineArgs {};
 
-template<typename R>
-struct TrampolineCall<R> {
-  typedef R (*fp_type)();
-  typedef y::function<R()> f_type;
+// TrampolineArgs base case.
+template<>
+struct TrampolineArgs<> {
+  typedef y::function<void()> f_type;
 
-  R operator()(fp_type function) const
+  void operator()(const f_type& function) const
   {
-    return function();
-  }
-
-  R operator()(const f_type& function) const
-  {
-    return function();
+    function();
   }
 };
 
-template<typename R, typename A, typename... Args>
-struct TrampolineCall<R, A, Args...> {
-  typedef R (*fp_type)(A, Args...);
-  typedef y::function<R(A, Args...)> f_type;
+// TrampolineArgs unpacking of a single primitive.
+template<typename A, typename... Args>
+struct TrampolineArgs< A, Args...> {
+  typedef y::function<void(A, Args...)> f_type;
 
-  R operator()(fp_type function, const A& arg, const Args&... args) const
+  void operator()(const f_type& function, const A& arg, const Args&... args) const
   {
-    return operator()(f_type(function), arg, args...);
+    typedef TrampolineArgs<Args...> next_type;
+    next_type()(bind_first(function, arg), args...);
   }
+};
 
-  R operator()(const f_type& function, const A& arg, const Args&... args) const
+// TrampolineCall for a primitive return.
+template<typename R, typename... Args>
+struct TrampolineCall {
+  typedef void (*fp_type)(R*, Args...);
+  typedef y::function<void(R*, Args...)> f_type;
+
+  R operator()(const f_type& function, const Args&... args) const
   {
-    typedef TrampolineCall<R, Args...> next_type;
-    next_type next;
-    return next(bind_first(function, arg), args...);
+    R result;
+    typedef TrampolineArgs<R*, Args...> args_type;
+    args_type()(function, &result, args...);
+    return result;
+  }
+};
+
+// TrampolineCall for a void return.
+template<typename... Args> 
+struct TrampolineCall<void, Args...> {
+  typedef void (*fp_type)(Args...);
+  typedef y::function<void(Args...)> f_type;
+
+  void operator()(const f_type& function, const Args&... args) const
+  {
+    typedef TrampolineArgs<Args...> args_type;
+    args_type()(function, args...);
   }
 };
 

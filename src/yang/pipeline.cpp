@@ -196,7 +196,11 @@ Instance::~Instance()
 
 Instance::void_fp Instance::get_native_fp(const y::string& name) const
 {
-  llvm::Function* ir_fp = _program._module->getFunction(name);
+  return get_native_fp(_program._module->getFunction(name));
+}
+
+Instance::void_fp Instance::get_native_fp(llvm::Function* ir_fp) const
+{
   void* void_p = _program._engine->getPointerToFunction(ir_fp);
   // ISO C++ forbids casting between pointer-to-function and pointer-to-object!
   // Unfortunately, due to dependence on dlsym, there doesn't seem to be any

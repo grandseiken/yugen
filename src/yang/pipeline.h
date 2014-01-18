@@ -92,6 +92,10 @@ private:
 
   typedef void (*void_fp)();
   void_fp get_native_fp(const y::string& name) const;
+  void_fp get_native_fp(llvm::Function* ir_fp) const;
+
+  template<typename R, typename... Args>
+  R call_via_trampoline(const y::string& name, const Args&... args) const;
 
   // Runtime check that global exists and has the correct type and, if it is to
   // be modified, that it is both exported and non-const.
@@ -112,11 +116,7 @@ T Instance::get_global(const y::string& name) const
   if (!check_global(name, info.representation(), false)) {
     return T();
   }
-
-  typedef internal::TrampolineCall<T, void*> call_type;
-  void_fp native = get_native_fp("!global_get_" + name);
-  call_type call;
-  return call((typename call_type::fp_type)native, _global_data);
+  return call_via_trampoline<T>("!global_get_" + name);
 }
 
 template<typename T>
@@ -126,11 +126,21 @@ void Instance::set_global(const y::string& name, const T& value)
   if (!check_global(name, info.representation(), true)) {
     return;
   }
+  call_via_trampoline<void>("!global_set_" + name, value);
+}
 
-  typedef internal::TrampolineCall<void, void*, T> call_type;
-  void_fp native = get_native_fp("!global_set_" + name);
-  call_type call;
-  call((typename call_type::fp_type)native, _global_data, value);
+template<typename R, typename... Args>
+R Instance::call_via_trampoline(
+    const y::string& name, const Args&... args) const
+{
+  auto it = _program._trampoline_map.find(name);
+  void_fp trampoline = get_native_fp(it->second);
+  void_fp target = get_native_fp(name);
+
+  typedef internal::TrampolineCall<R, void*, Args..., void_fp> call_type;
+  typename call_type::fp_type trampoline_expanded =
+      (typename call_type::fp_type)trampoline;
+  return call_type()(trampoline_expanded, _global_data, args..., target);
 }
 
 // End namespace yang.
