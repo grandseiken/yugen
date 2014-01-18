@@ -138,7 +138,7 @@ void IrGenerator::emit_global_functions()
     auto getter = llvm::Function::Create(
         function_type, llvm::Function::ExternalLinkage,
         "!global_get_" + pair.first, &_module);
-    create_to_yang_cc_trampoline(function_type);
+    create_trampoline_function(function_type);
 
     auto getter_block = llvm::BasicBlock::Create(
         b.getContext(), "entry", getter);
@@ -153,7 +153,7 @@ void IrGenerator::emit_global_functions()
     auto setter = llvm::Function::Create(
         function_type, llvm::Function::ExternalLinkage,
         "!global_set_" + pair.first, &_module);
-    create_to_yang_cc_trampoline(function_type);
+    create_trampoline_function(function_type);
 
     auto setter_block = llvm::BasicBlock::Create(
         b.getContext(), "entry", setter);
@@ -826,7 +826,7 @@ void IrGenerator::create_function(
   auto function = llvm::Function::Create(
       function_type, llvm::Function::InternalLinkage,
       "anonymous", &_module);
-  create_to_yang_cc_trampoline(function_type);
+  create_trampoline_function(function_type);
 
   auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
   b.SetInsertPoint(block);
@@ -867,10 +867,16 @@ void IrGenerator::create_function(
   _metadata.add(FUNCTION, function);
 }
 
-llvm::Function* IrGenerator::create_to_yang_cc_trampoline(
+llvm::Function* IrGenerator::create_trampoline_function(
     llvm::FunctionType* function_type)
 {
-  // TODO: unique these, and allow lookup for use.
+  // LLVM types are uniqued, so using them directly as keys for the trampoline
+  // cache makes sense.
+  auto it = _trampoline_functions.find(function_type);
+  if (it != _trampoline_functions.end()) {
+    return it->second;  
+  }
+
   auto& b = _builder;
   // LLVM bytecode calling convention has some significant drawbacks that make
   // it unsuitable for direct interop with native code. Most importantly,
@@ -959,6 +965,7 @@ llvm::Function* IrGenerator::create_to_yang_cc_trampoline(
     }
   }
   b.CreateRetVoid();
+  _trampoline_functions.emplace(function_type, function);
   return function;
 }
 

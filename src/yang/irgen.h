@@ -61,8 +61,7 @@ private:
       const Node& node, llvm::FunctionType* function_type);
   // Generate trampoline function for converting C calling convention to LLVM
   // calling convention.
-  llvm::Function* create_to_yang_cc_trampoline(
-      llvm::FunctionType* function_type);
+  llvm::Function* create_trampoline_function(llvm::FunctionType* function_type);
 
   // General helper functions.
   llvm::Type* void_type() const;
@@ -132,6 +131,9 @@ private:
   y::map<y::string, y::size> _global_numbering;
   // Type of the global structure.
   llvm::Type* _global_data;
+
+  // Generated trampolines.
+  y::map<llvm::FunctionType*, llvm::Function*> _trampoline_functions;
 
   llvm::Module& _module;
   llvm::ExecutionEngine& _engine;
