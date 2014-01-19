@@ -35,6 +35,7 @@ namespace internal {
 // restrictions on their usage (e.g. only global variables).
 // TODO: add a LuaValue-like generic value class.
 // TODO: possibly implement closures, if it seems feasible.
+// TODO: vectorised assignment, or pattern-matching assignment?
 // TODO: warnings: for example, unused variables.
 class Program : public y::no_copy {
 public:
@@ -53,7 +54,8 @@ public:
   // having a function type. Currently only global-scope functions can be
   // called.
   // TODO: with trampoline entrypoints there isn't really much reason for
-  // this limitation any more.
+  // this limitation any more (except that finding the correct trampoline
+  // might be a challenge?).
   typedef y::map<y::string, Type> symbol_table;
   const symbol_table& get_functions() const;
   const symbol_table& get_globals() const;
@@ -86,7 +88,9 @@ public:
   T get_global(const y::string& name) const;
   template<typename T>
   void set_global(const y::string& name, const T& value);
-  // TODO: call functions.
+
+  template<typename R, typename... Args>
+  R call(const y::string& name, const Args&... args);
 
 private:
 
@@ -101,6 +105,8 @@ private:
   // be modified, that it is both exported and non-const.
   bool check_global(const y::string& name, const Type& type,
                     bool for_modification) const;
+  // Similarly for functions.
+  bool check_function(const y::string& name, const Type& type) const;
 
   const Program& _program;
   void* _global_data;
@@ -127,6 +133,16 @@ void Instance::set_global(const y::string& name, const T& value)
     return;
   }
   call_via_trampoline<void>("!global_set_" + name, value);
+}
+
+template<typename R, typename... Args>
+R Instance::call(const y::string& name, const Args&... args)
+{
+  internal::TypeInfo<Function<R, Args...>> info;
+  if (!check_function(name, info())) {
+    return R();
+  }
+  return call_via_trampoline<R>(name, args...);
 }
 
 template<typename R, typename... Args>

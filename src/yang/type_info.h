@@ -17,13 +17,24 @@ using int32_vec = y::vec<int32, N>;
 template<y::size N, typename y::enable_if<(N > 1), bool>::type = 0>
 using world_vec = y::vec<world, N>;
 
+// Opaque Yang function object.
+template<typename R, typename... Args>
+class Function {
+private:
+
+  friend class Instance;
+  typedef void (*void_fp)();
+  Function(void_fp function)
+    : _function(function) {}
+  void_fp _function;
+
+};
+
 namespace internal {
 
 template<typename T>
 struct TypeInfo {};
-// TODO: TypeInfo for user types and function types.
-// Function types need some careful design to handle the implicit global data
-// parameter (at least if we want to make them callable...).
+// TODO: TypeInfo for user types.
 
 template<>
 struct TypeInfo<void> {
@@ -76,6 +87,32 @@ struct TypeInfo<world_vec<N>> {
   }
 };
 
+template<typename R>
+struct TypeInfo<Function<R>> {
+  yang::Type operator()() const
+  {
+    TypeInfo<R> return_type;
+
+    yang::Type t;
+    t._base = yang::Type::FUNCTION;
+    t._elements.push_back(return_type());
+    return t;
+  }
+};
+
+template<typename R, typename A, typename... Args>
+struct TypeInfo<Function<R, A, Args...>> {
+  yang::Type operator()() const
+  {
+    TypeInfo<Function<R, Args...>> first;
+    TypeInfo<A> arg_type;
+
+    yang::Type t = first();
+    t._elements.insert(++t._elements.begin(), arg_type());
+    return t;
+  }
+};
+
 // Standard bind function requires explicit placeholders for all elements, which
 // makes it unusable in the variadic setting. We only need to bind one argument
 // at a time.
@@ -85,8 +122,9 @@ y::function<R(Args...)> bind_first(
 {
   // Close by value so the function object is copied! Otherwise it can cause an
   // infinite loop. I don't fully understand why; is the function object being
-  // mutated later somehow?
-  return [function, &arg](const Args&... args)
+  // mutated later somehow? We also need to copy the argument, as it may be a
+  // temporary that won't last (particularly for return value pointers).
+  return [function, arg](const Args&... args)
   {
     return function(arg, args...);
   };
@@ -216,9 +254,10 @@ struct TrampolineCallVecArgs {
   typedef typename TrampolineType<void, vec<T, N>, Args...>::f_type f_type;
   typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
 
-  bound_f_type operator()(const f_type& function, const vec<T, N>& arg)
+  template<y::size M, typename y::enable_if<(M >= N), bool>::type = 0>
+  bound_f_type operator()(const f_type& function, const vec<T, M>& arg)
   {
-    typedef TrampolineCallVecArgs<T, N - 1, Args...> first;
+    typedef TrampolineCallVecArgs<T, N - 1, T, Args...> first;
     auto f = first()(function, arg);
     return bind_first(f, arg[N - 1]);
   }
@@ -228,7 +267,8 @@ struct TrampolineCallVecArgs<T, 2, Args...> {
   typedef typename TrampolineType<void, vec<T, 2>, Args...>::f_type f_type;
   typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
 
-  bound_f_type operator()(const f_type& function, const vec<T, 2>& arg)
+  template<y::size M, typename y::enable_if<(M >= 2), bool>::type = 0>
+  bound_f_type operator()(const f_type& function, const vec<T, M>& arg)
   {
     return bind_first(bind_first(function, arg[0]), arg[1]);
   }
@@ -266,7 +306,7 @@ struct TrampolineCallVecReturn {
 
   bound_f_type operator()(const f_type& function, T* result)
   {
-    typedef TrampolineCallVecReturn<T, N - 1, Args...> first;
+    typedef TrampolineCallVecReturn<T, N - 1, T*, Args...> first;
     auto f = first()(function, result);
     return bind_first(f, (N - 1) + result);
   }

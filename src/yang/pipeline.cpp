@@ -210,7 +210,7 @@ Instance::void_fp Instance::get_native_fp(llvm::Function* ir_fp) const
   return (void_fp)(y::intptr)void_p;
 }
 
-bool Instance::check_global(const y::string& name, const Type& t,
+bool Instance::check_global(const y::string& name, const Type& type,
                             bool for_modification) const
 {
   auto it = _program._globals.find(name);
@@ -219,14 +219,30 @@ bool Instance::check_global(const y::string& name, const Type& t,
             ": requested global `" + name + "` does not exist");
     return false;
   }
-  if (t != it->second) {
+  if (type != it->second) {
     log_err(_program._name + ": requested global `" + it->second.string() +
-            " " + name + "` via incorrect type `" + t.string() + "`");
+            " " + name + "` via incorrect type `" + type.string() + "`");
     return false;
   }
   if (for_modification && (it->second.is_const() || !it->second.is_exported())) {
     log_err(_program._name + ": `" + it->second.string() + " " + name +
             "` cannot be modified externally");
+    return false;
+  }
+  return true;
+}
+
+bool Instance::check_function(const y::string& name, const Type& type) const
+{
+  auto it = _program._functions.find(name);
+  if (it == _program._functions.end()) {
+    log_err(_program._name +
+            ": requested function `" + name + "` does not exist");
+    return false;
+  }
+  if (type != it->second) {
+    log_err(_program._name + ": requested function `" + it->second.string() +
+            " " + name + "` called via incorrect type `" + type.string() + "`");
     return false;
   }
   return true;

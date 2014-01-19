@@ -58,5 +58,13 @@ y::int32 main(y::int32 argc, char** argv)
   instance.set_global("baz", yang::int32_vec<2>(14, 15));
   log_info("value of global `baz`: ",
            instance.get_global<yang::int32_vec<2>>("baz"));
+  log_info(instance.call<yang::int32_vec<3>>(
+      "foobar",
+      yang::int32_vec<4>(3, 4, 6, 8),
+      yang::int32_vec<4>(1, 2, 3, 4)));
+  log_info("value of global `baz`: ",
+           instance.get_global<yang::int32_vec<2>>("baz"));
+  log_info("value of global `test`: ",
+           instance.get_global<yang::int32_vec<3>>("test"));
   return 0;
 }
