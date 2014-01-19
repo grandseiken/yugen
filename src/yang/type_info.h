@@ -8,6 +8,18 @@
 
 namespace yang {
 
+class Instance;
+namespace internal {
+  template<typename R>
+  struct TrampolineCallReturnSetup;
+  template<typename... Args>
+  struct TrampolineCallArgs;
+  template<typename R, typename... Args>
+  struct TrampolineCallReturn;
+  template<typename R, typename... Args>
+  struct TrampolineCall;
+}
+
 typedef y::int32 int32;
 typedef y::world world;
 template<typename T, y::size N, typename y::enable_if<(N > 1), bool>::type = 0>
@@ -20,13 +32,38 @@ using world_vec = y::vec<world, N>;
 // Opaque Yang function object.
 template<typename R, typename... Args>
 class Function {
+public:
+
+  // Check if the object references a non-null program instance and function.
+  bool is_valid() const
+  {
+    return _instance && _function;
+  }
+
+  // Get the program instance that this function references.
+  Instance& get_instance() const
+  {
+    return *_instance;
+  }
+
 private:
 
+  template<typename CR>
+  friend class internal::TrampolineCallReturnSetup;
+  template<typename... CArgs>
+  friend class internal::TrampolineCallArgs;
+  template<typename CR, typename... CArgs>
+  friend class internal::TrampolineCallReturn;
+  template<typename CR, typename... CArgs>
+  friend class internal::TrampolineCall;
   friend class Instance;
+  Function()
+    : _function(y::null)
+    , _instance(y::null) {}
+
   typedef void (*void_fp)();
-  Function(void_fp function)
-    : _function(function) {}
   void_fp _function;
+  Instance* _instance;
 
 };
 
@@ -162,10 +199,8 @@ struct Functions {
   typedef void (*fp_type)(Args...);
   typedef y::function<void(Args...)> f_type;
 };
-template<typename T>
-struct FunctionsFromList {};
 template<typename... Args>
-struct FunctionsFromList<List<Args...>> {
+struct Functions<List<Args...>> {
   typedef typename Functions<Args...>::fp_type fp_type;
   typedef typename Functions<Args...>::f_type f_type;
 };
@@ -186,6 +221,11 @@ template <typename T, y::size N>
 struct TrampolineReturn<vec<T, N>> {
   typedef typename Join<
       T*, typename TrampolineReturn<vec<T, N - 1>>::type>::type type;
+};
+template<typename R, typename... Args>
+struct TrampolineReturn<Function<R, Args...>> {
+  typedef void (*void_fp)();
+  typedef List<void_fp*> type;
 };
 
 template<typename... Args>
@@ -208,14 +248,19 @@ struct TrampolineArgs<vec<T, N>, Args...> {
   typedef typename TrampolineArgs<vec<T, N - 1>, Args...>::type rest;
   typedef typename Join<T, rest>::type type;
 };
+template<typename FR, typename... FArgs, typename... Args>
+struct TrampolineArgs<Function<FR, FArgs...>, Args...> {
+  typedef typename Join<
+      void (*)(), typename TrampolineArgs<Args...>::type>::type type;
+};
 
 template<typename R, typename... Args>
 struct TrampolineType {
-  typedef typename TrampolineReturn<R>::type ret_type;
-  typedef typename TrampolineArgs<Args...>::type args_type;
-  typedef typename Join<ret_type, args_type>::type cat_type;
-  typedef typename FunctionsFromList<cat_type>::fp_type fp_type;
-  typedef typename FunctionsFromList<cat_type>::f_type f_type;
+  typedef typename Join<
+      typename TrampolineReturn<R>::type,
+      typename TrampolineArgs<Args...>::type>::type type;
+  typedef typename Functions<type>::fp_type fp_type;
+  typedef typename Functions<type>::f_type f_type;
 };
 
 // Function call instrumentation for converting native types to the Yang calling
@@ -286,6 +331,21 @@ struct TrampolineCallArgs<vec<T, N>, Args...> {
   }
 };
 
+// TrampolineCallArgs unpacking of a function.
+template<typename FR, typename... FArgs, typename... Args>
+struct TrampolineCallArgs<Function<FR, FArgs...>, Args...> {
+  typedef typename TrampolineType<
+      void, Function<FR, FArgs...>, Args...>::f_type f_type;
+
+  void operator()(
+      const f_type& function, const Function<FR, FArgs...>& arg,
+      const Args&... args) const
+  {
+    typedef TrampolineCallArgs<Args...> next_type;
+    next_type()(bind_first(function, arg._function), args...);
+  }
+};
+
 // TrampolineCallReturn for a primitive return.
 template<typename R, typename... Args>
 struct TrampolineCallReturn {
@@ -304,7 +364,7 @@ struct TrampolineCallVecReturn {
   typedef typename TrampolineType<vec<T, N>, Args...>::f_type f_type;
   typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
 
-  bound_f_type operator()(const f_type& function, T* result)
+  bound_f_type operator()(const f_type& function, T* result) const
   {
     typedef TrampolineCallVecReturn<T, N - 1, T*, Args...> first;
     auto f = first()(function, result);
@@ -316,7 +376,7 @@ struct TrampolineCallVecReturn<T, 2, Args...> {
   typedef typename TrampolineType<vec<T, 2>, Args...>::f_type f_type;
   typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
 
-  bound_f_type operator()(const f_type& function, T* result)
+  bound_f_type operator()(const f_type& function, T* result) const
   {
     return bind_first(bind_first(function, result), 1 + result);
   }
@@ -326,10 +386,42 @@ struct TrampolineCallReturn<vec<T, N>, Args...> {
   typedef typename TrampolineType<vec<T, N>, Args...>::f_type f_type;
   typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
 
-  bound_f_type operator()(const f_type& function, vec<T, N>& result)
+  bound_f_type operator()(const f_type& function, vec<T, N>& result) const
   {
     typedef TrampolineCallVecReturn<T, N, Args...> return_type;
     return return_type()(function, result.elements);
+  }
+};
+
+// TrampolineCallReturn for a function return.
+template<typename FR, typename... FArgs, typename... Args>
+struct TrampolineCallReturn<Function<FR, FArgs...>, Args...> {
+  typedef typename TrampolineType<
+      Function<FR, FArgs...>, Args...>::f_type f_type;
+  typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
+  typedef void (*void_fp)();
+
+  bound_f_type operator()(
+      const f_type& function, Function<FR, FArgs...>& result) const
+  {
+    return bind_first(function, &result._function);
+  }
+};
+
+// Template for setting the Instance associated with a Function return value.
+template<typename R>
+struct TrampolineCallReturnSetup {
+  void operator()(Instance& instance, R& result) const
+  {
+    (void)instance;
+    (void)result;
+  }
+};
+template<typename R, typename... Args>
+struct TrampolineCallReturnSetup<Function<R, Args...>> {
+  void operator()(Instance& instance, Function<R, Args...>& result) const
+  {
+    result._instance = &instance;
   }
 };
 
@@ -339,12 +431,15 @@ struct TrampolineCall {
   typedef typename TrampolineType<R, Args...>::fp_type fp_type;
   typedef typename TrampolineType<R, Args...>::f_type f_type;
 
-  R operator()(const f_type& function, const Args&... args) const
+  R operator()(Instance& instance,
+               const f_type& function, const Args&... args) const
   {
+    typedef TrampolineCallReturnSetup<R> return_setup_type;
     typedef TrampolineCallReturn<R, Args...> return_type;
     typedef TrampolineCallArgs<Args...> args_type;
 
     R result;
+    return_setup_type()(instance, result);
     auto return_bound_function = return_type()(function, result);
     args_type()(return_bound_function, args...);
     return result;
@@ -358,7 +453,8 @@ struct TrampolineCall<void, Args...> {
   typedef typename TrampolineType<void, Args...>::fp_type fp_type;
   typedef typename TrampolineType<void, Args...>::f_type f_type;
 
-  void operator()(const f_type& function, const Args&... args) const
+  void operator()(Instance& instance,
+                  const f_type& function, const Args&... args) const
   {
     typedef TrampolineCallArgs<Args...> args_type;
     args_type()(function, args...);

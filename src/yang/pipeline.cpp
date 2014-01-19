@@ -68,6 +68,11 @@ Program::~Program()
 {
 }
 
+const y::string& Program::get_name() const
+{
+  return _name;
+}
+
 bool Program::success() const
 {
   return bool(_ast) && bool(_module);
@@ -194,6 +199,11 @@ Instance::~Instance()
   ((void (*)(void*))global_free)(_global_data);
 }
 
+const Program& Instance::get_program() const
+{
+  return _program;
+}
+
 Instance::void_fp Instance::get_native_fp(const y::string& name) const
 {
   return get_native_fp(_program._module->getFunction(name));
@@ -215,17 +225,17 @@ bool Instance::check_global(const y::string& name, const Type& type,
 {
   auto it = _program._globals.find(name);
   if (it == _program._globals.end()) {
-    log_err(_program._name +
-            ": requested global `" + name + "` does not exist");
+    log_err(_program._name,
+            ": requested global `", name, "` does not exist");
     return false;
   }
   if (type != it->second) {
-    log_err(_program._name + ": requested global `" + it->second.string() +
-            " " + name + "` via incorrect type `" + type.string() + "`");
+    log_err(_program._name, ": global `", it->second.string() +
+            " ", name, "` accessed via incorrect type `", type.string() + "`");
     return false;
   }
   if (for_modification && (it->second.is_const() || !it->second.is_exported())) {
-    log_err(_program._name + ": `" + it->second.string() + " " + name +
+    log_err(_program._name, ": global `", it->second.string(), " " + name,
             "` cannot be modified externally");
     return false;
   }
@@ -236,13 +246,13 @@ bool Instance::check_function(const y::string& name, const Type& type) const
 {
   auto it = _program._functions.find(name);
   if (it == _program._functions.end()) {
-    log_err(_program._name +
-            ": requested function `" + name + "` does not exist");
+    log_err(_program._name,
+            ": requested function `", name, "` does not exist");
     return false;
   }
   if (type != it->second) {
-    log_err(_program._name + ": requested function `" + it->second.string() +
-            " " + name + "` called via incorrect type `" + type.string() + "`");
+    log_err(_program._name, ": function `", it->second.string() +
+            " ", name, "` accessed via incorrect type `", type.string(), "`");
     return false;
   }
   return true;

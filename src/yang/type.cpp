@@ -85,7 +85,7 @@ const Type& Type::get_function_return_type() const
 
 const Type& Type::get_function_arg_type(y::size index) const
 {
-  return index < _elements.size() ? void_type : _elements[1 + index];
+  return 1 + index >= _elements.size() ? void_type : _elements[1 + index];
 }
 
 bool Type::operator==(const Type& t) const

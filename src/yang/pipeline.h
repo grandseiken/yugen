@@ -22,6 +22,8 @@ namespace yang {
 
 namespace internal {
   struct Node;
+  template<typename... Args>
+  struct InstanceCheck;
 }
 
 // General directions:
@@ -43,6 +45,8 @@ public:
   Program(const y::string& name,
           const y::string& contents, bool optimise = true);
   ~Program();
+
+  const y::string& get_name() const;
 
   // Returns true if the contents parsed and checked successfully. Otherwise,
   // none of the following functions will do anything useful.
@@ -84,6 +88,8 @@ public:
   Instance(const Program& program);
   ~Instance();
 
+  const Program& get_program() const;
+
   template<typename T>
   T get_global(const y::string& name) const;
   template<typename T>
@@ -91,6 +97,8 @@ public:
 
   template<typename R, typename... Args>
   R call(const y::string& name, const Args&... args);
+  template<typename R, typename... Args>
+  Function<R, Args...> get_function(const y::string& name);
 
 private:
 
@@ -112,6 +120,61 @@ private:
   void* _global_data;
 
 };
+
+namespace internal {
+
+// Check that all Functions given in an argument list match some particular
+// program instance.
+template<typename... Args>
+struct InstanceCheck {};
+template<>
+struct InstanceCheck<> {
+  bool operator()(const Instance& instance) const
+  {
+    return true;
+  }
+};
+
+template<typename A, typename... Args>
+struct InstanceCheck<A, Args...> {
+  bool operator()(const Instance& instance,
+                  const A& arg, const Args&... args) const
+  {
+    InstanceCheck<Args...> next;
+    return next(instance, args...);
+  }
+};
+
+template<typename FR, typename... FArgs, typename... Args>
+struct InstanceCheck<Function<FR, FArgs...>, Args...> {
+  bool operator()(const Instance& instance,
+                  const Function<FR, FArgs...>& arg, const Args&... args) const
+  {
+    bool result = true;
+    InstanceCheck<Args...> next;
+    if (!arg.is_valid()) {
+      log_err(instance.get_program().get_name(), ": passed null function");
+      result = false;
+    }
+    else {
+      if (&arg.get_instance().get_program() != &instance.get_program()) {
+        log_err(instance.get_program().get_name(),
+                ": passed function referencing different program ",
+                 arg.get_instance().get_program().get_name());
+        result = false;
+      }
+      if (&arg.get_instance() != &instance) {
+        log_err(instance.get_program().get_name(),
+                ": passed function referencing different program instance");
+        result = false;
+      }
+    }
+    return next(instance, args...) && result;
+  }
+};
+
+// End namespace internal.
+}
 
 template<typename T>
 T Instance::get_global(const y::string& name) const
@@ -136,6 +199,19 @@ void Instance::set_global(const y::string& name, const T& value)
 }
 
 template<typename R, typename... Args>
+Function<R, Args...> Instance::get_function(const y::string& name)
+{
+  internal::TypeInfo<Function<R, Args...>> info;
+  if (!check_function(name, info())) {
+    return Function<R, Args...>();
+  }
+  Function<R, Args...> result;
+  result._instance = this;
+  result._function = get_native_fp(name);
+  return result;
+}
+
+template<typename R, typename... Args>
 R Instance::call(const y::string& name, const Args&... args)
 {
   internal::TypeInfo<Function<R, Args...>> info;
@@ -149,6 +225,12 @@ template<typename R, typename... Args>
 R Instance::call_via_trampoline(
     const y::string& name, const Args&... args) const
 {
+  // Make sure only functions referencing this instance are passed in.
+  internal::InstanceCheck<Args...> instance_check;
+  if (!instance_check(*this, args...)) {
+    return R();
+  }
+
   auto it = _program._trampoline_map.find(name);
   void_fp trampoline = get_native_fp(it->second);
   void_fp target = get_native_fp(name);
@@ -156,7 +238,8 @@ R Instance::call_via_trampoline(
   typedef internal::TrampolineCall<R, void*, Args..., void_fp> call_type;
   typename call_type::fp_type trampoline_expanded =
       (typename call_type::fp_type)trampoline;
-  return call_type()(trampoline_expanded, _global_data, args..., target);
+  return call_type()(const_cast<Instance&>(*this),
+                     trampoline_expanded, _global_data, args..., target);
 }
 
 // End namespace yang.

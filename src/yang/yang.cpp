@@ -50,21 +50,9 @@ y::int32 main(y::int32 argc, char** argv)
 
   // TODO: test.
   yang::Instance instance(program);
-  log_info("value of global `foo`: ", instance.get_global<yang::int32>("foo"));
-  instance.set_global<yang::int32>("foo", 9);
-  log_info("value of global `foo`: ", instance.get_global<yang::int32>("foo"));
-  log_info("value of global `baz`: ",
-           instance.get_global<yang::int32_vec<2>>("baz"));
-  instance.set_global("baz", yang::int32_vec<2>(14, 15));
-  log_info("value of global `baz`: ",
-           instance.get_global<yang::int32_vec<2>>("baz"));
-  log_info(instance.call<yang::int32_vec<3>>(
-      "foobar",
-      yang::int32_vec<4>(3, 4, 6, 8),
-      yang::int32_vec<4>(1, 2, 3, 4)));
-  log_info("value of global `baz`: ",
-           instance.get_global<yang::int32_vec<2>>("baz"));
-  log_info("value of global `test`: ",
-           instance.get_global<yang::int32_vec<3>>("test"));
+  typedef yang::Function<yang::int32, yang::int32> f_type;
+  log_info("h(7): ", instance.call<yang::int32>("h", 7));
+  instance.set_global("g", instance.get_function<yang::int32, yang::int32>("f"));
+  log_info("h(7): ", instance.call<yang::int32>("h", 7));
   return 0;
 }
