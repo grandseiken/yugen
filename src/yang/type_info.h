@@ -10,6 +10,9 @@ namespace yang {
 
 class Instance;
 namespace internal {
+  template<typename T>
+  struct TypeInfo {};
+
   template<typename R>
   struct TrampolineCallReturnSetup;
   template<typename... Args>
@@ -35,16 +38,11 @@ class Function {
 public:
 
   // Check if the object references a non-null program instance and function.
-  bool is_valid() const
-  {
-    return _instance && _function;
-  }
-
+  bool is_valid() const;
   // Get the program instance that this function references.
-  Instance& get_instance() const
-  {
-    return *_instance;
-  }
+  Instance& get_instance() const;
+  // Get the type of this function type as a Type object.
+  static Type get_type();
 
 private:
 
@@ -67,10 +65,27 @@ private:
 
 };
 
+template<typename R, typename... Args>
+bool Function<R, Args...>::is_valid() const
+{
+  return _instance && _function;
+}
+
+template<typename R, typename... Args>
+Instance& Function<R, Args...>::get_instance() const
+{
+  return *_instance;
+}
+
+template<typename R, typename... Args>
+Type Function<R, Args...>::get_type()
+{
+  internal::TypeInfo<Function<R, Args...>> info;
+  return info();
+}
+
 namespace internal {
 
-template<typename T>
-struct TypeInfo {};
 // TODO: TypeInfo for user types.
 
 template<>
@@ -456,6 +471,7 @@ struct TrampolineCall<void, Args...> {
   void operator()(Instance& instance,
                   const f_type& function, const Args&... args) const
   {
+    (void)instance;
     typedef TrampolineCallArgs<Args...> args_type;
     args_type()(function, args...);
   }

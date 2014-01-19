@@ -43,7 +43,7 @@ public:
   // walked!
   void emit_global_functions();
 
-  typedef y::map<y::string, llvm::Function*> trampoline_map;
+  typedef y::map<yang::Type, llvm::Function*> trampoline_map;
   const trampoline_map& get_trampoline_map() const;
 
 protected:
@@ -100,8 +100,9 @@ private:
       y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
       bool to_bool = false, bool with_ands = false, bool right_assoc = false);
 
-  // Get the equivalent LLVM type for a Yang type.
+  // Convert back and forth between equivalent Yang and LLVM types.
   llvm::Type* get_llvm_type(const yang::Type& t) const;
+  yang::Type get_yang_type(llvm::Type* t) const;
 
   // Metadata symbols.
   enum metadata {
@@ -135,10 +136,8 @@ private:
   // Type of the global structure.
   llvm::Type* _global_data;
 
-  // Generated trampolines (mapped from type of function the trampoline is
-  // useful for).
-  y::map<llvm::FunctionType*, llvm::Function*> _trampoline_uniqueness_hash;
-  // Map from function name to corresponding trampoline.
+  // Generated trampolines (map from type of function to corresponding
+  // trampoline function).
   trampoline_map _trampoline_map;
 
   llvm::Module& _module;

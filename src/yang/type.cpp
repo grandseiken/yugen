@@ -1,6 +1,8 @@
 #include "type.h"
 #include "../log.h"
 
+#include <boost/functional/hash.hpp>
+
 namespace yang {
 
 y::string Type::string() const
@@ -117,4 +119,17 @@ Type::Type()
 Type Type::void_type;
 
 // End namespace yang.
+}
+
+namespace std {
+  y::size hash<yang::Type>::operator()(const yang::Type& type) const
+  {
+    y::size seed = 0;
+    boost::hash_combine(seed, type._base);
+    boost::hash_combine(seed, type._count);
+    for (const auto& t : type._elements) {
+      boost::hash_combine(seed, operator()(t));
+    }
+    return seed;
+  }
 }

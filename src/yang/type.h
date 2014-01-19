@@ -8,6 +8,7 @@
 namespace yang {
 
 namespace internal {
+  class IrGenerator;
   class Type;
   template<typename T>
   struct TypeInfo;
@@ -45,6 +46,8 @@ public:
 
 private:
 
+  friend struct std::hash<Type>;
+  friend class internal::IrGenerator;
   friend class internal::Type;
   template<typename T>
   friend struct internal::TypeInfo;
@@ -67,6 +70,13 @@ private:
 };
 
 // End namespace yang.
+}
+
+namespace std {
+  template<>
+  struct hash<yang::Type> {
+    y::size operator()(const yang::Type& type) const;
+  };
 }
 
 #endif

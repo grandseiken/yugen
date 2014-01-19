@@ -37,7 +37,8 @@ namespace internal {
 // restrictions on their usage (e.g. only global variables).
 // TODO: add a LuaValue-like generic value class.
 // TODO: possibly implement closures, if it seems feasible.
-// TODO: vectorised assignment, or pattern-matching assignment?
+// TODO: vectorised assignment, or pattern-matching assignment? Also, indexed
+// assignment.
 // TODO: warnings: for example, unused variables.
 class Program : public y::no_copy {
 public:
@@ -54,12 +55,6 @@ public:
   y::string print_ast() const;
   y::string print_ir() const;
 
-  // Functions at the global scope are differentiated from global variables
-  // having a function type. Currently only global-scope functions can be
-  // called.
-  // TODO: with trampoline entrypoints there isn't really much reason for
-  // this limitation any more (except that finding the correct trampoline
-  // might be a challenge?).
   typedef y::map<y::string, Type> symbol_table;
   const symbol_table& get_functions() const;
   const symbol_table& get_globals() const;
@@ -73,7 +68,7 @@ private:
 
   symbol_table _functions;
   symbol_table _globals;
-  y::map<y::string, llvm::Function*> _trampoline_map;
+  y::map<Type, llvm::Function*> _trampoline_map;
 
   y::string _name;
   y::unique<internal::Node> _ast;
@@ -131,6 +126,7 @@ template<>
 struct InstanceCheck<> {
   bool operator()(const Instance& instance) const
   {
+    (void)instance;
     return true;
   }
 };
@@ -140,6 +136,7 @@ struct InstanceCheck<A, Args...> {
   bool operator()(const Instance& instance,
                   const A& arg, const Args&... args) const
   {
+    (void)arg;
     InstanceCheck<Args...> next;
     return next(instance, args...);
   }
@@ -231,7 +228,10 @@ R Instance::call_via_trampoline(
     return R();
   }
 
-  auto it = _program._trampoline_map.find(name);
+  // Since we can only obtain a valid Function object referencing a function
+  // type for which a trampoline has been generated, there should always be
+  // an entry in the trampoline map.
+  auto it = _program._trampoline_map.find(Function<R, Args...>::get_type());
   void_fp trampoline = get_native_fp(it->second);
   void_fp target = get_native_fp(name);
 

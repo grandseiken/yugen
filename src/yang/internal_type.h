@@ -17,8 +17,9 @@ public:
 
   // When adding a new type, make sure to update:
   // - the user-facing equivalent in type.h;
-  // - the global data-structure calculation in irgen.cpp;
+  // - the type-conversions and global data-structure calculation in irgen.cpp;
   // - the trampoline function generation, also in irgen.cpp;
+  // - the trampoline function call templates in type_info.h;
   // - all the other obvious places. There are definitely a lot.
   enum type_base {
     ERROR,

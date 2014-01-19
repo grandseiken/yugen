@@ -138,7 +138,7 @@ void IrGenerator::emit_global_functions()
     auto function_type = llvm::FunctionType::get(t, _global_data, false);
     auto getter = llvm::Function::Create(
         function_type, llvm::Function::ExternalLinkage, name, &_module);
-    _trampoline_map.emplace(name, create_trampoline_function(function_type));
+    create_trampoline_function(function_type);
 
     auto getter_block = llvm::BasicBlock::Create(
         b.getContext(), "entry", getter);
@@ -153,7 +153,7 @@ void IrGenerator::emit_global_functions()
     function_type = llvm::FunctionType::get(void_type(), setter_args, false);
     auto setter = llvm::Function::Create(
         function_type, llvm::Function::ExternalLinkage, name, &_module);
-    _trampoline_map.emplace(name, create_trampoline_function(function_type));
+    create_trampoline_function(function_type);
 
     auto setter_block = llvm::BasicBlock::Create(
         b.getContext(), "entry", setter);
@@ -486,8 +486,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
       auto function = (llvm::Function*)parent;
       auto function_type =
           (llvm::FunctionType*)function->getType()->getPointerElementType();
-      _trampoline_map.emplace(
-          node.string_value, create_trampoline_function(function_type));
+      create_trampoline_function(function_type);
       // Top-level functions Nodes have their int_value set to 1 when defined
       // using the `export` keyword.
       if (node.int_value) {
@@ -878,10 +877,9 @@ void IrGenerator::create_function(
 llvm::Function* IrGenerator::create_trampoline_function(
     llvm::FunctionType* function_type)
 {
-  // LLVM types are uniqued, so using them directly as keys for the trampoline
-  // cache makes sense.
-  auto it = _trampoline_uniqueness_hash.find(function_type);
-  if (it != _trampoline_uniqueness_hash.end()) {
+  yang::Type yang_type = get_yang_type(function_type);
+  auto it = _trampoline_map.find(yang_type);
+  if (it != _trampoline_map.end()) {
     return it->second;  
   }
 
@@ -978,7 +976,7 @@ llvm::Function* IrGenerator::create_trampoline_function(
     }
   }
   b.CreateRetVoid();
-  _trampoline_uniqueness_hash.emplace(function_type, function);
+  _trampoline_map.emplace(yang_type, function);
   return function;
 }
 
@@ -1287,6 +1285,29 @@ llvm::Type* IrGenerator::get_llvm_type(const yang::Type& t) const
     return vector_type(world_type(), t.get_vector_size());
   }
   return void_type();
+}
+
+yang::Type IrGenerator::get_yang_type(llvm::Type* t) const
+{
+  yang::Type r;
+  if (t->isPointerTy() || t->isFunctionTy()) {
+    auto ft = (llvm::FunctionType*)(
+        t->isPointerTy() ? t->getPointerElementType() : t);
+    r._base = yang::Type::FUNCTION;
+    r._elements.push_back(get_yang_type(ft->getReturnType()));
+    // Make sure to skip the global data pointer.
+    for (y::size i = 1; i < ft->getFunctionNumParams(); ++i) {
+      r._elements.push_back(get_yang_type(ft->getFunctionParamType(i)));
+    }
+  }
+  else if (t->isIntOrIntVectorTy()) {
+    r._base = yang::Type::INT;
+  }
+  else if (t->isFPOrFPVectorTy()) {
+    r._base = yang::Type::WORLD;
+  }
+  r._count = t->isVectorTy() ? t->getVectorNumElements() : 1;
+  return r;
 }
 
 llvm::BasicBlock* IrGenerator::create_block(
