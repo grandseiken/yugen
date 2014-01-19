@@ -27,7 +27,7 @@ struct TypeInfo {};
 
 template<>
 struct TypeInfo<void> {
-  yang::Type representation() const
+  yang::Type operator()() const
   {
     yang::Type t;
     return t;
@@ -36,7 +36,7 @@ struct TypeInfo<void> {
 
 template<>
 struct TypeInfo<yang::int32> {
-  yang::Type representation() const
+  yang::Type operator()() const
   {
     yang::Type t;
     t._base = yang::Type::INT;
@@ -46,7 +46,7 @@ struct TypeInfo<yang::int32> {
 
 template<>
 struct TypeInfo<yang::world> {
-  yang::Type representation() const
+  yang::Type operator()() const
   {
     yang::Type t;
     t._base = yang::Type::WORLD;
@@ -56,7 +56,7 @@ struct TypeInfo<yang::world> {
 
 template<y::size N>
 struct TypeInfo<int32_vec<N>> {
-  yang::Type representation() const
+  yang::Type operator()() const
   {
     yang::Type t;
     t._base = yang::Type::INT;
@@ -67,7 +67,7 @@ struct TypeInfo<int32_vec<N>> {
 
 template<y::size N>
 struct TypeInfo<world_vec<N>> {
-  yang::Type representation() const
+  yang::Type operator()() const
   {
     yang::Type t;
     t._base = yang::Type::WORLD;
@@ -83,7 +83,10 @@ template<typename R, typename A, typename... Args>
 y::function<R(Args...)> bind_first(
     const y::function<R(A, Args...)>& function, const A& arg)
 {
-  return [&](const Args&... args)
+  // Close by value so the function object is copied! Otherwise it can cause an
+  // infinite loop. I don't fully understand why; is the function object being
+  // mutated later somehow?
+  return [function, &arg](const Args&... args)
   {
     return function(arg, args...);
   };
@@ -186,7 +189,7 @@ struct TrampolineCallArgs {};
 // TrampolineCallArgs base case.
 template<>
 struct TrampolineCallArgs<> {
-  typedef y::function<void()> f_type;
+  typedef typename TrampolineType<void>::f_type f_type;
 
   void operator()(const f_type& function) const
   {
@@ -197,12 +200,49 @@ struct TrampolineCallArgs<> {
 // TrampolineCallArgs unpacking of a single primitive.
 template<typename A, typename... Args>
 struct TrampolineCallArgs<A, Args...> {
-  typedef y::function<void(A, Args...)> f_type;
+  typedef typename TrampolineType<void, A, Args...>::f_type f_type;
 
-  void operator()(const f_type& function, const A& arg, const Args&... args) const
+  void operator()(
+      const f_type& function, const A& arg, const Args&... args) const
   {
     typedef TrampolineCallArgs<Args...> next_type;
     next_type()(bind_first(function, arg), args...);
+  }
+};
+
+// TrampolineCallArgs unpacking of a vector.
+template<typename T, y::size N, typename... Args>
+struct TrampolineCallVecArgs {
+  typedef typename TrampolineType<void, vec<T, N>, Args...>::f_type f_type;
+  typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
+
+  bound_f_type operator()(const f_type& function, const vec<T, N>& arg)
+  {
+    typedef TrampolineCallVecArgs<T, N - 1, Args...> first;
+    auto f = first()(function, arg);
+    return bind_first(f, arg[N - 1]);
+  }
+};
+template<typename T, typename... Args>
+struct TrampolineCallVecArgs<T, 2, Args...> {
+  typedef typename TrampolineType<void, vec<T, 2>, Args...>::f_type f_type;
+  typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
+
+  bound_f_type operator()(const f_type& function, const vec<T, 2>& arg)
+  {
+    return bind_first(bind_first(function, arg[0]), arg[1]);
+  }
+};
+template<typename T, y::size N, typename... Args>
+struct TrampolineCallArgs<vec<T, N>, Args...> {
+  typedef typename TrampolineType<void, vec<T, N>, Args...>::f_type f_type;
+
+  void operator()(
+      const f_type& function, const vec<T, N>& arg, const Args&... args) const
+  {
+    typedef TrampolineCallVecArgs<T, N, Args...> args_type;
+    typedef TrampolineCallArgs<Args...> next_type;
+    next_type()(args_type()(function, arg), args...);
   }
 };
 
@@ -214,7 +254,7 @@ struct TrampolineCallReturn {
 
   bound_f_type operator()(const f_type& function, R& result) const
   {
-    return bind_first(function, &result); 
+    return bind_first(function, &result);
   }
 };
 

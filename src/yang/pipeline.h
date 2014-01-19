@@ -113,7 +113,7 @@ T Instance::get_global(const y::string& name) const
   // TypeInfo representation() will fail at compile-time for completely
   // unsupported types.
   internal::TypeInfo<T> info;
-  if (!check_global(name, info.representation(), false)) {
+  if (!check_global(name, info(), false)) {
     return T();
   }
   return call_via_trampoline<T>("!global_get_" + name);
@@ -123,7 +123,7 @@ template<typename T>
 void Instance::set_global(const y::string& name, const T& value)
 {
   internal::TypeInfo<T> info;
-  if (!check_global(name, info.representation(), true)) {
+  if (!check_global(name, info(), true)) {
     return;
   }
   call_via_trampoline<void>("!global_set_" + name, value);

@@ -1,5 +1,4 @@
 #include "static.h"
-#include "pipeline.h"
 #include "../common/algorithm.h"
 #include "../log.h"
 

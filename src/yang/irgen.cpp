@@ -957,7 +957,7 @@ llvm::Function* IrGenerator::create_trampoline_function(
 
     for (y::size j = 0; j < size; ++j) {
       jt->setName("a" + y::to_string(i) + "_" + y::to_string(j));
-      v = b.CreateInsertElement(v, jt, constant_int(i), "vec");
+      v = b.CreateInsertElement(v, jt, constant_int(j), "vec");
       ++jt;
     }
     call_args.push_back(v);
