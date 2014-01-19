@@ -179,7 +179,7 @@ struct TrampolineType {
 
 // Function call instrumentation for converting native types to the Yang calling
 // convention for trampoline functions. TrampolineCallArgs unpacks the argument
-// list; TrampolineCall unpacks the return value.
+// list; TrampolineCallReturn unpacks the return value.
 template<typename... Args>
 struct TrampolineCallArgs {};
 
@@ -196,7 +196,7 @@ struct TrampolineCallArgs<> {
 
 // TrampolineCallArgs unpacking of a single primitive.
 template<typename A, typename... Args>
-struct TrampolineCallArgs< A, Args...> {
+struct TrampolineCallArgs<A, Args...> {
   typedef y::function<void(A, Args...)> f_type;
 
   void operator()(const f_type& function, const A& arg, const Args&... args) const
@@ -206,7 +206,54 @@ struct TrampolineCallArgs< A, Args...> {
   }
 };
 
-// TrampolineCall for a primitive return.
+// TrampolineCallReturn for a primitive return.
+template<typename R, typename... Args>
+struct TrampolineCallReturn {
+  typedef typename TrampolineType<R, Args...>::f_type f_type;
+  typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
+
+  bound_f_type operator()(const f_type& function, R& result) const
+  {
+    return bind_first(function, &result); 
+  }
+};
+
+// TrampolineCallReturn for a vector return.
+template<typename T, y::size N, typename... Args>
+struct TrampolineCallVecReturn {
+  typedef typename TrampolineType<vec<T, N>, Args...>::f_type f_type;
+  typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
+
+  bound_f_type operator()(const f_type& function, T* result)
+  {
+    typedef TrampolineCallVecReturn<T, N - 1, Args...> first;
+    auto f = first()(function, result);
+    return bind_first(f, (N - 1) + result);
+  }
+};
+template<typename T, typename... Args>
+struct TrampolineCallVecReturn<T, 2, Args...> {
+  typedef typename TrampolineType<vec<T, 2>, Args...>::f_type f_type;
+  typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
+
+  bound_f_type operator()(const f_type& function, T* result)
+  {
+    return bind_first(bind_first(function, result), 1 + result);
+  }
+};
+template<typename T, y::size N, typename... Args>
+struct TrampolineCallReturn<vec<T, N>, Args...> {
+  typedef typename TrampolineType<vec<T, N>, Args...>::f_type f_type;
+  typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
+
+  bound_f_type operator()(const f_type& function, vec<T, N>& result)
+  {
+    typedef TrampolineCallVecReturn<T, N, Args...> return_type;
+    return return_type()(function, result.elements);
+  }
+};
+
+// Combine the above into a complete function call.
 template<typename R, typename... Args>
 struct TrampolineCall {
   typedef typename TrampolineType<R, Args...>::fp_type fp_type;
@@ -214,15 +261,19 @@ struct TrampolineCall {
 
   R operator()(const f_type& function, const Args&... args) const
   {
+    typedef TrampolineCallReturn<R, Args...> return_type;
+    typedef TrampolineCallArgs<Args...> args_type;
+
     R result;
-    typedef TrampolineCallArgs<R*, Args...> args_type;
-    args_type()(function, &result, args...);
+    auto return_bound_function = return_type()(function, result);
+    args_type()(return_bound_function, args...);
     return result;
   }
 };
 
-// TrampolineCall for a void return.
-template<typename... Args> 
+// Specialisation for void return just to avoid declaring a variable of type
+// void.
+template<typename... Args>
 struct TrampolineCall<void, Args...> {
   typedef typename TrampolineType<void, Args...>::fp_type fp_type;
   typedef typename TrampolineType<void, Args...>::f_type f_type;
