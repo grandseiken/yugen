@@ -51,7 +51,11 @@ y::int32 main(y::int32 argc, char** argv)
   // TODO: test.
   yang::Instance instance(program);
   log_info("h(7): ", instance.call<yang::int32>("h", 7));
-  instance.set_global("g", instance.get_function<yang::int32, yang::int32>("f"));
+  instance.set_global(
+      "g", instance.get_function<yang::Function<yang::int32, yang::int32>>("f"));
   log_info("h(7): ", instance.call<yang::int32>("h", 7));
+  typedef yang::Function<yang::Function<yang::Function<yang::int32>>> ft;
+  auto f = instance.get_function<ft>("q");
+  log_info("q()()(): ", f.call().call().call());
   return 0;
 }

@@ -139,6 +139,14 @@ Type Type::unify(const Type& t) const
 
 bool Type::operator==(const Type& t) const
 {
+  if (_elements.size() != t._elements.size()) {
+    return false;
+  }
+  for (y::size i = 0; i < _elements.size(); ++i) {
+    if (_elements[i] != t._elements[i]) {
+      return false;
+    }
+  }
   return _base == t._base && _count == t._count;
 }
 

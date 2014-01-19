@@ -10,8 +10,15 @@ namespace yang {
 
 class Instance;
 namespace internal {
+  // TODO: TypeInfo for user types.
   template<typename T>
-  struct TypeInfo {};
+  struct TypeInfo {
+    static_assert(sizeof(T) != sizeof(T), "use of unsupported type");
+  };
+  template<typename T>
+  struct FunctionTypeInfo {
+    static_assert(sizeof(T) != sizeof(T), "use of non-function type");
+  };
 
   template<typename R>
   struct TrampolineCallReturnSetup;
@@ -43,6 +50,8 @@ public:
   Instance& get_instance() const;
   // Get the type of this function type as a Type object.
   static Type get_type();
+  // Invoke the function.
+  R call(const Args&... args) const;
 
 private:
 
@@ -54,6 +63,8 @@ private:
   friend class internal::TrampolineCallReturn;
   template<typename CR, typename... CArgs>
   friend class internal::TrampolineCall;
+  template<typename T>
+  friend class internal::FunctionTypeInfo;
   friend class Instance;
   Function()
     : _function(y::null)
@@ -85,8 +96,6 @@ Type Function<R, Args...>::get_type()
 }
 
 namespace internal {
-
-// TODO: TypeInfo for user types.
 
 template<>
 struct TypeInfo<void> {
@@ -162,6 +171,18 @@ struct TypeInfo<Function<R, A, Args...>> {
     yang::Type t = first();
     t._elements.insert(++t._elements.begin(), arg_type());
     return t;
+  }
+};
+
+template<typename R, typename... Args>
+struct FunctionTypeInfo<Function<R, Args...>> {
+  typedef void (*void_fp)();
+
+  void operator()(Function<R, Args...>& function,
+                  Instance* instance, void_fp target) const
+  {
+    function._instance = instance;
+    function._function = target;
   }
 };
 

@@ -92,10 +92,13 @@ public:
 
   template<typename R, typename... Args>
   R call(const y::string& name, const Args&... args);
-  template<typename R, typename... Args>
-  Function<R, Args...> get_function(const y::string& name);
+  template<typename T>
+  T get_function(const y::string& name);
 
 private:
+
+  template<typename R, typename... Args>
+  friend class Function;
 
   typedef void (*void_fp)();
   void_fp get_native_fp(const y::string& name) const;
@@ -103,6 +106,8 @@ private:
 
   template<typename R, typename... Args>
   R call_via_trampoline(const y::string& name, const Args&... args) const;
+  template<typename R, typename... Args>
+  R call_via_trampoline(void_fp target, const Args&... args) const;
 
   // Runtime check that global exists and has the correct type and, if it is to
   // be modified, that it is both exported and non-const.
@@ -173,6 +178,13 @@ struct InstanceCheck<Function<FR, FArgs...>, Args...> {
 // End namespace internal.
 }
 
+// Implementation of Function::call, which has to see the defintion of Instance.
+template<typename R, typename... Args>
+R Function<R, Args...>::call(const Args&... args) const
+{
+  return _instance->call_via_trampoline<R>(_function, args...);
+}
+
 template<typename T>
 T Instance::get_global(const y::string& name) const
 {
@@ -195,16 +207,16 @@ void Instance::set_global(const y::string& name, const T& value)
   call_via_trampoline<void>("!global_set_" + name, value);
 }
 
-template<typename R, typename... Args>
-Function<R, Args...> Instance::get_function(const y::string& name)
+template<typename T>
+T Instance::get_function(const y::string& name)
 {
-  internal::TypeInfo<Function<R, Args...>> info;
+  internal::TypeInfo<T> info;
   if (!check_function(name, info())) {
-    return Function<R, Args...>();
+    return T();
   }
-  Function<R, Args...> result;
-  result._instance = this;
-  result._function = get_native_fp(name);
+  T result;
+  internal::FunctionTypeInfo<T> function_info;
+  function_info(result, this, get_native_fp(name));
   return result;
 }
 
@@ -222,6 +234,12 @@ template<typename R, typename... Args>
 R Instance::call_via_trampoline(
     const y::string& name, const Args&... args) const
 {
+  return call_via_trampoline<R>(get_native_fp(name), args...);
+}
+
+template<typename R, typename... Args>
+R Instance::call_via_trampoline(void_fp target, const Args&... args) const
+{
   // Make sure only functions referencing this instance are passed in.
   internal::InstanceCheck<Args...> instance_check;
   if (!instance_check(*this, args...)) {
@@ -233,7 +251,6 @@ R Instance::call_via_trampoline(
   // an entry in the trampoline map.
   auto it = _program._trampoline_map.find(Function<R, Args...>::get_type());
   void_fp trampoline = get_native_fp(it->second);
-  void_fp target = get_native_fp(name);
 
   typedef internal::TrampolineCall<R, void*, Args..., void_fp> call_type;
   typename call_type::fp_type trampoline_expanded =

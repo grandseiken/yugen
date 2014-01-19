@@ -877,6 +877,14 @@ void IrGenerator::create_function(
 llvm::Function* IrGenerator::create_trampoline_function(
     llvm::FunctionType* function_type)
 {
+  // Trampoline functions must be generated for every function type that might
+  // be called externally or referenced by valid Function objects. This
+  // includes:
+  // - types of top-level functions;
+  // - types of generated global accessor functions;
+  // - the return type of any function type whose return type is also a function
+  //   type, and for which a trampoline has been generated (transitively). This
+  //   includes types of globals that have function type.
   yang::Type yang_type = get_yang_type(function_type);
   auto it = _trampoline_map.find(yang_type);
   if (it != _trampoline_map.end()) {
@@ -911,6 +919,11 @@ llvm::Function* IrGenerator::create_trampoline_function(
   y::size return_args =
       return_type->isVoidTy() ? 0 :
       return_type->isVectorTy() ? return_type->getVectorNumElements() : 1;
+  // Handle the transitive closure.
+  if (get_yang_type(return_type).is_function()) {
+    create_trampoline_function(
+        (llvm::FunctionType*)(return_type->getPointerElementType()));
+  }
 
   // Construct the type of the trampoline function.
   if (!return_type->isVoidTy()) {
