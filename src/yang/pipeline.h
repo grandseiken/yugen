@@ -182,6 +182,12 @@ struct InstanceCheck<Function<FR, FArgs...>, Args...> {
 template<typename R, typename... Args>
 R Function<R, Args...>::call(const Args&... args) const
 {
+  // TODO: change FunctionTypeInfo so that we can always set the Instance of a
+  // null Function and at least print the program name.
+  if (!is_valid()) {
+    log_err("called null function");
+    return R();
+  }
   return _instance->call_via_trampoline<R>(_function, args...);
 }
 
@@ -211,11 +217,11 @@ template<typename T>
 T Instance::get_function(const y::string& name)
 {
   internal::TypeInfo<T> info;
+  internal::FunctionTypeInfo<T> function_info;
   if (!check_function(name, info())) {
     return T();
   }
   T result;
-  internal::FunctionTypeInfo<T> function_info;
   function_info(result, this, get_native_fp(name));
   return result;
 }

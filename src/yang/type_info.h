@@ -65,6 +65,8 @@ private:
   friend class internal::TrampolineCall;
   template<typename T>
   friend class internal::FunctionTypeInfo;
+  template<typename FR, typename... FArgs>
+  friend class Function;
   friend class Instance;
   Function()
     : _function(y::null)
