@@ -90,10 +90,10 @@ void IrGenerator::emit_global_functions()
   // we computer sizeof with pointer arithmetic. (Conveniently, it's
   // also a type of the correct bit-width.)
   auto malloc_ptr = get_native_function(
-      "malloc", (void_fp)&malloc,
+      "malloc", (y::void_fp)&malloc,
       llvm::FunctionType::get(_global_data, _global_data, false));
   auto free_ptr = get_native_function(
-      "free", (void_fp)&free,
+      "free", (y::void_fp)&free,
       llvm::FunctionType::get(void_type(), _global_data, false));
 
   // Create allocator function.
@@ -811,7 +811,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
 }
 
 llvm::Function* IrGenerator::get_native_function(
-    const y::string& name, void_fp native_fp, llvm::FunctionType* type) const
+    const y::string& name, y::void_fp native_fp, llvm::FunctionType* type) const
 {
   // We use special !-prefixed names for native functions so that they can't
   // be confused with regular user-defined functions (e.g. "malloc" is not
@@ -1108,7 +1108,7 @@ llvm::Value* IrGenerator::pow(llvm::Value* v, llvm::Value* u)
 
   y::vector<llvm::Type*> args{world_type(), world_type()};
   auto pow_ptr = get_native_function(
-      "pow", (void_fp)&::pow,
+      "pow", (y::void_fp)&::pow,
       llvm::FunctionType::get(world_type(), args, false));
 
   if (t->isIntOrIntVectorTy()) {

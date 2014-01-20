@@ -32,7 +32,8 @@ y::int32 main(y::int32 argc, char** argv)
     return 1;
   }
 
-  yang::Program program(path, contents);
+  yang::Context context;
+  yang::Program program(context, path, contents);
   if (!program.success()) {
     return 1;
   }
@@ -52,12 +53,13 @@ y::int32 main(y::int32 argc, char** argv)
   yang::Instance instance(program);
   log_info("h(7): ", instance.call<yang::int32>("h", 7));
   instance.set_global(
-      "g", instance.get_function<yang::Function<yang::int32, yang::int32>>("f"));
+      "g",
+      instance.get_function<yang::Function<yang::int32(yang::int32)>>("f"));
   log_info("h(7): ", instance.call<yang::int32>("h", 7));
-  typedef yang::Function<yang::Function<yang::Function<yang::int32>>> ft;
+  typedef yang::Function<yang::Function<yang::Function<yang::int32()>()>()> ft;
   auto q = instance.get_function<ft>("q");
-  log_info("q()()(): ", q.call().call().call());
+  log_info("q()()(): ", q()()());
   auto r = instance.get_function<ft>("r");
-  log_info("r()()(): ", r.call().call().call());
+  log_info("r()()(): ", r()()());
   return 0;
 }

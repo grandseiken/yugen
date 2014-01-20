@@ -34,18 +34,26 @@ template<y::size N, typename y::enable_if<(N > 1), bool>::type = 0>
 using world_vec = y::vec<world, N>;
 
 // Opaque Yang function object.
-template<typename R, typename... Args>
+template<typename T>
 class Function {
+  static_assert(sizeof(T) != sizeof(T), "use of non-function type");
+};
+
+template<typename R, typename... Args>
+class Function<R(Args...)> {
 public:
 
-  // Check if the object references a non-null function.
-  bool is_valid() const;
   // Get the program instance that this function references.
   Instance& get_instance() const;
-  // Get the type of this function type as a Type object.
+  // Get the type corresponding to this function type as a yang Type object.
   static Type get_type();
+
+  // True if the object references a non-null function. It is an error to pass
+  // a null function object to a yang program instance, or invoke it.
+  explicit operator bool() const;
+
   // Invoke the function.
-  R call(const Args&... args) const;
+  R operator()(const Args&... args) const;
 
 private:
 
@@ -55,38 +63,39 @@ private:
   friend class internal::TrampolineCallReturn;
   template<typename CR, typename... CArgs>
   friend class internal::TrampolineCall;
+
   template<typename T>
   friend class internal::ValueConstruct;
-  template<typename FR, typename... FArgs>
+  template<typename T>
   friend class Function;
   friend class Instance;
+
   Function(Instance& instance)
     : _function(y::null)
     , _instance(&instance) {}
 
-  typedef void (*void_fp)();
-  void_fp _function;
+  y::void_fp _function;
   Instance* _instance;
 
 };
 
 template<typename R, typename... Args>
-bool Function<R, Args...>::is_valid() const
-{
-  return _function;
-}
-
-template<typename R, typename... Args>
-Instance& Function<R, Args...>::get_instance() const
+Instance& Function<R(Args...)>::get_instance() const
 {
   return *_instance;
 }
 
 template<typename R, typename... Args>
-Type Function<R, Args...>::get_type()
+Type Function<R(Args...)>::get_type()
 {
-  internal::TypeInfo<Function<R, Args...>> info;
+  internal::TypeInfo<Function<R(Args...)>> info;
   return info();
+}
+
+template<typename R, typename... Args>
+Function<R(Args...)>::operator bool() const
+{
+  return _function;
 }
 
 namespace internal {
@@ -154,7 +163,7 @@ struct TypeInfo<world_vec<N>> {
 };
 
 template<typename R>
-struct TypeInfo<Function<R>> {
+struct TypeInfo<Function<R()>> {
   yang::Type operator()() const
   {
     TypeInfo<R> return_type;
@@ -167,10 +176,10 @@ struct TypeInfo<Function<R>> {
 };
 
 template<typename R, typename A, typename... Args>
-struct TypeInfo<Function<R, A, Args...>> {
+struct TypeInfo<Function<R(A, Args...)>> {
   yang::Type operator()() const
   {
-    TypeInfo<Function<R, Args...>> first;
+    TypeInfo<Function<R(Args...)>> first;
     TypeInfo<A> arg_type;
 
     yang::Type t = first();
@@ -187,23 +196,21 @@ struct ValueConstruct {
     return T();
   }
 
-  typedef void (*void_fp)();
   template<typename U>
-  void set_void_fp(U&, void_fp ptr) const
+  void set_void_fp(U&, y::void_fp ptr) const
   {
     static_assert(sizeof(U) != sizeof(U), "use of non-function type");
   }
 };
 
 template<typename R, typename... Args>
-struct ValueConstruct<Function<R, Args...>> {
-  Function<R, Args...> operator()(Instance& instance) const
+struct ValueConstruct<Function<R(Args...)>> {
+  Function<R(Args...)> operator()(Instance& instance) const
   {
-    return Function<R, Args...>(instance);
+    return Function<R(Args...)>(instance);
   }
 
-  typedef void (*void_fp)();
-  void set_void_fp(Function<R, Args...>& function, void_fp ptr) const
+  void set_void_fp(Function<R(Args...)>& function, y::void_fp ptr) const
   {
     function._function = ptr;
   }
@@ -282,9 +289,8 @@ struct TrampolineReturn<vec<T, N>> {
       T*, typename TrampolineReturn<vec<T, N - 1>>::type>::type type;
 };
 template<typename R, typename... Args>
-struct TrampolineReturn<Function<R, Args...>> {
-  typedef void (*void_fp)();
-  typedef List<void_fp*> type;
+struct TrampolineReturn<Function<R(Args...)>> {
+  typedef List<y::void_fp*> type;
 };
 
 template<typename... Args>
@@ -308,7 +314,7 @@ struct TrampolineArgs<vec<T, N>, Args...> {
   typedef typename Join<T, rest>::type type;
 };
 template<typename FR, typename... FArgs, typename... Args>
-struct TrampolineArgs<Function<FR, FArgs...>, Args...> {
+struct TrampolineArgs<Function<FR(FArgs...)>, Args...> {
   typedef typename Join<
       void (*)(), typename TrampolineArgs<Args...>::type>::type type;
 };
@@ -392,12 +398,12 @@ struct TrampolineCallArgs<vec<T, N>, Args...> {
 
 // TrampolineCallArgs unpacking of a function.
 template<typename FR, typename... FArgs, typename... Args>
-struct TrampolineCallArgs<Function<FR, FArgs...>, Args...> {
+struct TrampolineCallArgs<Function<FR(FArgs...)>, Args...> {
   typedef typename TrampolineType<
-      void, Function<FR, FArgs...>, Args...>::f_type f_type;
+      void, Function<FR(FArgs...)>, Args...>::f_type f_type;
 
   void operator()(
-      const f_type& function, const Function<FR, FArgs...>& arg,
+      const f_type& function, const Function<FR(FArgs...)>& arg,
       const Args&... args) const
   {
     typedef TrampolineCallArgs<Args...> next_type;
@@ -454,14 +460,13 @@ struct TrampolineCallReturn<vec<T, N>, Args...> {
 
 // TrampolineCallReturn for a function return.
 template<typename FR, typename... FArgs, typename... Args>
-struct TrampolineCallReturn<Function<FR, FArgs...>, Args...> {
+struct TrampolineCallReturn<Function<FR(FArgs...)>, Args...> {
   typedef typename TrampolineType<
-      Function<FR, FArgs...>, Args...>::f_type f_type;
+      Function<FR(FArgs...)>, Args...>::f_type f_type;
   typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
-  typedef void (*void_fp)();
 
   bound_f_type operator()(
-      const f_type& function, Function<FR, FArgs...>& result) const
+      const f_type& function, Function<FR(FArgs...)>& result) const
   {
     return bind_first(function, &result._function);
   }

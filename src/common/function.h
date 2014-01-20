@@ -5,6 +5,8 @@
 
 namespace y {
 
+  typedef void (*void_fp)();
+
   template<typename... T>
   using function = std::function<T...>;
 

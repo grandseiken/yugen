@@ -22,9 +22,10 @@ int yang_parse();
 
 namespace yang {
 
-Program::Program(const y::string& name,
+Program::Program(const Context& context, const y::string& name,
                  const y::string& contents, bool optimise)
-  : _name(name)
+  : _context(context)
+  , _name(name)
   , _ast(y::null)
   , _module(y::null)
   , _engine(y::null)
@@ -67,6 +68,11 @@ Program::Program(const y::string& name,
 
 Program::~Program()
 {
+}
+
+const Context& Program::get_context() const
+{
+  return _context;
 }
 
 const y::string& Program::get_name() const
@@ -190,14 +196,16 @@ Instance::Instance(const Program& program)
   : _program(program)
   , _global_data(y::null)
 {
-  void_fp global_alloc = get_native_fp("!global_alloc");
-  _global_data = ((void* (*)())global_alloc)();
+  y::void_fp global_alloc = get_native_fp("!global_alloc");
+  typedef void* (*alloc_fp)();
+  _global_data = ((alloc_fp)global_alloc)();
 }
 
 Instance::~Instance()
 {
-  void_fp global_free = get_native_fp("!global_free");
-  ((void (*)(void*))global_free)(_global_data);
+  y::void_fp global_free = get_native_fp("!global_free");
+  typedef void (*free_fp)(void*);
+  ((free_fp)global_free)(_global_data);
 }
 
 const Program& Instance::get_program() const
@@ -205,12 +213,12 @@ const Program& Instance::get_program() const
   return _program;
 }
 
-Instance::void_fp Instance::get_native_fp(const y::string& name) const
+y::void_fp Instance::get_native_fp(const y::string& name) const
 {
   return get_native_fp(_program._module->getFunction(name));
 }
 
-Instance::void_fp Instance::get_native_fp(llvm::Function* ir_fp) const
+y::void_fp Instance::get_native_fp(llvm::Function* ir_fp) const
 {
   void* void_p = _program._engine->getPointerToFunction(ir_fp);
   // ISO C++ forbids casting between pointer-to-function and pointer-to-object!
@@ -218,7 +226,7 @@ Instance::void_fp Instance::get_native_fp(llvm::Function* ir_fp) const
   // way around this (technically) defined behaviour. I guess it should work
   // in practice. Also occurs in irgen.cpp.
   // TODO: maybe it can be resolved somehow?
-  return (void_fp)(y::intptr)void_p;
+  return (y::void_fp)(y::intptr)void_p;
 }
 
 bool Instance::check_global(const y::string& name, const Type& type,

@@ -27,11 +27,10 @@ namespace internal {
 }
 
 // General directions:
-// TODO: create Programs from Contexts or Environments which define game-library
-// functions and types. (Perhaps the standard library can be a kind of Context,
-// even.)
-// TODO: in particular, there should be a type corresponding to Instance, with
-// built-in functionality.
+// TODO: Context composition; the standard libraries should be kinds of Context.
+// TODO: there should be a type corresponding to Instance, with built-in
+// functionality. Possible some sort of duck-typing interface for Instances. The
+// same typing mechanism should apply to user types.
 // TODO: add some kind of built-in data structures, including at least a generic
 // map<K, V> type. May require garbage-collection, unless we place tight
 // restrictions on their usage (e.g. only global variables).
@@ -40,13 +39,32 @@ namespace internal {
 // TODO: vectorised assignment, or pattern-matching assignment? Also, indexed
 // assignment.
 // TODO: warnings: for example, unused variables.
+// TODO: code hot-swapping.
+class Context : public y::no_copy {
+public:
+
+  // Add a globally-available function to the context.
+  template<typename R, typename... Args>
+  void add_function(const y::string& name, const y::function<R(Args...)>&);
+
+private:
+
+  struct global_function {
+    Type type;
+    y::void_fp ptr;
+  };
+  y::map<y::string, global_function> _global_functions;
+
+};
+
 class Program : public y::no_copy {
 public:
 
-  Program(const y::string& name,
+  Program(const Context& context, const y::string& name,
           const y::string& contents, bool optimise = true);
   ~Program();
 
+  const Context& get_context() const;
   const y::string& get_name() const;
 
   // Returns true if the contents parsed and checked successfully. Otherwise,
@@ -62,19 +80,19 @@ public:
 private:
 
   friend class Instance;
-
   void generate_ir();
   void optimise_ir();
 
-  symbol_table _functions;
-  symbol_table _globals;
-  y::map<Type, llvm::Function*> _trampoline_map;
-
+  const Context& _context;
   y::string _name;
   y::unique<internal::Node> _ast;
 
+  symbol_table _functions;
+  symbol_table _globals;
+
   llvm::Module* _module;
   y::unique<llvm::ExecutionEngine> _engine;
+  y::map<Type, llvm::Function*> _trampoline_map;
 
 };
 
@@ -98,17 +116,16 @@ public:
 
 private:
 
-  template<typename R, typename... Args>
+  template<typename T>
   friend class Function;
 
-  typedef void (*void_fp)();
-  void_fp get_native_fp(const y::string& name) const;
-  void_fp get_native_fp(llvm::Function* ir_fp) const;
+  y::void_fp get_native_fp(const y::string& name) const;
+  y::void_fp get_native_fp(llvm::Function* ir_fp) const;
 
   template<typename R, typename... Args>
   R call_via_trampoline(const y::string& name, const Args&... args) const;
   template<typename R, typename... Args>
-  R call_via_trampoline(void_fp target, const Args&... args) const;
+  R call_via_trampoline(y::void_fp target, const Args&... args) const;
 
   // Runtime check that global exists and has the correct type and, if it is to
   // be modified, that it is both exported and non-const.
@@ -121,6 +138,13 @@ private:
   void* _global_data;
 
 };
+
+template<typename R, typename... Args>
+void Context::add_function(
+    const y::string& name, const y::function<R(Args...)>&)
+{
+  // TODO.
+}
 
 namespace internal {
 
@@ -149,13 +173,13 @@ struct InstanceCheck<A, Args...> {
 };
 
 template<typename FR, typename... FArgs, typename... Args>
-struct InstanceCheck<Function<FR, FArgs...>, Args...> {
+struct InstanceCheck<Function<FR(FArgs...)>, Args...> {
   bool operator()(const Instance& instance,
-                  const Function<FR, FArgs...>& arg, const Args&... args) const
+                  const Function<FR(FArgs...)>& arg, const Args&... args) const
   {
     bool result = true;
     InstanceCheck<Args...> next;
-    if (!arg.is_valid()) {
+    if (!arg) {
       log_err(instance.get_program().get_name(),
               ": passed null function object");
       result = false;
@@ -182,11 +206,11 @@ struct InstanceCheck<Function<FR, FArgs...>, Args...> {
 
 // Implementation of Function::call, which has to see the defintion of Instance.
 template<typename R, typename... Args>
-R Function<R, Args...>::call(const Args&... args) const
+R Function<R(Args...)>::operator()(const Args&... args) const
 {
   // Instance should always be non-null.
   internal::ValueConstruct<R> construct;
-  if (!is_valid()) {
+  if (!*this) {
     log_err(_instance->get_program().get_name(),
             ": called null function object");
     return construct(*_instance);  
@@ -232,7 +256,7 @@ T Instance::get_function(const y::string& name)
 template<typename R, typename... Args>
 R Instance::call(const y::string& name, const Args&... args)
 {
-  internal::TypeInfo<Function<R, Args...>> info;
+  internal::TypeInfo<Function<R(Args...)>> info;
   internal::ValueConstruct<R> construct;
   if (!check_function(name, info())) {
     return construct(*this);
@@ -248,7 +272,7 @@ R Instance::call_via_trampoline(
 }
 
 template<typename R, typename... Args>
-R Instance::call_via_trampoline(void_fp target, const Args&... args) const
+R Instance::call_via_trampoline(y::void_fp target, const Args&... args) const
 {
   // Make sure only functions referencing this instance are passed in.
   internal::InstanceCheck<Args...> instance_check;
@@ -260,10 +284,10 @@ R Instance::call_via_trampoline(void_fp target, const Args&... args) const
   // Since we can only obtain a valid Function object referencing a function
   // type for which a trampoline has been generated, there should always be
   // an entry in the trampoline map.
-  auto it = _program._trampoline_map.find(Function<R, Args...>::get_type());
-  void_fp trampoline = get_native_fp(it->second);
+  auto it = _program._trampoline_map.find(Function<R(Args...)>::get_type());
+  y::void_fp trampoline = get_native_fp(it->second);
 
-  typedef internal::TrampolineCall<R, void*, Args..., void_fp> call_type;
+  typedef internal::TrampolineCall<R, void*, Args..., y::void_fp> call_type;
   typename call_type::fp_type trampoline_expanded =
       (typename call_type::fp_type)trampoline;
   return call_type()(const_cast<Instance&>(*this),

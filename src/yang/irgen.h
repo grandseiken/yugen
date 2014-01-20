@@ -55,9 +55,9 @@ protected:
 private:
 
   // Get an LLVM function pointer to a native function.
-  typedef void (*void_fp)();
   llvm::Function* get_native_function(
-      const y::string& name, void_fp native_fp, llvm::FunctionType* type) const;
+      const y::string& name, y::void_fp native_fp,
+      llvm::FunctionType* type) const;
 
   // Tools for functions and calling conventions.
   void create_function(
