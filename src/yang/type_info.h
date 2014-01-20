@@ -162,6 +162,19 @@ struct TypeInfo<world_vec<N>> {
   }
 };
 
+// Templating TypeInfo on Function<R(Args...)> leads to ugly code, e.g. to
+// retrieve a Function object for a function of Yang type int()():
+//
+//   auto f = instance.get_function<Function<Function<yang::int32()>()>>("f");
+//
+// It's tempting to think we could template simply on R(Args...) instead, but
+// that leads to the syntax:
+//
+//   auto f = instance.get_function<yang::int32()()>("f");
+//
+// which, since C++ functions can only return *pointers* to other functions, is
+// unfortunately illegal. For now, the only option right now is judicious use
+// of typedefs (and perhaps a shorter typedef for Function).
 template<typename R>
 struct TypeInfo<Function<R()>> {
   yang::Type operator()() const

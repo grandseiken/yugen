@@ -213,7 +213,7 @@ R Function<R(Args...)>::operator()(const Args&... args) const
   if (!*this) {
     log_err(_instance->get_program().get_name(),
             ": called null function object");
-    return construct(*_instance);  
+    return construct(*_instance);
   }
   return _instance->call_via_trampoline<R>(_function, args...);
 }
