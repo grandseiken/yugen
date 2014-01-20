@@ -72,8 +72,9 @@ private:
 
   y::string _name;
   y::unique<internal::Node> _ast;
-  y::unique<llvm::Module> _module;
-  llvm::ExecutionEngine* _engine;
+
+  llvm::Module* _module;
+  y::unique<llvm::ExecutionEngine> _engine;
 
 };
 

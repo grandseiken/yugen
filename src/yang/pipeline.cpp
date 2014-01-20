@@ -27,6 +27,7 @@ Program::Program(const y::string& name,
   : _name(name)
   , _ast(y::null)
   , _module(y::null)
+  , _engine(y::null)
 {
   internal::ParseGlobals::lexer_input_contents = &contents;
   internal::ParseGlobals::lexer_input_offset = 0;
@@ -112,13 +113,13 @@ void Program::generate_ir()
 {
   y::string error;
   llvm::InitializeNativeTarget();
-  _module = y::move_unique(
-      new llvm::Module(_name, llvm::getGlobalContext()));
 
-  // TODO: unsure if I am supposed to delete the ExecutionEngine, or the Values.
-  // Update: fairly sure the engine takes ownership of the module; so the
-  // engine alone should be deleted.
-  _engine = llvm::EngineBuilder(_module.get()).setErrorStr(&error).create();
+  // The ExecutionEngine takes ownership of the LLVM module (and by extension
+  // everything else we created during codegen). So the engine alone must be
+  // uniqued and deleted.
+  _module = new llvm::Module(_name, llvm::getGlobalContext());
+  _engine = y::move_unique(
+      llvm::EngineBuilder(_module).setErrorStr(&error).create());
   if (!_engine) {
     log_err("Couldn't create execution engine:\n", error);
     _module = y::null;
