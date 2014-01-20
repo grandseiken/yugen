@@ -155,7 +155,8 @@ struct InstanceCheck<Function<FR, FArgs...>, Args...> {
     bool result = true;
     InstanceCheck<Args...> next;
     if (!arg.is_valid()) {
-      log_err(instance.get_program().get_name(), ": passed null function");
+      log_err(instance.get_program().get_name(),
+              ": passed null function object");
       result = false;
     }
     else {
@@ -182,11 +183,12 @@ struct InstanceCheck<Function<FR, FArgs...>, Args...> {
 template<typename R, typename... Args>
 R Function<R, Args...>::call(const Args&... args) const
 {
-  // TODO: change FunctionTypeInfo so that we can always set the Instance of a
-  // null Function and at least print the program name.
+  // Instance should always be non-null.
+  internal::ValueConstruct<R> construct;
   if (!is_valid()) {
-    log_err("called null function");
-    return R();
+    log_err(_instance->get_program().get_name(),
+            ": called null function object");
+    return construct(*_instance);  
   }
   return _instance->call_via_trampoline<R>(_function, args...);
 }
@@ -217,12 +219,12 @@ template<typename T>
 T Instance::get_function(const y::string& name)
 {
   internal::TypeInfo<T> info;
-  internal::FunctionTypeInfo<T> function_info;
+  internal::ValueConstruct<T> construct;
+  T result = construct(*this);
   if (!check_function(name, info())) {
-    return T();
+    return result;
   }
-  T result;
-  function_info(result, this, get_native_fp(name));
+  construct.set_void_fp(result, get_native_fp(name));
   return result;
 }
 
@@ -230,8 +232,9 @@ template<typename R, typename... Args>
 R Instance::call(const y::string& name, const Args&... args)
 {
   internal::TypeInfo<Function<R, Args...>> info;
+  internal::ValueConstruct<R> construct;
   if (!check_function(name, info())) {
-    return R();
+    return construct(*this);
   }
   return call_via_trampoline<R>(name, args...);
 }
@@ -248,8 +251,9 @@ R Instance::call_via_trampoline(void_fp target, const Args&... args) const
 {
   // Make sure only functions referencing this instance are passed in.
   internal::InstanceCheck<Args...> instance_check;
+  internal::ValueConstruct<R> construct;
   if (!instance_check(*this, args...)) {
-    return R();
+    return construct(const_cast<Instance&>(*this));
   }
 
   // Since we can only obtain a valid Function object referencing a function

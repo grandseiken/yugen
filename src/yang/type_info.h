@@ -12,16 +12,10 @@ class Instance;
 namespace internal {
   // TODO: TypeInfo for user types.
   template<typename T>
-  struct TypeInfo {
-    static_assert(sizeof(T) != sizeof(T), "use of unsupported type");
-  };
+  struct TypeInfo;
   template<typename T>
-  struct FunctionTypeInfo {
-    static_assert(sizeof(T) != sizeof(T), "use of non-function type");
-  };
+  struct ValueConstruct;
 
-  template<typename R>
-  struct TrampolineCallReturnSetup;
   template<typename... Args>
   struct TrampolineCallArgs;
   template<typename R, typename... Args>
@@ -44,7 +38,7 @@ template<typename R, typename... Args>
 class Function {
 public:
 
-  // Check if the object references a non-null program instance and function.
+  // Check if the object references a non-null function.
   bool is_valid() const;
   // Get the program instance that this function references.
   Instance& get_instance() const;
@@ -55,8 +49,6 @@ public:
 
 private:
 
-  template<typename CR>
-  friend class internal::TrampolineCallReturnSetup;
   template<typename... CArgs>
   friend class internal::TrampolineCallArgs;
   template<typename CR, typename... CArgs>
@@ -64,13 +56,13 @@ private:
   template<typename CR, typename... CArgs>
   friend class internal::TrampolineCall;
   template<typename T>
-  friend class internal::FunctionTypeInfo;
+  friend class internal::ValueConstruct;
   template<typename FR, typename... FArgs>
   friend class Function;
   friend class Instance;
-  Function()
+  Function(Instance& instance)
     : _function(y::null)
-    , _instance(y::null) {}
+    , _instance(&instance) {}
 
   typedef void (*void_fp)();
   void_fp _function;
@@ -81,7 +73,7 @@ private:
 template<typename R, typename... Args>
 bool Function<R, Args...>::is_valid() const
 {
-  return _instance && _function;
+  return _function;
 }
 
 template<typename R, typename... Args>
@@ -98,6 +90,17 @@ Type Function<R, Args...>::get_type()
 }
 
 namespace internal {
+
+template<typename T>
+struct TypeInfo {
+  static_assert(sizeof(T) != sizeof(T), "use of unsupported type");
+
+  yang::Type operator()() const
+  {
+    yang::Type t;
+    return t;
+  }
+};
 
 template<>
 struct TypeInfo<void> {
@@ -176,15 +179,33 @@ struct TypeInfo<Function<R, A, Args...>> {
   }
 };
 
-template<typename R, typename... Args>
-struct FunctionTypeInfo<Function<R, Args...>> {
-  typedef void (*void_fp)();
-
-  void operator()(Function<R, Args...>& function,
-                  Instance* instance, void_fp target) const
+template<typename T>
+struct ValueConstruct {
+  T operator()(Instance& instance) const
   {
-    function._instance = instance;
-    function._function = target;
+    (void)instance;
+    return T();
+  }
+
+  typedef void (*void_fp)();
+  template<typename U>
+  void set_void_fp(U&, void_fp ptr) const
+  {
+    static_assert(sizeof(U) != sizeof(U), "use of non-function type");
+  }
+};
+
+template<typename R, typename... Args>
+struct ValueConstruct<Function<R, Args...>> {
+  Function<R, Args...> operator()(Instance& instance) const
+  {
+    return Function<R, Args...>(instance);
+  }
+
+  typedef void (*void_fp)();
+  void set_void_fp(Function<R, Args...>& function, void_fp ptr) const
+  {
+    function._function = ptr;
   }
 };
 
@@ -446,23 +467,6 @@ struct TrampolineCallReturn<Function<FR, FArgs...>, Args...> {
   }
 };
 
-// Template for setting the Instance associated with a Function return value.
-template<typename R>
-struct TrampolineCallReturnSetup {
-  void operator()(Instance& instance, R& result) const
-  {
-    (void)instance;
-    (void)result;
-  }
-};
-template<typename R, typename... Args>
-struct TrampolineCallReturnSetup<Function<R, Args...>> {
-  void operator()(Instance& instance, Function<R, Args...>& result) const
-  {
-    result._instance = &instance;
-  }
-};
-
 // Combine the above into a complete function call.
 template<typename R, typename... Args>
 struct TrampolineCall {
@@ -472,12 +476,11 @@ struct TrampolineCall {
   R operator()(Instance& instance,
                const f_type& function, const Args&... args) const
   {
-    typedef TrampolineCallReturnSetup<R> return_setup_type;
+    typedef ValueConstruct<R> construct_type;
     typedef TrampolineCallReturn<R, Args...> return_type;
     typedef TrampolineCallArgs<Args...> args_type;
 
-    R result;
-    return_setup_type()(instance, result);
+    R result = construct_type()(instance);
     auto return_bound_function = return_type()(function, result);
     args_type()(return_bound_function, args...);
     return result;
