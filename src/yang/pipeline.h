@@ -8,6 +8,7 @@
 #include "../common/vector.h"
 #include "../log.h"
 
+#include "native_function.h"
 #include "type.h"
 #include "type_info.h"
 
@@ -27,7 +28,8 @@ namespace internal {
 }
 
 // General directions:
-// TODO: Context composition; the standard libraries should be kinds of Context.
+// TODO: Context composition; the standard libraries should be kinds of Context;
+// and user types should be possible.
 // TODO: there should be a type corresponding to Instance, with built-in
 // functionality. Possible some sort of duck-typing interface for Instances. The
 // same typing mechanism should apply to user types.
@@ -45,13 +47,17 @@ public:
 
   // Add a globally-available function to the context.
   template<typename R, typename... Args>
-  void add_function(const y::string& name, const y::function<R(Args...)>&);
+  void add_function(
+      const y::string& name, const y::function<R(Args...)>& function);
 
 private:
 
   struct global_function {
+    global_function();
+    ~global_function();
+
     Type type;
-    y::void_fp ptr;
+    y::unique<internal::GenericNativeFunction> ptr;
   };
   y::map<y::string, global_function> _global_functions;
 
@@ -141,9 +147,18 @@ private:
 
 template<typename R, typename... Args>
 void Context::add_function(
-    const y::string& name, const y::function<R(Args...)>&)
+    const y::string& name, const y::function<R(Args...)>& function)
 {
-  // TODO.
+  auto it = _global_functions.find(name);
+  if (it == _global_functions.end()) {
+    log_err("duplicate global function ", name);
+    return;
+  }
+
+  internal::TypeInfo<Function<R(Args...)>> info;
+  global_function& f = _global_functions[name];
+  f.type = info();
+  f.ptr = y::move_unique(new internal::NativeFunction<R(Args...)>(function));
 }
 
 namespace internal {

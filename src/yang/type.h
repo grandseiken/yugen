@@ -51,6 +51,7 @@ private:
   friend class internal::Type;
   template<typename T>
   friend struct internal::TypeInfo;
+  friend class Context;
   Type();
 
   enum type_base {

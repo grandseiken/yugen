@@ -10,7 +10,6 @@ namespace yang {
 
 class Instance;
 namespace internal {
-  // TODO: TypeInfo for user types.
   template<typename T>
   struct TypeInfo;
   template<typename T>

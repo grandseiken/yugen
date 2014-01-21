@@ -33,6 +33,10 @@ y::int32 main(y::int32 argc, char** argv)
   }
 
   yang::Context context;
+  // TODO: test.
+  context.add_function(
+      "foo", y::function<yang::int32(yang::int32)>(
+          [](yang::int32 a){return 2 * a;}));
   yang::Program program(context, path, contents);
   if (!program.success()) {
     return 1;

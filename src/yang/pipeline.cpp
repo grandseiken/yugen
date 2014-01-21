@@ -22,6 +22,15 @@ int yang_parse();
 
 namespace yang {
 
+Context::global_function::global_function()
+  : ptr(y::null)
+{
+}
+
+Context::global_function::~global_function()
+{
+}
+
 Program::Program(const Context& context, const y::string& name,
                  const y::string& contents, bool optimise)
   : _context(context)
