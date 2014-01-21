@@ -2,6 +2,7 @@
 #define YANG__NATIVE_FUNCTION_H
 
 #include "../common/function.h"
+#include "type.h"
 
 namespace yang {
 namespace internal {
@@ -27,10 +28,20 @@ public:
   const y::function<R(Args...)>& get() const;
 
 };
-typedef NativeFunction<void> GenericNativeFunction;
+
+// Structure containing information about an arbitrary native function to be
+// made available via a Context.
+struct GenericNativeFunction {
+  GenericNativeFunction()
+    : ptr(y::null) {}
+  ~GenericNativeFunction() {}
+
+  yang::Type type;
+  y::unique<NativeFunction<void>> ptr;
+};
 
 template<typename R, typename... Args>
-class NativeFunction<R(Args...)> : public GenericNativeFunction {
+class NativeFunction<R(Args...)> : public NativeFunction<void> {
 public:
 
   typedef y::function<R(Args...)> function_type;

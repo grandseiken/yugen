@@ -12,6 +12,7 @@ namespace internal {
   class Type;
   template<typename T>
   struct TypeInfo;
+  struct GenericNativeFunction;
 }
 
 class Type {
@@ -51,7 +52,7 @@ private:
   friend class internal::Type;
   template<typename T>
   friend struct internal::TypeInfo;
-  friend class Context;
+  friend struct internal::GenericNativeFunction;
   Type();
 
   enum type_base {

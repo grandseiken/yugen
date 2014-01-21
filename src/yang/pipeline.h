@@ -53,14 +53,7 @@ public:
 
 private:
 
-  struct function {
-    function();
-    ~function();
-
-    Type type;
-    y::unique<internal::GenericNativeFunction> ptr;
-  };
-  typedef y::map<y::string, function> function_map;
+  typedef y::map<y::string, internal::GenericNativeFunction> function_map;
 
   friend class Program;
   const function_map& get_functions() const;
@@ -162,7 +155,7 @@ void Context::add_function(
   }
 
   internal::TypeInfo<Function<R(Args...)>> info;
-  function& symbol = _functions[name];
+  internal::GenericNativeFunction& symbol = _functions[name];
   symbol.type = info();
   symbol.ptr = y::move_unique(new internal::NativeFunction<R(Args...)>(f));
 }

@@ -22,15 +22,6 @@ int yang_parse();
 
 namespace yang {
 
-Context::function::function()
-  : ptr(y::null)
-{
-}
-
-Context::function::~function()
-{
-}
-
 const Context::function_map& Context::get_functions() const
 {
   return _functions;
