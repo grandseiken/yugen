@@ -41,25 +41,31 @@ namespace internal {
 // TODO: vectorised assignment, or pattern-matching assignment? Also, indexed
 // assignment.
 // TODO: warnings: for example, unused variables.
-// TODO: code hot-swapping.
+// TODO: code hot-swapping. Careful with pointer values (e.g. functions) in
+// global data struct which probably need to be left as default values.
 class Context : public y::no_copy {
 public:
 
   // Add a globally-available function to the context.
   template<typename R, typename... Args>
   void add_function(
-      const y::string& name, const y::function<R(Args...)>& function);
+      const y::string& name, const y::function<R(Args...)>& f);
 
 private:
 
-  struct global_function {
-    global_function();
-    ~global_function();
+  struct function {
+    function();
+    ~function();
 
     Type type;
     y::unique<internal::GenericNativeFunction> ptr;
   };
-  y::map<y::string, global_function> _global_functions;
+  typedef y::map<y::string, function> function_map;
+
+  friend class Program;
+  const function_map& get_functions() const;
+
+  function_map _functions;
 
 };
 
@@ -147,18 +153,18 @@ private:
 
 template<typename R, typename... Args>
 void Context::add_function(
-    const y::string& name, const y::function<R(Args...)>& function)
+    const y::string& name, const y::function<R(Args...)>& f)
 {
-  auto it = _global_functions.find(name);
-  if (it == _global_functions.end()) {
-    log_err("duplicate global function ", name);
+  auto it = _functions.find(name);
+  if (it != _functions.end()) {
+    log_err("duplicate function `", name, "` added to context");
     return;
   }
 
   internal::TypeInfo<Function<R(Args...)>> info;
-  global_function& f = _global_functions[name];
-  f.type = info();
-  f.ptr = y::move_unique(new internal::NativeFunction<R(Args...)>(function));
+  function& symbol = _functions[name];
+  symbol.type = info();
+  symbol.ptr = y::move_unique(new internal::NativeFunction<R(Args...)>(f));
 }
 
 namespace internal {

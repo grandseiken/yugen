@@ -13,6 +13,7 @@ class NativeFunction {
                 "incorrect native function type argument used");
 };
 
+// TODO: this is almost certainly uselessly-designed.
 template<>
 class NativeFunction<void> {
 public:

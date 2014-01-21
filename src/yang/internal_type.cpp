@@ -4,6 +4,21 @@
 namespace yang {
 namespace internal {
 
+Type::Type(const yang::Type& type)
+  : Type(VOID)
+{
+  _base =
+      type._base == yang::Type::INT ? INT :
+      type._base == yang::Type::WORLD ? WORLD :
+      type._base == yang::Type::FUNCTION ? FUNCTION :
+      VOID;
+  _const = type._const;
+  _count = type._count;
+  for (const yang::Type& u : type._elements) {
+    _elements.push_back(u);
+  }
+}
+
 Type::Type(type_base base, y::size count)
   : _base(base)
   , _count(count)

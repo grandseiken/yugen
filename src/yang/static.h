@@ -13,7 +13,8 @@ class StaticChecker : public ConstAstWalker<Type> {
 public:
 
   typedef y::map<y::string, yang::Type> symbol_frame;
-  StaticChecker(symbol_frame& functions, symbol_frame& globals);
+  StaticChecker(const symbol_frame& context_functions,
+                symbol_frame& functions_output, symbol_frame& globals_output);
   ~StaticChecker();
 
   // True if any errors were detected during the checking. Otherwise, assuming
@@ -59,8 +60,9 @@ private:
   SymbolTable<metadata, Type> _metadata;
   SymbolTable<y::string, Type> _symbol_table;
 
-  symbol_frame& _functions;
-  symbol_frame& _globals;
+  const symbol_frame& _context_functions;
+  symbol_frame& _functions_output;
+  symbol_frame& _globals_output;
 
 };
 

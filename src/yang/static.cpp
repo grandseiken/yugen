@@ -15,12 +15,15 @@ namespace std {
 namespace yang {
 namespace internal {
 
-StaticChecker::StaticChecker(symbol_frame& functions, symbol_frame& globals)
+StaticChecker::StaticChecker(
+    const symbol_frame& context_functions,
+    symbol_frame& functions_output, symbol_frame& globals_output)
   : _errors(false)
   , _metadata(Type::VOID)
   , _symbol_table(Type::VOID)
-  , _functions(functions)
-  , _globals(globals)
+  , _context_functions(context_functions)
+  , _functions_output(functions_output)
+  , _globals_output(globals_output)
 {
 }
 
@@ -209,7 +212,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       // recursion hack.
       const Type& t = _symbol_table.get(node.string_value, 0);
       if (!t.is_error()) {
-        _functions.emplace(node.string_value, t.external(true));
+        _functions_output.emplace(node.string_value, t.external(true));
       }
       _current_function = "";
       return Type::VOID;
@@ -295,7 +298,16 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       return Type::VOID;
 
     case Node::IDENTIFIER:
-      if (!_symbol_table.has(node.string_value)) {
+    {
+      // Check Context if symbol isn't present in the Program table.
+      auto context_it = _context_functions.find(node.string_value);
+      bool has = _symbol_table.has(node.string_value);
+      if (!has && context_it != _context_functions.end()) {
+        return context_it->second;
+      }
+
+      // Regular program symbols.
+      if (!has) {
         error(node, "undeclared identifier `" + node.string_value + "`");
         _symbol_table.add(node.string_value, Type::ERROR);
       }
@@ -305,6 +317,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         return Type::ERROR;
       }
       return _symbol_table[node.string_value];
+    }
     case Node::INT_LITERAL:
       return Type::INT;
     case Node::WORLD_LITERAL:
@@ -498,7 +511,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         const Type& t = _symbol_table.get(node.string_value, 0);
         if (!t.is_error()) {
           bool exported = _metadata.has(EXPORT_GLOBAL);
-          _globals.emplace(node.string_value, t.external(exported));
+          _globals_output.emplace(node.string_value, t.external(exported));
         }
       };
 

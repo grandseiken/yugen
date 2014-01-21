@@ -22,13 +22,18 @@ int yang_parse();
 
 namespace yang {
 
-Context::global_function::global_function()
+Context::function::function()
   : ptr(y::null)
 {
 }
 
-Context::global_function::~global_function()
+Context::function::~function()
 {
+}
+
+const Context::function_map& Context::get_functions() const
+{
+  return _functions;
 }
 
 Program::Program(const Context& context, const y::string& name,
@@ -60,7 +65,13 @@ Program::Program(const Context& context, const y::string& name,
     return;
   }
 
-  internal::StaticChecker checker(_functions, _globals);
+  // Set up the symbol table for the built-in context.
+  symbol_table context_functions;
+  for (const auto& pair: context.get_functions()) {
+    context_functions.emplace(pair.first, pair.second.type);
+  }
+
+  internal::StaticChecker checker(context_functions, _functions, _globals);
   checker.walk(*output);
   if (checker.errors()) {
     _functions.clear();

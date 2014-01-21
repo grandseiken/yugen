@@ -32,6 +32,9 @@ public:
     FUNCTION,
   };
 
+  // Convert from an external type.
+  Type(const yang::Type& type);
+
   // A count greater than one constructs a vector type. This is allowed
   // only if the base is type INT or WORLD. This constructor can't create
   // FUNCTION types. Invalid construction will result in an ERROR type.
