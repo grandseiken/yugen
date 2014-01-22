@@ -6,6 +6,9 @@
 #include <boost/filesystem.hpp>
 #include <fstream>
 
+template<typename T>
+using Fn = yang::Function<T>;
+
 y::int32 main(y::int32 argc, char** argv)
 {
   if (argc < 2) {
@@ -58,12 +61,15 @@ y::int32 main(y::int32 argc, char** argv)
   log_info("h(7): ", instance.call<yang::int32>("h", 7));
   instance.set_global(
       "g",
-      instance.get_function<yang::Function<yang::int32(yang::int32)>>("f"));
-  log_info("h(7): ", instance.call<yang::int32>("h", 7));
-  typedef yang::Function<yang::Function<yang::Function<yang::int32()>()>()> ft;
+      instance.get_function<Fn<y::int32(y::int32)>>("f"));
+  log_info("h(7): ", instance.call<y::int32>("h", 7));
+  typedef Fn<Fn<Fn<y::int32()>()>()> ft;
   auto q = instance.get_function<ft>("q");
   log_info("q()()(): ", q()()());
   auto r = instance.get_function<ft>("r");
   log_info("r()()(): ", r()()());
+
+  auto p = instance.call<Fn<y::int32(Fn<y::int32()>)>>("p");
+  log_info("p()(q()()): ", p(q()()));
   return 0;
 }

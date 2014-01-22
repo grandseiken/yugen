@@ -145,7 +145,8 @@ void Program::generate_ir()
   // functions.
   _engine->DisableSymbolSearching();
 
-  internal::IrGenerator irgen(*_module, *_engine, _globals);
+  internal::IrGenerator irgen(*_module, *_engine, _globals,
+                              _context.get_functions());
   irgen.walk(*_ast);
   irgen.emit_global_functions();
 

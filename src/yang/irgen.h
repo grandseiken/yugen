@@ -1,10 +1,12 @@
 #ifndef YANG__IRGEN_H
 #define YANG__IRGEN_H
 
+#include "../common/function.h"
+#include "native_function.h"
 #include "table.h"
 #include "type.h"
 #include "walker.h"
-#include "../common/function.h"
+
 #include <llvm/IR/IRBuilder.h>
 
 namespace llvm {
@@ -34,8 +36,10 @@ class IrGenerator : public ConstAstWalker<IrGeneratorUnion> {
 public:
 
   typedef y::map<y::string, yang::Type> symbol_frame;
+  typedef y::map<y::string, GenericNativeFunction> context_frame;
+
   IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
-              symbol_frame& globals);
+              symbol_frame& globals, const context_frame& context_functions);
   ~IrGenerator();
 
   // Emit functions for allocating, freeing, reading and writing to instances
@@ -65,6 +69,10 @@ private:
   // Generate trampoline function for converting C calling convention to LLVM
   // calling convention.
   llvm::Function* create_trampoline_function(llvm::FunctionType* function_type);
+  // Generate trampoline function for converting LLVM calling convention to C
+  // calling convention.
+  llvm::Function* create_reverse_trampoline_function(
+      const y::string& name, const GenericNativeFunction& native_function);
 
   // General helper functions.
   llvm::Type* void_type() const;
@@ -135,6 +143,9 @@ private:
   y::map<y::string, y::size> _global_numbering;
   // Type of the global structure.
   llvm::Type* _global_data;
+
+  // Data for the global context.
+  const context_frame& _context_functions;
 
   // Generated trampolines (map from type of function to corresponding
   // trampoline function).

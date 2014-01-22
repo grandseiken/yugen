@@ -43,8 +43,10 @@ IrGeneratorUnion::operator llvm::Value*() const
 }
 
 IrGenerator::IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
-                         symbol_frame& globals)
-  : _module(module)
+                         symbol_frame& globals,
+                         const context_frame& context_functions)
+  : _context_functions(context_functions)
+  , _module(module)
   , _engine(engine)
   , _builder(module.getContext())
   , _symbol_table(y::null)
@@ -75,6 +77,30 @@ IrGenerator::IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
     type_list.push_back(int_type());
   }
   global_struct->setBody(type_list, false);
+
+  // We need to generate a reverse trampoline function for each function in the
+  // Context. Since (in Yang) a function is represented just by a pointer, we
+  // need a trampoline per Context *function* and not per Context function
+  // *type*.
+  //
+  // This is somewhat of a limitation, but maybe not a big one in practice.
+  // Feasibly, we could represent a function value in Yang with *two* pointers:
+  // one to the function itself, and one to the trampoline (which would be null
+  // for trampoline-less functions). This would allow y::functions to be passed
+  // arbitrarily to Yang code.
+  //
+  // We'd then need to extend the trampoline generation rules such that,
+  // transitively:
+  //
+  // - if a function type has some generated trampoline, its return function
+  //   type must have the same kind of trampoline generated
+  // - if a function type has some generated trampoline, each argument function
+  //   type must have the opposite kind of trampoline generated.
+  //
+  // These are the most general trampoline-generation rules.
+  for (const auto& pair : context_functions) {
+    create_reverse_trampoline_function(pair.first, pair.second);
+  }
 }
 
 IrGenerator::~IrGenerator()
@@ -991,6 +1017,12 @@ llvm::Function* IrGenerator::create_trampoline_function(
   b.CreateRetVoid();
   _trampoline_map.emplace(yang_type, function);
   return function;
+}
+
+llvm::Function* IrGenerator::create_reverse_trampoline_function(
+    const y::string& name, const GenericNativeFunction& native_function)
+{
+  // TODO.
 }
 
 llvm::Type* IrGenerator::void_type() const

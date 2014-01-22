@@ -2,6 +2,7 @@
 #define YANG__NATIVE_FUNCTION_H
 
 #include "../common/function.h"
+#include "../common/memory.h"
 #include "type.h"
 
 namespace yang {
