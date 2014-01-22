@@ -8,8 +8,8 @@ namespace y {
 
 const std::nullptr_t null = nullptr;
 
-template<typename T>
-using unique = std::unique_ptr<T>;
+template<typename T, typename D = std::default_delete<T>>
+using unique = std::unique_ptr<T, D>;
 
 using std::forward;
 using std::move;

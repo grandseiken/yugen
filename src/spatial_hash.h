@@ -39,7 +39,7 @@ public:
     iterator(const SpatialHash& hash,
              const coord& min, const coord& max);
 
-    friend class SpatialHash<T, V, N>;
+    friend class SpatialHash;
     friend class boost::iterator_core_access;
 
     void seek_to_next(bool inner);

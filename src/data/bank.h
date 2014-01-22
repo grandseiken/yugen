@@ -107,12 +107,12 @@ public:
   /***/ Dataset<T>& get_set();
 
   // Save resource of a given type.
-  template<typename T>
+  template<typename>
   void save_name(Filesystem& filesystem, const y::string& name) const;
   template<typename T>
   void save(Filesystem& filesystem, const T& t) const;
   // Save all the resources of a certain type.
-  template<typename T>
+  template<typename>
   void save_all(Filesystem& filesystem) const;
 
 private:

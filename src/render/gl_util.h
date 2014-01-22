@@ -133,7 +133,7 @@ private:
 
 };
 
-template<typename T>
+template<typename>
 struct UniqueDelete {};
 template<typename T, y::size N>
 struct UniqueDelete<GlBuffer<T, N>> {

@@ -10,7 +10,7 @@
 #include <GL/glew.h>
 
 #define GL_TYPE(T, V) template<> struct GlType<T> {enum {type_enum = V};}
-template<typename T>
+template<typename>
 struct GlType {};
 GL_TYPE(bool, GL_BOOL);
 GL_TYPE(GLbyte, GL_BYTE);
@@ -30,7 +30,7 @@ GL_TYPE(GLdouble, GL_DOUBLE);
     static void uniform3(GLint l, T a, T b, T c) {F3(l, a, b, c);}\
     static void uniform4(GLint l, T a, T b, T c, T d) {F4(l, a, b, c, d);}\
   }
-template<typename T>
+template<typename>
 struct GlUniform {};
 GL_UNIFORM(bool, glUniform1i, glUniform2i, glUniform3i, glUniform4i);
 GL_UNIFORM(GLint, glUniform1i, glUniform2i, glUniform3i, glUniform4i);
@@ -53,7 +53,7 @@ public:
 protected:
 
   friend class GlUtil;
-  template<typename T>
+  template<typename>
   friend class GlUnique;
   explicit GlHandle(GLuint handle);
 
@@ -64,7 +64,7 @@ private:
 };
 
 // Lightweight handle to an OpenGL buffer.
-template<typename T, y::size N>
+template<typename T, y::size>
 class GlBuffer : public GlHandle {
 public:
 
@@ -117,7 +117,7 @@ private:
 typedef GlTexture<1> GlTexture1D;
 typedef GlTexture<2> GlTexture2D;
 typedef GlTexture<3> GlTexture3D;
-template<y::size N>
+template<y::size>
 struct GlTextureEnum {};
 template<> struct GlTextureEnum<1> {
   enum {dimension_enum = GL_TEXTURE_1D};

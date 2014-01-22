@@ -7,8 +7,8 @@
 
 namespace y {
 
-template<typename T>
-using vector = std::vector<T>;
+template<typename T, typename A = std::allocator<T>>
+using vector = std::vector<T, A>;
 
 template<typename T, typename U = vector<T>>
 void write_vector(vector<T>& dest, size dest_index, const U& source)

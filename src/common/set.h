@@ -5,8 +5,9 @@
 
 namespace y {
 
-  template<typename T, typename H = std::hash<T>>
-  using set = std::unordered_set<T, H>;
+  template<typename T, typename H = std::hash<T>, typename P = std::equal_to<T>,
+           typename A = std::allocator<T>>
+  using set = std::unordered_set<T, H, P, A>;
 
 }
 

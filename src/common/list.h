@@ -5,8 +5,8 @@
 
 namespace y {
 
-  template<typename T>
-  using list = std::list<T>;
+  template<typename T, typename A = std::allocator<T>>
+  using list = std::list<T, A>;
 
 }
 

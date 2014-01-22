@@ -37,9 +37,9 @@ y::int32 main(y::int32 argc, char** argv)
 
   yang::Context context;
   // TODO: test.
-  context.add_function(
-      "foo", y::function<yang::int32(yang::int32)>(
-          [](yang::int32 a){return 2 * a;}));
+  //context.add_function(
+  //    "foo", y::function<yang::int32(yang::int32)>(
+  //        [](yang::int32 a){return 2 * a;}));
   yang::Program program(context, path, contents);
   if (!program.success()) {
     return 1;
@@ -58,18 +58,11 @@ y::int32 main(y::int32 argc, char** argv)
 
   // TODO: test.
   yang::Instance instance(program);
-  log_info("h(7): ", instance.call<yang::int32>("h", 7));
-  instance.set_global(
-      "g",
-      instance.get_function<Fn<y::int32(y::int32)>>("f"));
-  log_info("h(7): ", instance.call<y::int32>("h", 7));
-  typedef Fn<Fn<Fn<y::int32()>()>()> ft;
-  auto q = instance.get_function<ft>("q");
-  log_info("q()()(): ", q()()());
-  auto r = instance.get_function<ft>("r");
-  log_info("r()()(): ", r()()());
-
-  auto p = instance.call<Fn<y::int32(Fn<y::int32()>)>>("p");
-  log_info("p()(q()()): ", p(q()()));
+  typedef Fn<yang::int32(yang::int32)> fn_t;
+  auto h = instance.get_function<fn_t>("h");
+  log_info("h(7): ", h(7));
+  auto f = instance.get_function<fn_t>("f");
+  instance.set_global("g", f);
+  log_info("h(7): ", h(7));
   return 0;
 }

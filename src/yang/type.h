@@ -10,7 +10,7 @@ namespace yang {
 namespace internal {
   class IrGenerator;
   class Type;
-  template<typename T>
+  template<typename>
   struct TypeInfo;
   struct GenericNativeFunction;
 }
@@ -50,7 +50,7 @@ private:
   friend struct std::hash<Type>;
   friend class internal::IrGenerator;
   friend class internal::Type;
-  template<typename T>
+  template<typename>
   friend struct internal::TypeInfo;
   friend struct internal::GenericNativeFunction;
   Type();

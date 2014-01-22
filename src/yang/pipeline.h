@@ -23,7 +23,7 @@ namespace yang {
 
 namespace internal {
   struct Node;
-  template<typename... Args>
+  template<typename...>
   struct InstanceCheck;
 }
 
@@ -121,7 +121,7 @@ public:
 
 private:
 
-  template<typename T>
+  template<typename>
   friend class Function;
 
   y::void_fp get_native_fp(const y::string& name) const;
@@ -164,7 +164,7 @@ namespace internal {
 
 // Check that all Functions given in an argument list match some particular
 // program instance.
-template<typename... Args>
+template<typename...>
 struct InstanceCheck {};
 template<>
 struct InstanceCheck<> {

@@ -25,7 +25,7 @@ template<typename T, y::size N>
 class vec {
 public:
 
-  typedef vec<T, N> V;
+  typedef vec V;
   T elements[N];
 
   // Constructors.
@@ -36,7 +36,7 @@ public:
   }
 
   template<typename... U,
-           typename y::enable_if<N == sizeof...(U), bool>::type = 0>
+           typename = y::enable_if<N == sizeof...(U)>>
   vec(U... args)
     : elements{args...}
   {
@@ -47,12 +47,7 @@ public:
   {
   }
 
-  vec(const V& arg)
-    : elements{}
-  {
-    operator=(arg);
-  }
-
+  vec(const V& arg) noexcept = default;
   vec(V&& arg) noexcept = default;
 
   template<typename U>
@@ -66,14 +61,7 @@ public:
 
   // Assignment.
 
-  V& operator=(const V& arg)
-  {
-    for (y::size i = 0; i < N; ++i) {
-      elements[i] = arg.elements[i];
-    }
-    return *this;
-  }
-
+  V& operator=(const V& arg) noexcept = default;
   V& operator=(V&& arg) noexcept = default;
 
   // Indexing.
@@ -88,14 +76,14 @@ public:
     return elements[i];
   }
 
-  template<y::size M, typename y::enable_if<(N > M), bool>::type = 0>
+  template<y::size M, typename = y::enable_if<(N > M)>>
   T& operator[](const element_accessor<M>& e)
   {
     (void)e;
     return elements[M];
   }
 
-  template<y::size M, typename y::enable_if<(N > M), bool>::type = 0>
+  template<y::size M, typename = y::enable_if<(N > M)>>
   const T& operator[](const element_accessor<M>& e) const
   {
     (void)e;
@@ -290,8 +278,8 @@ public:
 
   template<
       typename U = T,
-      typename y::enable_if<N == 2 &&
-                            y::is_same<T, U>::value, bool>::type = 0>
+      typename = y::enable_if<N == 2 &&
+                              y::is_same<T, U>::value>>
   T cross(const V& arg) const
   {
     return elements[0] * arg[1] - arg[0] * elements[1];
@@ -299,8 +287,8 @@ public:
 
   template<
       typename U = T,
-      typename y::enable_if<N == 3 &&
-                            y::is_same<T, U>::value, bool>::type = 0>
+      typename = y::enable_if<N == 3 &&
+                              y::is_same<T, U>::value>>
   V cross(const V& arg) const
   {
     return V(elements[1] * arg[2] - elements[2] * arg[1],
@@ -312,8 +300,8 @@ public:
 
   template<
       typename U = T,
-      typename y::enable_if<N == 2 &&
-                            y::is_same<T, U>::value, bool>::type = 0>
+      typename = y::enable_if<N == 2 &&
+                              y::is_same<T, U>::value>>
   V rotate(T angle) const
   {
     const V row_0(cos(angle), -sin(angle));
@@ -323,8 +311,8 @@ public:
 
   template<
       typename U = T,
-      typename y::enable_if<N == 2 &&
-                            y::is_same<T, U>::value, bool>::type = 0>
+      typename = y::enable_if<N == 2 &&
+                              y::is_same<T, U>::value>>
   auto angle() const -> decltype(atan(T()))
   {
     if (!elements[0] && !elements[1]) {
@@ -343,8 +331,8 @@ public:
 
   template<
       typename U = T,
-      typename y::enable_if<N == 2 &&
-                            y::is_same<T, U>::value, bool>::type = 0>
+      typename = y::enable_if<N == 2 &&
+                              y::is_same<T, U>::value>>
   static V from_angle(T angle)
   {
     return V{T(cos(angle)), T(sin(angle))};
@@ -354,7 +342,7 @@ public:
 
   V euclidean_div(const V& arg) const
   {
-    vec<T, N> v;
+    V v;
     for (y::size i = 0; i < N; ++i) {
       v[i] = y::euclidean_div(elements[i], arg[i]);
     }
@@ -363,7 +351,7 @@ public:
 
   V euclidean_mod(const V& arg) const
   {
-    vec<T, N> v;
+    V v;
     for (y::size i = 0; i < N; ++i) {
       v[i] = y::euclidean_mod(elements[i], arg[i]);
     }
@@ -372,7 +360,7 @@ public:
 
   V euclidean_div(const T& arg) const
   {
-    vec<T, N> v;
+    V v;
     for (y::size i = 0; i < N; ++i) {
       v[i] = y::euclidean_div(elements[i], arg);
     }
@@ -381,7 +369,7 @@ public:
 
   V euclidean_mod(const T& arg) const
   {
-    vec<T, N> v;
+    V v;
     for (y::size i = 0; i < N; ++i) {
       v[i] = y::euclidean_mod(elements[i], arg);
     }

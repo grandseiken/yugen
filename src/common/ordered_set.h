@@ -5,8 +5,9 @@
 
 namespace y {
 
-  template<typename T, typename L = std::less<T>>
-  using ordered_set = std::set<T, L>;
+  template<typename T, typename L = std::less<T>,
+           typename A = std::allocator<T>>
+  using ordered_set = std::set<T, L, A>;
 
 }
 

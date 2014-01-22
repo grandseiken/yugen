@@ -7,7 +7,7 @@
 namespace yang {
 namespace internal {
 
-template<bool Const>
+template<bool>
 struct AstWalkerNodeType {};
 template<>
 struct AstWalkerNodeType<false> {

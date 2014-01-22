@@ -8,8 +8,8 @@ namespace y {
 
   typedef boost::noncopyable no_copy;
 
-  template<bool B, typename T>
-  using enable_if = std::enable_if<B, T>;
+  template<bool B, typename T = void>
+  using enable_if = typename std::enable_if<B, T>::type;
   template<typename T, typename U>
   using is_same = std::is_same<T, U>;
 

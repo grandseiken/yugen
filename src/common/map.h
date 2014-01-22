@@ -6,8 +6,9 @@
 
 namespace y {
 
-  template<typename T, typename U, typename H = std::hash<T>>
-  using map = std::unordered_map<T, U, H>;
+  template<typename T, typename U, typename H = std::hash<T>,
+           typename P = std::equal_to<T>, typename A = std::allocator<T>>
+  using map = std::unordered_map<T, U, H, P, A>;
 
 }
 

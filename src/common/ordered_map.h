@@ -6,8 +6,9 @@
 
 namespace y {
 
-  template<typename T, typename U, typename L = std::less<T>>
-  using ordered_map = std::map<T, U, L>;
+  template<typename T, typename U, typename L = std::less<T>,
+           typename A = std::allocator<T>>
+  using ordered_map = std::map<T, U, L, A>;
 
 }
 

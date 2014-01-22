@@ -64,7 +64,6 @@ inline world angle_distance(world a, world b)
   return b > a ? min(b - a, 2 * pi + a - b) : min(a - b, 2 * pi + b - a);
 }
 
-
 // End namespace y.
 }
 

@@ -10,9 +10,9 @@ namespace y {
   typedef std::ostream ostream;
   typedef std::istream istream;
 
-  static decltype(std::cout)& cout = std::cout;
-  static decltype(std::cerr)& cerr = std::cerr;
-  static decltype(std::cin)& cin = std::cin;
+  static auto& cout = std::cout;
+  static auto& cerr = std::cerr;
+  static auto& cin = std::cin;
 
   using std::endl;
   using std::setfill;

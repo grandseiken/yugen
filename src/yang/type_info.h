@@ -10,26 +10,26 @@ namespace yang {
 
 class Instance;
 namespace internal {
-  template<typename T>
+  template<typename>
   struct TypeInfo;
-  template<typename T>
+  template<typename>
   struct ValueConstruct;
 
-  template<typename... Args>
+  template<typename...>
   struct TrampolineCallArgs;
-  template<typename R, typename... Args>
+  template<typename, typename...>
   struct TrampolineCallReturn;
-  template<typename R, typename... Args>
+  template<typename, typename...>
   struct TrampolineCall;
 }
 
 typedef y::int32 int32;
 typedef y::world world;
-template<typename T, y::size N, typename y::enable_if<(N > 1), bool>::type = 0>
+template<typename T, y::size N, typename = y::enable_if<(N > 1)>>
 using vec = y::vec<T, N>;
-template<y::size N, typename y::enable_if<(N > 1), bool>::type = 0>
+template<y::size N, typename = y::enable_if<(N > 1)>>
 using int32_vec = y::vec<int32, N>;
-template<y::size N, typename y::enable_if<(N > 1), bool>::type = 0>
+template<y::size N, typename = y::enable_if<(N > 1)>>
 using world_vec = y::vec<world, N>;
 
 // Opaque Yang function object.
@@ -56,16 +56,16 @@ public:
 
 private:
 
-  template<typename... CArgs>
+  template<typename...>
   friend class internal::TrampolineCallArgs;
-  template<typename CR, typename... CArgs>
+  template<typename, typename...>
   friend class internal::TrampolineCallReturn;
-  template<typename CR, typename... CArgs>
+  template<typename, typename...>
   friend class internal::TrampolineCall;
 
-  template<typename T>
+  template<typename>
   friend class internal::ValueConstruct;
-  template<typename T>
+  template<typename>
   friend class Function;
   friend class Instance;
 
@@ -105,8 +105,9 @@ struct TypeInfo {
 
   yang::Type operator()() const
   {
-    yang::Type t;
-    return t;
+    // This function exists to avoid extra unnecessary error messages (beyond
+    // static assert above).
+    return {};
   }
 };
 
@@ -114,8 +115,7 @@ template<>
 struct TypeInfo<void> {
   yang::Type operator()() const
   {
-    yang::Type t;
-    return t;
+    return {};
   }
 };
 
@@ -343,7 +343,7 @@ struct TrampolineType {
 // Function call instrumentation for converting native types to the Yang calling
 // convention for trampoline functions. TrampolineCallArgs unpacks the argument
 // list; TrampolineCallReturn unpacks the return value.
-template<typename... Args>
+template<typename...>
 struct TrampolineCallArgs {};
 
 // TrampolineCallArgs base case.

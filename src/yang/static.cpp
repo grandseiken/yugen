@@ -211,7 +211,8 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       // Otherwise, the symbol already exists by the immediate-name-assign
       // recursion hack.
       const Type& t = _symbol_table.get(node.string_value, 0);
-      if (!t.is_error()) {
+      // Only export functions get added to the function table.
+      if (!t.is_error() && node.int_value) {
         _functions_output.emplace(node.string_value, t.external(true));
       }
       _current_function = "";
