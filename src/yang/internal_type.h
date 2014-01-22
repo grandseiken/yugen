@@ -20,6 +20,7 @@ public:
   // - the type-conversions and global data-structure calculation in irgen.cpp;
   // - the trampoline function generation, also in irgen.cpp;
   // - the trampoline function call templates in type_info.h;
+  // - the external to internal conversion functions in this file;
   // - all the other obvious places. There are definitely a lot.
   enum type_base {
     ERROR,

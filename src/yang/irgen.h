@@ -73,6 +73,9 @@ private:
   // calling convention.
   llvm::Function* create_reverse_trampoline_function(
       const y::string& name, const GenericNativeFunction& native_function);
+  // Get the trampoline type used either way.
+  llvm::FunctionType* get_trampoline_type(
+      llvm::FunctionType* function_type, bool reverse) const;
 
   // General helper functions.
   llvm::Type* void_type() const;
@@ -109,7 +112,9 @@ private:
       bool to_bool = false, bool with_ands = false, bool right_assoc = false);
 
   // Convert back and forth between equivalent Yang and LLVM types.
-  llvm::Type* get_llvm_type(const yang::Type& t) const;
+  // bare_functions = false wraps functions in pointers for passing around.
+  llvm::Type* get_llvm_type(const yang::Type& t,
+                            bool bare_functions = false) const;
   yang::Type get_yang_type(llvm::Type* t) const;
 
   // Metadata symbols.

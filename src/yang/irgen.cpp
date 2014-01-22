@@ -86,8 +86,8 @@ IrGenerator::IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
   // This is somewhat of a limitation, but maybe not a big one in practice.
   // Feasibly, we could represent a function value in Yang with *two* pointers:
   // one to the function itself, and one to the trampoline (which would be null
-  // for trampoline-less functions). This would allow y::functions to be passed
-  // arbitrarily to Yang code.
+  // for trampoline-less Yang functions). This would allow y::functions to be
+  // passed arbitrarily to Yang code.
   //
   // We'd then need to extend the trampoline generation rules such that,
   // transitively:
@@ -928,44 +928,22 @@ llvm::Function* IrGenerator::create_trampoline_function(
   // definitely going to work. Essentially, we unpack vectors into individual
   // values, and convert return values to pointer arguments; the trampoline
   // takes the actual function to be called as the final argument.
-  y::vector<llvm::Type*> args;
-  auto add_type = [&](llvm::Type* t, bool to_ptr)
-  {
-    if (!t->isVectorTy()) {
-      args.push_back(to_ptr ? llvm::PointerType::get(t, 0) : t);
-      return;
-    }
-    for (y::size i = 0; i < t->getVectorNumElements(); ++i) {
-      auto elem = t->getVectorElementType();
-      args.push_back(to_ptr ? llvm::PointerType::get(elem, 0) : elem);
-    }
-  };
-
   auto return_type = function_type->getReturnType();
   y::size return_args =
       return_type->isVoidTy() ? 0 :
       return_type->isVectorTy() ? return_type->getVectorNumElements() : 1;
+
   // Handle the transitive closure.
   if (get_yang_type(return_type).is_function()) {
     create_trampoline_function(
         (llvm::FunctionType*)(return_type->getPointerElementType()));
   }
-
-  // Construct the type of the trampoline function.
-  if (!return_type->isVoidTy()) {
-    add_type(return_type, true);
-  }
-  for (auto it = function_type->param_begin();
-       it != function_type->param_end(); ++it) {
-    add_type(*it, false);
-  }
-  args.push_back(llvm::PointerType::get(function_type, 0));
-  auto ext_function_type = llvm::FunctionType::get(void_type(), args, false);
+  auto ext_function_type = get_trampoline_type(function_type, false);
 
   // Generate the function code.
   auto function = llvm::Function::Create(
       ext_function_type, llvm::Function::ExternalLinkage,
-      "trampoline", &_module);
+      "!trampoline", &_module);
   auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
   b.SetInsertPoint(block);
 
@@ -1022,7 +1000,60 @@ llvm::Function* IrGenerator::create_trampoline_function(
 llvm::Function* IrGenerator::create_reverse_trampoline_function(
     const y::string& name, const GenericNativeFunction& native_function)
 {
+  // Careful! Reverse trampolines aren't uniqued. See comment in
+  // IrGenerator constructor.
+  auto& b = _builder;
+
+  // Keep the function type bare so that we can create it.
+  auto internal_type =
+      (llvm::FunctionType*)get_llvm_type(native_function.type, true);
+  auto function = llvm::Function::Create(
+      internal_type, llvm::Function::InternalLinkage,
+      "!reverse_trampoline_" + name, &_module);
+  auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
+  b.SetInsertPoint(block);
+
+  auto external_type = get_trampoline_type(internal_type, true);
+  (void)external_type;
   // TODO.
+  return function;
+}
+
+llvm::FunctionType* IrGenerator::get_trampoline_type(
+    llvm::FunctionType* function_type, bool reverse) const
+{
+  y::vector<llvm::Type*> args;
+  auto add_type = [&](llvm::Type* t, bool to_ptr)
+  {
+    if (!t->isVectorTy()) {
+      args.push_back(to_ptr ? llvm::PointerType::get(t, 0) : t);
+      return;
+    }
+    for (y::size i = 0; i < t->getVectorNumElements(); ++i) {
+      auto elem = t->getVectorElementType();
+      args.push_back(to_ptr ? llvm::PointerType::get(elem, 0) : elem);
+    }
+  };
+
+  auto return_type = function_type->getReturnType();
+  if (!return_type->isVoidTy()) {
+    add_type(return_type, true);
+  }
+  for (auto it = function_type->param_begin();
+       it != function_type->param_end(); ++it) {
+    add_type(*it, false);
+  }
+
+  if (reverse) {
+    // Argument is pointer to C++ function, we can't represent it in LLVM.
+    args.push_back(llvm::PointerType::get(
+        llvm::FunctionType::get(void_type(), false), 0));
+  }
+  else {
+    // Argument is pointer to Yang code function.
+    args.push_back(llvm::PointerType::get(function_type, 0));
+  }
+  return llvm::FunctionType::get(void_type(), args, false);
 }
 
 llvm::Type* IrGenerator::void_type() const
@@ -1305,7 +1336,8 @@ llvm::Value* IrGenerator::fold(
   return v;
 }
 
-llvm::Type* IrGenerator::get_llvm_type(const yang::Type& t) const
+llvm::Type* IrGenerator::get_llvm_type(
+    const yang::Type& t, bool bare_functions) const
 {
   if (t.is_function()) {
     y::vector<llvm::Type*> args;
@@ -1313,9 +1345,13 @@ llvm::Type* IrGenerator::get_llvm_type(const yang::Type& t) const
     for (y::size i = 0; i < t.get_function_num_args(); ++i) {
       args.push_back(get_llvm_type(t.get_function_arg_type(i)));
     }
-    return llvm::PointerType::get(
-        llvm::FunctionType::get(
-            get_llvm_type(t.get_function_return_type()), args, false), 0);
+
+    auto f = llvm::FunctionType::get(
+        get_llvm_type(t.get_function_return_type()), args, false);
+    if (!bare_functions) {
+      return llvm::PointerType::get(f, 0);
+    }
+    return f;
   }
   if (t.is_int()) {
     return int_type();
