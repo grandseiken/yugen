@@ -76,6 +76,7 @@ private:
   // Get the trampoline type used either way.
   llvm::FunctionType* get_trampoline_type(
       llvm::FunctionType* function_type, bool reverse) const;
+  y::size get_trampoline_num_return_args(llvm::Type* return_type) const;
 
   // General helper functions.
   llvm::Type* void_type() const;

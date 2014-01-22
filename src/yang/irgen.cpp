@@ -929,10 +929,6 @@ llvm::Function* IrGenerator::create_trampoline_function(
   // values, and convert return values to pointer arguments; the trampoline
   // takes the actual function to be called as the final argument.
   auto return_type = function_type->getReturnType();
-  y::size return_args =
-      return_type->isVoidTy() ? 0 :
-      return_type->isVectorTy() ? return_type->getVectorNumElements() : 1;
-
   // Handle the transitive closure.
   if (get_yang_type(return_type).is_function()) {
     create_trampoline_function(
@@ -953,7 +949,7 @@ llvm::Function* IrGenerator::create_trampoline_function(
 
   // Translate trampoline arguments to an LLVM-internal argument list.
   auto jt = function->arg_begin();
-  for (y::size i = 0; i < return_args; ++i) {
+  for (y::size i = 0; i < get_trampoline_num_return_args(return_type); ++i) {
     jt->setName("r" + y::to_string(i));
     ++jt;
   }
@@ -1054,6 +1050,14 @@ llvm::FunctionType* IrGenerator::get_trampoline_type(
     args.push_back(llvm::PointerType::get(function_type, 0));
   }
   return llvm::FunctionType::get(void_type(), args, false);
+}
+
+y::size IrGenerator::get_trampoline_num_return_args(
+    llvm::Type* return_type) const
+{
+  return
+      return_type->isVoidTy() ? 0 :
+      return_type->isVectorTy() ? return_type->getVectorNumElements() : 1;
 }
 
 llvm::Type* IrGenerator::void_type() const
