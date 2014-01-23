@@ -245,6 +245,17 @@ struct ValueConstruct<Function<R(Args...)>> {
 // difficult.
 template<typename... T>
 using List = y::tuple<T...>;
+// Some function metadata.
+template<typename R, typename... Args>
+struct Functions {
+  typedef R (*fp_type)(Args...);
+  typedef y::function<R(Args...)> f_type;
+};
+template<typename R, typename... Args>
+struct Functions<R, List<Args...>> {
+  typedef typename Functions<R, Args...>::fp_type fp_type;
+  typedef typename Functions<R, Args...>::f_type f_type;
+};
 
 // Integer pack range.
 template<y::size... N>
@@ -258,55 +269,14 @@ struct IndexRange<Min, 0, N...> {
   typedef Indices<N...> type;
 };
 
-// Standard bind function requires explicit placeholders for all elements, which
-// makes it unusable in the variadic setting. We only need to bind one argument
-// at a time.
-template<typename R, typename... Args, typename... Brgs, y::size... N>
-y::function<R(Brgs...)> bind_first_helper(
-    const y::function<R(Args..., Brgs...)>& function, const Args&... args,
-    Indices<N...>&)
-{
-  // Work around bug in GCC/C++ standard: ambiguous whether argument packs can
-  // be captured.
-  List<Args...> args_tuple(args...);
-  // Close by value so the function object is copied! Otherwise it can cause an
-  // infinite loop. I don't fully understand why; is the function object being
-  // mutated later somehow? We also need to copy the argument, as it may be a
-  // temporary that won't last (particularly for return value pointers).
-  return [=](const Brgs&... brgs)
-  {
-    return function(y::get<N>(args_tuple)..., brgs...);
-  };
-};
-template<typename R, typename... Args, typename... Brgs>
-y::function<R(Brgs...)> bind_first_helper(
-    const y::function<R(Args..., Brgs...)>& function, const Args&... args)
-{
-  return bind_first_helper(
-      function, args..., typename IndexRange<0, sizeof...(Args)>::type());
-}
-
 // Join two lists.
 template<typename T, typename U>
 struct Join {};
 template<typename... T, typename... U>
 struct Join<List<T...>, List<U...>> {
   typedef List<T..., U...> type;
-
-  template<y::size... N, y::size... M>
-  type helper(const List<T...>& t, const List<U...>& u,
-              const Indices<N...>&, const Indices<M...>&) const
-  {
-    return type(y::get<N>(t)..., y::get<M>(u)...);
-  }
-
-  type operator()(const List<T...>& t, const List<U...>& u) const
-  {
-    return helper(t, u,
-                  typename IndexRange<0, sizeof...(T)>::type(),
-                  typename IndexRange<0, sizeof...(U)>::type());
-  }
 };
+
 // Get a sublist from a list.
 template<typename, typename>
 struct Sublist {};
@@ -320,19 +290,55 @@ struct Sublist<Indices<N...>, List<T...>> {
   }
 };
 
+// Standard bind function requires explicit placeholders for all elements, which
+// makes it unusable in the variadic setting. We only need to bind one argument
+// at a time.
+template<typename, typename, typename>
+struct BindFirstHelperInternal {};
+template<typename R, typename... Args, typename... Brgs>
+struct BindFirstHelperInternal<R, List<Args...>, List<Brgs...>> {
+  template<y::size... N>
+  y::function<R(Brgs...)> operator()(
+      const y::function<R(Args..., Brgs...)>& function,
+      const Args&... args, const Indices<N...>&) const
+  {
+    // Work around bug in GCC/C++ standard: ambiguous whether argument packs can
+    // be captured.
+    List<Args...> args_tuple(args...);
+    // Close by value so the function object is copied! Otherwise it can cause an
+    // infinite loop. I don't fully understand why; is the function object being
+    // mutated later somehow? We also need to copy the argument, as it may be a
+    // temporary that won't last (particularly for return value pointers).
+    return [=](const Brgs&... brgs)
+    {
+      return function(y::get<N>(args_tuple)..., brgs...);
+    };
+  }
+};
+// Wrapper stuff to make deducing template arguments at all possible.
+template<typename>
+struct BindFirstHelper {};
+template<typename R, typename... Args>
+struct BindFirstHelper<R(Args...)> {
+  template<typename... Brgs>
+  y::function<R(Brgs...)> operator()(
+      const y::function<R(Args..., Brgs...)> function,
+      const Args&... args) const
+  {
+    return BindFirstHelperInternal<R, List<Args...>, List<Brgs...>>()(
+        function, args..., typename IndexRange<0, sizeof...(Args)>::type());
+  }
+};
+template<typename R, typename... Brgs, typename... Args>
+auto bind_first(const y::function<R(Brgs...)>& function, const Args&... args)
+  -> decltype(BindFirstHelper<R(Args...)>()(function, args...))
+{
+  return BindFirstHelper<R(Args...)>()(function, args...);
+}
+
+
 // Templates for converting native function types into the corresponding
 // Yang trampoline function types.
-template<typename... Args>
-struct Functions {
-  typedef void (*fp_type)(Args...);
-  typedef y::function<void(Args...)> f_type;
-};
-template<typename... Args>
-struct Functions<List<Args...>> {
-  typedef typename Functions<Args...>::fp_type fp_type;
-  typedef typename Functions<Args...>::f_type f_type;
-};
-
 template<typename R>
 struct TrampolineReturn {
   typedef List<R*> type;
@@ -387,8 +393,8 @@ struct TrampolineType {
   typedef typename Join<
       typename TrampolineReturn<R>::type,
       typename TrampolineArgs<Args...>::type>::type type;
-  typedef typename Functions<type>::fp_type fp_type;
-  typedef typename Functions<type>::f_type f_type;
+  typedef typename Functions<void, type>::fp_type fp_type;
+  typedef typename Functions<void, type>::f_type f_type;
 };
 
 // Function call instrumentation for converting native types to the Yang calling
