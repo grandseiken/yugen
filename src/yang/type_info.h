@@ -239,22 +239,12 @@ struct ValueConstruct<Function<R(Args...)>> {
   }
 };
 
-// Standard bind function requires explicit placeholders for all elements, which
-// makes it unusable in the variadic setting. We only need to bind one argument
-// at a time.
-template<typename R, typename A, typename... Args>
-y::function<R(Args...)> bind_first(
-    const y::function<R(A, Args...)>& function, const A& arg)
-{
-  // Close by value so the function object is copied! Otherwise it can cause an
-  // infinite loop. I don't fully understand why; is the function object being
-  // mutated later somehow? We also need to copy the argument, as it may be a
-  // temporary that won't last (particularly for return value pointers).
-  return [function, arg](const Args&... args)
-  {
-    return function(arg, args...);
-  };
-}
+// Boost's metaprogramming list implementation fakes variadic templates for
+// C++03 compatibility. This makes extracting the type-list directly as a
+// comma-separated type list for constructing e.g. function pointer types
+// difficult.
+template<typename... T>
+using List = y::tuple<T...>;
 
 // Integer pack range.
 template<y::size... N>
@@ -268,12 +258,34 @@ struct IndexRange<Min, 0, N...> {
   typedef Indices<N...> type;
 };
 
-// Boost's metaprogramming list implementation fakes variadic templates for
-// C++03 compatibility. This makes extracting the type-list directly as a
-// comma-separated type list for constructing e.g. function pointer types
-// difficult.
-template<typename... T>
-using List = y::tuple<T...>;
+// Standard bind function requires explicit placeholders for all elements, which
+// makes it unusable in the variadic setting. We only need to bind one argument
+// at a time.
+template<typename R, typename... Args, typename... Brgs, y::size... N>
+y::function<R(Brgs...)> bind_first_helper(
+    const y::function<R(Args..., Brgs...)>& function, const Args&... args,
+    Indices<N...>&)
+{
+  // Work around bug in GCC/C++ standard: ambiguous whether argument packs can
+  // be captured.
+  List<Args...> args_tuple(args...);
+  // Close by value so the function object is copied! Otherwise it can cause an
+  // infinite loop. I don't fully understand why; is the function object being
+  // mutated later somehow? We also need to copy the argument, as it may be a
+  // temporary that won't last (particularly for return value pointers).
+  return [=](const Brgs&... brgs)
+  {
+    return function(y::get<N>(args_tuple)..., brgs...);
+  };
+};
+template<typename R, typename... Args, typename... Brgs>
+y::function<R(Brgs...)> bind_first_helper(
+    const y::function<R(Args..., Brgs...)>& function, const Args&... args)
+{
+  return bind_first_helper(
+      function, args..., typename IndexRange<0, sizeof...(Args)>::type());
+}
+
 // Join two lists.
 template<typename T, typename U>
 struct Join {};
@@ -291,24 +303,21 @@ struct Join<List<T...>, List<U...>> {
   type operator()(const List<T...>& t, const List<U...>& u) const
   {
     return helper(t, u,
-                  IndexRange<0, sizeof...(T)>::type(),
-                  IndexRange<0, sizeof...(U)>::type());
+                  typename IndexRange<0, sizeof...(T)>::type(),
+                  typename IndexRange<0, sizeof...(U)>::type());
   }
 };
 // Get a sublist from a list.
-template<typename, y::size, y::size, typename...>
+template<typename, typename>
 struct Sublist {};
-template<typename T, typename... U, y::size Min, y::size N>
-struct Sublist<List<T, U...>, Min, N> {
-  typedef typename Sublist<List<U...>, Min - 1, N>::type type;  
-};
-template<typename T, typename... U, y::size N, typename... R>
-struct Sublist<List<T, U...>, 0, N, R...> {
-  typedef typename Sublist<List<U...>, 0, N - 1, R..., T>::type type;
-};
-template<typename... T, typename... R>
-struct Sublist<List<T...>, 0, 0, R...> {
-  typedef List<R...> type;
+template<y::size... N, typename... T>
+struct Sublist<Indices<N...>, List<T...>> {
+  typedef List<typename y::tuple_elem<N, List<T...>>::type...> type;
+
+  type operator()(const List<T...>& t) const
+  {
+    return type(y::get<N>(t)...);
+  }
 };
 
 // Templates for converting native function types into the corresponding
@@ -407,46 +416,28 @@ struct TrampolineCallArgs<A, Args...> {
   void operator()(
       const f_type& function, const A& arg, const Args&... args) const
   {
-    typedef TrampolineCallArgs<Args...> next_type;
-    next_type()(bind_first(function, arg), args...);
+    TrampolineCallArgs<Args...>()(bind_first(function, arg), args...);
   }
 };
 
 // TrampolineCallArgs unpacking of a vector.
 template<typename T, y::size N, typename... Args>
-struct TrampolineCallVecArgs {
-  typedef typename TrampolineType<void, vec<T, N>, Args...>::f_type f_type;
-  typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
-
-  template<y::size M, typename = y::enable_if<(M >= N)>>
-  bound_f_type operator()(const f_type& function, const vec<T, M>& arg) const
-  {
-    typedef TrampolineCallVecArgs<T, N - 1, T, Args...> first;
-    auto f = first()(function, arg);
-    return bind_first(f, arg[N - 1]);
-  }
-};
-template<typename T, typename... Args>
-struct TrampolineCallVecArgs<T, 2, Args...> {
-  typedef typename TrampolineType<void, vec<T, 2>, Args...>::f_type f_type;
-  typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
-
-  template<y::size M, typename = y::enable_if<(M >= 2)>>
-  bound_f_type operator()(const f_type& function, const vec<T, M>& arg) const
-  {
-    return bind_first(bind_first(function, arg[0]), arg[1]);
-  }
-};
-template<typename T, y::size N, typename... Args>
 struct TrampolineCallArgs<vec<T, N>, Args...> {
   typedef typename TrampolineType<void, vec<T, N>, Args...>::f_type f_type;
+  typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
+
+  template<y::size... M>
+  bound_f_type helper(
+      const f_type& function, const vec<T, N>& arg, const Indices<M...>&) const
+  {
+    return bind_first(function, arg[M]...);
+  }                
 
   void operator()(
       const f_type& function, const vec<T, N>& arg, const Args&... args) const
   {
-    typedef TrampolineCallVecArgs<T, N, Args...> args_type;
-    typedef TrampolineCallArgs<Args...> next_type;
-    next_type()(args_type()(function, arg), args...);
+    auto f = helper(function, arg, typename IndexRange<0, N>::type());
+    TrampolineCallArgs<Args...>()(f, args...);
   }
 };
 
@@ -460,8 +451,7 @@ struct TrampolineCallArgs<Function<R(Args...)>, Brgs...> {
       const f_type& function, const Function<R(Args...)>& arg,
       const Brgs&... args) const
   {
-    typedef TrampolineCallArgs<Brgs...> next_type;
-    next_type()(bind_first(function, arg._function), args...);
+    TrampolineCallArgs<Brgs...>()(bind_first(function, arg._function), args...);
   }
 };
 
@@ -485,8 +475,7 @@ struct TrampolineCallVecReturn {
 
   bound_f_type operator()(const f_type& function, T* result) const
   {
-    typedef TrampolineCallVecReturn<T, N - 1, T*, Args...> first;
-    auto f = first()(function, result);
+    auto f = TrampolineCallVecReturn<T, N - 1, T*, Args...>()(function, result);
     return bind_first(f, (N - 1) + result);
   }
 };
@@ -507,8 +496,7 @@ struct TrampolineCallReturn<vec<T, N>, Args...> {
 
   bound_f_type operator()(const f_type& function, vec<T, N>& result) const
   {
-    typedef TrampolineCallVecReturn<T, N, Args...> return_type;
-    return return_type()(function, result.elements);
+    return TrampolineCallVecReturn<T, N, Args...>()(function, result.elements);
   }
 };
 

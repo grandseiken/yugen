@@ -37,9 +37,9 @@ y::int32 main(y::int32 argc, char** argv)
 
   yang::Context context;
   // TODO: test.
-  context.add_function(
-      "foo", y::function<yang::int32(yang::int32)>(
-          [](yang::int32 a){return 2 * a;}));
+  //context.add_function(
+  //    "foo", y::function<yang::int32(yang::int32)>(
+  //        [](yang::int32 a){return 2 * a;}));
   yang::Program program(context, path, contents);
   if (!program.success()) {
     return 1;
@@ -64,5 +64,6 @@ y::int32 main(y::int32 argc, char** argv)
   auto f = instance.get_function<fn_t>("f");
   instance.set_global("g", f);
   log_info("h(7): ", h(7));
+  log_info("foo((2, 3)): ", instance.call<yang::int32_vec<2>>("foo", yang::int32_vec<2>(2, 3)));
   return 0;
 }
