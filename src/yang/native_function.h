@@ -15,7 +15,6 @@ class NativeFunction {
                 "incorrect native function type argument used");
 };
 
-// TODO: this is almost certainly uselessly-designed.
 template<>
 class NativeFunction<void> {
 public:
@@ -39,6 +38,7 @@ struct GenericNativeFunction {
 
   yang::Type type;
   y::unique<NativeFunction<void>> ptr;
+  y::void_fp trampoline_ptr;
 };
 
 template<typename R, typename... Args>

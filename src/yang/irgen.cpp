@@ -1009,9 +1009,11 @@ llvm::Function* IrGenerator::create_reverse_trampoline_function(
   auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
   b.SetInsertPoint(block);
 
+  auto it = function->arg_begin();
+  // TODO.
+
   auto external_type = get_trampoline_type(internal_type, true);
   (void)external_type;
-  // TODO.
   return function;
 }
 

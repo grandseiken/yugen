@@ -158,6 +158,11 @@ void Context::add_function(
   internal::GenericNativeFunction& symbol = _functions[name];
   symbol.type = info();
   symbol.ptr = y::move_unique(new internal::NativeFunction<R(Args...)>(f));
+
+  symbol.trampoline_ptr = (y::void_fp)&internal::ReverseTrampolineCall<
+      R(Args...),
+      typename internal::TrampolineReturn<R>::type,
+      typename internal::TrampolineArgs<Args...>::type>::call;
 }
 
 namespace internal {
