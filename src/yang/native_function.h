@@ -51,7 +51,7 @@ public:
 
 private:
 
-  friend GenericNativeFunction;
+  friend NativeFunction<void>;
   function_type _function;
 
 };
@@ -65,7 +65,7 @@ NativeFunction<R(Args...)>::NativeFunction(const function_type& function)
 template<typename R, typename... Args>
 const y::function<R(Args...)>& NativeFunction<void>::get() const
 {
-  return ((NativeFunction<R(Args...)>)this)->_function;
+  return ((NativeFunction<R(Args...)>*)this)->_function;
 }
 
 // End namespace yang::internal.

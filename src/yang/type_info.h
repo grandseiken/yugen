@@ -4,6 +4,7 @@
 #include "../common/function.h"
 #include "../common/math.h"
 #include "../vector.h"
+#include "native_function.h"
 #include "type.h"
 
 namespace yang {
@@ -22,6 +23,8 @@ namespace internal {
   template<typename, typename...>
   struct TrampolineCall;
 
+  template<typename, typename, typename>
+  struct ReverseTrampolineCallArgs;
   template<typename, typename...>
   struct ReverseTrampolineCallReturn;
 }
@@ -66,7 +69,9 @@ private:
   template<typename, typename...>
   friend struct internal::TrampolineCall;
 
-  template<typename, typename>
+  template<typename, typename, typename>
+  friend struct ReverseTrampolineCallArgs;
+  template<typename, typename...>
   friend struct ReverseTrampolineCallReturn;
 
   template<typename>
@@ -257,7 +262,7 @@ y::function<R(Args...)> bind_first(
 // difficult.
 //
 // This is a real variadic type list supporting the functionality we need.
-template<typename... T>
+template<typename...>
 struct List {};
 template<typename T, typename U>
 struct Join {
@@ -274,6 +279,16 @@ struct Join<List<T...>, U> {
 template<typename... T, typename... U>
 struct Join<List<T...>, List<U...>> {
   typedef List<T..., U...> type;
+};
+template<typename, y::size>
+struct Remove {};
+template<typename... T>
+struct Remove<List<T...>, 0> {
+  typedef List<T...> type;
+};
+template<typename T, typename... U, y::size N>
+struct Remove<List<T, U...>, N> {
+  typedef typename Remove<List<U...>, N - 1>::type type;
 };
 
 // Templates for converting native function types into the corresponding
@@ -529,6 +544,53 @@ struct TrampolineCall<void, Args...> {
 // Function call instrumentation for reverse trampoline conversion to native
 // calling convention. ReverseTrampolineCallArgs corresponds to
 // TrampolineCallArgs, and so on.
+template<typename, typename, typename>
+struct ReverseTrampolineCallArgs {};
+template<typename R>
+struct ReverseTrampolineCallArgs<R, List<>, List<>> {
+  R operator()(const y::function<R()>& target) const
+  {
+    return target();
+  }
+};
+template<typename R, typename... Args, typename... Brgs, typename A>
+struct ReverseTrampolineCallArgs<R, List<A, Args...>, List<A, Brgs...>> {
+  R operator()(const A& a, const Brgs&... args, void* global_data,
+               const y::function<R(A, Args...)>& target) const
+  {
+    typedef ReverseTrampolineCallArgs<R, List<Args...>, List<Brgs...>> next;
+    next()(args..., bind_first(target, a));
+  }
+};
+template<typename R, typename... Args, typename... Brgs,
+         typename T, y::size N>
+struct ReverseTrampolineCallArgs<R, List<vec<T, N>, Args...>,
+                                 List<Brgs...>> {
+  R operator()(const Brgs&... args, void* global_data,
+               const y::function<R(vec<T, N>, Args...)>& target) const
+  {
+    // TODO: make this do anything useful. Need to split off the first N from
+    // the args list. Consider using Remove and that for all of these.
+    typedef ReverseTrampolineCallArgs<R, List<Args...>, List<Brgs...>> next;
+    next()(args..., bind_first(target, vec<T, N>()));
+  }
+};
+template<typename R, typename... Args, typename... Brgs,
+         typename S, typename... Crgs>
+struct ReverseTrampolineCallArgs<R, List<Function<S(Crgs...)>, Args...>,
+                                 List<y::void_fp, Brgs...>> {
+  R operator()(
+      y::void_fp a, const Brgs&... args, void* global_data,
+      const y::function<R(Function<S(Crgs...)>, Args...)>& target) const
+  {
+    typedef ReverseTrampolineCallArgs<R, List<Args...>, List<Brgs...>> next;
+    // TODO: global data needs to store a pointer to the instance! This is
+    // totally wrong. Can get rid of the default single integer, though.
+    Function<S(Crgs...)> fn_object(*(Instance*)(global_data));
+    fn_object._function = a;
+    next()(args..., bind_first(target, fn_object));
+  }
+};
 
 // Return-value assigned to pointer outputs.
 template<typename, typename...>
@@ -587,14 +649,27 @@ struct ReverseTrampolineCall {};
 template<typename R, typename... Args, typename... ReturnBrgs, typename... Brgs>
 struct ReverseTrampolineCall<R(Args...), List<ReturnBrgs...>, List<Brgs...>> {
   // No reference args; this is the function directly called from Yang code.
-  static void call(ReturnBrgs... return_args, Brgs... args, y::void_fp target)
+  static void call(ReturnBrgs... return_args, Brgs... args,
+                   void* global_data, void* target)
   {
     // TODO: need checking that functions returned to Yang reference the correct
     // module.
     typedef ReverseTrampolineCallReturn<R, ReturnBrgs...> return_type;
-    R result;
-
+    typedef ReverseTrampolineCallArgs<R, List<Args...>, List<Brgs...>> args_type;
+    auto f = (const NativeFunction<void>*)target;
+    R result = args_type()(args..., global_data, f->get<R, Args...>());
     return_type()(result, return_args...);
+  }
+};
+
+// Specialisation for void returns.
+template<typename... Args, typename... Brgs>
+struct ReverseTrampolineCall<void(Args...), List<>, List<Brgs...>> {
+  static void call(Brgs... args, void* global_data, void* target)
+  {
+    typedef ReverseTrampolineCallArgs<void, List<Args...>, List<Brgs...>> args_type;
+    auto f = (const NativeFunction<void>*)target;
+    args_type()(args..., global_data, f->get<void, Args...>());
   }
 };
 

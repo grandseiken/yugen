@@ -1043,9 +1043,9 @@ llvm::FunctionType* IrGenerator::get_trampoline_type(
   }
 
   if (reverse) {
-    // Argument is pointer to C++ function, we can't represent it in LLVM.
-    args.push_back(llvm::PointerType::get(
-        llvm::FunctionType::get(void_type(), false), 0));
+    // Argument is global data pointer and pointer to C++ NativeFunction.
+    args.push_back(_global_data);
+    args.push_back(llvm::PointerType::get(int_type(), 0));
   }
   else {
     // Argument is pointer to Yang code function.
