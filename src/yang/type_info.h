@@ -3,6 +3,7 @@
 
 #include "../common/function.h"
 #include "../common/math.h"
+#include "../common/tuple.h"
 #include "../vector.h"
 #include "native_function.h"
 #include "type.h"
@@ -213,9 +214,8 @@ struct TypeInfo<Function<R(A, Args...)>> {
 
 template<typename T>
 struct ValueConstruct {
-  T operator()(Instance& instance) const
+  T operator()(Instance&) const
   {
-    (void)instance;
     return T();
   }
 
@@ -256,39 +256,59 @@ y::function<R(Args...)> bind_first(
   };
 }
 
+// Integer pack range.
+template<y::size... N>
+struct Indices {};
+template<y::size Min, y::size N, y::size... M>
+struct IndexRange {
+  typedef typename IndexRange<Min, N - 1, Min + N - 1, M...>::type type;
+};
+template<y::size Min, y::size... N>
+struct IndexRange<Min, 0, N...> {
+  typedef Indices<N...> type;
+};
+
 // Boost's metaprogramming list implementation fakes variadic templates for
 // C++03 compatibility. This makes extracting the type-list directly as a
 // comma-separated type list for constructing e.g. function pointer types
 // difficult.
-//
-// This is a real variadic type list supporting the functionality we need.
-template<typename...>
-struct List {};
+template<typename... T>
+using List = y::tuple<T...>;
+// Join two lists.
 template<typename T, typename U>
-struct Join {
-  typedef List<T, U> type;
-};
-template<typename T, typename... U>
-struct Join<T, List<U...>> {
-  typedef List<T, U...> type;
-};
-template<typename... T, typename U>
-struct Join<List<T...>, U> {
-  typedef List<T..., U> type;
-};
+struct Join {};
 template<typename... T, typename... U>
 struct Join<List<T...>, List<U...>> {
   typedef List<T..., U...> type;
+
+  template<y::size... N, y::size... M>
+  type helper(const List<T...>& t, const List<U...>& u,
+              const Indices<N...>&, const Indices<M...>&) const
+  {
+    return type(y::get<N>(t)..., y::get<M>(u)...);
+  }
+
+  type operator()(const List<T...>& t, const List<U...>& u) const
+  {
+    return helper(t, u,
+                  IndexRange<0, sizeof...(T)>::type(),
+                  IndexRange<0, sizeof...(U)>::type());
+  }
 };
-template<typename, y::size>
-struct Remove {};
-template<typename... T>
-struct Remove<List<T...>, 0> {
-  typedef List<T...> type;
+// Get a sublist from a list.
+template<typename, y::size, y::size, typename...>
+struct Sublist {};
+template<typename T, typename... U, y::size Min, y::size N>
+struct Sublist<List<T, U...>, Min, N> {
+  typedef typename Sublist<List<U...>, Min - 1, N>::type type;  
 };
-template<typename T, typename... U, y::size N>
-struct Remove<List<T, U...>, N> {
-  typedef typename Remove<List<U...>, N - 1>::type type;
+template<typename T, typename... U, y::size N, typename... R>
+struct Sublist<List<T, U...>, 0, N, R...> {
+  typedef typename Sublist<List<U...>, 0, N - 1, R..., T>::type type;
+};
+template<typename... T, typename... R>
+struct Sublist<List<T...>, 0, 0, R...> {
+  typedef List<R...> type;
 };
 
 // Templates for converting native function types into the corresponding
@@ -319,7 +339,7 @@ struct TrampolineReturn<vec<T, 2>> {
 template <typename T, y::size N>
 struct TrampolineReturn<vec<T, N>> {
   typedef typename Join<
-      T*, typename TrampolineReturn<vec<T, N - 1>>::type>::type type;
+      List<T*>, typename TrampolineReturn<vec<T, N - 1>>::type>::type type;
 };
 template<typename R, typename... Args>
 struct TrampolineReturn<Function<R(Args...)>> {
@@ -330,7 +350,8 @@ template<typename... Args>
 struct TrampolineArgs {};
 template<typename A, typename... Args>
 struct TrampolineArgs<A, Args...> {
-  typedef typename Join<A, typename TrampolineArgs<Args...>::type>::type type;
+  typedef typename Join<
+      List<A>, typename TrampolineArgs<Args...>::type>::type type;
 };
 template<>
 struct TrampolineArgs<> {
@@ -349,7 +370,7 @@ struct TrampolineArgs<vec<T, N>, Args...> {
 template<typename R, typename... Args, typename... Brgs>
 struct TrampolineArgs<Function<R(Args...)>, Brgs...> {
   typedef typename Join<
-      y::void_fp, typename TrampolineArgs<Brgs...>::type>::type type;
+      List<y::void_fp>, typename TrampolineArgs<Brgs...>::type>::type type;
 };
 
 template<typename R, typename... Args>
@@ -532,10 +553,9 @@ struct TrampolineCall<void, Args...> {
   typedef typename TrampolineType<void, Args...>::fp_type fp_type;
   typedef typename TrampolineType<void, Args...>::f_type f_type;
 
-  void operator()(Instance& instance,
+  void operator()(Instance&,
                   const f_type& function, const Args&... args) const
   {
-    (void)instance;
     typedef TrampolineCallArgs<Args...> args_type;
     args_type()(function, args...);
   }
@@ -548,18 +568,21 @@ template<typename, typename, typename>
 struct ReverseTrampolineCallArgs {};
 template<typename R>
 struct ReverseTrampolineCallArgs<R, List<>, List<>> {
-  R operator()(const y::function<R()>& target) const
+  R operator()(const List<>&, void* global_data,
+               const y::function<R()>& target) const
   {
     return target();
   }
 };
 template<typename R, typename... Args, typename... Brgs, typename A>
-struct ReverseTrampolineCallArgs<R, List<A, Args...>, List<A, Brgs...>> {
-  R operator()(const A& a, const Brgs&... args, void* global_data,
+struct ReverseTrampolineCallArgs<R, List<A, Args...>, List<Brgs...>> {
+  R operator()(const List<Brgs...>& args, void* global_data,
                const y::function<R(A, Args...)>& target) const
   {
-    typedef ReverseTrampolineCallArgs<R, List<Args...>, List<Brgs...>> next;
-    next()(args..., bind_first(target, a));
+//    typedef ReverseTrampolineCallArgs<
+//        R, List<Args...>, typename Remove<List<Brgs...>, 1>::type> next;
+//    next()(args..., bind_first(target, a));
+    return R();
   }
 };
 template<typename R, typename... Args, typename... Brgs,
@@ -655,9 +678,12 @@ struct ReverseTrampolineCall<R(Args...), List<ReturnBrgs...>, List<Brgs...>> {
     // TODO: need checking that functions returned to Yang reference the correct
     // module.
     typedef ReverseTrampolineCallReturn<R, ReturnBrgs...> return_type;
-    typedef ReverseTrampolineCallArgs<R, List<Args...>, List<Brgs...>> args_type;
+    typedef ReverseTrampolineCallArgs<
+        R, List<Args...>, List<Brgs...>> args_type;
+
     auto f = (const NativeFunction<void>*)target;
-    R result = args_type()(args..., global_data, f->get<R, Args...>());
+    R result = args_type()(
+        List<Brgs...>(args...), global_data, f->get<R, Args...>());
     return_type()(result, return_args...);
   }
 };
@@ -667,9 +693,11 @@ template<typename... Args, typename... Brgs>
 struct ReverseTrampolineCall<void(Args...), List<>, List<Brgs...>> {
   static void call(Brgs... args, void* global_data, void* target)
   {
-    typedef ReverseTrampolineCallArgs<void, List<Args...>, List<Brgs...>> args_type;
+    typedef ReverseTrampolineCallArgs<
+        void, List<Args...>, List<Brgs...>> args_type;
+
     auto f = (const NativeFunction<void>*)target;
-    args_type()(args..., global_data, f->get<void, Args...>());
+    args_type()(List<Brgs...>(args...), global_data, f->get<void, Args...>());
   }
 };
 
