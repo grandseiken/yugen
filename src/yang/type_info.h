@@ -309,8 +309,7 @@ struct Functions<R, List<Args...>> {
 };
 
 // Standard bind function requires explicit placeholders for all elements, which
-// makes it unusable in the variadic setting. We only need to bind one argument
-// at a time.
+// makes it unusable in the variadic setting.
 template<typename, typename, typename>
 struct BindFirstHelperInternal {};
 template<typename R, typename... Args, typename... Brgs>
@@ -321,7 +320,7 @@ struct BindFirstHelperInternal<R, List<Args...>, List<Brgs...>> {
       const Args&... args, const Indices<I...>&) const
   {
     // Work around bug in GCC/C++ standard: ambiguous whether argument packs can
-    // be captured.
+    // be captured in lambdas.
     List<Args...> args_tuple(args...);
     // Close by value so the function object is copied! Otherwise it can cause an
     // infinite loop. I don't fully understand why; is the function object being
