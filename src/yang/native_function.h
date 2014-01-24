@@ -36,8 +36,8 @@ struct GenericNativeFunction {
     : ptr(y::null) {}
   ~GenericNativeFunction() {}
 
-  GenericNativeFunction(GenericNativeFunction&&) noexcept = default;
-  GenericNativeFunction& operator=(GenericNativeFunction&&) noexcept = default;
+  GenericNativeFunction(GenericNativeFunction&&) = default;
+  GenericNativeFunction& operator=(GenericNativeFunction&&) = default;
 
   yang::Type type;
   y::unique<NativeFunction<void>> ptr;
