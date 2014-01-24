@@ -68,17 +68,15 @@ void Tileset::set_collision(const y::ivec2& coords, Collision collision)
   _collision[to_index(coords)] = collision;
 }
 
-void Tileset::save_to_proto(const Databank& bank, proto::Tileset& proto) const
+void Tileset::save_to_proto(const Databank&, proto::Tileset& proto) const
 {
-  (void)bank;
   for (y::size i = 0; i < get_tile_count(); ++i) {
     proto.add_collision(_collision[i]);
   }
 }
 
-void Tileset::load_from_proto(Databank& bank, const proto::Tileset& proto)
+void Tileset::load_from_proto(Databank&, const proto::Tileset& proto)
 {
-  (void)bank;
   for (y::int32 i = 0; i < y::int32(get_tile_count()) &&
                        i < proto.collision_size(); ++i) {
     _collision[i] = Collision(proto.collision(i));

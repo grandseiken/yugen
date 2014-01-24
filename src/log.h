@@ -5,9 +5,8 @@
 
 namespace {
 
-inline void logg(y::ostream& o)
+inline void logg(y::ostream&)
 {
-  (void)o;
 }
 
 template<typename T, typename... U>
@@ -20,9 +19,8 @@ inline void logg(y::ostream& o, T t, U... args)
 inline void logv() {}
 
 template<typename T, typename... U>
-inline void logv(T t, U... args)
+inline void logv(T, U... args)
 {
-  (void)t;
   logv(args...);
 }
 

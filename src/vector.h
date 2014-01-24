@@ -77,16 +77,14 @@ public:
   }
 
   template<y::size M, typename = y::enable_if<(N > M)>>
-  T& operator[](const element_accessor<M>& e)
+  T& operator[](const element_accessor<M>&)
   {
-    (void)e;
     return elements[M];
   }
 
   template<y::size M, typename = y::enable_if<(N > M)>>
-  const T& operator[](const element_accessor<M>& e) const
+  const T& operator[](const element_accessor<M>&) const
   {
-    (void)e;
     return elements[M];
   }
 

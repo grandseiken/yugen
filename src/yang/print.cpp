@@ -19,10 +19,8 @@ void AstPrinter::preorder(const Node& node)
   }
 }
 
-void AstPrinter::infix(const Node& node, const result_list& results)
+void AstPrinter::infix(const Node&, const result_list&)
 {
-  (void)node;
-  (void)results;
 }
 
 y::string AstPrinter::visit(const Node& node, const result_list& results)

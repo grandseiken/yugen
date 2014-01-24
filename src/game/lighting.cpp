@@ -15,7 +15,6 @@ Light::Light(const Script& source)
   , angle(0.)
   , aperture(y::pi)
 {
-  (void)source;
 }
 
 y::world Light::get_max_range() const

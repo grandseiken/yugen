@@ -259,16 +259,13 @@ void ScriptMap<T>::get_sources(source_list& output) const
 }
 
 template<typename T>
-void ScriptMap<T>::on_create(const Script& source, T* obj)
+void ScriptMap<T>::on_create(const Script&, T*)
 {
-  (void)source;
-  (void)obj;
 }
 
 template<typename T>
-void ScriptMap<T>::on_destroy(T* obj)
+void ScriptMap<T>::on_destroy(T*)
 {
-  (void)obj;
 }
 
 template<typename T>

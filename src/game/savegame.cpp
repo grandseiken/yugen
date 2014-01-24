@@ -109,9 +109,8 @@ void Savegame::put(const y::string& key, const LuaValue& value)
   _map.insert(y::make_pair(key, value));
 }
 
-void Savegame::save_to_proto(const Databank& bank, proto::Savegame& proto) const
+void Savegame::save_to_proto(const Databank&, proto::Savegame& proto) const
 {
-  (void)bank;
   for (const auto& pair : _map) {
     auto entry = proto.add_entries();
     entry->set_key(pair.first);
@@ -119,9 +118,8 @@ void Savegame::save_to_proto(const Databank& bank, proto::Savegame& proto) const
   }
 }
 
-void Savegame::load_from_proto(Databank& bank, const proto::Savegame& proto)
+void Savegame::load_from_proto(Databank&, const proto::Savegame& proto)
 {
-  (void)bank;
   clear();
 
   for (y::int32 i = 0; i < proto.entries_size(); ++i) {

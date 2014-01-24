@@ -173,9 +173,8 @@ template<typename...>
 struct InstanceCheck {};
 template<>
 struct InstanceCheck<> {
-  bool operator()(const Instance& instance) const
+  bool operator()(const Instance&) const
   {
-    (void)instance;
     return true;
   }
 };
@@ -183,9 +182,8 @@ struct InstanceCheck<> {
 template<typename A, typename... Args>
 struct InstanceCheck<A, Args...> {
   bool operator()(const Instance& instance,
-                  const A& arg, const Args&... args) const
+                  const A&, const Args&... args) const
   {
-    (void)arg;
     InstanceCheck<Args...> next;
     return next(instance, args...);
   }

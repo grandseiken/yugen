@@ -45,9 +45,8 @@ struct DefaultGenerator<y::vec<T, N>> : DefaultGenerator<T> {
 // must have a const operator() taking the layer and returning a scalar.
 template<typename T>
 struct DefaultWeights {
-  T operator()(y::size layer) const
+  T operator()(y::size) const
   {
-    (void)layer;
     return T(1);
   }
 };

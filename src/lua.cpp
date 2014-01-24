@@ -2,9 +2,8 @@
 
 namespace {
   // Variadic push.
-  lua_int push_all(lua_State* state)
+  lua_int push_all(lua_State*)
   {
-    (void)state;
     return 0;
   }
 

@@ -179,19 +179,17 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
   return bind_uniform(index, name, _texture_index++);
 }
 
+#ifndef DEBUG
+bool GlProgram::check_match(
+    bool, const y::string&, bool, y::size, GLenum, y::size) const
+{
+  return true;
+}
+#else
 bool GlProgram::check_match(bool attribute, const y::string& name,
                             bool array, y::size index,
                             GLenum type, y::size length) const
 {
-#ifndef DEBUG
-  (void)attribute;
-  (void)name;
-  (void)array;
-  (void)index;
-  (void)type;
-  (void)length;
-  return true;
-#else
   GLenum name_type;
   if (!check_name_exists(attribute, name, array, index, name_type)) {
     logg_err("Undefined ", attribute ? "attribute" : "uniform", " ", name);
@@ -217,8 +215,9 @@ bool GlProgram::check_match(bool attribute, const y::string& name,
     return false;
   }
   return true;
-#endif
 }
+#endif
+
 bool GlProgram::check_name_exists(bool attribute, const y::string& name,
                                   bool array, y::size index,
                                   GLenum& type_output) const

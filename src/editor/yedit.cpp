@@ -263,11 +263,8 @@ void Yedit::draw() const
               _bank.scripts.get_names(), items, _script_select);
 }
 
-y::int32 main(y::int32 argc, char** argv)
+y::int32 main(y::int32, char**)
 {
-  (void)argc;
-  (void)argv;
-
   Window window("Crunk Yedit", 24, {0, 0}, false, true);
   PhysicalFilesystem filesystem("data");
   GlUtil gl(filesystem, window);
