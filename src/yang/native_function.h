@@ -36,6 +36,9 @@ struct GenericNativeFunction {
     : ptr(y::null) {}
   ~GenericNativeFunction() {}
 
+  GenericNativeFunction(GenericNativeFunction&&) noexcept = default;
+  GenericNativeFunction& operator=(GenericNativeFunction&&) noexcept = default;
+
   yang::Type type;
   y::unique<NativeFunction<void>> ptr;
   y::void_fp trampoline_ptr;

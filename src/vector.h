@@ -47,8 +47,8 @@ public:
   {
   }
 
-  vec(const V& arg) noexcept = default;
-  vec(V&& arg) noexcept = default;
+  vec(const V&) noexcept = default;
+  vec(V&&) noexcept = default;
 
   template<typename U>
   explicit vec(const vec<U, N>& arg)
@@ -61,8 +61,8 @@ public:
 
   // Assignment.
 
-  V& operator=(const V& arg) noexcept = default;
-  V& operator=(V&& arg) noexcept = default;
+  V& operator=(const V&) noexcept = default;
+  V& operator=(V&&) noexcept = default;
 
   // Indexing.
 
