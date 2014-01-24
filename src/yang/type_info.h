@@ -570,39 +570,54 @@ struct ReverseTrampolineCallArgs<R, List<A, Args...>, List<Brgs...>> {
   R operator()(const List<Brgs...>& args, void* global_data,
                const y::function<R(A, Args...)>& target) const
   {
-//    typedef ReverseTrampolineCallArgs<
-//        R, List<Args...>, typename Remove<List<Brgs...>, 1>::type> next;
-//    next()(args..., bind_first(target, a));
-    return R();
+    typedef Sublist<typename IndexRange<1, sizeof...(Brgs) - 1>::type,
+                    List<Brgs...>> sublist;
+    return ReverseTrampolineCallArgs<
+        R, List<Args...>, typename sublist::type>()(
+        sublist()(args), global_data, bind_first(target, y::get<0>(args)));
   }
 };
 template<typename R, typename... Args, typename... Brgs,
          typename T, y::size N>
-struct ReverseTrampolineCallArgs<R, List<vec<T, N>, Args...>,
-                                 List<Brgs...>> {
-  R operator()(const Brgs&... args, void* global_data,
+struct ReverseTrampolineCallArgs<
+    R, List<vec<T, N>, Args...>, List<Brgs...>> {
+  template<y::size... I>
+  R helper(const List<Brgs...>& args, void* global_data,
+           const y::function<R(vec<T, N>, Args...)>& target,
+           const Indices<I...>&) const
+  {
+    typedef Sublist<typename IndexRange<N, sizeof...(Brgs) - N>::type,
+                    List<Brgs...>> sublist;
+    return ReverseTrampolineCallArgs<
+        R, List<Args...>, typename sublist::type>()(
+        sublist()(args), global_data,
+        bind_first(target, vec<T, N>(y::get<I>(args)...)));
+  }
+
+  R operator()(const List<Brgs...>& args, void* global_data,
                const y::function<R(vec<T, N>, Args...)>& target) const
   {
-    // TODO: make this do anything useful. Need to split off the first N from
-    // the args list. Consider using Remove and that for all of these.
-    typedef ReverseTrampolineCallArgs<R, List<Args...>, List<Brgs...>> next;
-    next()(args..., bind_first(target, vec<T, N>()));
+    return helper(args, global_data, target, range<0, N>());
   }
 };
 template<typename R, typename... Args, typename... Brgs,
          typename S, typename... Crgs>
-struct ReverseTrampolineCallArgs<R, List<Function<S(Crgs...)>, Args...>,
-                                 List<y::void_fp, Brgs...>> {
+struct ReverseTrampolineCallArgs<
+    R, List<Function<S(Crgs...)>, Args...>, List<Brgs...>> {
   R operator()(
-      y::void_fp a, const Brgs&... args, void* global_data,
+      const List<Brgs...>& args, void* global_data,
       const y::function<R(Function<S(Crgs...)>, Args...)>& target) const
   {
-    typedef ReverseTrampolineCallArgs<R, List<Args...>, List<Brgs...>> next;
     // TODO: global data needs to store a pointer to the instance! This is
     // totally wrong. Can get rid of the default single integer, though.
     Function<S(Crgs...)> fn_object(*(Instance*)(global_data));
-    fn_object._function = a;
-    next()(args..., bind_first(target, fn_object));
+    fn_object._function = y::get<0>(args);
+
+    typedef Sublist<typename IndexRange<1, sizeof...(Brgs) - 1>::type,
+                    List<Brgs...>> sublist;
+    return ReverseTrampolineCallArgs<
+        R, List<Args...>, typename sublist::type>()(
+        sublist()(args), global_data, bind_first(target, fn_object));
   }
 };
 
