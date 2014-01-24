@@ -245,6 +245,8 @@ struct ValueConstruct<Function<R(Args...)>> {
 // difficult.
 template<typename... T>
 using List = y::tuple<T...>;
+template<typename... T>
+void ignore(const T&...) {}
 
 // Integer pack range.
 template<y::size... N>
@@ -615,32 +617,17 @@ struct ReverseTrampolineCallReturn<R, R*> {
   }
 };
 template<typename T, y::size N, typename... Args>
-struct ReverseTrampolineCallVecReturn {};
-template<typename T, y::size N, typename... Args>
-struct ReverseTrampolineCallVecReturn<T, N, T*, Args...> {
-  template<y::size M, typename = y::enable_if<(M >= N)>>
-  void operator()(const vec<T, M>& result, const Args&... args, T* a) const
-  {
-    typedef ReverseTrampolineCallVecReturn<T, N - 1, Args...> next;
-    *a = result[N - 1];
-    next()(result, args...);
-  }
-};
-template<typename T>
-struct ReverseTrampolineCallVecReturn<T, 2, T*, T*> {
-  template<y::size M, typename = y::enable_if<(M >= 2)>>
-  void operator()(const vec<T, M>& result, T* a0, T* a1) const
-  {
-    *a0 = result[0];
-    *a1 = result[1];
-  }
-};
-template<typename T, y::size N, typename... Args>
 struct ReverseTrampolineCallReturn<vec<T, N>, Args...> {
+  template<y::size... I>
+  void helper(const vec<T, N>& result, const List<Args...>& args,
+              const Indices<I...>&) const
+  {
+    ignore((*y::get<I>(args) = result[I])...);
+  }
+
   void operator()(const vec<T, N>& result, const Args&... args) const
   {
-    typedef ReverseTrampolineCallVecReturn<T, N, Args...> return_type;
-    return_type()(result, args...);
+    helper(result, List<Args...>(args...), range<0, N>());
   }
 };
 template<typename R, typename... Args>
