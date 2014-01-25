@@ -18,8 +18,6 @@ namespace std {
 }
 
 namespace yang {
-class Instance;
-
 namespace internal {
 
 IrGeneratorUnion::IrGeneratorUnion(llvm::Type* type)

@@ -37,7 +37,7 @@ y::int32 main(y::int32 argc, char** argv)
 
   yang::Context context;
   // TODO: test.
-  typedef yang::Function<yang::int32_vec<2>(yang::int32_vec<2>)> vv_t;
+  typedef Fn<yang::int32_vec<2>(yang::int32_vec<2>)> vv_t;
   auto foo = [](const yang::int32_vec<2>& a, vv_t f)
   {
     log_err("in native foo");
@@ -67,3 +67,12 @@ y::int32 main(y::int32 argc, char** argv)
            instance.call<yang::int32_vec<2>>("p", yang::int32_vec<2>(2, 3)));
   return 0;
 }
+
+std::string program_string = R"(
+
+export script_hello_world = void()
+{
+  native_hello_world();
+};
+
+)";

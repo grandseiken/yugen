@@ -208,6 +208,10 @@ Instance::Instance(const Program& program)
   : _program(program)
   , _global_data(y::null)
 {
+  if (!_program.success()) {
+    log_err("instantiating invalid program");
+    return;
+  }
   y::void_fp global_alloc = get_native_fp("!global_alloc");
   typedef void* (*alloc_fp)(void*);
   _global_data = ((alloc_fp)global_alloc)(this);
@@ -215,6 +219,9 @@ Instance::Instance(const Program& program)
 
 Instance::~Instance()
 {
+  if (!_global_data) {
+    return;
+  }
   y::void_fp global_free = get_native_fp("!global_free");
   typedef void (*free_fp)(void*);
   ((free_fp)global_free)(_global_data);
@@ -234,10 +241,10 @@ y::void_fp Instance::get_native_fp(llvm::Function* ir_fp) const
 {
   void* void_p = _program._engine->getPointerToFunction(ir_fp);
   // ISO C++ forbids casting between pointer-to-function and pointer-to-object!
-  // Unfortunately, due to dependence on dlsym, there doesn't seem to be any
+  // Unfortunately (due to dependence on dlsym?), there doesn't seem to be any
   // way around this (technically) defined behaviour. I guess it should work
-  // in practice. Also occurs in irgen.cpp.
-  // TODO: maybe it can be resolved somehow?
+  // in practice since the whole native codegen thing is inherently machine-
+  // -depend anyway. Also occurs in irgen.cpp.
   return (y::void_fp)(y::intptr)void_p;
 }
 
