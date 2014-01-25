@@ -15,6 +15,6 @@ namespace y {
 
   using std::get;
 
-};
+}
 
 #endif

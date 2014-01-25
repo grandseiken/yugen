@@ -99,13 +99,18 @@ IrGenerator::IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
   //
   // These are the most general trampoline-generation rules.
   for (const auto& pair : context_functions) {
-    create_reverse_trampoline_function(pair.first, pair.second);
+    _symbol_table.add(
+        pair.first,
+        create_reverse_trampoline_function(pair.first, pair.second));
   }
+  // Create a new frame for the top-level functions.
+  _symbol_table.push();
 }
 
 IrGenerator::~IrGenerator()
 {
   // Keep hash<metadata> in source file.
+  _symbol_table.pop();
 }
 
 void IrGenerator::emit_global_functions()
@@ -1009,11 +1014,72 @@ llvm::Function* IrGenerator::create_reverse_trampoline_function(
   auto block = llvm::BasicBlock::Create(b.getContext(), "entry", function);
   b.SetInsertPoint(block);
 
-  auto it = function->arg_begin();
-  // TODO.
+  llvm::Type* return_type = internal_type->getReturnType();
+  y::size return_args = get_trampoline_num_return_args(return_type);
+
+  y::vector<llvm::Value*> return_allocs;
+  y::vector<llvm::Value*> args;
+  // Handle return args.
+  for (y::size i = 0; i < return_args; ++i) {
+    llvm::Type* t = return_type->isVectorTy() ?
+        return_type->getVectorElementType() : return_type;
+    llvm::Value* v = b.CreateAlloca(t, y::null, "r" + y::to_string(i));
+    return_allocs.push_back(v);
+    args.push_back(v);
+  }
+
+  y::size i = 0;
+  for (auto it = function->arg_begin(); it != function->arg_end(); ++it) {
+    // Global data is first argument.
+    if (i) {
+      it->setName("a" + y::to_string(i - 1));
+    }
+    else {
+      it->setName("global_data");
+    }
+
+    if (!it->getType()->isVectorTy()) {
+      args.push_back(it);
+      continue;
+    }
+    for (y::size j = 0; j < it->getType()->getVectorNumElements(); ++j) {
+      llvm::Value* v = b.CreateExtractElement(it, constant_int(j), "vec");
+      args.push_back(v);
+    }
+  }
+
+  // The final argument is a pointer to the NativeFunction<void> storing the
+  // actual y::function we want to call. To construct a pointer to it, we need
+  // to do a bit of machine-dependent stuff.
+  llvm::Type* int_ptr = llvm::IntegerType::get(
+      b.getContext(), 8 * sizeof(native_function.ptr.get()));
+  llvm::Constant* const_int =
+      llvm::ConstantInt::get(int_ptr, (y::size)native_function.ptr.get());
+  llvm::Value* const_ptr = llvm::ConstantExpr::getIntToPtr(
+      const_int, llvm::PointerType::get(int_type(), 0));
+  args.push_back(const_ptr);
 
   auto external_type = get_trampoline_type(internal_type, true);
-  (void)external_type;
+  auto external_trampoline = get_native_function(
+      "trampoline!" + name, native_function.trampoline_ptr, external_type);
+  b.CreateCall(external_trampoline, args);
+
+  if (return_type->isVoidTy()) {
+    b.CreateRetVoid();
+  }
+  else if (!return_type->isVectorTy()) {
+    b.CreateRet(b.CreateLoad(return_allocs[0], "ret"));
+  }
+  else {
+    llvm::Value* v = constant_vector(
+        return_type->isIntOrIntVectorTy() ? constant_int(0) : constant_world(0),
+        return_args);
+    for (y::size i = 0; i < return_args; ++i) {
+      v = b.CreateInsertElement(
+          v, b.CreateLoad(return_allocs[i], "load"), constant_int(i), "vec");
+    }
+    b.CreateRet(v);    
+  }
   return function;
 }
 
@@ -1043,8 +1109,7 @@ llvm::FunctionType* IrGenerator::get_trampoline_type(
   }
 
   if (reverse) {
-    // Argument is global data pointer and pointer to C++ NativeFunction.
-    args.push_back(_global_data);
+    // Argument is pointer to C++ NativeFunction.
     args.push_back(llvm::PointerType::get(int_type(), 0));
   }
   else {

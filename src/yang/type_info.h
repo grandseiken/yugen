@@ -558,7 +558,7 @@ template<typename, typename, typename>
 struct ReverseTrampolineCallArgs {};
 template<typename R>
 struct ReverseTrampolineCallArgs<R, List<>, List<>> {
-  R operator()(const List<>&, void* global_data,
+  R operator()(const List<>&, void*,
                const y::function<R()>& target) const
   {
     return target();
@@ -662,8 +662,8 @@ struct ReverseTrampolineCall {};
 template<typename R, typename... Args, typename... ReturnBrgs, typename... Brgs>
 struct ReverseTrampolineCall<R(Args...), List<ReturnBrgs...>, List<Brgs...>> {
   // No reference args; this is the function directly called from Yang code.
-  static void call(ReturnBrgs... return_args, Brgs... args,
-                   void* global_data, void* target)
+  static void call(ReturnBrgs... return_args, void* global_data, Brgs... args,
+                   void* target)
   {
     // TODO: need checking that functions returned to Yang reference the correct
     // module.
@@ -681,7 +681,7 @@ struct ReverseTrampolineCall<R(Args...), List<ReturnBrgs...>, List<Brgs...>> {
 // Specialisation for void returns.
 template<typename... Args, typename... Brgs>
 struct ReverseTrampolineCall<void(Args...), List<>, List<Brgs...>> {
-  static void call(Brgs... args, void* global_data, void* target)
+  static void call(void* global_data, Brgs... args, void* target)
   {
     typedef ReverseTrampolineCallArgs<
         void, List<Args...>, List<Brgs...>> args_type;

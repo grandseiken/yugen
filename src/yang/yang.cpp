@@ -59,12 +59,7 @@ y::int32 main(y::int32 argc, char** argv)
 
   // TODO: test.
   yang::Instance instance(program);
-  typedef Fn<yang::int32(yang::int32)> fn_t;
-  auto h = instance.get_function<fn_t>("h");
-  log_info("h(7): ", h(7));
-  auto f = instance.get_function<fn_t>("f");
-  instance.set_global("g", f);
-  log_info("h(7): ", h(7));
-  log_info("foo((2, 3)): ", instance.call<yang::int32_vec<2>>("foo", yang::int32_vec<2>(2, 3)));
+  log_info("p((2, 3)): ",
+           instance.call<yang::int32_vec<2>>("p", yang::int32_vec<2>(2, 3)));
   return 0;
 }
