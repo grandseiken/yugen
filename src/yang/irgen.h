@@ -2,7 +2,7 @@
 #define YANG__IRGEN_H
 
 #include "../common/function.h"
-#include "native_function.h"
+#include "native.h"
 #include "table.h"
 #include "type.h"
 #include "walker.h"

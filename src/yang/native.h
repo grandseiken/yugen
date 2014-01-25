@@ -1,5 +1,5 @@
-#ifndef YANG__NATIVE_FUNCTION_H
-#define YANG__NATIVE_FUNCTION_H
+#ifndef YANG__NATIVE_H
+#define YANG__NATIVE_H
 
 #include "../common/function.h"
 #include "../common/memory.h"
@@ -7,6 +7,8 @@
 
 namespace yang {
 namespace internal {
+
+struct GenericNativeType {};
 
 // Class for dynamic storage of an arbitrary function.
 template<typename T>

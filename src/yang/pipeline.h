@@ -8,7 +8,7 @@
 #include "../common/vector.h"
 #include "../log.h"
 
-#include "native_function.h"
+#include "native.h"
 #include "type.h"
 #include "type_info.h"
 
@@ -46,18 +46,26 @@ namespace internal {
 class Context : public y::no_copy {
 public:
 
+  // Add a user type. Types must be registered before registering functions that
+  // make use of them.
+  template<typename T>
+  void register_type(const y::string& name);
+
   // Add a globally-available function to the context.
   template<typename R, typename... Args>
-  void add_function(
+  void register_function(
       const y::string& name, const y::function<R(Args...)>& f);
 
 private:
 
+  typedef y::map<y::string, internal::GenericNativeType> type_map;
   typedef y::map<y::string, internal::GenericNativeFunction> function_map;
 
   friend class Program;
+  const type_map& get_types();
   const function_map& get_functions() const;
 
+  type_map _types;
   function_map _functions;
 
 };
@@ -144,64 +152,7 @@ private:
 
 };
 
-template<typename R, typename... Args>
-void Context::add_function(
-    const y::string& name, const y::function<R(Args...)>& f)
-{
-  auto it = _functions.find(name);
-  if (it != _functions.end()) {
-    log_err("duplicate function `", name, "` added to context");
-    return;
-  }
-
-  internal::TypeInfo<Function<R(Args...)>> info;
-  internal::GenericNativeFunction& symbol = _functions[name];
-  symbol.type = info();
-  symbol.ptr = y::move_unique(new internal::NativeFunction<R(Args...)>(f));
-
-  symbol.trampoline_ptr = (y::void_fp)&internal::ReverseTrampolineCall<
-      R(Args...),
-      typename internal::TrampolineReturn<R>::type,
-      typename internal::TrampolineArgs<Args...>::type>::call;
-}
-
-namespace internal {
-
-// Implementation of InstanceCheck for function args, which has to see the
-// definition of Instance.
-template<typename FR, typename... FArgs, typename... Args>
-struct InstanceCheck<Function<FR(FArgs...)>, Args...> {
-  bool operator()(const Instance& instance,
-                  const Function<FR(FArgs...)>& arg, const Args&... args) const
-  {
-    bool result = true;
-    InstanceCheck<Args...> next;
-    if (!arg) {
-      log_err(instance.get_program().get_name(),
-              ": passed null function object");
-      result = false;
-    }
-    else {
-      if (&arg.get_instance().get_program() != &instance.get_program()) {
-        log_err(instance.get_program().get_name(),
-                ": passed function referencing different program ",
-                 arg.get_instance().get_program().get_name());
-        result = false;
-      }
-      if (&arg.get_instance() != &instance) {
-        log_err(instance.get_program().get_name(),
-                ": passed function referencing different program instance");
-        result = false;
-      }
-    }
-    return next(instance, args...) && result;
-  }
-};
-
-// End namespace internal.
-}
-
-// Implementation of Function::call, which has to see the defintion of Instance.
+// Implementation of Function::operator(), which has to see the defintion of Instance.
 template<typename R, typename... Args>
 R Function<R(Args...)>::operator()(const Args&... args) const
 {
@@ -213,15 +164,42 @@ R Function<R(Args...)>::operator()(const Args&... args) const
     return construct(*_instance);
   }
   return _instance->call_via_trampoline<R>(_function, args...);
+};
+
+template<typename T>
+void Context::register_type(const y::string& name)
+{
+  _types[name];
+}
+
+template<typename R, typename... Args>
+void Context::register_function(
+    const y::string& name, const y::function<R(Args...)>& f)
+{
+  auto it = _functions.find(name);
+  if (it != _functions.end()) {
+    log_err("duplicate function `", name, "` added to context");
+    return;
+  }
+
+  internal::TypeInfo<Function<R(Args...)>> info;
+  internal::GenericNativeFunction& symbol = _functions[name];
+  symbol.type = info(*this);
+  symbol.ptr = y::move_unique(new internal::NativeFunction<R(Args...)>(f));
+
+  symbol.trampoline_ptr = (y::void_fp)&internal::ReverseTrampolineCall<
+      R(Args...),
+      typename internal::TrampolineReturn<R>::type,
+      typename internal::TrampolineArgs<Args...>::type>::call;
 }
 
 template<typename T>
 T Instance::get_global(const y::string& name) const
 {
-  // TypeInfo representation() will fail at compile-time for completely
-  // unsupported types.
+  // TypeInfo will fail at compile-time for completely unsupported types; will
+  // at runtime for pointers to unregistered user types.
   internal::TypeInfo<T> info;
-  if (!check_global(name, info(), false)) {
+  if (!check_global(name, info(_program.get_context()), false)) {
     return T();
   }
   return call_via_trampoline<T>("!global_get_" + name);
@@ -231,7 +209,7 @@ template<typename T>
 void Instance::set_global(const y::string& name, const T& value)
 {
   internal::TypeInfo<T> info;
-  if (!check_global(name, info(), true)) {
+  if (!check_global(name, info(_program.get_context()), true)) {
     return;
   }
   call_via_trampoline<void>("!global_set_" + name, value);
@@ -243,7 +221,7 @@ T Instance::get_function(const y::string& name)
   internal::TypeInfo<T> info;
   internal::ValueConstruct<T> construct;
   T result = construct(*this);
-  if (!check_function(name, info())) {
+  if (!check_function(name, info(_program.get_context()))) {
     return result;
   }
   construct.set_void_fp(result, get_native_fp(name));
@@ -255,7 +233,7 @@ R Instance::call(const y::string& name, const Args&... args)
 {
   internal::TypeInfo<Function<R(Args...)>> info;
   internal::ValueConstruct<R> construct;
-  if (!check_function(name, info())) {
+  if (!check_function(name, info(_program.get_context()))) {
     return construct(*this);
   }
   return call_via_trampoline<R>(name, args...);
@@ -281,7 +259,8 @@ R Instance::call_via_trampoline(y::void_fp target, const Args&... args) const
   // Since we can only obtain a valid Function object referencing a function
   // type for which a trampoline has been generated, there should always be
   // an entry in the trampoline map.
-  auto it = _program._trampoline_map.find(Function<R(Args...)>::get_type());
+  auto it = _program._trampoline_map.find(
+      Function<R(Args...)>::get_type(_program.get_context()));
   y::void_fp trampoline = get_native_fp(it->second);
 
   typedef internal::TrampolineCall<R, void*, Args..., y::void_fp> call_type;

@@ -4,30 +4,41 @@
 #include "../common/function.h"
 #include "../common/math.h"
 #include "../common/tuple.h"
+#include "../log.h"
 #include "../vector.h"
-#include "native_function.h"
+#include "native.h"
 #include "type.h"
 
 namespace yang {
 
+class Context;
 class Instance;
+class Program;
+
 namespace internal {
-  template<typename>
-  struct TypeInfo;
-  template<typename>
-  struct ValueConstruct;
 
-  template<typename...>
-  struct TrampolineCallArgs;
-  template<typename, typename...>
-  struct TrampolineCallReturn;
-  template<typename, typename...>
-  struct TrampolineCall;
+// Some indirection to avoid defining InstanceCheck in a weird place.
+const y::string& get_instance_name(const Instance& instance);
+const Program& get_instance_program(const Instance& instance);
 
-  template<typename, typename, typename>
-  struct ReverseTrampolineCallArgs;
-  template<typename, typename...>
-  struct ReverseTrampolineCallReturn;
+template<typename>
+struct TypeInfo;
+template<typename>
+struct ValueConstruct;
+
+template<typename...>
+struct TrampolineCallArgs;
+template<typename, typename...>
+struct TrampolineCallReturn;
+template<typename, typename...>
+struct TrampolineCall;
+
+template<typename, typename, typename>
+struct ReverseTrampolineCallArgs;
+template<typename, typename...>
+struct ReverseTrampolineCallReturn;
+
+// End namespace internal.
 }
 
 typedef y::int32 int32;
@@ -52,7 +63,7 @@ public:
   // Get the program instance that this function references.
   Instance& get_instance() const;
   // Get the type corresponding to this function type as a yang Type object.
-  static Type get_type();
+  static Type get_type(const Context& context);
 
   // True if the object references a non-null function. It is an error to pass
   // a null function object to a yang program instance, or invoke it.
@@ -97,10 +108,10 @@ Instance& Function<R(Args...)>::get_instance() const
 }
 
 template<typename R, typename... Args>
-Type Function<R(Args...)>::get_type()
+Type Function<R(Args...)>::get_type(const Context& context)
 {
   internal::TypeInfo<Function<R(Args...)>> info;
-  return info();
+  return info(context);
 }
 
 template<typename R, typename... Args>
@@ -115,7 +126,7 @@ template<typename T>
 struct TypeInfo {
   static_assert(sizeof(T) != sizeof(T), "use of unsupported type");
 
-  yang::Type operator()() const
+  yang::Type operator()(const Context&) const
   {
     // This function exists to avoid extra unnecessary error messages (beyond
     // static assert above).
@@ -125,7 +136,7 @@ struct TypeInfo {
 
 template<>
 struct TypeInfo<void> {
-  yang::Type operator()() const
+  yang::Type operator()(const Context&) const
   {
     return {};
   }
@@ -133,7 +144,7 @@ struct TypeInfo<void> {
 
 template<>
 struct TypeInfo<yang::int32> {
-  yang::Type operator()() const
+  yang::Type operator()(const Context&) const
   {
     yang::Type t;
     t._base = yang::Type::INT;
@@ -143,7 +154,7 @@ struct TypeInfo<yang::int32> {
 
 template<>
 struct TypeInfo<yang::world> {
-  yang::Type operator()() const
+  yang::Type operator()(const Context&) const
   {
     yang::Type t;
     t._base = yang::Type::WORLD;
@@ -153,7 +164,7 @@ struct TypeInfo<yang::world> {
 
 template<y::size N>
 struct TypeInfo<int32_vec<N>> {
-  yang::Type operator()() const
+  yang::Type operator()(const Context&) const
   {
     yang::Type t;
     t._base = yang::Type::INT;
@@ -164,7 +175,7 @@ struct TypeInfo<int32_vec<N>> {
 
 template<y::size N>
 struct TypeInfo<world_vec<N>> {
-  yang::Type operator()() const
+  yang::Type operator()(const Context&) const
   {
     yang::Type t;
     t._base = yang::Type::WORLD;
@@ -188,26 +199,26 @@ struct TypeInfo<world_vec<N>> {
 // of typedefs (and perhaps a shorter typedef for Function).
 template<typename R>
 struct TypeInfo<Function<R()>> {
-  yang::Type operator()() const
+  yang::Type operator()(const Context& context) const
   {
     TypeInfo<R> return_type;
 
     yang::Type t;
     t._base = yang::Type::FUNCTION;
-    t._elements.push_back(return_type());
+    t._elements.push_back(return_type(context));
     return t;
   }
 };
 
 template<typename R, typename A, typename... Args>
 struct TypeInfo<Function<R(A, Args...)>> {
-  yang::Type operator()() const
+  yang::Type operator()(const Context& context) const
   {
     TypeInfo<Function<R(Args...)>> first;
     TypeInfo<A> arg_type;
 
-    yang::Type t = first();
-    t._elements.insert(++t._elements.begin(), arg_type());
+    yang::Type t = first(context);
+    t._elements.insert(++t._elements.begin(), arg_type(context));
     return t;
   }
 };
@@ -240,7 +251,7 @@ struct ValueConstruct<Function<R(Args...)>> {
 };
 
 // Check that all Functions given in an argument list match some particular
-// program instance. Specialisation for function args is in pipeline.h.
+// program instance.
 template<typename...>
 struct InstanceCheck {};
 template<>
@@ -257,6 +268,36 @@ struct InstanceCheck<A, Args...> {
   {
     InstanceCheck<Args...> next;
     return next(instance, args...);
+  }
+};
+template<typename FR, typename... FArgs, typename... Args>
+struct InstanceCheck<Function<FR(FArgs...)>, Args...> {
+  bool operator()(const Instance& instance,
+                  const Function<FR(FArgs...)>& arg, const Args&... args) const
+  {
+    bool result = true;
+    InstanceCheck<Args...> next;
+    if (!arg) {
+      log_err(get_instance_name(instance),
+              ": passed null function object");
+      result = false;
+    }
+    else {
+      if (&get_instance_program(arg.get_instance()) !=
+          &get_instance_program(instance)) {
+        log_err(get_instance_name(instance),
+                ": passed function referencing different program ",
+                 get_instance_name(arg.get_instance()));
+        result = false;
+      }
+      if (&arg.get_instance() != &instance) {
+        log_err(get_instance_name(instance),
+                ": passed function referencing different program instance");
+        result = false;
+      }
+    }
+    // Don't short-circuit; want to print the rest of the error messages.
+    return next(instance, args...) && result;
   }
 };
 

@@ -44,7 +44,7 @@ y::int32 main(y::int32 argc, char** argv)
     return 2 * a + f(a);
   };
   typedef y::function<yang::int32_vec<2>(yang::int32_vec<2>, vv_t)> foo_t;
-  context.add_function("foo", foo_t(foo));
+  context.register_function("foo", foo_t(foo));
   yang::Program program(context, path, contents);
   if (!program.success()) {
     return 1;
