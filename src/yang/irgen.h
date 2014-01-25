@@ -79,6 +79,7 @@ private:
   y::size get_trampoline_num_return_args(llvm::Type* return_type) const;
 
   // General helper functions.
+  llvm::Type* void_ptr_type() const;
   llvm::Type* void_type() const;
   llvm::Type* int_type() const;
   llvm::Type* world_type() const;
@@ -150,8 +151,8 @@ private:
   // Type of the global structure.
   llvm::Type* _global_data;
 
-  // Data for the global context.
-  const context_frame& _context_functions;
+  // Data for the global context (a backup symbol table frame, essentially).
+  y::map<y::string, llvm::Value*> _context_functions;
 
   // Generated trampolines (map from type of function to corresponding
   // trampoline function).

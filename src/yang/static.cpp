@@ -478,7 +478,13 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::ASSIGN:
     {
       if (!_symbol_table.has(node.string_value)) {
-        error(node, "undeclared identifier `" + node.string_value + "`");
+        if (_context_functions.count(node.string_value)) {
+          error(node, "cannot assign to context function `" +
+                      node.string_value + "`");
+        }
+        else {
+          error(node, "undeclared identifier `" + node.string_value + "`");
+        }
         _symbol_table.add(node.string_value, results[0]);
         return results[0];
       }

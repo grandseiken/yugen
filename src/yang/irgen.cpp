@@ -18,6 +18,8 @@ namespace std {
 }
 
 namespace yang {
+class Instance;
+
 namespace internal {
 
 IrGeneratorUnion::IrGeneratorUnion(llvm::Type* type)
@@ -45,8 +47,7 @@ IrGeneratorUnion::operator llvm::Value*() const
 IrGenerator::IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
                          symbol_frame& globals,
                          const context_frame& context_functions)
-  : _context_functions(context_functions)
-  , _module(module)
+  : _module(module)
   , _engine(engine)
   , _builder(module.getContext())
   , _symbol_table(y::null)
@@ -59,6 +60,10 @@ IrGenerator::IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
   // first parameter.
   y::vector<llvm::Type*> type_list;
   y::size number = 0;
+  // The first element in the global data structure is always a pointer to the
+  // Yang program instance with which the data is associated.
+  type_list.push_back(void_ptr_type());
+  ++number;
   // Since the global data structure may contain pointers to functions which
   // themselves take said implicit argument, we need to use an opaque named
   // struct create the potentially-recursive type.
@@ -71,10 +76,6 @@ IrGenerator::IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
     llvm::Type* t = get_llvm_type(pair.second);
     type_list.push_back(t);
     _global_numbering[pair.first] = number++;
-  }
-  // Structures can't be empty, so add a dummy member (it's never used).
-  if (type_list.empty()) {
-    type_list.push_back(int_type());
   }
   global_struct->setBody(type_list, false);
 
@@ -99,18 +100,14 @@ IrGenerator::IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
   //
   // These are the most general trampoline-generation rules.
   for (const auto& pair : context_functions) {
-    _symbol_table.add(
-        pair.first,
-        create_reverse_trampoline_function(pair.first, pair.second));
+    _context_functions[pair.first] =
+        create_reverse_trampoline_function(pair.first, pair.second);
   }
-  // Create a new frame for the top-level functions.
-  _symbol_table.push();
 }
 
 IrGenerator::~IrGenerator()
 {
   // Keep hash<metadata> in source file.
-  _symbol_table.pop();
 }
 
 void IrGenerator::emit_global_functions()
@@ -127,10 +124,11 @@ void IrGenerator::emit_global_functions()
       "free", (y::void_fp)&free,
       llvm::FunctionType::get(void_type(), _global_data, false));
 
-  // Create allocator function.
+  // Create allocator function. It takes a pointer to the Yang program instance.
   auto alloc = llvm::Function::Create(
-      llvm::FunctionType::get(_global_data, false),
+      llvm::FunctionType::get(_global_data, void_ptr_type(), false),
       llvm::Function::ExternalLinkage, "!global_alloc", &_module);
+  alloc->arg_begin()->setName("instance");
   auto alloc_block = llvm::BasicBlock::Create(
       b.getContext(), "entry", alloc);
   b.SetInsertPoint(alloc_block);
@@ -140,9 +138,10 @@ void IrGenerator::emit_global_functions()
       constant_int(0), _global_data, "null");
   size_of = b.CreateGEP(
       size_of, constant_int(1), "sizeof");
-  // Call malloc, call each of the global initialisation functions, and return
-  // the pointer.
+  // Call malloc, set instance pointer, call each of the global initialisation
+  // functions, and return the pointer.
   llvm::Value* v = b.CreateCall(malloc_ptr, size_of, "call");
+  b.CreateStore(alloc->arg_begin(), global_ptr(v, 0));
   for (llvm::Function* f : _global_inits) {
     b.CreateCall(f, v);
   }
@@ -621,12 +620,21 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
           _symbol_table.index(node.string_value)) {
         return b.CreateLoad(_symbol_table[node.string_value], "load");
       }
-      // If it's a function (constant global), just get the value.
-      if (!_symbol_table.index(node.string_value)) {
-        return _symbol_table.get(node.string_value, 0);
+      // Otherwise it's a top-level function, global, or context function. We
+      // must be careful to only return globals/functions *after* they have been
+      // defined, otherwise it might be a reference to a context function of the
+      // same name.
+      if (_symbol_table.has(node.string_value)) {
+        // If the symbol table entry is non-null it's a function (constant
+        // global), just get the value.
+        if (_symbol_table.get(node.string_value, 0)) {
+          return _symbol_table.get(node.string_value, 0);
+        }
+        // Otherwise it's a global, so look up in the global structure.
+        return b.CreateLoad(global_ptr(node.string_value), "load");
       }
-      // Otherwise it's a global, so look up in the global structure.
-      return b.CreateLoad(global_ptr(node.string_value), "load");
+      // It must be a context function.
+      return _context_functions[node.string_value];
 
     case Node::INT_LITERAL:
       return constant_int(node.int_value);
@@ -774,7 +782,7 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
 
     case Node::ASSIGN:
       // See Node::IDENTIFIER.
-      if (_symbol_table.has(node.string_value)) {
+      if (_symbol_table[node.string_value]) {
         b.CreateStore(results[0], _symbol_table[node.string_value]);
       }
       // We can't store values for globals in the symbol table since the lookup
@@ -788,8 +796,10 @@ IrGeneratorUnion IrGenerator::visit(const Node& node,
     case Node::ASSIGN_CONST:
     {
       // In a global block, rather than allocating anything we simply store into
-      // the prepared fields of the global structure.
+      // the prepared fields of the global structure. Also enter the symbol now
+      // with a null value so we can distinguish it from top-level functions.
       if (_metadata.has(GLOBAL_INIT_FUNCTION)) {
+        _symbol_table.add(node.string_value, 0, y::null);
         b.CreateStore(results[0], global_ptr(node.string_value));
         return results[0];
       }
@@ -1055,8 +1065,8 @@ llvm::Function* IrGenerator::create_reverse_trampoline_function(
       b.getContext(), 8 * sizeof(native_function.ptr.get()));
   llvm::Constant* const_int =
       llvm::ConstantInt::get(int_ptr, (y::size)native_function.ptr.get());
-  llvm::Value* const_ptr = llvm::ConstantExpr::getIntToPtr(
-      const_int, llvm::PointerType::get(int_type(), 0));
+  llvm::Value* const_ptr =
+      llvm::ConstantExpr::getIntToPtr(const_int, void_ptr_type());
   args.push_back(const_ptr);
 
   auto external_type = get_trampoline_type(internal_type, true);
@@ -1110,7 +1120,7 @@ llvm::FunctionType* IrGenerator::get_trampoline_type(
 
   if (reverse) {
     // Argument is pointer to C++ NativeFunction.
-    args.push_back(llvm::PointerType::get(int_type(), 0));
+    args.push_back(void_ptr_type());
   }
   else {
     // Argument is pointer to Yang code function.
@@ -1125,6 +1135,13 @@ y::size IrGenerator::get_trampoline_num_return_args(
   return
       return_type->isVoidTy() ? 0 :
       return_type->isVectorTy() ? return_type->getVectorNumElements() : 1;
+}
+
+llvm::Type* IrGenerator::void_ptr_type() const
+{
+  // LLVM doesn't have a built-in void pointer type, so just use a pointer
+  // to whatever.
+  return llvm::PointerType::get(int_type(), 0);
 }
 
 llvm::Type* IrGenerator::void_type() const

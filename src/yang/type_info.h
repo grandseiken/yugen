@@ -71,9 +71,9 @@ private:
   friend struct internal::TrampolineCall;
 
   template<typename, typename, typename>
-  friend struct ReverseTrampolineCallArgs;
+  friend struct internal::ReverseTrampolineCallArgs;
   template<typename, typename...>
-  friend struct ReverseTrampolineCallReturn;
+  friend struct internal::ReverseTrampolineCallReturn;
 
   template<typename>
   friend struct internal::ValueConstruct;
@@ -607,9 +607,11 @@ struct ReverseTrampolineCallArgs<
       const List<Brgs...>& args, void* global_data,
       const y::function<R(Function<S(Crgs...)>, Args...)>& target) const
   {
-    // TODO: global data needs to store a pointer to the instance! This is
-    // totally wrong. Can get rid of the default single integer, though.
-    Function<S(Crgs...)> fn_object(*(Instance*)(global_data));
+    // Standard guarantees that pointer to structure points to its first member,
+    // and the pointer to the program instance is always the first element of
+    // the global data structure; so, we can just cast it to an instance
+    // pointer.
+    Function<S(Crgs...)> fn_object(**(Instance**)(global_data));
     fn_object._function = y::get<0>(args);
 
     typedef Sublist<typename IndexRange<1, sizeof...(Brgs) - 1>::type,

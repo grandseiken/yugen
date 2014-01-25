@@ -37,10 +37,14 @@ y::int32 main(y::int32 argc, char** argv)
 
   yang::Context context;
   // TODO: test.
-  // TODO: make sure injecting functions which take arguments by const& works.
-  context.add_function(
-      "foo", y::function<yang::int32_vec<2>(yang::int32_vec<2>)>(
-          [](yang::int32_vec<2> a){return 2 * a;}));
+  typedef yang::Function<yang::int32_vec<2>(yang::int32_vec<2>)> vv_t;
+  auto foo = [](const yang::int32_vec<2>& a, vv_t f)
+  {
+    log_err("in native foo");
+    return 2 * a + f(a);
+  };
+  typedef y::function<yang::int32_vec<2>(yang::int32_vec<2>, vv_t)> foo_t;
+  context.add_function("foo", foo_t(foo));
   yang::Program program(context, path, contents);
   if (!program.success()) {
     return 1;

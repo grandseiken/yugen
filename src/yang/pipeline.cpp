@@ -209,8 +209,8 @@ Instance::Instance(const Program& program)
   , _global_data(y::null)
 {
   y::void_fp global_alloc = get_native_fp("!global_alloc");
-  typedef void* (*alloc_fp)();
-  _global_data = ((alloc_fp)global_alloc)();
+  typedef void* (*alloc_fp)(void*);
+  _global_data = ((alloc_fp)global_alloc)(this);
 }
 
 Instance::~Instance()
