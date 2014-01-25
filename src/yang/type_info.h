@@ -239,6 +239,27 @@ struct ValueConstruct<Function<R(Args...)>> {
   }
 };
 
+// Check that all Functions given in an argument list match some particular
+// program instance. Specialisation for function args is in pipeline.h.
+template<typename...>
+struct InstanceCheck {};
+template<>
+struct InstanceCheck<> {
+  bool operator()(const Instance&) const
+  {
+    return true;
+  }
+};
+template<typename A, typename... Args>
+struct InstanceCheck<A, Args...> {
+  bool operator()(const Instance& instance,
+                  const A&, const Args&... args) const
+  {
+    InstanceCheck<Args...> next;
+    return next(instance, args...);
+  }
+};
+
 // Boost's metaprogramming list implementation fakes variadic templates for
 // C++03 compatibility. This makes extracting the type-list directly as a
 // comma-separated type list for constructing e.g. function pointer types
@@ -558,7 +579,7 @@ template<typename, typename, typename>
 struct ReverseTrampolineCallArgs {};
 template<typename R>
 struct ReverseTrampolineCallArgs<R, List<>, List<>> {
-  R operator()(const List<>&, void*,
+  R operator()(const List<>&, Instance&,
                const y::function<R()>& target) const
   {
     return target();
@@ -566,14 +587,14 @@ struct ReverseTrampolineCallArgs<R, List<>, List<>> {
 };
 template<typename R, typename... Args, typename... Brgs, typename A>
 struct ReverseTrampolineCallArgs<R, List<A, Args...>, List<Brgs...>> {
-  R operator()(const List<Brgs...>& args, void* global_data,
+  R operator()(const List<Brgs...>& args, Instance& instance,
                const y::function<R(A, Args...)>& target) const
   {
     typedef Sublist<typename IndexRange<1, sizeof...(Brgs) - 1>::type,
                     List<Brgs...>> sublist;
     return ReverseTrampolineCallArgs<
         R, List<Args...>, typename sublist::type>()(
-        sublist()(args), global_data, bind_first(target, y::get<0>(args)));
+        sublist()(args), instance, bind_first(target, y::get<0>(args)));
   }
 };
 template<typename R, typename... Args, typename... Brgs,
@@ -581,7 +602,7 @@ template<typename R, typename... Args, typename... Brgs,
 struct ReverseTrampolineCallArgs<
     R, List<vec<T, N>, Args...>, List<Brgs...>> {
   template<y::size... I>
-  R helper(const List<Brgs...>& args, void* global_data,
+  R helper(const List<Brgs...>& args, Instance& instance,
            const y::function<R(vec<T, N>, Args...)>& target,
            const Indices<I...>&) const
   {
@@ -589,14 +610,14 @@ struct ReverseTrampolineCallArgs<
                     List<Brgs...>> sublist;
     return ReverseTrampolineCallArgs<
         R, List<Args...>, typename sublist::type>()(
-        sublist()(args), global_data,
+        sublist()(args), instance,
         bind_first(target, vec<T, N>(y::get<I>(args)...)));
   }
 
-  R operator()(const List<Brgs...>& args, void* global_data,
+  R operator()(const List<Brgs...>& args, Instance& instance,
                const y::function<R(vec<T, N>, Args...)>& target) const
   {
-    return helper(args, global_data, target, range<0, N>());
+    return helper(args, instance, target, range<0, N>());
   }
 };
 template<typename R, typename... Args, typename... Brgs,
@@ -604,21 +625,21 @@ template<typename R, typename... Args, typename... Brgs,
 struct ReverseTrampolineCallArgs<
     R, List<Function<S(Crgs...)>, Args...>, List<Brgs...>> {
   R operator()(
-      const List<Brgs...>& args, void* global_data,
+      const List<Brgs...>& args, Instance& instance,
       const y::function<R(Function<S(Crgs...)>, Args...)>& target) const
   {
     // Standard guarantees that pointer to structure points to its first member,
     // and the pointer to the program instance is always the first element of
     // the global data structure; so, we can just cast it to an instance
     // pointer.
-    Function<S(Crgs...)> fn_object(**(Instance**)(global_data));
+    Function<S(Crgs...)> fn_object(instance);
     fn_object._function = y::get<0>(args);
 
     typedef Sublist<typename IndexRange<1, sizeof...(Brgs) - 1>::type,
                     List<Brgs...>> sublist;
     return ReverseTrampolineCallArgs<
         R, List<Args...>, typename sublist::type>()(
-        sublist()(args), global_data, bind_first(target, fn_object));
+        sublist()(args), instance, bind_first(target, fn_object));
   }
 };
 
@@ -667,15 +688,27 @@ struct ReverseTrampolineCall<R(Args...), List<ReturnBrgs...>, List<Brgs...>> {
   static void call(ReturnBrgs... return_args, void* global_data, Brgs... args,
                    void* target)
   {
-    // TODO: need checking that functions returned to Yang reference the correct
-    // module.
+    // Standard guarantees that pointer to structure points to its first member,
+    // and the pointer to the program instance is always the first element of
+    // the global data structure; so, we can just cast it to an instance
+    // pointer.
+    Instance& instance = **(Instance**)global_data;
+
     typedef ReverseTrampolineCallReturn<R, ReturnBrgs...> return_type;
     typedef ReverseTrampolineCallArgs<
         R, List<Args...>, List<Brgs...>> args_type;
 
     auto f = (const NativeFunction<void>*)target;
     R result = args_type()(
-        List<Brgs...>(args...), global_data, f->get<R, Args...>());
+        List<Brgs...>(args...), instance, f->get<R, Args...>());
+
+    // Check C++ isn't returning a pointer to a function on a different program
+    // instance. If it is, we need to return *something*, so set result to
+    // default (null pointer), so that at least any use will probably fail fast.
+    InstanceCheck<R> instance_check;
+    if (!instance_check(instance, result)) {
+      result = ValueConstruct<R>()(instance);
+    }
     return_type()(result, return_args...);
   }
 };
@@ -685,11 +718,13 @@ template<typename... Args, typename... Brgs>
 struct ReverseTrampolineCall<void(Args...), List<>, List<Brgs...>> {
   static void call(void* global_data, Brgs... args, void* target)
   {
+    Instance& instance = **(Instance**)global_data;
+
     typedef ReverseTrampolineCallArgs<
         void, List<Args...>, List<Brgs...>> args_type;
 
     auto f = (const NativeFunction<void>*)target;
-    args_type()(List<Brgs...>(args...), global_data, f->get<void, Args...>());
+    args_type()(List<Brgs...>(args...), instance, f->get<void, Args...>());
   }
 };
 

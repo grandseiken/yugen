@@ -167,28 +167,8 @@ void Context::add_function(
 
 namespace internal {
 
-// Check that all Functions given in an argument list match some particular
-// program instance.
-template<typename...>
-struct InstanceCheck {};
-template<>
-struct InstanceCheck<> {
-  bool operator()(const Instance&) const
-  {
-    return true;
-  }
-};
-
-template<typename A, typename... Args>
-struct InstanceCheck<A, Args...> {
-  bool operator()(const Instance& instance,
-                  const A&, const Args&... args) const
-  {
-    InstanceCheck<Args...> next;
-    return next(instance, args...);
-  }
-};
-
+// Implementation of InstanceCheck for function args, which has to see the
+// definition of Instance.
 template<typename FR, typename... FArgs, typename... Args>
 struct InstanceCheck<Function<FR(FArgs...)>, Args...> {
   bool operator()(const Instance& instance,
