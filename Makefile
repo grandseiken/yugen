@@ -150,13 +150,13 @@ yedit: \
 add:
 	git add $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
 	    $(SOURCE_FILES) $(HEADER_FILES) $(DATA_FILES) \
-			$(PROTOS)
+			$(PROTOS) $(DEPEND_DIR)/yang
 .PHONY: todo
 todo:
 	@grep --color -n "T[O]D[O]" \
 	    $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
 	    $(SOURCE_FILES) $(HEADER_FILES) \
-			$(PROTOS)
+			$(PROTOS) $(DEPEND_DIR)/yang
 .PHONY: wc
 wc:
 	@echo Scripts and docs:
