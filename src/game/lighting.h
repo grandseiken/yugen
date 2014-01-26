@@ -5,7 +5,7 @@
 
 #include "../render/gl_handle.h"
 #include "../lua.h"
-#include "../vector.h"
+#include "../vec.h"
 
 class GlUtil;
 class RenderUtil;

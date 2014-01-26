@@ -373,7 +373,7 @@ void TilePanel::draw(RenderUtil& util) const
   y::ivec2 min = y::min(start, _tile_hover);
   y::ivec2 max = y::max(start, _tile_hover);
 
-  if (_tile_hover.in_region(y::ivec2(), t.get_size()) || is_dragging()) {
+  if (y::in_region(_tile_hover, y::ivec2(), t.get_size()) || is_dragging()) {
     min = y::max(min, {0, 0});
     max = y::min(max, t.get_size() - y::ivec2{1, 1});
     util.irender_outline(

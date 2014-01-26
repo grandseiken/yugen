@@ -4,9 +4,10 @@
 #include "../common/map.h"
 #include "../common/memory.h"
 #include "../common/set.h"
+#include "../common/string.h"
 #include "../common/utility.h"
 #include "../common/vector.h"
-#include "../vector.h"
+#include "../vec.h"
 #include <GL/glew.h>
 
 #define GL_TYPE(T, V) template<> struct GlType<T> {enum {type_enum = V};}

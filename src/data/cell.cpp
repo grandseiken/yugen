@@ -125,7 +125,7 @@ const CellMap::script_list& CellMap::get_scripts() const
 bool CellMap::has_script_at(const y::ivec2& v) const
 {
   for (const ScriptBlueprint& b : _scripts) {
-    if (v.in_region(b.min, y::ivec2{1, 1} + b.max - b.min)) {
+    if (y::in_region(v, b.min, y::ivec2{1, 1} + b.max - b.min)) {
       return true;
     }
   }
@@ -142,7 +142,7 @@ const ScriptBlueprint& CellMap::get_script_at(const y::ivec2& v) const
   const ScriptBlueprint* result = y::null;
   for (const ScriptBlueprint& b : _scripts) {
     y::ivec2 len = b.max - b.min;
-    if (v.in_region(b.min, y::ivec2{1, 1} + len)) {
+    if (y::in_region(v, b.min, y::ivec2{1, 1} + len)) {
       if (first || len[xx] * len[yy] <= min) {
         min = len[xx] * len[yy];
         result = &b;

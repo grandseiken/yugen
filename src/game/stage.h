@@ -9,7 +9,7 @@
 #include "../lua.h"
 #include "../modal.h"
 #include "../spatial_hash.h"
-#include "../vector.h"
+#include "../vec.h"
 
 #include <SFML/Window.hpp>
 

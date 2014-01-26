@@ -319,7 +319,7 @@ void RenderUtil::render_lines(const y::vector<line>& lines,
   y::size i = 0;
   for (const line& x : lines) {
     y::fvec2 normal =
-        y::fvec2::from_angle((x.b - x.a).angle() + float(y::pi / 2));
+        y::from_angle<float>(y::angle(x.b - x.a) + float(y::pi / 2));
 
     y::write_vector(tri_data, 8 * i, {
         x.a[xx], x.a[yy],

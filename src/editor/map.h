@@ -6,7 +6,7 @@
 #include "../common/memory.h"
 #include "../render/gl_handle.h"
 #include "../modal.h"
-#include "../vector.h"
+#include "../vec.h"
 
 #include <random>
 

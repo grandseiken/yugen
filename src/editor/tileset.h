@@ -2,7 +2,7 @@
 #define EDITOR_TILESET_H
 
 #include "../modal.h"
-#include "../vector.h"
+#include "../vec.h"
 
 class Databank;
 class Filesystem;

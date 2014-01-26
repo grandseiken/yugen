@@ -3,7 +3,7 @@
 
 #include "modal.h"
 #include "render/util.h"
-#include "vector.h"
+#include "vec.h"
 
 // List UI element.
 class UiList {

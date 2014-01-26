@@ -5,7 +5,7 @@
 #include "../common/map.h"
 #include "../common/set.h"
 #include "../log.h"
-#include "../vector.h"
+#include "../vec.h"
 #include <GL/glew.h>
 
 class Filesystem;

@@ -182,7 +182,7 @@ y::world get_arc_projection(
   // If any root t satisfies 0 <= t <= 1 then it is a block of the circle by
   // the line, so find the angle and limit.
   y::wvec2 g_vec = g.end - g.start;
-  y::world initial_angle = (vertex - origin).angle();
+  y::world initial_angle = y::angle(vertex - origin);
   auto limit = [&](y::world t)
   {
     static const y::world tolerance = 1.0 / 1024;
@@ -201,7 +201,7 @@ y::world get_arc_projection(
       return y::abs(rotation);
     }
 
-    y::world limiting_angle = impact_rel.angle();
+    y::world limiting_angle = y::angle(impact_rel);
     // Finds the (absolute) limiting rotation in the direction of rotation
     // (so it needs to be made negative again if the rotation is negative).
     y::world limiting_rotation =
@@ -468,10 +468,10 @@ void Body::get_vertices(y::vector<y::wvec2>& output,
     output.emplace_back(origin + dl);
   }
   else {
-    output.emplace_back(origin + ul.rotate(rotation));
-    output.emplace_back(origin + ur.rotate(rotation));
-    output.emplace_back(origin + dr.rotate(rotation));
-    output.emplace_back(origin + dl.rotate(rotation));
+    output.emplace_back(origin + y::rotate(ul, rotation));
+    output.emplace_back(origin + y::rotate(ur, rotation));
+    output.emplace_back(origin + y::rotate(dr, rotation));
+    output.emplace_back(origin + y::rotate(dl, rotation));
   }
 }
 
@@ -1082,7 +1082,7 @@ y::world Collision::collider_rotate_raw(
   // second half (for the player, at least).
   auto origin_displace = [&](y::world rotation)
   {
-    return origin_offset - origin_offset.rotate(rotation);
+    return origin_offset - y::rotate(origin_offset, rotation);
   };
 
   const entry_list& bodies = _data.get_list(source);

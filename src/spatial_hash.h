@@ -1,7 +1,7 @@
 #ifndef SPATIAL_HASH_H
 #define SPATIAL_HASH_H
 
-#include "vector.h"
+#include "vec.h"
 #include <boost/iterator/iterator_facade.hpp>
 
 // Container for fast lookup of objects in regions of space. T is the stored

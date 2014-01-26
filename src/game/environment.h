@@ -1,7 +1,7 @@
 #ifndef GAME_ENVIRONMENT_H
 #define GAME_ENVIRONMENT_H
 
-#include "../vector.h"
+#include "../vec.h"
 #include "../render/gl_handle.h"
 
 class GameRenderer;

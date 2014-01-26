@@ -4,7 +4,7 @@
 #include "../common/map.h"
 #include "../common/memory.h"
 #include "../save.h"
-#include "../vector.h"
+#include "../vec.h"
 
 class CellBlueprint;
 class Tileset;

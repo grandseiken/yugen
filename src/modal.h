@@ -5,7 +5,7 @@
 #include "common/ordered_set.h"
 #include "common/utility.h"
 #include "common/vector.h"
-#include "vector.h"
+#include "vec.h"
 
 namespace sf {
   class Event;

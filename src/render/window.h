@@ -2,9 +2,10 @@
 #define RENDER_WINDOW_H
 
 #include "../common/memory.h"
+#include "../common/string.h"
 #include "../common/utility.h"
 #include "../common/vector.h"
-#include "../vector.h"
+#include "../vec.h"
 
 struct Resolution {
   Resolution();

@@ -124,14 +124,14 @@ y_api(vec__length)
 y_api(vec__angle)
     y_arg(const y::wvec2, a) y_arg(const y::wvec2, b)
 {
-  y_return(a.angle(b));
+  y_return(y::angle(a, b));
 }
 
 y_api(vec__in_region)
     y_arg(const y::wvec2, v)
     y_arg(const y::wvec2, origin) y_arg(const y::wvec2, size)
 {
-  y_return(v.in_region(origin - size / 2, size));
+  y_return(y::in_region(v, origin - size / 2, size));
 }
 
 y_api(vec__abs)

@@ -593,7 +593,7 @@ void Camera::update(Script* focus)
   static const y::wvec2 camera_speed{2.5, 4.};
 
   // Rotate into camera-space so that movement respects rotation.
-  y::wvec2 target = (focus->get_origin() - _origin).rotate(_rotation);
+  y::wvec2 target = y::rotate(focus->get_origin() - _origin, _rotation);
 
   if (y::abs(target[xx]) < camera_deadzone[xx] / 2) {
     _is_moving_x = false;
@@ -615,7 +615,7 @@ void Camera::update(Script* focus)
                _is_moving_y ? 1. : 0.} * target * camera_speed *
       y::wvec2{target[xx] ? 1. / y::abs(target[xx]) : 0.,
                target[yy] ? 1. / y::abs(target[yy]) : 0.};
-  _origin += dir.rotate(-_rotation);
+  _origin += y::rotate(dir, -_rotation);
 }
 
 void Camera::move(const y::wvec2& move)
@@ -860,7 +860,7 @@ void GameStage::update()
                                      cell_switch_buffer} + Cell::cell_size));
   if (get_player()) {
     y::wvec2 p_origin = get_player()->get_origin();
-    if (!p_origin.in_region(origin, size)) {
+    if (!y::in_region(p_origin, origin, size)) {
       y::ivec2 move = y::ivec2(p_origin + y::wvec2{.5, .5}).euclidean_div(
                           Tileset::tile_size * Cell::cell_size);
       _world.move_active_window(move);

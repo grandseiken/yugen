@@ -4,7 +4,7 @@
 #include "../common/memory.h"
 #include "../render/gl_handle.h"
 #include "../save.h"
-#include "../vector.h"
+#include "../vec.h"
 
 #ifndef SPRITE_DEC
 #define SPRITE_DEC

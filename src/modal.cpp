@@ -234,7 +234,7 @@ bool PanelUi::event(const sf::Event& e)
   for (Panel* panel : _panels) {
     fx = o[xx] - panel->get_origin()[xx];
     fy = o[yy] - panel->get_origin()[yy];
-    if (y::ivec2{fx, fy}.in_region({0, 0}, panel->get_size())) {
+    if (y::in_region(y::ivec2{fx, fy}, {0, 0}, panel->get_size())) {
       if (panel->is_visible() && (panel->event(f) || panel->is_dragging())) {
         return !enter;
       }
@@ -297,7 +297,7 @@ void PanelUi::update_mouse_overs(bool in_window, const y::ivec2& v)
   for (Panel* panel : _panels) {
     bool old_over = _mouse_over.find(panel) != _mouse_over.end();
     bool new_over = in_window && first && panel->is_visible() &&
-        v.in_region(panel->get_origin(), panel->get_size());
+        y::in_region(v, panel->get_origin(), panel->get_size());
 
     y::ivec2 p = v - panel->get_origin();
     e.mouseMove.x = p[xx];

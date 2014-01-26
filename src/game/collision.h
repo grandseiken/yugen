@@ -3,7 +3,7 @@
 
 #include "../lua.h"
 #include "../spatial_hash.h"
-#include "../vector.h"
+#include "../vec.h"
 
 struct Body;
 class RenderUtil;

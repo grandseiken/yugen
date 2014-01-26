@@ -1,7 +1,7 @@
 #ifndef PERLIN_H
 #define PERLIN_H
 
-#include "vector.h"
+#include "vec.h"
 #include <random>
 
 // Default real [0, 1) generator.

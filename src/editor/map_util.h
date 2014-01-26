@@ -4,7 +4,7 @@
 #include "../data/cell.h"
 #include "../modal.h"
 #include "../ui_util.h"
-#include "../vector.h"
+#include "../vec.h"
 
 class CellMap;
 class Databank;

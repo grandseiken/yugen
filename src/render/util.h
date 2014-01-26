@@ -3,7 +3,7 @@
 
 #include "gl_handle.h"
 #include "../common/ordered_map.h"
-#include "../vector.h"
+#include "../vec.h"
 
 class GlUtil;
 

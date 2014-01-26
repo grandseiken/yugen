@@ -4,7 +4,7 @@
 #include "common/map.h"
 #include "common/set.h"
 #include "callback.h"
-#include "vector.h"
+#include "vec.h"
 #include "lua_types.h"
 
 class Filesystem;

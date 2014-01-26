@@ -984,8 +984,8 @@ void Lighting::make_cone_trace(light_trace& output, const light_trace& trace,
 {
   y::world min_angle = y::angle(angle - aperture);
   y::world max_angle = y::angle(angle + aperture);
-  y::wvec2 min = y::wvec2::from_angle(min_angle);
-  y::wvec2 max = y::wvec2::from_angle(max_angle);
+  y::wvec2 min = y::from_angle(min_angle);
+  y::wvec2 max = y::from_angle(max_angle);
 
   // We need to re-order the trace so that it doesn't have a big gap in the
   // middle; do this by detecting straight runs of points in the cone.
