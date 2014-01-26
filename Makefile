@@ -156,7 +156,7 @@ todo:
 	@grep --color -n "T[O]D[O]" \
 	    $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
 	    $(SOURCE_FILES) $(HEADER_FILES) \
-			$(PROTOS) $(DEPEND_DIR)/yang
+			$(PROTOS)
 .PHONY: wc
 wc:
 	@echo Scripts and docs:
