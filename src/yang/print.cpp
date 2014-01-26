@@ -23,24 +23,25 @@ void AstPrinter::infix(const Node&, const result_list&)
 {
 }
 
-y::string AstPrinter::visit(const Node& node, const result_list& results)
+std::string AstPrinter::visit(const Node& node, const result_list& results)
 {
-  y::string s = Node::op_string(node.type);
-  y::string type_id = node.string_value.length() ? " " + node.string_value : "";
+  std::string s = Node::op_string(node.type);
+  std::string type_id =
+      node.string_value.length() ? " " + node.string_value : "";
 
   switch (node.type) {
     case Node::TYPE_VOID:
       return "void" + type_id;
     case Node::TYPE_INT:
       return "int" +
-          (node.int_value > 1 ? y::to_string(node.int_value) : "") + type_id;
+          (node.int_value > 1 ? std::to_string(node.int_value) : "") + type_id;
     case Node::TYPE_WORLD:
       return "world" +
-          (node.int_value > 1 ? y::to_string(node.int_value) : "") + type_id;
+          (node.int_value > 1 ? std::to_string(node.int_value) : "") + type_id;
     case Node::TYPE_FUNCTION:
     {
-      y::string r = results[0] + "(";
-      for (y::size i = 1; i < results.size(); ++i) {
+      std::string r = results[0] + "(";
+      for (std::size_t i = 1; i < results.size(); ++i) {
         if (i > 1) {
           r += ", ";
         }
@@ -51,15 +52,15 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
 
     case Node::PROGRAM:
     {
-      y::string s = "";
-      for (const y::string r : results) {
+      std::string s = "";
+      for (const std::string r : results) {
         s += r + '\n';
       }
       return s;
     }
     case Node::GLOBAL:
       return (node.int_value ? "export " : "") +
-          y::string("global\n") + results[0];
+          std::string("global\n") + results[0];
     case Node::GLOBAL_ASSIGN:
       return (node.int_value ? "export " : "") +
           node.string_value + " = " + results[0];
@@ -69,8 +70,8 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
     case Node::BLOCK:
     {
       --_indent;
-      y::string s = "";
-      for (y::size i = 0; i < results.size(); ++i) {
+      std::string s = "";
+      for (std::size_t i = 0; i < results.size(); ++i) {
         s += results[i];
       }
       return indent() + "{\n" + s + indent() + "}";
@@ -83,7 +84,8 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
       return indent() + "return " + results[0] + ";\n";
     case Node::IF_STMT:
     {
-      y::string s = indent() + "if (" + results[0] + ")\n" + results[1] + "\n";
+      std::string s =
+          indent() + "if (" + results[0] + ")\n" + results[1] + "\n";
       if (results.size() > 2) {
         s += indent() + "else\n" + results[2] + "\n";
       }
@@ -104,16 +106,16 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
     case Node::IDENTIFIER:
       return node.string_value;
     case Node::INT_LITERAL:
-      return y::to_string(node.int_value);
+      return std::to_string(node.int_value);
     case Node::WORLD_LITERAL:
-      return y::to_string(node.world_value);
+      return std::to_string(node.world_value);
 
     case Node::TERNARY:
       return "(" + results[0] + " ? " + results[1] + " : " + results[2] + ")";
     case Node::CALL:
     {
-      y::string s = "(" + results[0] + "(";
-      for (y::size i = 1; i < results.size(); ++i) {
+      std::string s = "(" + results[0] + "(";
+      for (std::size_t i = 1; i < results.size(); ++i) {
         if (i > 1) {
           s += ", ";
         }
@@ -183,8 +185,8 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
 
     case Node::VECTOR_CONSTRUCT:
     {
-      y::string output = "";
-      for (const y::string& s : results) {
+      std::string output = "";
+      for (const std::string& s : results) {
         if (output.length()) {
           output += ", ";
         }
@@ -200,9 +202,9 @@ y::string AstPrinter::visit(const Node& node, const result_list& results)
   }
 }
 
-y::string AstPrinter::indent() const
+std::string AstPrinter::indent() const
 {
-  return y::string(2 * _indent, ' ');
+  return std::string(2 * _indent, ' ');
 }
 
 // End namespace yang::internal.

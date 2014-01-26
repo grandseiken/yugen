@@ -1,11 +1,13 @@
 #include "static.h"
-#include "../common/algorithm.h"
+
+#include <unordered_set>
+#include <vector>
 #include "../log.h"
 
 namespace std {
   template<>
   struct hash<yang::internal::StaticChecker::metadata> {
-    y::size operator()(yang::internal::StaticChecker::metadata v) const
+    std::size_t operator()(yang::internal::StaticChecker::metadata v) const
     {
       return v;
     }
@@ -108,7 +110,7 @@ void StaticChecker::infix(const Node& node, const result_list& results)
       // Functions need three symbol table frames: one to store the function's
       // enclosing-function-reference overrides; one for arguments; and one for
       // the body. The immediate-name-assign hack goes in the previous frame.
-      y::set<y::string> locals;
+      std::unordered_set<std::string> locals;
       _symbol_table.get_symbols(locals, 1, _symbol_table.size());
       // Do the recursive hack.
       if (_immediate_left_assign.length()) {
@@ -122,21 +124,21 @@ void StaticChecker::infix(const Node& node, const result_list& results)
       // bunch of overrides into an intermediate stack frame to avoid the locals
       // from the enclosing scope being referenced, if any.
       // Starting at frame 1 finds all names except globals.
-      for (const y::string& s : locals) {
+      for (const std::string& s : locals) {
         _symbol_table.add(s, Type::ENCLOSING_FUNCTION);
       }
 
       // Do the arguments.
       _symbol_table.push();
       if (!t.is_error()) {
-        y::set<y::string> arg_names;
-        y::size elem = 0;
+        std::unordered_set<std::string> arg_names;
+        std::size_t elem = 0;
         for (const auto& ptr : node.children[0]->children) {
           if (!elem) {
             ++elem;
             continue;
           }
-          const y::string& name = ptr->string_value;
+          const std::string& name = ptr->string_value;
           if (!name.length()) {
             error(node, "function with unnamed argument");
             continue;
@@ -163,8 +165,8 @@ void StaticChecker::infix(const Node& node, const result_list& results)
 
 Type StaticChecker::visit(const Node& node, const result_list& results)
 {
-  y::string s = "`" + Node::op_string(node.type) + "`";
-  y::vector<y::string> rs;
+  std::string s = "`" + Node::op_string(node.type) + "`";
+  std::vector<std::string> rs;
   for (Type t : results) {
     rs.push_back(t.string());
   }
@@ -186,7 +188,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::TYPE_FUNCTION:
     {
       Type t(Type::FUNCTION, results[0]);
-      for (y::size i = 1; i < results.size(); ++i) {
+      for (std::size_t i = 1; i < results.size(); ++i) {
         if (!results[i].not_void()) {
           error(node, "function type with `void` argument type");
         }
@@ -347,7 +349,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
           (!results[1].is_vector() || !results[2].is_vector() ||
            results[0].count() != results[1].count() ||
            results[0].count() != results[2].count())) {
-        error(node, "length-" + y::to_string(results[0].count()) +
+        error(node, "length-" + std::to_string(results[0].count()) +
                     " vectorised branch applied to " +
                     rs[1] + " and " + rs[2]);
       }
@@ -360,13 +362,13 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       }
       if (!results[0].element_size(results.size())) {
         error(node, rs[0] + " called with " +
-                    y::to_string(results.size() - 1) + " argument(s)");
+                    std::to_string(results.size() - 1) + " argument(s)");
       }
       else {
-        for (y::size i = 1; i < results.size(); ++i) {
+        for (std::size_t i = 1; i < results.size(); ++i) {
           if (!results[0].element_is(i, results[i])) {
             error(node, rs[0] + " called with " + rs[i] +
-                        " in position " + y::to_string(i - 1));
+                        " in position " + std::to_string(i - 1));
           }
         }
       }
@@ -387,7 +389,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
       else if (!results[0].is_int() || !results[1].is_int()) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
       }
-      return Type(Type::INT, y::max(results[0].count(), results[1].count()));
+      return Type(Type::INT, std::max(results[0].count(), results[1].count()));
 
     case Node::POW:
     case Node::MOD:
@@ -404,7 +406,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         return Type::ERROR;
       }
       return Type(results[0].base(),
-                  y::max(results[0].count(), results[1].count()));
+                  std::max(results[0].count(), results[1].count()));
 
     case Node::EQ:
     case Node::NE:
@@ -422,7 +424,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
                !(results[0].is_world() && results[1].is_world())) {
         error(node, s + " applied to " + rs[0] + " and " + rs[1]);
       }
-      return Type(Type::INT, y::max(results[0].count(), results[1].count()));
+      return Type(Type::INT, std::max(results[0].count(), results[1].count()));
 
     case Node::FOLD_LOGICAL_OR:
     case Node::FOLD_LOGICAL_AND:
@@ -526,7 +528,7 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
         // Symbol has already been added by immediate-name-assign recursion
         // hack. But, we may need to make it non-const and enter it in the
         // global symbol table.
-        y::size index = inside_function() * (_symbol_table.size() - 1);
+        std::size_t index = inside_function() * (_symbol_table.size() - 1);
         _symbol_table.get(node.string_value, index).set_const(
             node.type == Node::ASSIGN_CONST);
         if (!inside_function()) {
@@ -565,9 +567,9 @@ Type StaticChecker::visit(const Node& node, const result_list& results)
     case Node::VECTOR_CONSTRUCT:
     {
       Type t = results[0];
-      y::string ts;
+      std::string ts;
       bool unify_error = false;
-      for (y::size i = 0; i < results.size(); ++i) {
+      for (std::size_t i = 0; i < results.size(); ++i) {
         if (!results[i].primitive()) {
           error(node, s + " element with non-primitive type " + rs[i]);
           t = Type::ERROR;
@@ -614,7 +616,7 @@ bool StaticChecker::inside_function() const
 {
   return _metadata.has(RETURN_TYPE);
 }
-  
+
 bool StaticChecker::use_function_immediate_assign_hack(const Node& node) const
 {
   // Node should be type GLOBAL_ASSIGN, ASSIGN_VAR or ASSIGN_CONST.
@@ -622,13 +624,14 @@ bool StaticChecker::use_function_immediate_assign_hack(const Node& node) const
 }
 
 void StaticChecker::add_symbol_checking_collision(
-    const Node& node, const y::string& name, const Type& type)
+    const Node& node, const std::string& name, const Type& type)
 {
   add_symbol_checking_collision(node, name, _symbol_table.size() - 1, type);
 }
 
 void StaticChecker::add_symbol_checking_collision(
-    const Node& node, const y::string& name, y::size index, const Type& type)
+    const Node& node, const std::string& name, std::size_t index,
+    const Type& type)
 {
   if (_symbol_table.has(name, index)) {
     // Skipping on error is debatable as to whether it really skips
@@ -642,10 +645,10 @@ void StaticChecker::add_symbol_checking_collision(
   _symbol_table.add(name, index, type);
 }
 
-void StaticChecker::error(const Node& node, const y::string& message)
+void StaticChecker::error(const Node& node, const std::string& message)
 {
   _errors = true;
-  y::string m = message;
+  std::string m = message;
   if (_current_function.length()) {
     m = "in function `" + _current_function + "`: " + m;
   }

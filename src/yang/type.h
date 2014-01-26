@@ -1,9 +1,8 @@
 #ifndef YANG__TYPE_H
 #define YANG__TYPE_H
 
-#include "../common/math.h"
-#include "../common/string.h"
-#include "../common/vector.h"
+#include <string>
+#include <vector>
 
 namespace yang {
 
@@ -19,7 +18,7 @@ class Type {
 public:
 
   // Return a string representation of the type.
-  y::string string() const;
+  std::string string() const;
 
   // Type qualifiers.
   bool is_exported() const;
@@ -34,17 +33,17 @@ public:
   bool is_vector() const;
   bool is_int_vector() const;
   bool is_world_vector() const;
-  y::size get_vector_size() const;
+  std::size_t get_vector_size() const;
 
   // Function types.
   bool is_function() const;
-  y::size get_function_num_args() const;
+  std::size_t get_function_num_args() const;
   const Type& get_function_return_type() const;
-  const Type& get_function_arg_type(y::size index) const;
+  const Type& get_function_arg_type(std::size_t index) const;
 
   // User types.
   bool is_user_type() const;
-  const y::string& get_user_type_name() const;
+  const std::string& get_user_type_name() const;
 
   bool operator==(const Type& t) const;
   bool operator!=(const Type& t) const;
@@ -70,9 +69,9 @@ private:
   bool _exported;
   bool _const;
   type_base _base;
-  y::size _count;
-  y::vector<Type> _elements;
-  y::string _user_type_name;
+  std::size_t _count;
+  std::vector<Type> _elements;
+  std::string _user_type_name;
   static Type void_type;
 
 };
@@ -83,7 +82,7 @@ private:
 namespace std {
   template<>
   struct hash<yang::Type> {
-    y::size operator()(const yang::Type& type) const;
+    std::size_t operator()(const yang::Type& type) const;
   };
 }
 

@@ -1,6 +1,5 @@
 %{
 
-#include "../../src/common/algorithm.h"
 #include "../../src/yang/ast.h"
 #include "yang.y.h"
 
@@ -12,13 +11,13 @@ int yang_error(const char* message);
 
 namespace {
 
-  int lexer_input(char* buffer, y::size* bytes_read, y::size bytes_max)
+  int lexer_input(char* buffer, std::size_t* bytes_read, std::size_t bytes_max)
   {
-    const y::string& in = *yang::internal::ParseGlobals::lexer_input_contents;
-    y::size& offset = yang::internal::ParseGlobals::lexer_input_offset;
+    const std::string& in = *yang::internal::ParseGlobals::lexer_input_contents;
+    std::size_t& offset = yang::internal::ParseGlobals::lexer_input_offset;
 
-    *bytes_read = y::min(bytes_max, in.length() - offset);
-    for (y::size i = 0; i < *bytes_read; ++i) {
+    *bytes_read = std::min(bytes_max, in.length() - offset);
+    for (std::size_t i = 0; i < *bytes_read; ++i) {
       buffer[i] = in[i + offset];
     }
     offset += *bytes_read;
@@ -106,7 +105,7 @@ int0 {
   return T_TYPE_LITERAL;
 }
 int{vector_size} {
-  yang_lval.node = new Node(Node::TYPE_INT, y::stoi(3 + yang_text));
+  yang_lval.node = new Node(Node::TYPE_INT, std::stoi(3 + yang_text));
   return T_TYPE_LITERAL;
 }
 world {
@@ -118,7 +117,7 @@ world0 {
   return T_TYPE_LITERAL;
 }
 world{vector_size} {
-  yang_lval.node = new Node(Node::TYPE_WORLD, y::stoi(5 + yang_text));
+  yang_lval.node = new Node(Node::TYPE_WORLD, std::stoi(5 + yang_text));
   return T_TYPE_LITERAL;
 }
 
@@ -184,11 +183,11 @@ false {
   return T_IDENTIFIER;
 }
 {int_literal} {
-  yang_lval.node = new Node(Node::INT_LITERAL, y::stoi(yang_text));
+  yang_lval.node = new Node(Node::INT_LITERAL, std::stoi(yang_text));
   return T_INT_LITERAL;
 }
 {world_literal} {
-  yang_lval.node = new Node(Node::WORLD_LITERAL, y::stod(yang_text));
+  yang_lval.node = new Node(Node::WORLD_LITERAL, std::stod(yang_text));
   return T_WORLD_LITERAL;
 }
 

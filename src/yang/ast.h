@@ -1,11 +1,11 @@
 #ifndef YANG__AST_H
 #define YANG__AST_H
 
-#include "../common/math.h"
-#include "../common/memory.h"
-#include "../common/set.h"
-#include "../common/string.h"
-#include "../common/vector.h"
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <vector>
+#include "typedefs.h"
 
 namespace yang {
 namespace internal {
@@ -95,50 +95,50 @@ struct Node {
 
   // Child nodes passed to constructors or add transfer ownership, and are
   // destroyed when the parent is destroyed. These would take explicit
-  // y::unique<Node> parameters but for sake of brevity in the parser.
+  // unique_ptr<Node> parameters but for sake of brevity in the parser.
   Node(node_type type);
   Node(node_type type, Node* a);
   Node(node_type type, Node* a, Node* b);
   Node(node_type type, Node* a, Node* b, Node* c);
 
-  Node(node_type type, y::int32 value);
-  Node(node_type type, y::world value);
-  Node(node_type type, y::string value);
+  Node(node_type type, yang::int_t value);
+  Node(node_type type, yang::float_t value);
+  Node(node_type type, const std::string& value);
 
   void add_front(Node* node);
   void add(Node* node);
 
   // Information about the location of this Node in the source text, for
   // diagnostic purposes.
-  y::size line;
-  y::string text;
+  std::size_t line;
+  std::string text;
 
   // Type and children.
   node_type type;
-  y::vector<y::unique<Node>> children;
+  std::vector<std::unique_ptr<Node>> children;
 
   // Literal values.
-  y::int32 int_value;
-  y::world world_value;
-  y::string string_value;
+  yang::int_t int_value;
+  yang::float_t world_value;
+  std::string string_value;
 
   // Get the human-readable text of an operator.
-  static y::string op_string(node_type t);
+  static std::string op_string(node_type t);
 
   // If parsing aborts half-way due to a syntax error, Nodes allocated by the
   // parser will leak. To avoid this, we keep a set of Nodes which have been
   // allocated but not inserted as children so they can be freed later.
-  static y::set<Node*> orphans;
+  static std::unordered_set<Node*> orphans;
 };
 
 struct ParseGlobals {
-  static const y::string* lexer_input_contents;
-  static y::size lexer_input_offset;
+  static const std::string* lexer_input_contents;
+  static std::size_t lexer_input_offset;
 
   static Node* parser_output;
-  static y::vector<y::string> errors;
-  static y::string error(
-      y::size line, const y::string& token, const y::string& message);
+  static std::vector<std::string> errors;
+  static std::string error(
+      std::size_t line, const std::string& token, const std::string& message);
 };
 
 // End namespace yang::internal.

@@ -1,8 +1,9 @@
 #ifndef YANG__NATIVE_H
 #define YANG__NATIVE_H
 
-#include "../common/function.h"
-#include "../common/memory.h"
+#include <functional>
+#include <memory>
+#include "typedefs.h"
 #include "type.h"
 
 namespace yang {
@@ -32,13 +33,13 @@ protected:
 
 struct GenericNativeType {
   GenericNativeType()
-    : obj(y::null) {}
+    : obj(nullptr) {}
   ~GenericNativeType() {}
 
   GenericNativeType(GenericNativeType&&) = default;
   GenericNativeType& operator=(GenericNativeType&&) = default;
 
-  y::unique<NativeType<void>> obj;
+  std::unique_ptr<NativeType<void>> obj;
 };
 
 template<typename T>
@@ -75,7 +76,7 @@ public:
   // template arguments are correct; i.e. that the dynamic type of this object
   // really is a NativeFunction<R(Args...)>.
   template<typename R, typename... Args>
-  const y::function<R(Args...)>& get() const;
+  const std::function<R(Args...)>& get() const;
 
 };
 
@@ -83,22 +84,22 @@ public:
 // made available via a Context.
 struct GenericNativeFunction {
   GenericNativeFunction()
-    : ptr(y::null) {}
+    : ptr(nullptr) {}
   ~GenericNativeFunction() {}
 
   GenericNativeFunction(GenericNativeFunction&&) = default;
   GenericNativeFunction& operator=(GenericNativeFunction&&) = default;
 
   yang::Type type;
-  y::unique<NativeFunction<void>> ptr;
-  y::void_fp trampoline_ptr;
+  std::unique_ptr<NativeFunction<void>> ptr;
+  yang::void_fp trampoline_ptr;
 };
 
 template<typename R, typename... Args>
 class NativeFunction<R(Args...)> : public NativeFunction<void> {
 public:
 
-  typedef y::function<R(Args...)> function_type;
+  typedef std::function<R(Args...)> function_type;
   NativeFunction(const function_type& function);
   ~NativeFunction() override {}
 
@@ -123,7 +124,7 @@ const void** NativeType<T*>::id() const
 }
 
 template<typename T>
-const void* NativeType<T*>::_id = y::null;
+const void* NativeType<T*>::_id = nullptr;
 
 template<typename R, typename... Args>
 NativeFunction<R(Args...)>::NativeFunction(const function_type& function)
@@ -132,7 +133,7 @@ NativeFunction<R(Args...)>::NativeFunction(const function_type& function)
 }
 
 template<typename R, typename... Args>
-const y::function<R(Args...)>& NativeFunction<void>::get() const
+const std::function<R(Args...)>& NativeFunction<void>::get() const
 {
   return ((NativeFunction<R(Args...)>*)this)->_function;
 }

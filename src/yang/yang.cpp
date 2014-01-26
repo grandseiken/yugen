@@ -1,22 +1,21 @@
-#include "../common/io.h"
-#include "../common/math.h"
-#include "../log.h"
-
-#include "pipeline.h"
+#include <iostream>
 #include <fstream>
+
+#include "../log.h"
+#include "pipeline.h"
 
 template<typename T>
 using Fn = yang::Function<T>;
 
-y::int32 main(y::int32 argc, char** argv)
+int main(int argc, char** argv)
 {
   if (argc < 2) {
     log_err("No input file specified");
     return 1;
   }
 
-  y::string path = argv[1];
-  y::string contents;
+  std::string path = argv[1];
+  std::string contents;
   try {
     std::ifstream file(path, std::ios::in | std::ios::binary);
     if (!file) {
@@ -44,15 +43,15 @@ y::int32 main(y::int32 argc, char** argv)
   };
   context.register_type<Test>("Test");
   context.register_type<Test>("Test2");
-  context.register_function("get_test", y::function<Test*()>(get_test));
+  context.register_function("get_test", std::function<Test*()>(get_test));
 
-  typedef Fn<yang::int32_vec<2>(yang::int32_vec<2>)> vv_t;
-  auto foo = [](const yang::int32_vec<2>& a, vv_t f)
+  typedef Fn<yang::ivec_t<2>(yang::ivec_t<2>)> vv_t;
+  auto foo = [](const yang::ivec_t<2>& a, vv_t f)
   {
     log_err("in native foo");
     return 2 * a + f(a);
   };
-  typedef y::function<yang::int32_vec<2>(yang::int32_vec<2>, vv_t)> foo_t;
+  typedef std::function<yang::ivec_t<2>(yang::ivec_t<2>, vv_t)> foo_t;
   context.register_function("foo", foo_t(foo));
 
   yang::Program program(context, path, contents);
@@ -74,7 +73,7 @@ y::int32 main(y::int32 argc, char** argv)
   // TODO: test.
   yang::Instance instance(program);
   log_info("p((2, 3)): ",
-           instance.call<yang::int32_vec<2>>("p", yang::int32_vec<2>(2, 3)));
+           instance.call<yang::ivec_t<2>>("p", yang::ivec_t<2>(2, 3)));
   return 0;
 }
 

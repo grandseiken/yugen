@@ -1,12 +1,15 @@
 #ifndef YANG__IRGEN_H
 #define YANG__IRGEN_H
 
-#include "../common/function.h"
+#include <functional>
+#include <unordered_map>
+#include <string>
+
+#include "typedefs.h"
 #include "native.h"
 #include "table.h"
 #include "type.h"
 #include "walker.h"
-
 #include <llvm/IR/IRBuilder.h>
 
 namespace llvm {
@@ -35,8 +38,8 @@ struct IrGeneratorUnion {
 class IrGenerator : public ConstAstWalker<IrGeneratorUnion> {
 public:
 
-  typedef y::map<y::string, yang::Type> symbol_frame;
-  typedef y::map<y::string, GenericNativeFunction> context_frame;
+  typedef std::unordered_map<std::string, yang::Type> symbol_frame;
+  typedef std::unordered_map<std::string, GenericNativeFunction> context_frame;
 
   IrGenerator(llvm::Module& module, llvm::ExecutionEngine& engine,
               symbol_frame& globals, const context_frame& context_functions);
@@ -47,7 +50,7 @@ public:
   // walked!
   void emit_global_functions();
 
-  typedef y::map<yang::Type, llvm::Function*> trampoline_map;
+  typedef std::unordered_map<yang::Type, llvm::Function*> trampoline_map;
   const trampoline_map& get_trampoline_map() const;
 
 protected:
@@ -60,7 +63,7 @@ private:
 
   // Get an LLVM function pointer to a native function.
   llvm::Function* get_native_function(
-      const y::string& name, y::void_fp native_fp,
+      const std::string& name, yang::void_fp native_fp,
       llvm::FunctionType* type) const;
 
   // Tools for functions and calling conventions.
@@ -72,32 +75,32 @@ private:
   // Generate trampoline function for converting LLVM calling convention to C
   // calling convention.
   llvm::Function* create_reverse_trampoline_function(
-      const y::string& name, const GenericNativeFunction& native_function);
+      const std::string& name, const GenericNativeFunction& native_function);
   // Get the trampoline type used either way.
   llvm::FunctionType* get_trampoline_type(
       llvm::FunctionType* function_type, bool reverse) const;
-  y::size get_trampoline_num_return_args(llvm::Type* return_type) const;
+  std::size_t get_trampoline_num_return_args(llvm::Type* return_type) const;
 
   // General helper functions.
   llvm::Type* void_ptr_type() const;
   llvm::Type* void_type() const;
   llvm::Type* int_type() const;
   llvm::Type* world_type() const;
-  llvm::Type* vector_type(llvm::Type* type, y::size n) const;
+  llvm::Type* vector_type(llvm::Type* type, std::size_t n) const;
 
-  llvm::Constant* constant_int(y::int32 value) const;
-  llvm::Constant* constant_world(y::world value) const;
+  llvm::Constant* constant_int(yang::int_t value) const;
+  llvm::Constant* constant_world(yang::float_t value) const;
   llvm::Constant* constant_vector(
-      const y::vector<llvm::Constant*>& values) const;
-  llvm::Constant* constant_vector(llvm::Constant* value, y::size n) const;
+      const std::vector<llvm::Constant*>& values) const;
+  llvm::Constant* constant_vector(llvm::Constant* value, std::size_t n) const;
 
   llvm::Value* i2b(llvm::Value* v);
   llvm::Value* b2i(llvm::Value* v);
   llvm::Value* i2w(llvm::Value* v);
   llvm::Value* w2i(llvm::Value* v);
 
-  llvm::Value* global_ptr(llvm::Value* ptr, y::size index);
-  llvm::Value* global_ptr(const y::string& name);
+  llvm::Value* global_ptr(llvm::Value* ptr, std::size_t index);
+  llvm::Value* global_ptr(const std::string& name);
 
   // Power implementation.
   llvm::Value* pow(llvm::Value* v, llvm::Value* u);
@@ -107,10 +110,10 @@ private:
 
   llvm::Value* binary(
       llvm::Value* left, llvm::Value* right,
-      y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op);
+      std::function<llvm::Value*(llvm::Value*, llvm::Value*)> op);
   llvm::Value* fold(
       llvm::Value* value,
-      y::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
+      std::function<llvm::Value*(llvm::Value*, llvm::Value*)> op,
       bool to_bool = false, bool with_ands = false, bool right_assoc = false);
 
   // Convert back and forth between equivalent Yang and LLVM types.
@@ -142,17 +145,17 @@ private:
   };
 
   // Create block and insert in the metadata table.
-  llvm::BasicBlock* create_block(metadata meta, const y::string& name);
+  llvm::BasicBlock* create_block(metadata meta, const std::string& name);
 
   // List of static initialisation functions.
-  y::vector<llvm::Function*> _global_inits;
+  std::vector<llvm::Function*> _global_inits;
   // Map from global name to index in the global structure.
-  y::map<y::string, y::size> _global_numbering;
+  std::unordered_map<std::string, std::size_t> _global_numbering;
   // Type of the global structure.
   llvm::Type* _global_data;
 
   // Data for the global context (a backup symbol table frame, essentially).
-  y::map<y::string, llvm::Value*> _context_functions;
+  std::unordered_map<std::string, llvm::Value*> _context_functions;
 
   // Generated trampolines (map from type of function to corresponding
   // trampoline function).
@@ -166,10 +169,10 @@ private:
   // correspond to actual source code symbols; this way we can add scopes
   // that automatically pop metadata without interfering with scope lookup.
   friend std::hash<metadata>;
-  SymbolTable<y::string, llvm::Value*> _symbol_table;
+  SymbolTable<std::string, llvm::Value*> _symbol_table;
   SymbolTable<metadata, llvm::Value*> _metadata;
   // Metadata that isn't an llvm::Value.
-  y::string _immediate_left_assign;
+  std::string _immediate_left_assign;
 
 };
 

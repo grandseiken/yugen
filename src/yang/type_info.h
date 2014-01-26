@@ -1,11 +1,10 @@
 #ifndef YANG__TYPE_INFO_H
 #define YANG__TYPE_INFO_H
 
-#include "../common/function.h"
-#include "../common/math.h"
-#include "../common/tuple.h"
+#include <functional>
+#include <tuple>
+
 #include "../log.h"
-#include "../vector.h"
 #include "native.h"
 #include "type.h"
 
@@ -18,7 +17,7 @@ class Program;
 namespace internal {
 
 // Some indirection to avoid defining InstanceCheck in a weird place.
-const y::string& get_instance_name(const Instance& instance);
+const std::string& get_instance_name(const Instance& instance);
 const Program& get_instance_program(const Instance& instance);
 
 template<typename>
@@ -40,15 +39,6 @@ struct ReverseTrampolineCallReturn;
 
 // End namespace internal.
 }
-
-typedef y::int32 int32;
-typedef y::world world;
-template<typename T, y::size N, typename = y::enable_if<(N > 1)>>
-using vec = y::vec<T, N>;
-template<y::size N, typename = y::enable_if<(N > 1)>>
-using int32_vec = y::vec<int32, N>;
-template<y::size N, typename = y::enable_if<(N > 1)>>
-using world_vec = y::vec<world, N>;
 
 // Opaque Yang function object.
 template<typename T>
@@ -93,10 +83,10 @@ private:
   friend class Instance;
 
   Function(Instance& instance)
-    : _function(y::null)
+    : _function(nullptr)
     , _instance(&instance) {}
 
-  y::void_fp _function;
+  yang::void_fp _function;
   Instance* _instance;
 
 };
@@ -143,7 +133,7 @@ struct TypeInfo<void> {
 };
 
 template<>
-struct TypeInfo<yang::int32> {
+struct TypeInfo<yang::int_t> {
   yang::Type operator()(const Context&) const
   {
     yang::Type t;
@@ -153,7 +143,7 @@ struct TypeInfo<yang::int32> {
 };
 
 template<>
-struct TypeInfo<yang::world> {
+struct TypeInfo<yang::float_t> {
   yang::Type operator()(const Context&) const
   {
     yang::Type t;
@@ -162,8 +152,8 @@ struct TypeInfo<yang::world> {
   }
 };
 
-template<y::size N>
-struct TypeInfo<int32_vec<N>> {
+template<std::size_t N>
+struct TypeInfo<ivec_t<N>> {
   yang::Type operator()(const Context&) const
   {
     yang::Type t;
@@ -173,8 +163,8 @@ struct TypeInfo<int32_vec<N>> {
   }
 };
 
-template<y::size N>
-struct TypeInfo<world_vec<N>> {
+template<std::size_t N>
+struct TypeInfo<fvec_t<N>> {
   yang::Type operator()(const Context&) const
   {
     yang::Type t;
@@ -187,12 +177,12 @@ struct TypeInfo<world_vec<N>> {
 // Templating TypeInfo on Function<R(Args...)> leads to ugly code, e.g. to
 // retrieve a Function object for a function of Yang type int()():
 //
-//   auto f = instance.get_function<Function<Function<yang::int32()>()>>("f");
+//   auto f = instance.get_function<Function<Function<yang::int_t()>()>>("f");
 //
 // It's tempting to think we could template simply on R(Args...) instead, but
 // that leads to the syntax:
 //
-//   auto f = instance.get_function<yang::int32()()>("f");
+//   auto f = instance.get_function<yang::int_t()()>("f");
 //
 // which, since C++ functions can only return *pointers* to other functions, is
 // unfortunately illegal. For now, the only option right now is judicious use
@@ -232,7 +222,7 @@ struct ValueConstruct {
   }
 
   template<typename U>
-  void set_void_fp(U&, y::void_fp ptr) const
+  void set_void_fp(U&, yang::void_fp ptr) const
   {
     static_assert(sizeof(U) != sizeof(U), "use of non-function type");
   }
@@ -245,7 +235,7 @@ struct ValueConstruct<Function<R(Args...)>> {
     return Function<R(Args...)>(instance);
   }
 
-  void set_void_fp(Function<R(Args...)>& function, y::void_fp ptr) const
+  void set_void_fp(Function<R(Args...)>& function, yang::void_fp ptr) const
   {
     function._function = ptr;
   }
@@ -307,29 +297,29 @@ struct InstanceCheck<Function<FR(FArgs...)>, Args...> {
 // comma-separated type list for constructing e.g. function pointer types
 // difficult.
 template<typename... T>
-using List = y::tuple<T...>;
+using List = std::tuple<T...>;
 template<typename... T>
 void ignore(const T&...) {}
 
 // Integer pack range.
-template<y::size... N>
+template<std::size_t... N>
 struct Indices {};
-template<y::size Min, y::size N, y::size... I>
+template<std::size_t Min, std::size_t N, std::size_t... I>
 struct IndexRange {
   typedef typename IndexRange<Min, N - 1, Min + N - 1, I...>::type type;
 };
-template<y::size Min, y::size... N>
+template<std::size_t Min, std::size_t... N>
 struct IndexRange<Min, 0, N...> {
   typedef Indices<N...> type;
 };
-template<y::size Min, y::size N>
+template<std::size_t Min, std::size_t N>
 auto range() -> typename IndexRange<Min, N>::type
 {
   return typename IndexRange<Min, N>::type();
 }
 
 // Multiply list.
-template<y::size N, typename T, typename... U>
+template<std::size_t N, typename T, typename... U>
 struct Mul {
   typedef typename Mul<N - 1, T, T, U...>::type type;
 };
@@ -349,13 +339,13 @@ struct Join<List<T...>, List<U...>> {
 // Get a sublist from a list.
 template<typename, typename>
 struct Sublist {};
-template<y::size... I, typename... T>
+template<std::size_t... I, typename... T>
 struct Sublist<Indices<I...>, List<T...>> {
-  typedef List<typename y::tuple_elem<I, List<T...>>::type...> type;
+  typedef List<typename std::tuple_element<I, List<T...>>::type...> type;
 
   type operator()(const List<T...>& t) const
   {
-    return type(y::get<I>(t)...);
+    return type(std::get<I>(t)...);
   }
 };
 
@@ -363,7 +353,7 @@ struct Sublist<Indices<I...>, List<T...>> {
 template<typename R, typename... Args>
 struct Functions {
   typedef R (*fp_type)(Args...);
-  typedef y::function<R(Args...)> f_type;
+  typedef std::function<R(Args...)> f_type;
 };
 template<typename R, typename... Args>
 struct Functions<R, List<Args...>> {
@@ -377,9 +367,9 @@ template<typename, typename, typename>
 struct BindFirstHelperInternal {};
 template<typename R, typename... Args, typename... Brgs>
 struct BindFirstHelperInternal<R, List<Args...>, List<Brgs...>> {
-  template<y::size... I>
-  y::function<R(Brgs...)> operator()(
-      const y::function<R(Args..., Brgs...)>& function,
+  template<std::size_t... I>
+  std::function<R(Brgs...)> operator()(
+      const std::function<R(Args..., Brgs...)>& function,
       const Args&... args, const Indices<I...>&) const
   {
     // Work around bug in GCC/C++ standard: ambiguous whether argument packs can
@@ -391,7 +381,7 @@ struct BindFirstHelperInternal<R, List<Args...>, List<Brgs...>> {
     // temporary that won't last (particularly for return value pointers).
     return [=](const Brgs&... brgs)
     {
-      return function(y::get<I>(args_tuple)..., brgs...);
+      return function(std::get<I>(args_tuple)..., brgs...);
     };
   }
 };
@@ -401,8 +391,8 @@ struct BindFirstHelper {};
 template<typename R, typename... Args>
 struct BindFirstHelper<R(Args...)> {
   template<typename... Brgs>
-  y::function<R(Brgs...)> operator()(
-      const y::function<R(Args..., Brgs...)> function,
+  std::function<R(Brgs...)> operator()(
+      const std::function<R(Args..., Brgs...)> function,
       const Args&... args) const
   {
     return BindFirstHelperInternal<R, List<Args...>, List<Brgs...>>()(
@@ -410,7 +400,7 @@ struct BindFirstHelper<R(Args...)> {
   }
 };
 template<typename R, typename... Brgs, typename... Args>
-auto bind_first(const y::function<R(Brgs...)>& function, const Args&... args)
+auto bind_first(const std::function<R(Brgs...)>& function, const Args&... args)
   -> decltype(BindFirstHelper<R(Args...)>()(function, args...))
 {
   return BindFirstHelper<R(Args...)>()(function, args...);
@@ -430,13 +420,13 @@ template<typename T>
 struct TrampolineReturn<vec<T, 2>> {
   typedef List<T*, T*> type;
 };
-template <typename T, y::size N>
+template <typename T, std::size_t N>
 struct TrampolineReturn<vec<T, N>> {
   typedef typename Mul<N, T*>::type type;
 };
 template<typename R, typename... Args>
 struct TrampolineReturn<Function<R(Args...)>> {
-  typedef List<y::void_fp*> type;
+  typedef List<yang::void_fp*> type;
 };
 
 template<typename... Args>
@@ -450,7 +440,7 @@ template<>
 struct TrampolineArgs<> {
   typedef List<> type;
 };
-template<typename T, y::size N, typename... Args>
+template<typename T, std::size_t N, typename... Args>
 struct TrampolineArgs<vec<T, N>, Args...> {
   typedef typename TrampolineArgs<Args...>::type rest;
   typedef typename Join<typename Mul<N, T>::type, rest>::type type;
@@ -458,7 +448,7 @@ struct TrampolineArgs<vec<T, N>, Args...> {
 template<typename R, typename... Args, typename... Brgs>
 struct TrampolineArgs<Function<R(Args...)>, Brgs...> {
   typedef typename Join<
-      List<y::void_fp>, typename TrampolineArgs<Brgs...>::type>::type type;
+      List<yang::void_fp>, typename TrampolineArgs<Brgs...>::type>::type type;
 };
 
 template<typename R, typename... Args>
@@ -500,12 +490,12 @@ struct TrampolineCallArgs<A, Args...> {
 };
 
 // TrampolineCallArgs unpacking of a vector.
-template<typename T, y::size N, typename... Args>
+template<typename T, std::size_t N, typename... Args>
 struct TrampolineCallArgs<vec<T, N>, Args...> {
   typedef typename TrampolineType<void, vec<T, N>, Args...>::f_type f_type;
   typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
 
-  template<y::size... I>
+  template<std::size_t... I>
   bound_f_type helper(
       const f_type& function, const vec<T, N>& arg, const Indices<I...>&) const
   {
@@ -547,12 +537,12 @@ struct TrampolineCallReturn {
 };
 
 // TrampolineCallReturn for a vector return.
-template<typename T, y::size N, typename... Args>
+template<typename T, std::size_t N, typename... Args>
 struct TrampolineCallReturn<vec<T, N>, Args...> {
   typedef typename TrampolineType<vec<T, N>, Args...>::f_type f_type;
   typedef typename TrampolineType<void, Args...>::f_type bound_f_type;
 
-  template<y::size... I>
+  template<std::size_t... I>
   bound_f_type helper(const f_type& function, T* result,
                       const Indices<I...>&) const
   {
@@ -622,7 +612,7 @@ struct ReverseTrampolineCallArgs {};
 template<typename R>
 struct ReverseTrampolineCallArgs<R, List<>, List<>> {
   R operator()(const List<>&, Instance&,
-               const y::function<R()>& target) const
+               const std::function<R()>& target) const
   {
     return target();
   }
@@ -630,22 +620,22 @@ struct ReverseTrampolineCallArgs<R, List<>, List<>> {
 template<typename R, typename... Args, typename... Brgs, typename A>
 struct ReverseTrampolineCallArgs<R, List<A, Args...>, List<Brgs...>> {
   R operator()(const List<Brgs...>& args, Instance& instance,
-               const y::function<R(A, Args...)>& target) const
+               const std::function<R(A, Args...)>& target) const
   {
     typedef Sublist<typename IndexRange<1, sizeof...(Brgs) - 1>::type,
                     List<Brgs...>> sublist;
     return ReverseTrampolineCallArgs<
         R, List<Args...>, typename sublist::type>()(
-        sublist()(args), instance, bind_first(target, y::get<0>(args)));
+        sublist()(args), instance, bind_first(target, std::get<0>(args)));
   }
 };
 template<typename R, typename... Args, typename... Brgs,
-         typename T, y::size N>
+         typename T, std::size_t N>
 struct ReverseTrampolineCallArgs<
     R, List<vec<T, N>, Args...>, List<Brgs...>> {
-  template<y::size... I>
+  template<std::size_t... I>
   R helper(const List<Brgs...>& args, Instance& instance,
-           const y::function<R(vec<T, N>, Args...)>& target,
+           const std::function<R(vec<T, N>, Args...)>& target,
            const Indices<I...>&) const
   {
     typedef Sublist<typename IndexRange<N, sizeof...(Brgs) - N>::type,
@@ -653,11 +643,11 @@ struct ReverseTrampolineCallArgs<
     return ReverseTrampolineCallArgs<
         R, List<Args...>, typename sublist::type>()(
         sublist()(args), instance,
-        bind_first(target, vec<T, N>(y::get<I>(args)...)));
+        bind_first(target, vec<T, N>(std::get<I>(args)...)));
   }
 
   R operator()(const List<Brgs...>& args, Instance& instance,
-               const y::function<R(vec<T, N>, Args...)>& target) const
+               const std::function<R(vec<T, N>, Args...)>& target) const
   {
     return helper(args, instance, target, range<0, N>());
   }
@@ -668,14 +658,14 @@ struct ReverseTrampolineCallArgs<
     R, List<Function<S(Crgs...)>, Args...>, List<Brgs...>> {
   R operator()(
       const List<Brgs...>& args, Instance& instance,
-      const y::function<R(Function<S(Crgs...)>, Args...)>& target) const
+      const std::function<R(Function<S(Crgs...)>, Args...)>& target) const
   {
     // Standard guarantees that pointer to structure points to its first member,
     // and the pointer to the program instance is always the first element of
     // the global data structure; so, we can just cast it to an instance
     // pointer.
     Function<S(Crgs...)> fn_object(instance);
-    fn_object._function = y::get<0>(args);
+    fn_object._function = std::get<0>(args);
 
     typedef Sublist<typename IndexRange<1, sizeof...(Brgs) - 1>::type,
                     List<Brgs...>> sublist;
@@ -695,13 +685,13 @@ struct ReverseTrampolineCallReturn<R, R*> {
     *ptr = result;
   }
 };
-template<typename T, y::size N, typename... Args>
+template<typename T, std::size_t N, typename... Args>
 struct ReverseTrampolineCallReturn<vec<T, N>, Args...> {
-  template<y::size... I>
+  template<std::size_t... I>
   void helper(const vec<T, N>& result, const List<Args...>& args,
               const Indices<I...>&) const
   {
-    ignore((*y::get<I>(args) = result[I])...);
+    ignore((*std::get<I>(args) = result[I])...);
   }
 
   void operator()(const vec<T, N>& result, const Args&... args) const
@@ -710,8 +700,8 @@ struct ReverseTrampolineCallReturn<vec<T, N>, Args...> {
   }
 };
 template<typename R, typename... Args>
-struct ReverseTrampolineCallReturn<Function<R(Args...)>, y::void_fp*> {
-  void operator()(const Function<R(Args...)>& result, y::void_fp* ptr) const
+struct ReverseTrampolineCallReturn<Function<R(Args...)>, yang::void_fp*> {
+  void operator()(const Function<R(Args...)>& result, yang::void_fp* ptr) const
   {
     *ptr = result._function;
   }

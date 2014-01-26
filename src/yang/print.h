@@ -1,13 +1,13 @@
 #ifndef YANG__PRINT_H
 #define YANG__PRINT_H
 
+#include <string>
 #include "walker.h"
-#include "../common/string.h"
 
 namespace yang {
 namespace internal {
 
-class AstPrinter : public ConstAstWalker<y::string> {
+class AstPrinter : public ConstAstWalker<std::string> {
 public:
 
   AstPrinter();
@@ -16,12 +16,12 @@ protected:
 
   void preorder(const Node& node) override;
   void infix(const Node& node, const result_list& results) override;
-  y::string visit(const Node& node, const result_list& results) override;
+  std::string visit(const Node& node, const result_list& results) override;
 
 private:
 
-  y::string indent() const;
-  y::size _indent;
+  std::string indent() const;
+  std::size_t _indent;
 
 };
 

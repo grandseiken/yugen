@@ -1,4 +1,6 @@
 #include "ast.h"
+
+#include <sstream>
 #include "../../gen/yang/yang.l.h"
 
 namespace yang {
@@ -35,7 +37,7 @@ Node::Node(node_type type, Node* a, Node* b, Node* c)
   add(c);
 }
 
-Node::Node(node_type type, y::int32 value)
+Node::Node(node_type type, yang::int_t value)
   : line(yang_lineno)
   , text(yang_text ? yang_text : "")
   , type(type)
@@ -45,7 +47,7 @@ Node::Node(node_type type, y::int32 value)
   orphans.insert(this);
 }
 
-Node::Node(node_type type, y::world value)
+Node::Node(node_type type, yang::float_t value)
   : line(yang_lineno)
   , text(yang_text ? yang_text : "")
   , type(type)
@@ -55,7 +57,7 @@ Node::Node(node_type type, y::world value)
   orphans.insert(this);
 }
 
-Node::Node(node_type type, y::string value)
+Node::Node(node_type type, const std::string& value)
   : line(yang_lineno)
   , text(yang_text ? yang_text : "")
   , type(type)
@@ -69,16 +71,16 @@ Node::Node(node_type type, y::string value)
 void Node::add_front(Node* node)
 {
   orphans.erase(node);
-  children.insert(children.begin(), y::move_unique(node));
+  children.insert(children.begin(), std::unique_ptr<Node>(node));
 }
 
 void Node::add(Node* node)
 {
   orphans.erase(node);
-  children.push_back(y::move_unique(node));
+  children.push_back(std::unique_ptr<Node>(node));
 }
 
-y::string Node::op_string(node_type t)
+std::string Node::op_string(node_type t)
 {
   return
       t == Node::TERNARY ? "?:" :
@@ -131,36 +133,36 @@ y::string Node::op_string(node_type t)
       "unknown operator";
 }
 
-y::set<Node*> Node::orphans;
+std::unordered_set<Node*> Node::orphans;
 
-const y::string* ParseGlobals::lexer_input_contents = y::null;
-y::size ParseGlobals::lexer_input_offset = 0;
+const std::string* ParseGlobals::lexer_input_contents = nullptr;
+std::size_t ParseGlobals::lexer_input_offset = 0;
 
-Node* ParseGlobals::parser_output = y::null;
-y::vector<y::string> ParseGlobals::errors;
+Node* ParseGlobals::parser_output = nullptr;
+std::vector<std::string> ParseGlobals::errors;
 
-y::string ParseGlobals::error(
-    y::size line, const y::string& token, const y::string& message)
+std::string ParseGlobals::error(
+    std::size_t line, const std::string& token, const std::string& message)
 {
   bool replace = false;
-  y::string t = token;
-  y::size it;
-  while ((it = t.find('\n')) != y::string::npos) {
+  std::string t = token;
+  std::size_t it;
+  while ((it = t.find('\n')) != std::string::npos) {
     t.replace(it, 1 + it, "");
     replace = true;
   }
-  while ((it = t.find('\r')) != y::string::npos) {
+  while ((it = t.find('\r')) != std::string::npos) {
     t.replace(it, 1 + it, "");
     replace = true;
   }
-  while ((it = t.find('\t')) != y::string::npos) {
+  while ((it = t.find('\t')) != std::string::npos) {
     t.replace(it, 1 + it, " ");
   }
   if (replace) {
     --line;
   }
 
-  y::sstream ss;
+  std::stringstream ss;
   ss << "Error at line " << line <<
       ", near `" << t << "`:\n\t" << message;
   return ss.str();

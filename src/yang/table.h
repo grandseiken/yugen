@@ -1,10 +1,9 @@
 #ifndef YANG__TABLE_H
 #define YANG__TABLE_H
 
-#include "../common/map.h"
-#include "../common/math.h"
-#include "../common/set.h"
-#include "../common/vector.h"
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace yang {
 namespace internal {
@@ -20,38 +19,38 @@ public:
   void push();
   void pop();
   // Depth of frames in the symbol table. Guaranteed to be at least 1.
-  y::size size() const;
+  std::size_t size() const;
 
   // Add or remove from the top frame.
   void add(const K& symbol, const V& v);
   void remove(const K& symbol);
 
   // Add or remove from an arbitrary frame.
-  void add(const K& symbol, y::size frame, const V& v);
-  void remove(const K& symbol, y::size frame);
+  void add(const K& symbol, std::size_t frame, const V& v);
+  void remove(const K& symbol, std::size_t frame);
 
   // Symbol existence for whole table or a particular frame.
   bool has(const K& symbol) const;
-  bool has(const K& symbol, y::size frame) const;
+  bool has(const K& symbol, std::size_t frame) const;
 
   // Get list of symbols in a particular frame-range [min_frame, max_frame).
-  void get_symbols(y::set<K>& output,
-                   y::size min_frame, y::size max_frame) const;
+  void get_symbols(std::unordered_set<K>& output,
+                   std::size_t min_frame, std::size_t max_frame) const;
 
   // Get index of the topmost frame in which the symbol is defined.
-  y::size index(const K& symbol) const;
+  std::size_t index(const K& symbol) const;
 
   // Value retrieval.
   const V& operator[](const K& symbol) const;
   /***/ V& operator[](const K& symbol);
-  const V& get(const K& symbol, y::size frame) const;
-  /***/ V& get(const K& symbol, y::size frame);
+  const V& get(const K& symbol, std::size_t frame) const;
+  /***/ V& get(const K& symbol, std::size_t frame);
 
 private:
 
   V _default;
-  typedef y::map<K, V> scope;
-  y::vector<scope> _stack;
+  typedef std::unordered_map<K, V> scope;
+  std::vector<scope> _stack;
 
 };
 
@@ -83,7 +82,7 @@ void SymbolTable<K, V>::pop()
 }
 
 template<typename K, typename V>
-y::size SymbolTable<K, V>::size() const
+std::size_t SymbolTable<K, V>::size() const
 {
   return _stack.size();
 }
@@ -101,7 +100,7 @@ void SymbolTable<K, V>::remove(const K& symbol)
 }
 
 template<typename K, typename V>
-void SymbolTable<K, V>::add(const K& symbol, y::size frame, const V& v)
+void SymbolTable<K, V>::add(const K& symbol, std::size_t frame, const V& v)
 {
   if (frame < size()) {
     _stack[frame].emplace(symbol, v);
@@ -109,7 +108,7 @@ void SymbolTable<K, V>::add(const K& symbol, y::size frame, const V& v)
 }
 
 template<typename K, typename V>
-void SymbolTable<K, V>::remove(const K& symbol, y::size frame)
+void SymbolTable<K, V>::remove(const K& symbol, std::size_t frame)
 {
   if (frame < size()) {
     _stack[frame].erase(symbol);
@@ -128,16 +127,17 @@ bool SymbolTable<K, V>::has(const K& symbol) const
 }
 
 template<typename K, typename V>
-bool SymbolTable<K, V>::has(const K& symbol, y::size frame) const
+bool SymbolTable<K, V>::has(const K& symbol, std::size_t frame) const
 {
   return frame < size() && _stack[frame].find(symbol) != _stack[frame].end();
 }
 
 template<typename K, typename V>
-void SymbolTable<K, V>::get_symbols(y::set<K>& output,
-                                    y::size min_frame, y::size max_frame) const
+void SymbolTable<K, V>::get_symbols(
+    std::unordered_set<K>& output,
+    std::size_t min_frame, std::size_t max_frame) const
 {
-  for (y::size i = min_frame; i < max_frame && i < size(); ++i) {
+  for (std::size_t i = min_frame; i < max_frame && i < size(); ++i) {
     for (const auto& pair : _stack[i]) {
       output.insert(pair.first);
     }
@@ -145,9 +145,9 @@ void SymbolTable<K, V>::get_symbols(y::set<K>& output,
 }
 
 template<typename K, typename V>
-y::size SymbolTable<K, V>::index(const K& symbol) const
+std::size_t SymbolTable<K, V>::index(const K& symbol) const
 {
-  y::size i = size();
+  std::size_t i = size();
   while (i) {
     --i;
     auto jt = _stack[i].find(symbol);
@@ -183,7 +183,7 @@ V& SymbolTable<K, V>::operator[](const K& symbol)
 }
 
 template<typename K, typename V>
-const V& SymbolTable<K, V>::get(const K& symbol, y::size frame) const
+const V& SymbolTable<K, V>::get(const K& symbol, std::size_t frame) const
 {
   if (frame >= size()) {
     return _default;
@@ -196,7 +196,7 @@ const V& SymbolTable<K, V>::get(const K& symbol, y::size frame) const
 }
 
 template<typename K, typename V>
-V& SymbolTable<K, V>::get(const K& symbol, y::size frame)
+V& SymbolTable<K, V>::get(const K& symbol, std::size_t frame)
 {
   if (frame >= size()) {
     return _default;

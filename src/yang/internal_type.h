@@ -1,9 +1,8 @@
 #ifndef YANG__INTERNAL_TYPE_H
 #define YANG__INTERNAL_TYPE_H
 
-#include "../common/math.h"
-#include "../common/string.h"
-#include "../common/vector.h"
+#include <string>
+#include <vector>
 #include "type.h"
 
 namespace yang {
@@ -40,23 +39,23 @@ public:
   // A count greater than one constructs a vector type. This is allowed
   // only if the base is type INT or WORLD. This constructor can't create
   // FUNCTION types. Invalid construction will result in an ERROR type.
-  Type(type_base base, y::size count = 1);
+  Type(type_base base, std::size_t count = 1);
   // Construct FUNCTION types. Passing anything other than FUNCTION will
   // result in an error.
   Type(type_base base, const Type& return_type);
   // Construct USER_TYPE types. Passing anything other than USER_TYPE will
   // result in an error.
-  Type(type_base base, const y::string& user_type_name);
+  Type(type_base base, const std::string& user_type_name);
   // Set const.
   void set_const(bool is_const);
 
   // Return components of the type.
   type_base base() const;
-  y::size count() const;
-  const y::string& user_type_name() const;
+  std::size_t count() const;
+  const std::string& user_type_name() const;
   bool is_const() const;
   // Return a string representation of the type.
-  y::string string() const;
+  std::string string() const;
 
   // All of the following functions also return true if this is type ERROR.
   // True if this is type ERROR.
@@ -80,14 +79,14 @@ public:
 
   // Access the element types. For FUNCTION types, the first element is the
   // return type, and subsequent elements are argument types.
-  const Type& elements(y::size index) const;
+  const Type& elements(std::size_t index) const;
   void add_element(const Type& type);
-  y::size element_size() const;
+  std::size_t element_size() const;
   // True if this type has the given number of elements (or is type ERROR).
-  bool element_size(y::size num_elements) const;
+  bool element_size(std::size_t num_elements) const;
   // True if this type has given type at the given element index, or any
   // type involved in type ERROR.
-  bool element_is(y::size index, const Type& type) const;
+  bool element_is(std::size_t index, const Type& type) const;
 
   // True if the vector element-counts of these types allow for interaction;
   // that is, either the element-counts are the same (and they can interact
@@ -108,13 +107,13 @@ public:
 
 private:
 
-  y::string string_internal() const;
+  std::string string_internal() const;
 
   type_base _base;
-  y::size _count;
+  std::size_t _count;
   bool _const;
-  y::vector<Type> _elements;
-  y::string _user_type_name;
+  std::vector<Type> _elements;
+  std::string _user_type_name;
 
 };
 

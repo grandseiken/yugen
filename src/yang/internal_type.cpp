@@ -1,5 +1,4 @@
 #include "internal_type.h"
-#include "../common/algorithm.h"
 
 namespace yang {
 namespace internal {
@@ -21,7 +20,7 @@ Type::Type(const yang::Type& type)
   }
 }
 
-Type::Type(type_base base, y::size count)
+Type::Type(type_base base, std::size_t count)
   : _base(base)
   , _count(count)
   , _const(false)
@@ -45,7 +44,7 @@ Type::Type(type_base base, const Type& return_type)
   _elements.push_back(return_type);
 }
 
-Type::Type(type_base base, const y::string& user_type_name)
+Type::Type(type_base base, const std::string& user_type_name)
   : _base(USER_TYPE)
   , _count(1)
   , _const(false)
@@ -66,12 +65,12 @@ Type::type_base Type::base() const
   return _base;
 }
 
-y::size Type::count() const
+std::size_t Type::count() const
 {
   return _count;
 }
 
-const y::string& Type::user_type_name() const
+const std::string& Type::user_type_name() const
 {
   return _user_type_name;
 }
@@ -81,7 +80,7 @@ bool Type::is_const() const
   return _const;
 }
 
-y::string Type::string() const
+std::string Type::string() const
 {
   return "`" + string_internal() + "`";
 }
@@ -133,9 +132,9 @@ bool Type::user_type() const
   return is_error() || _base == USER_TYPE;
 }
 
-const Type& Type::elements(y::size index) const
+const Type& Type::elements(std::size_t index) const
 {
-  return is_error() ? *this : _elements[y::min(index, _elements.size() - 1)];
+  return is_error() ? *this : _elements[std::min(index, _elements.size() - 1)];
 }
 
 void Type::add_element(const Type& type)
@@ -143,17 +142,17 @@ void Type::add_element(const Type& type)
   _elements.push_back(type);
 }
 
-y::size Type::element_size() const
+std::size_t Type::element_size() const
 {
   return _elements.size();
 }
 
-bool Type::element_size(y::size num_elements) const
+bool Type::element_size(std::size_t num_elements) const
 {
   return is_error() || _elements.size() == num_elements;
 }
 
-bool Type::element_is(y::size index, const Type& type) const
+bool Type::element_is(std::size_t index, const Type& type) const
 {
   return is_error() || _elements[index].is(type);
 }
@@ -179,7 +178,7 @@ bool Type::operator==(const Type& t) const
   if (_elements.size() != t._elements.size()) {
     return false;
   }
-  for (y::size i = 0; i < _elements.size(); ++i) {
+  for (std::size_t i = 0; i < _elements.size(); ++i) {
     if (_elements[i] != t._elements[i]) {
       return false;
     }
@@ -212,15 +211,15 @@ yang::Type Type::external(bool exported) const
   return t;
 }
 
-y::string Type::string_internal() const
+std::string Type::string_internal() const
 {
   if (_base == USER_TYPE) {
     return _user_type_name + "*";
   }
 
   if (_base == FUNCTION) {
-    y::string s = _elements[0].string_internal() + "(";
-    for (y::size i = 1; i < _elements.size(); ++i) {
+    std::string s = _elements[0].string_internal() + "(";
+    for (std::size_t i = 1; i < _elements.size(); ++i) {
       if (i > 1) {
         s += ", ";
       }
@@ -229,13 +228,13 @@ y::string Type::string_internal() const
     return s + ")" + (_const ? " const" : "");
   }
 
-  y::string s =
+  std::string s =
       _base == VOID ? "void" :
       _base == INT ? "int" :
       _base == WORLD ? "world" : "error";
 
   if (_count > 1) {
-    s += y::to_string(_count);
+    s += std::to_string(_count);
   }
   return s + (_const ? " const" : "");
 }

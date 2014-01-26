@@ -4,7 +4,7 @@
 namespace yang {
 namespace internal {
 
-const y::string& get_instance_name(const Instance& instance)
+const std::string& get_instance_name(const Instance& instance)
 {
   return instance.get_program().get_name();
 }

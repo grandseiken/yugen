@@ -1,12 +1,5 @@
 #include "pipeline.h"
 
-#include "ast.h"
-#include "irgen.h"
-#include "print.h"
-#include "static.h"
-#include "../log.h"
-#include "../../gen/yang/yang.y.h"
-
 #include <llvm/Analysis/Passes.h>
 #include <llvm/Analysis/Verifier.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
@@ -18,6 +11,13 @@
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/PassManager.h>
 
+#include "ast.h"
+#include "irgen.h"
+#include "print.h"
+#include "static.h"
+#include "../log.h"
+#include "../../gen/yang/yang.y.h"
+
 int yang_parse();
 
 namespace yang {
@@ -27,29 +27,28 @@ const Context::function_map& Context::get_functions() const
   return _functions;
 }
 
-Program::Program(const Context& context, const y::string& name,
-                 const y::string& contents, bool optimise)
+Program::Program(const Context& context, const std::string& name,
+                 const std::string& contents, bool optimise)
   : _context(context)
   , _name(name)
-  , _ast(y::null)
-  , _module(y::null)
-  , _engine(y::null)
+  , _ast(nullptr)
+  , _module(nullptr)
+  , _engine(nullptr)
 {
   internal::ParseGlobals::lexer_input_contents = &contents;
   internal::ParseGlobals::lexer_input_offset = 0;
-  internal::ParseGlobals::parser_output = y::null;
+  internal::ParseGlobals::parser_output = nullptr;
   internal::ParseGlobals::errors.clear();
 
   yang_parse();
-  y::unique<internal::Node> output =
-      y::move_unique(internal::ParseGlobals::parser_output);
+  std::unique_ptr<internal::Node> output(internal::ParseGlobals::parser_output);
   internal::Node::orphans.erase(output.get());
   for (internal::Node* node : internal::Node::orphans) {
-    y::move_unique(node);
+    std::unique_ptr<internal::Node>{node};
   }
   internal::Node::orphans.clear();
 
-  for (const y::string& s : internal::ParseGlobals::errors) {
+  for (const std::string& s : internal::ParseGlobals::errors) {
     log_err(s);
   }
   if (internal::ParseGlobals::errors.size()) {
@@ -69,7 +68,7 @@ Program::Program(const Context& context, const y::string& name,
     _globals.clear();
     return;
   }
-  _ast = y::move_unique(output);
+  _ast = std::move(output);
 
   generate_ir();
   if (optimise) {
@@ -86,7 +85,7 @@ const Context& Program::get_context() const
   return _context;
 }
 
-const y::string& Program::get_name() const
+const std::string& Program::get_name() const
 {
   return _name;
 }
@@ -96,7 +95,7 @@ bool Program::success() const
   return bool(_ast) && bool(_module);
 }
 
-y::string Program::print_ast() const
+std::string Program::print_ast() const
 {
   if (!success()) {
     return "<error>";
@@ -105,14 +104,14 @@ y::string Program::print_ast() const
   return printer.walk(*_ast) + '\n';
 }
 
-y::string Program::print_ir() const
+std::string Program::print_ir() const
 {
   if (!success()) {
     return "<error>";
   }
-  y::string output;
+  std::string output;
   llvm::raw_string_ostream os(output);
-  _module->print(os, y::null);
+  _module->print(os, nullptr);
   return output;
 }
 
@@ -128,18 +127,18 @@ const Program::symbol_table& Program::get_globals() const
 
 void Program::generate_ir()
 {
-  y::string error;
+  std::string error;
   llvm::InitializeNativeTarget();
 
   // The ExecutionEngine takes ownership of the LLVM module (and by extension
   // everything else we created during codegen). So the engine alone must be
   // uniqued and deleted.
   _module = new llvm::Module(_name, llvm::getGlobalContext());
-  _engine = y::move_unique(
+  _engine = std::unique_ptr<llvm::ExecutionEngine>(
       llvm::EngineBuilder(_module).setErrorStr(&error).create());
   if (!_engine) {
     log_err("Couldn't create execution engine:\n", error);
-    _module = y::null;
+    _module = nullptr;
   }
   // Disable implicit searching so we don't accidentally resolve linked-in
   // functions.
@@ -152,7 +151,7 @@ void Program::generate_ir()
 
   if (llvm::verifyModule(*_module, llvm::ReturnStatusAction, &error)) {
     log_err("Couldn't verify module:\n", error);
-    _module = y::null;
+    _module = nullptr;
   }
   _trampoline_map = irgen.get_trampoline_map();
 }
@@ -206,13 +205,13 @@ void Program::optimise_ir()
 
 Instance::Instance(const Program& program)
   : _program(program)
-  , _global_data(y::null)
+  , _global_data(nullptr)
 {
   if (!_program.success()) {
     log_err("instantiating invalid program");
     return;
   }
-  y::void_fp global_alloc = get_native_fp("!global_alloc");
+  yang::void_fp global_alloc = get_native_fp("!global_alloc");
   typedef void* (*alloc_fp)(void*);
   _global_data = ((alloc_fp)global_alloc)(this);
 }
@@ -222,7 +221,7 @@ Instance::~Instance()
   if (!_global_data) {
     return;
   }
-  y::void_fp global_free = get_native_fp("!global_free");
+  yang::void_fp global_free = get_native_fp("!global_free");
   typedef void (*free_fp)(void*);
   ((free_fp)global_free)(_global_data);
 }
@@ -232,12 +231,12 @@ const Program& Instance::get_program() const
   return _program;
 }
 
-y::void_fp Instance::get_native_fp(const y::string& name) const
+yang::void_fp Instance::get_native_fp(const std::string& name) const
 {
   return get_native_fp(_program._module->getFunction(name));
 }
 
-y::void_fp Instance::get_native_fp(llvm::Function* ir_fp) const
+yang::void_fp Instance::get_native_fp(llvm::Function* ir_fp) const
 {
   void* void_p = _program._engine->getPointerToFunction(ir_fp);
   // ISO C++ forbids casting between pointer-to-function and pointer-to-object!
@@ -245,10 +244,10 @@ y::void_fp Instance::get_native_fp(llvm::Function* ir_fp) const
   // way around this (technically) defined behaviour. I guess it should work
   // in practice since the whole native codegen thing is inherently machine-
   // -depend anyway. Also occurs in irgen.cpp.
-  return (y::void_fp)(y::intptr)void_p;
+  return (yang::void_fp)(std::intptr_t)void_p;
 }
 
-bool Instance::check_global(const y::string& name, const Type& type,
+bool Instance::check_global(const std::string& name, const Type& type,
                             bool for_modification) const
 {
   auto it = _program._globals.find(name);
@@ -270,7 +269,7 @@ bool Instance::check_global(const y::string& name, const Type& type,
   return true;
 }
 
-bool Instance::check_function(const y::string& name, const Type& type) const
+bool Instance::check_function(const std::string& name, const Type& type) const
 {
   auto it = _program._functions.find(name);
   if (it == _program._functions.end()) {

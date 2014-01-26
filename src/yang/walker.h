@@ -1,8 +1,8 @@
 #ifndef YANG__WALKER_H
 #define YANG__WALKER_H
 
+#include <vector>
 #include "ast.h"
-#include "../common/pair.h"
 
 namespace yang {
 namespace internal {
@@ -23,7 +23,7 @@ class AstWalkerBase {
 public:
 
   typedef typename AstWalkerNodeType<Const>::type N;
-  typedef y::vector<T> result_list;
+  typedef std::vector<T> result_list;
 
   // Implements an algorithm such that visit() will be called for each node in
   // the AST, with the passed result_list containing the results of the calls
@@ -49,7 +49,7 @@ T AstWalkerBase<T, Const>::walk(N& node)
     decltype(node.children.begin()) it;
     result_list results;
   };
-  y::vector<stack_elem> stack;
+  std::vector<stack_elem> stack;
 
   result_list root_output;
   stack.push_back({&node, node.children.begin(), result_list()});

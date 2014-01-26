@@ -1,6 +1,9 @@
 #ifndef YANG__STATIC_H
 #define YANG__STATIC_H
 
+#include <string>
+#include <unordered_map>
+
 #include "internal_type.h"
 #include "table.h"
 #include "type.h"
@@ -12,7 +15,7 @@ namespace internal {
 class StaticChecker : public ConstAstWalker<Type> {
 public:
 
-  typedef y::map<y::string, yang::Type> symbol_frame;
+  typedef std::unordered_map<std::string, yang::Type> symbol_frame;
   StaticChecker(const symbol_frame& context_functions,
                 symbol_frame& functions_output, symbol_frame& globals_output);
   ~StaticChecker();
@@ -36,19 +39,20 @@ private:
 
   bool use_function_immediate_assign_hack(const Node& node) const;
   void add_symbol_checking_collision(
-      const Node& node, const y::string& name, const Type& type);
+      const Node& node, const std::string& name, const Type& type);
   void add_symbol_checking_collision(
-      const Node& node, const y::string& name, y::size index, const Type& type);
-  void error(const Node& node, const y::string& message);
+      const Node& node, const std::string& name,
+      std::size_t index, const Type& type);
+  void error(const Node& node, const std::string& message);
 
   struct function {
     Type return_type;
-    y::string name;
+    std::string name;
   };
 
   bool _errors;
-  y::string _current_function;
-  y::string _immediate_left_assign;
+  std::string _current_function;
+  std::string _immediate_left_assign;
 
   enum metadata {
     EXPORT_GLOBAL,
@@ -58,7 +62,7 @@ private:
   friend std::hash<metadata>;
 
   SymbolTable<metadata, Type> _metadata;
-  SymbolTable<y::string, Type> _symbol_table;
+  SymbolTable<std::string, Type> _symbol_table;
 
   const symbol_frame& _context_functions;
   symbol_frame& _functions_output;

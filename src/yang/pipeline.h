@@ -1,13 +1,13 @@
 #ifndef YANG__PIPELINE_H
 #define YANG__PIPELINE_H
 
-#include "../common/map.h"
-#include "../common/memory.h"
-#include "../common/string.h"
-#include "../common/utility.h"
-#include "../common/vector.h"
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include "../log.h"
 
+#include "typedefs.h"
 #include "native.h"
 #include "type.h"
 #include "type_info.h"
@@ -44,29 +44,36 @@ namespace internal {
 // TODO: many calls to log_err should probably actually be thrown exceptions.
 // TODO: code hot-swapping. Careful with pointer values (e.g. functions) in
 // global data struct which probably need to be left as default values.
-class Context : public y::no_copy {
+class Context {
 public:
+
+  Context() {}
+
+  // Noncopyable.
+  Context(const Context&) = delete;
+  Context& operator=(const Context&) = delete;
 
   // Add a user type. Types must be registered before registering functions that
   // make use of them.
   template<typename T>
-  void register_type(const y::string& name);
+  void register_type(const std::string& name);
 
   // Add a globally-available function to the context.
   template<typename R, typename... Args>
   void register_function(
-      const y::string& name, const y::function<R(Args...)>& f);
+      const std::string& name, const std::function<R(Args...)>& f);
 
   // Information about registered types.
   template<typename T>
   bool has_type() const;
   template<typename T>
-  y::string get_type_name() const;
+  std::string get_type_name() const;
 
 private:
 
-  typedef y::map<y::string, internal::GenericNativeType> type_map;
-  typedef y::map<y::string, internal::GenericNativeFunction> function_map;
+  typedef std::unordered_map<std::string, internal::GenericNativeType> type_map;
+  typedef std::unordered_map<
+      std::string, internal::GenericNativeFunction> function_map;
 
   friend class Program;
   const type_map& get_types();
@@ -77,23 +84,27 @@ private:
 
 };
 
-class Program : public y::no_copy {
+class Program {
 public:
 
-  Program(const Context& context, const y::string& name,
-          const y::string& contents, bool optimise = true);
+  Program(const Context& context, const std::string& name,
+          const std::string& contents, bool optimise = true);
   ~Program();
 
+  // Noncopyable.
+  Program(Program&) = delete;
+  Program& operator=(Program&) = delete;
+
   const Context& get_context() const;
-  const y::string& get_name() const;
+  const std::string& get_name() const;
 
   // Returns true if the contents parsed and checked successfully. Otherwise,
   // none of the following functions will do anything useful.
   bool success() const;
-  y::string print_ast() const;
-  y::string print_ir() const;
+  std::string print_ast() const;
+  std::string print_ir() const;
 
-  typedef y::map<y::string, Type> symbol_table;
+  typedef std::unordered_map<std::string, Type> symbol_table;
   const symbol_table& get_functions() const;
   const symbol_table& get_globals() const;
 
@@ -104,55 +115,59 @@ private:
   void optimise_ir();
 
   const Context& _context;
-  y::string _name;
-  y::unique<internal::Node> _ast;
+  std::string _name;
+  std::unique_ptr<internal::Node> _ast;
 
   symbol_table _functions;
   symbol_table _globals;
 
   llvm::Module* _module;
-  y::unique<llvm::ExecutionEngine> _engine;
-  y::map<Type, llvm::Function*> _trampoline_map;
+  std::unique_ptr<llvm::ExecutionEngine> _engine;
+  std::unordered_map<Type, llvm::Function*> _trampoline_map;
 
 };
 
-class Instance : public y::no_copy {
+class Instance {
 public:
 
   Instance(const Program& program);
   ~Instance();
 
+  // Noncopyable.
+  Instance(const Instance&) = delete;
+  Instance& operator=(const Instance&) = delete;
+
   const Program& get_program() const;
 
   template<typename T>
-  T get_global(const y::string& name) const;
+  T get_global(const std::string& name) const;
   template<typename T>
-  void set_global(const y::string& name, const T& value);
+  void set_global(const std::string& name, const T& value);
 
   template<typename R, typename... Args>
-  R call(const y::string& name, const Args&... args);
+  R call(const std::string& name, const Args&... args);
   template<typename T>
-  T get_function(const y::string& name);
+  T get_function(const std::string& name);
 
 private:
 
   template<typename>
   friend class Function;
 
-  y::void_fp get_native_fp(const y::string& name) const;
-  y::void_fp get_native_fp(llvm::Function* ir_fp) const;
+  yang::void_fp get_native_fp(const std::string& name) const;
+  yang::void_fp get_native_fp(llvm::Function* ir_fp) const;
 
   template<typename R, typename... Args>
-  R call_via_trampoline(const y::string& name, const Args&... args) const;
+  R call_via_trampoline(const std::string& name, const Args&... args) const;
   template<typename R, typename... Args>
-  R call_via_trampoline(y::void_fp target, const Args&... args) const;
+  R call_via_trampoline(yang::void_fp target, const Args&... args) const;
 
   // Runtime check that global exists and has the correct type and, if it is to
   // be modified, that it is both exported and non-const.
-  bool check_global(const y::string& name, const Type& type,
+  bool check_global(const std::string& name, const Type& type,
                     bool for_modification) const;
   // Similarly for functions.
-  bool check_function(const y::string& name, const Type& type) const;
+  bool check_function(const std::string& name, const Type& type) const;
 
   const Program& _program;
   void* _global_data;
@@ -194,7 +209,7 @@ namespace internal {
 }
 
 template<typename T>
-void Context::register_type(const y::string& name)
+void Context::register_type(const std::string& name)
 {
   auto it = _types.find(name);
   if (it != _types.end()) {
@@ -212,12 +227,13 @@ void Context::register_type(const y::string& name)
   }
 
   internal::GenericNativeType& symbol = _types[name];
-  symbol.obj = y::move_unique(new internal::NativeType<T*>());
+  symbol.obj = std::unique_ptr<internal::NativeType<T*>>(
+      new internal::NativeType<T*>());
 }
 
 template<typename R, typename... Args>
 void Context::register_function(
-    const y::string& name, const y::function<R(Args...)>& f)
+    const std::string& name, const std::function<R(Args...)>& f)
 {
   auto it = _functions.find(name);
   if (it != _functions.end()) {
@@ -228,9 +244,10 @@ void Context::register_function(
   internal::TypeInfo<Function<R(Args...)>> info;
   internal::GenericNativeFunction& symbol = _functions[name];
   symbol.type = info(*this);
-  symbol.ptr = y::move_unique(new internal::NativeFunction<R(Args...)>(f));
+  symbol.ptr = std::unique_ptr<internal::NativeFunction<R(Args...)>>(
+      new internal::NativeFunction<R(Args...)>(f));
 
-  symbol.trampoline_ptr = (y::void_fp)&internal::ReverseTrampolineCall<
+  symbol.trampoline_ptr = (yang::void_fp)&internal::ReverseTrampolineCall<
       R(Args...),
       typename internal::TrampolineReturn<R>::type,
       typename internal::TrampolineArgs<Args...>::type>::call;
@@ -248,7 +265,7 @@ bool Context::has_type() const
 }
 
 template<typename T>
-y::string Context::get_type_name() const
+std::string Context::get_type_name() const
 {
   for (const auto& pair : _types) {
     if (pair.second.obj->is<T*>()) {
@@ -259,7 +276,7 @@ y::string Context::get_type_name() const
 }
 
 template<typename T>
-T Instance::get_global(const y::string& name) const
+T Instance::get_global(const std::string& name) const
 {
   // TypeInfo will fail at compile-time for completely unsupported types; will
   // at runtime for pointers to unregistered user types.
@@ -271,7 +288,7 @@ T Instance::get_global(const y::string& name) const
 }
 
 template<typename T>
-void Instance::set_global(const y::string& name, const T& value)
+void Instance::set_global(const std::string& name, const T& value)
 {
   internal::TypeInfo<T> info;
   if (!check_global(name, info(_program.get_context()), true)) {
@@ -281,7 +298,7 @@ void Instance::set_global(const y::string& name, const T& value)
 }
 
 template<typename T>
-T Instance::get_function(const y::string& name)
+T Instance::get_function(const std::string& name)
 {
   internal::TypeInfo<T> info;
   internal::ValueConstruct<T> construct;
@@ -294,7 +311,7 @@ T Instance::get_function(const y::string& name)
 }
 
 template<typename R, typename... Args>
-R Instance::call(const y::string& name, const Args&... args)
+R Instance::call(const std::string& name, const Args&... args)
 {
   internal::TypeInfo<Function<R(Args...)>> info;
   internal::ValueConstruct<R> construct;
@@ -306,13 +323,13 @@ R Instance::call(const y::string& name, const Args&... args)
 
 template<typename R, typename... Args>
 R Instance::call_via_trampoline(
-    const y::string& name, const Args&... args) const
+    const std::string& name, const Args&... args) const
 {
   return call_via_trampoline<R>(get_native_fp(name), args...);
 }
 
 template<typename R, typename... Args>
-R Instance::call_via_trampoline(y::void_fp target, const Args&... args) const
+R Instance::call_via_trampoline(yang::void_fp target, const Args&... args) const
 {
   // Make sure only functions referencing this instance are passed in.
   internal::InstanceCheck<Args...> instance_check;
@@ -326,9 +343,9 @@ R Instance::call_via_trampoline(y::void_fp target, const Args&... args) const
   // an entry in the trampoline map.
   auto it = _program._trampoline_map.find(
       Function<R(Args...)>::get_type(_program.get_context()));
-  y::void_fp trampoline = get_native_fp(it->second);
+  yang::void_fp trampoline = get_native_fp(it->second);
 
-  typedef internal::TrampolineCall<R, void*, Args..., y::void_fp> call_type;
+  typedef internal::TrampolineCall<R, void*, Args..., yang::void_fp> call_type;
   typename call_type::fp_type trampoline_expanded =
       (typename call_type::fp_type)trampoline;
   return call_type()(const_cast<Instance&>(*this),
