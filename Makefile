@@ -160,7 +160,7 @@ DATA_FILES= \
 	$(wildcard ./data/tiles/*) \
 	$(wildcard ./data/world/*)
 SCRIPT_FILES= \
-	Makefile Makedeps README ./*.sh
+	Makefile Makedeps README NOTES ./*.sh
 
 # Master targets.
 .PHONY: all
