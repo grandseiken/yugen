@@ -1451,12 +1451,21 @@ llvm::Type* IrGenerator::get_llvm_type(
   if (t.is_world_vector()) {
     return vector_type(world_type(), t.get_vector_size());
   }
+  if (t.is_user_type()) {
+    return void_ptr_type();
+  }
   return void_type();
 }
 
 yang::Type IrGenerator::get_yang_type(llvm::Type* t) const
 {
   yang::Type r;
+  if (t == void_ptr_type()) {
+    // We can't reconstruct the user type from the void pointer. This means we
+    // treat all user-types as equivalent for the purposes of trampoline
+    // function generation. That's a good thing.
+    r._base = yang::Type::USER_TYPE;
+  }
   if (t->isPointerTy() || t->isFunctionTy()) {
     auto ft = (llvm::FunctionType*)(
         t->isPointerTy() ? t->getPointerElementType() : t);
