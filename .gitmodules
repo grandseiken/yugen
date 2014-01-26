@@ -1,0 +1,3 @@
+[submodule "depend/yang"]
+	path = depend/yang
+	url = git://github.com/grandseiken/yang.git

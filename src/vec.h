@@ -1,9 +1,10 @@
 #ifndef VEC_H
 #define VEC_H
 
+// Temporary until Yang has proper header setup.
+#include "../depend/yang/src/typedefs.h"
 #include "common/algorithm.h"
 #include "common/math.h"
-#include "yang/typedefs.h"
 
 #include <boost/functional/hash.hpp>
 #include <boost/iterator/iterator_facade.hpp>

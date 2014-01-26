@@ -1,7 +1,6 @@
 # Targets:
 #   yugen - the Yugen game binary
 #   yedit - the Yedit editor binary
-#   yang - the Yang standalone compiler/checker
 #   clean - delete all outputs
 #   clean_all - delete all outputs and clean dependencies
 # Pass DBG=1 to make for debug binaries.
@@ -12,7 +11,7 @@
 #   wc - print line counts of all code files
 #
 # External package dependencies:
-#   make m4 texinfo texlive
+#   make
 #   libz-dev libbz2-dev
 #   libglew-dev libgl-dev libx11-dev libjpeg-dev
 # For SFML:
@@ -37,22 +36,14 @@ YUGEN_BINARY= \
 	$(OUTDIR)/yugen
 YEDIT_BINARY= \
 	$(OUTDIR)/editor/yedit
-YANG_BINARY= \
-	$(OUTDIR)/yang/yang
 BINARIES= \
-	$(YUGEN_BINARY) $(YEDIT_BINARY) $(YANG_BINARY)
+	$(YUGEN_BINARY) $(YEDIT_BINARY)
 
 # Dependency directories.
 DEPEND_DIR= \
 	./depend
 BOOST_DIR= \
 	$(DEPEND_DIR)/boost_1_55_0
-BYACC_DIR= \
-	$(DEPEND_DIR)/byacc_2013_09_25
-FLEX_DIR= \
-	$(DEPEND_DIR)/flex_2_5_37
-LLVM_DIR= \
-  $(DEPEND_DIR)/llvm_3_3
 LUAJIT_DIR= \
 	$(DEPEND_DIR)/luajit_2_0_2
 PROTOBUF_DIR= \
@@ -72,15 +63,9 @@ export CXX= \
 	/usr/bin/g++-4.8
 export PROTOC= \
 	$(PROTOBUF_DIR)/bin/protoc
-export FLEX= \
-	$(FLEX_DIR)/flex
-export YACC= \
-	$(BYACC_DIR)/yacc
 
-# TODO: put LLVM into the top-level directory (also, without asserts).
 DEPENDENCY_DIRS= \
-	$(BOOST_DIR) $(LLVM_DIR)/Release+Asserts $(LLVM_DIR) \
-	$(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
+	$(BOOST_DIR) $(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
 DEPENDENCY_CFLAGS= \
 	$(addprefix -isystem ,\
 	$(addsuffix /include,$(DEPENDENCY_DIRS)))
@@ -101,7 +86,6 @@ LFLAGS= \
 	\
 	-Wl,-Bstatic \
 	$(BOOST_LIBRARIES_LFLAGS) \
-	$(shell $(LLVM_DIR)/Release+Asserts/bin/llvm-config --libs) \
 	-lluajit-5.1 \
 	-lprotobuf \
 	-lsfml-graphics-s -lsfml-window-s -lsfml-system-s \
@@ -127,21 +111,11 @@ PROTO_SOURCES= \
 	$(subst $(SOURCE)/,$(GEN)/,$(PROTOS:.proto=.pb.cc))
 PROTO_HEADERS= \
 	$(subst $(SOURCE)/,$(GEN)/,$(PROTOS:.proto=.pb.h))
-L_FILES= \
-	$(wildcard $(SOURCE)/*.l) \
-  $(wildcard $(SOURCE)/*/*.l)
-L_SOURCES= \
-  $(subst $(SOURCE)/,$(GEN)/,$(L_FILES:.l=.l.cc))
-Y_FILES= \
-	$(wildcard $(SOURCE)/*.y) \
-	$(wildcard $(SOURCE)/*/*.y)
-Y_SOURCES= \
-	$(subst $(SOURCE)/,$(GEN)/,$(Y_FILES:.y=.y.cc))
 SOURCE_FILES= \
 	$(wildcard $(SOURCE)/*.cpp) \
 	$(wildcard $(SOURCE)/*/*.cpp)
 SOURCES= \
-	$(SOURCE_FILES) $(PROTO_SOURCES) $(L_SOURCES) $(Y_SOURCES)
+	$(SOURCE_FILES) $(PROTO_SOURCES)
 HEADER_FILES= \
 	$(wildcard $(SOURCE)/*.h) \
 	$(wildcard $(SOURCE)/*/*.h)
@@ -172,9 +146,6 @@ yugen: \
 .PHONY: yedit
 yedit: \
 	$(YEDIT_BINARY)
-.PHONY: yang
-yang: \
-	$(YANG_BINARY)
 .PHONY: add
 add:
 	git add $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
@@ -261,8 +232,7 @@ $(BINARIES): $(OUTDIR)/%: \
 # are built.
 $(OUTDIR)/%.o: \
 	$(OUTDIR)/%.build $(OUTDIR)/%.mkdir \
-	./depend/boost.build ./depend/protobuf.build \
-	./depend/luajit.build ./depend/llvm.build
+	./depend/boost.build ./depend/protobuf.build ./depend/luajit.build
 	SOURCE_FILE=$(subst $(OUTDIR)/,,./$(<:.build=)); \
 	    echo Compiling $$SOURCE_FILE; \
 	    $(CXX) -c $(CFLAGS) $(if $(findstring /./gen/,$@),,$(WFLAGS)) \
@@ -279,23 +249,6 @@ $(GEN)/proto/%.pb.h: \
 	./depend/protobuf.build
 	@echo Compiling ./$<
 	$(PROTOC) $(PFLAGS) ./$<
-
-# Flex/YACC files.
-.PRECIOUS: $(L_SOURCES) $(Y_SOURCES)
-$(GEN)/%.l.h: \
-	$(GEN)/%.l.cc
-	touch $@ $<
-$(GEN)/%.l.cc: \
-	$(SOURCE)/%.l $(GEN)/%.mkdir ./depend/flex.build
-	@echo Compiling ./$<
-	$(FLEX) -P yang_ -o $@ --header-file=$(@:.cc=.h) $<
-$(GEN)/%.y.h: \
-	$(GEN)/%.y.cc
-	touch $@ $<
-$(GEN)/%.y.cc: \
-	$(SOURCE)/%.y $(GEN)/%.mkdir ./depend/byacc.build
-	@echo Compiling ./$<
-	$(YACC) -p yang_ -d -v -o $@ $<
 
 # Ensure a directory exists.
 .PRECIOUS: ./%.mkdir
@@ -335,7 +288,6 @@ SFML_CMAKE_FLAGS= \
 # Dependencies.
 ./depend/.build: \
 	./depend/boost.build \
-	./depend/llvm.build \
 	./depend/luajit.build \
 	./depend/protobuf.build \
 	./depend/sfml.build
@@ -350,27 +302,6 @@ SFML_CMAKE_FLAGS= \
 	    --build-dir=. stage $(BOOST_CONFIGURE_FLAGS)
 	cd $(BOOST_DIR) && ./bin/b2 install $(BOOST_CONFIGURE_FLAGS)
 	touch ./depend/boost.build
-
-# Build Flex.
-./depend/flex.build:
-	@echo Building Flex
-	cd $(FLEX_DIR) && ./configure
-	cd $(FLEX_DIR) && $(MAKE)
-	touch ./depend/flex.build
-
-# Build BYACC.
-./depend/byacc.build:
-	@echo Building BYACC
-	cd $(BYACC_DIR) && ./configure
-	cd $(BYACC_DIR) && $(MAKE)
-	touch ./depend/byacc.build
-
-# Build LLVM.
-./depend/llvm.build:
-	@echo Building LLVM
-	cd $(LLVM_DIR) && ./configure
-	cd $(LLVM_DIR) && $(MAKE)
-	touch ./depend/llvm.build
 
 # Build LuaJIT.
 ./depend/luajit.build:
@@ -403,9 +334,6 @@ clean_all: \
 	-cd $(BOOST_DIR) && \
 	    [ -f ./bin/b2 ] && ./bin/b2 $(BOOST_CONFIGURE_FLAGS) --clean
 	-cd $(BOOST_DIR) && rm -rf ./include ./lib
-	-cd $(BYACC_DIR) && [ -f ./Makefile ] && $(MAKE) clean
-	-cd $(FLEX_DIR) && [ -f ./Makefile ] && $(MAKE) clean
-	-cd $(LLVM_DIR) && $(MAKE) clean
 	-cd $(PROTOBUF_DIR) && [ -f ./Makefile ] && $(MAKE) clean
 	-cd $(PROTOBUF_DIR) && rm -rf ./bin ./include ./lib
 	-cd $(SFML_DIR) && [ -f ./Makefile ] && $(MAKE) clean
