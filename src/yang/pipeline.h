@@ -172,7 +172,7 @@ R Function<R(Args...)>::operator()(const Args&... args) const
     return construct(*_instance);
   }
   return _instance->call_via_trampoline<R>(_function, args...);
-};
+}
 
 // Implementation of TypeInfo for user types, which has to see the definition of
 // Context.

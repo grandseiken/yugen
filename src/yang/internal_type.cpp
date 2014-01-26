@@ -202,6 +202,7 @@ yang::Type Type::external(bool exported) const
       _base == INT ? yang::Type::INT :
       _base == WORLD ? yang::Type::WORLD :
       _base == FUNCTION ? yang::Type::FUNCTION :
+      _base == USER_TYPE ? yang::Type::USER_TYPE :
       yang::Type::VOID;
   t._count = _count;
   t._user_type_name = _user_type_name;
