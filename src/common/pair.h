@@ -1,5 +1,5 @@
-#ifndef COMMON__PAIR_H
-#define COMMON__PAIR_H
+#ifndef COMMON_PAIR_H
+#define COMMON_PAIR_H
 
 #include "math.h"
 

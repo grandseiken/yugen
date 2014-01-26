@@ -1,5 +1,5 @@
-#ifndef GAME__LIGHTING_H
-#define GAME__LIGHTING_H
+#ifndef GAME_LIGHTING_H
+#define GAME_LIGHTING_H
 
 #include "world.h"
 

@@ -1,5 +1,5 @@
-#ifndef YANG__WALKER_H
-#define YANG__WALKER_H
+#ifndef YANG_SRC_WALKER_H
+#define YANG_SRC_WALKER_H
 
 #include <vector>
 #include "ast.h"

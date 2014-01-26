@@ -1,5 +1,5 @@
-#ifndef COMMON__ORDERED_SET_H
-#define COMMON__ORDERED_SET_H
+#ifndef COMMON_ORDERED_SET_H
+#define COMMON_ORDERED_SET_H
 
 #include <set>
 

@@ -1,5 +1,5 @@
-#ifndef DATA__BANK_H
-#define DATA__BANK_H
+#ifndef DATA_BANK_H
+#define DATA_BANK_H
 
 #include "../common/map.h"
 #include "../common/vector.h"

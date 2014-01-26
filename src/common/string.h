@@ -1,5 +1,5 @@
-#ifndef COMMON__STRING_H
-#define COMMON__STRING_H
+#ifndef COMMON_STRING_H
+#define COMMON_STRING_H
 
 #include <sstream>
 #include <string>

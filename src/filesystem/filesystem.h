@@ -1,5 +1,5 @@
-#ifndef FILESYSTEM__FILESYSTEM_H
-#define FILESYSTEM__FILESYSTEM_H
+#ifndef FILESYSTEM_FILESYSTEM_H
+#define FILESYSTEM_FILESYSTEM_H
 
 #include "../common/string.h"
 #include "../common/vector.h"

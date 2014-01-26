@@ -1,5 +1,5 @@
-#ifndef EDITOR__MAP_UTIL_H
-#define EDITOR__MAP_UTIL_H
+#ifndef EDITOR_MAP_UTIL_H
+#define EDITOR_MAP_UTIL_H
 
 #include "../data/cell.h"
 #include "../modal.h"

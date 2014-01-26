@@ -1,5 +1,5 @@
-#ifndef RENDER__GL_UTIL_H
-#define RENDER__GL_UTIL_H
+#ifndef RENDER_GL_UTIL_H
+#define RENDER_GL_UTIL_H
 
 #include "gl_handle.h"
 #include "../common/map.h"

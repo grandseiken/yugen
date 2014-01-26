@@ -1,5 +1,5 @@
-#ifndef YANG__TABLE_H
-#define YANG__TABLE_H
+#ifndef YANG_SRC_TABLE_H
+#define YANG_SRC_TABLE_H
 
 #include <unordered_map>
 #include <unordered_set>

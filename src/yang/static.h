@@ -1,5 +1,5 @@
-#ifndef YANG__STATIC_H
-#define YANG__STATIC_H
+#ifndef YANG_SRC_STATIC_H
+#define YANG_SRC_STATIC_H
 
 #include <string>
 #include <unordered_map>

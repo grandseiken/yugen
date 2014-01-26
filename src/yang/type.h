@@ -1,5 +1,5 @@
-#ifndef YANG__TYPE_H
-#define YANG__TYPE_H
+#ifndef YANG_SRC_TYPE_H
+#define YANG_SRC_TYPE_H
 
 #include <string>
 #include <vector>

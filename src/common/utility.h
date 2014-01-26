@@ -1,5 +1,5 @@
-#ifndef COMMON__UTILITY_H
-#define COMMON__UTILITY_H
+#ifndef COMMON_UTILITY_H
+#define COMMON_UTILITY_H
 
 #include <boost/utility.hpp>
 #include <type_traits>

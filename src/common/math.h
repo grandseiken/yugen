@@ -1,5 +1,5 @@
-#ifndef COMMON__MATH_H
-#define COMMON__MATH_H
+#ifndef COMMON_MATH_H
+#define COMMON_MATH_H
 
 #include <cstdint>
 #include <cstddef>

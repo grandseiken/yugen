@@ -1,5 +1,5 @@
-#ifndef YANG__PRINT_H
-#define YANG__PRINT_H
+#ifndef YANG_SRC_PRINT_H
+#define YANG_SRC_PRINT_H
 
 #include <string>
 #include "walker.h"

@@ -1,5 +1,5 @@
-#ifndef YANG__TYPEDEFS_H
-#define YANG__TYPEDEFS_H
+#ifndef YANG_SRC_TYPEDEFS_H
+#define YANG_SRC_TYPEDEFS_H
 
 #include <cstdint>
 #include "../vector.h"

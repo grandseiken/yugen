@@ -1,5 +1,5 @@
-#ifndef COMMON__SET_H
-#define COMMON__SET_H
+#ifndef COMMON_SET_H
+#define COMMON_SET_H
 
 #include <unordered_set>
 

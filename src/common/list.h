@@ -1,5 +1,5 @@
-#ifndef COMMON__LIST_H
-#define COMMON__LIST_H
+#ifndef COMMON_LIST_H
+#define COMMON_LIST_H
 
 #include <list>
 

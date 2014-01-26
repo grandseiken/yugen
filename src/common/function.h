@@ -1,5 +1,5 @@
-#ifndef COMMON__FUNCTION_H
-#define COMMON__FUNCTION_H
+#ifndef COMMON_FUNCTION_H
+#define COMMON_FUNCTION_H
 
 #include <functional>
 

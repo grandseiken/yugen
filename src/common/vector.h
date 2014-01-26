@@ -1,5 +1,5 @@
-#ifndef COMMON__VECTOR_H
-#define COMMON__VECTOR_H
+#ifndef COMMON_VECTOR_H
+#define COMMON_VECTOR_H
 
 #include "math.h"
 

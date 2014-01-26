@@ -1,5 +1,5 @@
-#ifndef RENDER__WINDOW_H
-#define RENDER__WINDOW_H
+#ifndef RENDER_WINDOW_H
+#define RENDER_WINDOW_H
 
 #include "../common/memory.h"
 #include "../common/utility.h"

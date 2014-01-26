@@ -1,5 +1,5 @@
-#ifndef YANG__AST_H
-#define YANG__AST_H
+#ifndef YANG_SRC_AST_H
+#define YANG_SRC_AST_H
 
 #include <memory>
 #include <string>

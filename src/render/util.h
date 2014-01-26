@@ -1,5 +1,5 @@
-#ifndef RENDER__UTIL_H
-#define RENDER__UTIL_H
+#ifndef RENDER_UTIL_H
+#define RENDER_UTIL_H
 
 #include "gl_handle.h"
 #include "../common/ordered_map.h"

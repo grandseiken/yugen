@@ -1,5 +1,5 @@
-#ifndef YANG__NATIVE_H
-#define YANG__NATIVE_H
+#ifndef YANG_SRC_NATIVE_H
+#define YANG_SRC_NATIVE_H
 
 #include <functional>
 #include <memory>

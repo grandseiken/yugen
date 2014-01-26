@@ -1,5 +1,5 @@
-#ifndef GAME__WORLD_H
-#define GAME__WORLD_H
+#ifndef GAME_WORLD_H
+#define GAME_WORLD_H
 
 #include "../data/cell.h"
 #include "../spatial_hash.h"

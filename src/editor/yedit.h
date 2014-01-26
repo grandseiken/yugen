@@ -1,5 +1,5 @@
-#ifndef EDITOR__YEDIT_H
-#define EDITOR__YEDIT_H
+#ifndef EDITOR_YEDIT_H
+#define EDITOR_YEDIT_H
 
 #include "../common/math.h"
 #include "../modal.h"

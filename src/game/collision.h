@@ -1,5 +1,5 @@
-#ifndef GAME__COLLISION_H
-#define GAME__COLLISION_H
+#ifndef GAME_COLLISION_H
+#define GAME_COLLISION_H
 
 #include "../lua.h"
 #include "../spatial_hash.h"

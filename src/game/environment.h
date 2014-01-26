@@ -1,5 +1,5 @@
-#ifndef GAME__ENVIRONMENT_H
-#define GAME__ENVIRONMENT_H
+#ifndef GAME_ENVIRONMENT_H
+#define GAME_ENVIRONMENT_H
 
 #include "../vector.h"
 #include "../render/gl_handle.h"

@@ -1,5 +1,5 @@
-#ifndef EDITOR__TILESET_H
-#define EDITOR__TILESET_H
+#ifndef EDITOR_TILESET_H
+#define EDITOR_TILESET_H
 
 #include "../modal.h"
 #include "../vector.h"

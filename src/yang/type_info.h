@@ -1,5 +1,5 @@
-#ifndef YANG__TYPE_INFO_H
-#define YANG__TYPE_INFO_H
+#ifndef YANG_SRC_TYPE_INFO_H
+#define YANG_SRC_TYPE_INFO_H
 
 #include <functional>
 #include <tuple>

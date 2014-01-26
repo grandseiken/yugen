@@ -1,5 +1,5 @@
-#ifndef GAME__SAVEGAME_H
-#define GAME__SAVEGAME_H
+#ifndef GAME_SAVEGAME_H
+#define GAME_SAVEGAME_H
 
 #include "../common/map.h"
 #include "../common/string.h"

@@ -1,5 +1,5 @@
-#ifndef DATA__TILESET_H
-#define DATA__TILESET_H
+#ifndef DATA_TILESET_H
+#define DATA_TILESET_H
 
 #include "../common/memory.h"
 #include "../render/gl_handle.h"

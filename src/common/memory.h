@@ -1,5 +1,5 @@
-#ifndef COMMON__MEMORY_H
-#define COMMON__MEMORY_H
+#ifndef COMMON_MEMORY_H
+#define COMMON_MEMORY_H
 
 #include <cstddef>
 #include <memory>

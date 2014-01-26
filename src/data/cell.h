@@ -1,5 +1,5 @@
-#ifndef DATA__CELL_H
-#define DATA__CELL_H
+#ifndef DATA_CELL_H
+#define DATA_CELL_H
 
 #include "../common/map.h"
 #include "../common/memory.h"

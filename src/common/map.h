@@ -1,5 +1,5 @@
-#ifndef COMMON__MAP_H
-#define COMMON__MAP_H
+#ifndef COMMON_MAP_H
+#define COMMON_MAP_H
 
 #include "pair.h"
 #include <unordered_map>

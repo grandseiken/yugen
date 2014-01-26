@@ -1,5 +1,5 @@
-#ifndef COMMON__TUPLE_H
-#define COMMON__TUPLE_H
+#ifndef COMMON_TUPLE_H
+#define COMMON_TUPLE_H
 
 #include "math.h"
 #include <tuple>

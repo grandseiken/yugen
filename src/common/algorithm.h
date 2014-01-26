@@ -1,5 +1,5 @@
-#ifndef COMMON__ALGORITHM_H
-#define COMMON__ALGORITHM_H
+#ifndef COMMON_ALGORITHM_H
+#define COMMON_ALGORITHM_H
 
 #include "math.h"
 #include <algorithm>

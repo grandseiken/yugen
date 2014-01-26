@@ -1,5 +1,5 @@
-#ifndef GAME__STAGE_H
-#define GAME__STAGE_H
+#ifndef GAME_STAGE_H
+#define GAME_STAGE_H
 
 #include "world.h"
 #include "../common/list.h"

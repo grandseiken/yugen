@@ -1,5 +1,5 @@
-#ifndef YANG__IRGEN_H
-#define YANG__IRGEN_H
+#ifndef YANG_SRC_IRGEN_H
+#define YANG_SRC_IRGEN_H
 
 #include <functional>
 #include <unordered_map>

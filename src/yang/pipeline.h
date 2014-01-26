@@ -1,5 +1,5 @@
-#ifndef YANG__PIPELINE_H
-#define YANG__PIPELINE_H
+#ifndef YANG_SRC_PIPELINE_H
+#define YANG_SRC_PIPELINE_H
 
 #include <memory>
 #include <string>
