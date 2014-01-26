@@ -1,5 +1,5 @@
 #include "type.h"
-#include "../log.h"
+#include "log.h"
 
 namespace yang {
 

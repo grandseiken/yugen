@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "../log.h"
+#include "log.h"
 #include "pipeline.h"
 
 template<typename T>

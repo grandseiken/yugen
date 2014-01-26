@@ -1,7 +1,8 @@
 #include "irgen.h"
+
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/IR/Module.h>
-#include "../log.h"
+#include "log.h"
 
 namespace llvm {
   class LLVMContext;

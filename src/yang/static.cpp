@@ -2,7 +2,7 @@
 
 #include <unordered_set>
 #include <vector>
-#include "../log.h"
+#include "log.h"
 
 namespace std {
   template<>

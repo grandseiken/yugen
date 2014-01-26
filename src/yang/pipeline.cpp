@@ -13,9 +13,9 @@
 
 #include "ast.h"
 #include "irgen.h"
+#include "log.h"
 #include "print.h"
 #include "static.h"
-#include "../log.h"
 #include "../../gen/yang/yang.y.h"
 
 int yang_parse();

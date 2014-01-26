@@ -5,12 +5,12 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "../log.h"
 
-#include "typedefs.h"
+#include "log.h"
 #include "native.h"
 #include "type.h"
 #include "type_info.h"
+#include "typedefs.h"
 
 namespace llvm {
   class ExecutionEngine;

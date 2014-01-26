@@ -10,7 +10,7 @@ inline void logg(y::ostream&)
 }
 
 template<typename T, typename... U>
-inline void logg(y::ostream& o, T t, U... args)
+inline void logg(y::ostream& o, const T& t, const U&... args)
 {
   o << t;
   logg(o, args...);
@@ -19,20 +19,20 @@ inline void logg(y::ostream& o, T t, U... args)
 inline void logv() {}
 
 template<typename T, typename... U>
-inline void logv(T, U... args)
+inline void logv(const T&, const U&... args)
 {
   logv(args...);
 }
 
 template<typename... T>
-inline void loge(y::ostream& o, T... args)
+inline void loge(y::ostream& o, const T&... args)
 {
   logg(o, args...);
   o << y::endl;
 }
 
 template<typename... T>
-inline void log_debug(T... args)
+inline void log_debug(const T&... args)
 {
 #ifdef DEBUG
   loge(y::cout, args...);
@@ -42,7 +42,7 @@ inline void log_debug(T... args)
 }
 
 template<typename... T>
-inline void logg_debug(T... args)
+inline void logg_debug(const T&... args)
 {
 #ifdef DEBUG
   logg(y::cout, args...);
@@ -52,25 +52,25 @@ inline void logg_debug(T... args)
 }
 
 template<typename... T>
-inline void log_info(T... args)
+inline void log_info(const T&... args)
 {
   loge(y::cout, args...);
 }
 
 template<typename... T>
-inline void logg_info(T... args)
+inline void logg_info(const T&... args)
 {
   logg(y::cout, args...);
 }
 
 template<typename... T>
-inline void log_err(T... args)
+inline void log_err(const T&... args)
 {
   loge(y::cerr, args...);
 }
 
 template<typename... T>
-inline void logg_err(T... args)
+inline void logg_err(const T&... args)
 {
   logg(y::cerr, args...);
 }

@@ -4,7 +4,7 @@
 #include <functional>
 #include <tuple>
 
-#include "../log.h"
+#include "log.h"
 #include "native.h"
 #include "type.h"
 
