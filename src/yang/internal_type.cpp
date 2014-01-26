@@ -11,9 +11,11 @@ Type::Type(const yang::Type& type)
       type._base == yang::Type::INT ? INT :
       type._base == yang::Type::WORLD ? WORLD :
       type._base == yang::Type::FUNCTION ? FUNCTION :
+      type._base == yang::Type::USER_TYPE ? USER_TYPE :
       VOID;
   _const = type._const;
   _count = type._count;
+  _user_type_name = type._user_type_name;
   for (const yang::Type& u : type._elements) {
     _elements.push_back(u);
   }
@@ -38,9 +40,19 @@ Type::Type(type_base base, const Type& return_type)
 {
   if (base != FUNCTION) {
     _base = ERROR;
+    return;
   }
-  else {
-    _elements.push_back(return_type);
+  _elements.push_back(return_type);
+}
+
+Type::Type(type_base base, const y::string& user_type_name)
+  : _base(USER_TYPE)
+  , _count(1)
+  , _const(false)
+  , _user_type_name(user_type_name)
+{
+  if (base != USER_TYPE) {
+    _base = ERROR;
   }
 }
 
@@ -57,6 +69,11 @@ Type::type_base Type::base() const
 y::size Type::count() const
 {
   return _count;
+}
+
+const y::string& Type::user_type_name() const
+{
+  return _user_type_name;
 }
 
 bool Type::is_const() const
@@ -111,6 +128,11 @@ bool Type::function() const
   return is_error() || _base == FUNCTION;
 }
 
+bool Type::user_type() const
+{
+  return is_error() || _base == USER_TYPE;
+}
+
 const Type& Type::elements(y::size index) const
 {
   return is_error() ? *this : _elements[y::min(index, _elements.size() - 1)];
@@ -162,7 +184,8 @@ bool Type::operator==(const Type& t) const
       return false;
     }
   }
-  return _base == t._base && _count == t._count;
+  return _base == t._base && _count == t._count &&
+      _user_type_name == t._user_type_name;
 }
 
 bool Type::operator!=(const Type& t) const
@@ -181,6 +204,7 @@ yang::Type Type::external(bool exported) const
       _base == FUNCTION ? yang::Type::FUNCTION :
       yang::Type::VOID;
   t._count = _count;
+  t._user_type_name = _user_type_name;
   for (const Type& u : _elements) {
     t._elements.push_back(u.external(false));
   }
@@ -189,6 +213,10 @@ yang::Type Type::external(bool exported) const
 
 y::string Type::string_internal() const
 {
+  if (_base == USER_TYPE) {
+    return _user_type_name + "*";
+  }
+
   if (_base == FUNCTION) {
     y::string s = _elements[0].string_internal() + "(";
     for (y::size i = 1; i < _elements.size(); ++i) {

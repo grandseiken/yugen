@@ -201,6 +201,15 @@ void Context::register_type(const y::string& name)
     log_err("duplicate type `", name, "` registered in context");
     return;
   }
+  // Could also store a reverse-map from internal pointer type-id; probably
+  // not a big deal.
+  for (const auto& pair : _types) {
+    if (pair.second.obj->is<T*>()) {
+      log_err("duplicate types `", name, "` and `", pair.first,
+              "` registered in context");
+      return;
+    }
+  }
 
   internal::GenericNativeType& symbol = _types[name];
   symbol.obj = y::move_unique(new internal::NativeType<T*>());
@@ -230,8 +239,6 @@ void Context::register_function(
 template<typename T>
 bool Context::has_type() const
 {
-  // Could also store a reverse-map from internal pointer type-id; probably
-  // not a big deal.
   for (const auto& pair : _types) {
     if (pair.second.obj->is<T*>()) {
       return true;

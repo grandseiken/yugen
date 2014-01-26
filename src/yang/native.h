@@ -113,7 +113,7 @@ template<typename T>
 bool NativeType<void>::is() const
 {
   NativeType<T> t;
-  return id() == t.id();
+  return id() == ((NativeType<void>*)&t)->id();
 }
 
 template<typename T>

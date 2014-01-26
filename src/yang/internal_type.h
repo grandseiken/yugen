@@ -31,6 +31,7 @@ public:
     INT,
     WORLD,
     FUNCTION,
+    USER_TYPE,
   };
 
   // Convert from an external type.
@@ -40,14 +41,19 @@ public:
   // only if the base is type INT or WORLD. This constructor can't create
   // FUNCTION types. Invalid construction will result in an ERROR type.
   Type(type_base base, y::size count = 1);
-  // Construct FUNCTION types. Passing anything other than FUNCTION
-  // will result in an error.
+  // Construct FUNCTION types. Passing anything other than FUNCTION will
+  // result in an error.
   Type(type_base base, const Type& return_type);
+  // Construct USER_TYPE types. Passing anything other than USER_TYPE will
+  // result in an error.
+  Type(type_base base, const y::string& user_type_name);
+  // Set const.
   void set_const(bool is_const);
 
   // Return components of the type.
   type_base base() const;
   y::size count() const;
+  const y::string& user_type_name() const;
   bool is_const() const;
   // Return a string representation of the type.
   y::string string() const;
@@ -69,6 +75,8 @@ public:
   bool is_world() const;
   // True if this is type FUNCTION (with any argument and return types).
   bool function() const;
+  // True if this is any USER_TYPE.
+  bool user_type() const;
 
   // Access the element types. For FUNCTION types, the first element is the
   // return type, and subsequent elements are argument types.
@@ -105,8 +113,8 @@ private:
   type_base _base;
   y::size _count;
   bool _const;
-
   y::vector<Type> _elements;
+  y::string _user_type_name;
 
 };
 

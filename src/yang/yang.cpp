@@ -38,7 +38,15 @@ y::int32 main(y::int32 argc, char** argv)
 
   // TODO: test.
   struct Test {};
+  Test test;
+  auto get_test = [&]()
+  {
+    return &test;
+  };
   context.register_type<Test>("Test");
+  context.register_type<Test>("Test2");
+  context.register_function("get_test", y::function<Test*()>(get_test));
+
   typedef Fn<yang::int32_vec<2>(yang::int32_vec<2>)> vv_t;
   auto foo = [](const yang::int32_vec<2>& a, vv_t f)
   {

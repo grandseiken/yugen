@@ -113,7 +113,8 @@ bool Type::operator==(const Type& t) const
       return false;
     }
   }
-  return _base == t._base && _count == t._count;
+  return _user_type_name == t._user_type_name &&
+      _base == t._base && _count == t._count;
 }
 
 bool Type::operator!=(const Type& t) const
