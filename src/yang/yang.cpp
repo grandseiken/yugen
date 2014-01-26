@@ -3,7 +3,6 @@
 #include "../log.h"
 
 #include "pipeline.h"
-#include <boost/filesystem.hpp>
 #include <fstream>
 
 template<typename T>
@@ -17,14 +16,14 @@ y::int32 main(y::int32 argc, char** argv)
   }
 
   y::string path = argv[1];
-  if (!boost::filesystem::is_regular_file(path)) {
-    log_err(path, " is not a file");
-    return 1;
-  }
-
   y::string contents;
   try {
     std::ifstream file(path, std::ios::in | std::ios::binary);
+    if (!file) {
+      log_err(path, " is not a file");
+      return 1;
+    }
+
     file.seekg(0, std::ios::end);
     contents.resize(file.tellg());
     file.seekg(0, std::ios::beg);
