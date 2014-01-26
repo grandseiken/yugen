@@ -223,6 +223,7 @@ struct TypeInfo<Function<R(A, Args...)>> {
   }
 };
 
+// Construct a value and (for function types) set the associated instance.
 template<typename T>
 struct ValueConstruct {
   T operator()(Instance&) const

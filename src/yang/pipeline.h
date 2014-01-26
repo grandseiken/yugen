@@ -41,6 +41,7 @@ namespace internal {
 // TODO: vectorised assignment, or pattern-matching assignment? Also, indexed
 // assignment.
 // TODO: warnings: for example, unused variables.
+// TODO: many calls to log_err should probably actually be thrown exceptions.
 // TODO: code hot-swapping. Careful with pointer values (e.g. functions) in
 // global data struct which probably need to be left as default values.
 class Context : public y::no_copy {
@@ -55,6 +56,12 @@ public:
   template<typename R, typename... Args>
   void register_function(
       const y::string& name, const y::function<R(Args...)>& f);
+
+  // Information about registered types.
+  template<typename T>
+  bool has_type() const;
+  template<typename T>
+  y::string get_type_name() const;
 
 private:
 
@@ -152,7 +159,8 @@ private:
 
 };
 
-// Implementation of Function::operator(), which has to see the defintion of Instance.
+// Implementation of Function::operator(), which has to see the defintion of
+// Instance.
 template<typename R, typename... Args>
 R Function<R(Args...)>::operator()(const Args&... args) const
 {
@@ -166,10 +174,36 @@ R Function<R(Args...)>::operator()(const Args&... args) const
   return _instance->call_via_trampoline<R>(_function, args...);
 };
 
+// Implementation of TypeInfo for user types, which has to see the definition of
+// Context.
+namespace internal {
+  template<typename T>
+  struct TypeInfo<T*> {
+    yang::Type operator()(const Context& context) const
+    {
+      if (!context.has_type<T>()) {
+        log_err("using unregistered user type");
+        return {};
+      }
+      yang::Type t;
+      t._base = yang::Type::USER_TYPE;
+      t._user_type_name = context.get_type_name<T>();
+      return t;
+    }
+  };
+}
+
 template<typename T>
 void Context::register_type(const y::string& name)
 {
-  _types[name];
+  auto it = _types.find(name);
+  if (it != _types.end()) {
+    log_err("duplicate type `", name, "` registered in context");
+    return;
+  }
+
+  internal::GenericNativeType& symbol = _types[name];
+  symbol.obj = y::move_unique(new internal::NativeType<T*>());
 }
 
 template<typename R, typename... Args>
@@ -178,7 +212,7 @@ void Context::register_function(
 {
   auto it = _functions.find(name);
   if (it != _functions.end()) {
-    log_err("duplicate function `", name, "` added to context");
+    log_err("duplicate function `", name, "` registered in context");
     return;
   }
 
@@ -191,6 +225,30 @@ void Context::register_function(
       R(Args...),
       typename internal::TrampolineReturn<R>::type,
       typename internal::TrampolineArgs<Args...>::type>::call;
+}
+
+template<typename T>
+bool Context::has_type() const
+{
+  // Could also store a reverse-map from internal pointer type-id; probably
+  // not a big deal.
+  for (const auto& pair : _types) {
+    if (pair.second.obj->is<T*>()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+template<typename T>
+y::string Context::get_type_name() const
+{
+  for (const auto& pair : _types) {
+    if (pair.second.obj->is<T*>()) {
+      return pair.first;
+    }
+  }
+  return "";
 }
 
 template<typename T>

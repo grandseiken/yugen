@@ -42,6 +42,10 @@ public:
   const Type& get_function_return_type() const;
   const Type& get_function_arg_type(y::size index) const;
 
+  // User types.
+  bool is_user_type() const;
+  const y::string& get_user_type_name() const;
+
   bool operator==(const Type& t) const;
   bool operator!=(const Type& t) const;
 
@@ -60,6 +64,7 @@ private:
     INT,
     WORLD,
     FUNCTION,
+    USER_TYPE,
   };
 
   bool _exported;
@@ -67,6 +72,7 @@ private:
   type_base _base;
   y::size _count;
   y::vector<Type> _elements;
+  y::string _user_type_name;
   static Type void_type;
 
 };

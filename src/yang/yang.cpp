@@ -34,9 +34,11 @@ y::int32 main(y::int32 argc, char** argv)
     log_err("Read of ", path, " failed");
     return 1;
   }
-
   yang::Context context;
+
   // TODO: test.
+  struct Test {};
+  context.register_type<Test>("Test");
   typedef Fn<yang::int32_vec<2>(yang::int32_vec<2>)> vv_t;
   auto foo = [](const yang::int32_vec<2>& a, vv_t f)
   {
@@ -45,6 +47,7 @@ y::int32 main(y::int32 argc, char** argv)
   };
   typedef y::function<yang::int32_vec<2>(yang::int32_vec<2>, vv_t)> foo_t;
   context.register_function("foo", foo_t(foo));
+
   yang::Program program(context, path, contents);
   if (!program.success()) {
     return 1;

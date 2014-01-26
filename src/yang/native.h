@@ -8,7 +8,55 @@
 namespace yang {
 namespace internal {
 
-struct GenericNativeType {};
+// Class for dynamic storage of an aribtrary user type.
+template<typename T>
+class NativeType {
+  static_assert(sizeof(T) != sizeof(T),
+                "incorrect native type argument used");
+};
+
+template<>
+class NativeType<void> {
+public:
+
+  virtual ~NativeType() {}
+  // Check whether this is a NativeType instantiated on a particular type.
+  template<typename T>
+  bool is() const;
+
+protected:
+
+  virtual const void** id() const = 0;
+
+};
+
+struct GenericNativeType {
+  GenericNativeType()
+    : obj(y::null) {}
+  ~GenericNativeType() {}
+
+  GenericNativeType(GenericNativeType&&) = default;
+  GenericNativeType& operator=(GenericNativeType&&) = default;
+
+  y::unique<NativeType<void>> obj;
+};
+
+template<typename T>
+class NativeType<T*> : public NativeType<void> {
+public:
+
+  ~NativeType() override {};
+
+protected:
+
+  virtual const void** id() const;
+
+private:
+
+  // Guaranteed to have a different address per template instantiation.
+  static const void* _id;
+
+};
 
 // Class for dynamic storage of an arbitrary function.
 template<typename T>
@@ -60,6 +108,22 @@ private:
   function_type _function;
 
 };
+
+template<typename T>
+bool NativeType<void>::is() const
+{
+  NativeType<T> t;
+  return id() == t.id();
+}
+
+template<typename T>
+const void** NativeType<T*>::id() const
+{
+  return &_id;
+}
+
+template<typename T>
+const void* NativeType<T*>::_id = y::null;
 
 template<typename R, typename... Args>
 NativeFunction<R(Args...)>::NativeFunction(const function_type& function)

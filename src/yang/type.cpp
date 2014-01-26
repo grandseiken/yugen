@@ -8,7 +8,10 @@ namespace yang {
 y::string Type::string() const
 {
   y::string s;
-  if (_base == FUNCTION) {
+  if (_base == USER_TYPE) {
+    s = _user_type_name + "*";
+  }
+  else if (_base == FUNCTION) {
     s += _elements[0].string() + "(";
     for (y::size i = 1; i < _elements.size(); ++i) {
       if (i > 1) {
@@ -88,6 +91,16 @@ const Type& Type::get_function_return_type() const
 const Type& Type::get_function_arg_type(y::size index) const
 {
   return 1 + index >= _elements.size() ? void_type : _elements[1 + index];
+}
+
+bool Type::is_user_type() const
+{
+  return _base == USER_TYPE;
+}
+
+const y::string& Type::get_user_type_name() const
+{
+  return _user_type_name;
 }
 
 bool Type::operator==(const Type& t) const
