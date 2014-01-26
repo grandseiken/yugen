@@ -150,21 +150,19 @@ yedit: \
 add:
 	git add $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
 	    $(SOURCE_FILES) $(HEADER_FILES) $(DATA_FILES) \
-			$(PROTOS) $(L_FILES) $(Y_FILES)
+			$(PROTOS)
 .PHONY: todo
 todo:
 	@grep --color -n "T[O]D[O]" \
 	    $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
 	    $(SOURCE_FILES) $(HEADER_FILES) \
-			$(PROTOS) $(L_FILES) $(Y_FILES)
+			$(PROTOS)
 .PHONY: wc
 wc:
 	@echo Scripts and docs:
 	@cat $(SCRIPT_FILES) | wc
 	@echo Protos:
 	@cat $(PROTOS) | wc
-	@echo Flex/YACC files:
-	@cat $(L_FILES) $(Y_FILES) | wc
 	@echo GLSL:
 	@cat $(GLSL_FILES) | wc
 	@echo Lua:
@@ -174,7 +172,7 @@ wc:
 	@echo Total:
 	@cat $(SCRIPT_FILES) $(GLSL_FILES) $(LUA_FILES) \
 	    $(SOURCE_FILES) $(HEADER_FILES) \
-			$(PROTOS) $(L_FILES) $(Y_FILES) | wc
+			$(PROTOS) | wc
 .PHONY: clean
 clean:
 	rm -rf $(OUTDIR)
