@@ -134,7 +134,7 @@ DATA_FILES= \
 	$(wildcard ./data/tiles/*) \
 	$(wildcard ./data/world/*)
 SCRIPT_FILES= \
-	Makefile Makedeps README NOTES ./*.sh
+	Makefile Makedeps README NOTES ./*.sh .gitignore
 
 # Master targets.
 .PHONY: all
