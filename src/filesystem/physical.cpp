@@ -71,7 +71,7 @@ void PhysicalFilesystem::read_file_internal(y::string& output,
     log_err("Read of ", path, " failed: ", e.what());
   }
   catch (const std::ofstream::failure& e) {
-    log_err("Read of ", path, " failed", e.what());
+    log_err("Read of ", path, " failed: ", e.what());
   }
 }
 
