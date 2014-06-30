@@ -1,6 +1,6 @@
 #include "yedit.h"
 #include "map.h"
-#include "tileset.h"
+#include "tile_edit.h"
 
 #include "../data/bank.h"
 #include "../filesystem/physical.h"

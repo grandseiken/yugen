@@ -1,0 +1,219 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="..\src\callback.h" />
+    <ClInclude Include="..\src\log.h" />
+    <ClInclude Include="..\src\lua.h" />
+    <ClInclude Include="..\src\lua_api.h" />
+    <ClInclude Include="..\src\lua_types.h" />
+    <ClInclude Include="..\src\modal.h" />
+    <ClInclude Include="..\src\perlin.h" />
+    <ClInclude Include="..\src\save.h" />
+    <ClInclude Include="..\src\spatial_hash.h" />
+    <ClInclude Include="..\src\ui_util.h" />
+    <ClInclude Include="..\src\vec.h" />
+    <ClInclude Include="..\src\yugen.h" />
+    <ClInclude Include="..\src\render\gl_handle.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\render\gl_util.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\render\util.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\render\window.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\game\collision.h">
+      <Filter>game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\game\environment.h">
+      <Filter>game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\game\lighting.h">
+      <Filter>game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\game\savegame.h">
+      <Filter>game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\game\stage.h">
+      <Filter>game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\game\world.h">
+      <Filter>game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\filesystem\compressed.h">
+      <Filter>filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\filesystem\filesystem.h">
+      <Filter>filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\filesystem\physical.h">
+      <Filter>filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\data\bank.h">
+      <Filter>data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\data\cell.h">
+      <Filter>data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\data\tileset.h">
+      <Filter>data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\algorithm.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\function.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\io.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\list.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\map.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\math.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\memory.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\ordered_map.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\ordered_set.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\pair.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\set.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\string.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\tuple.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\utility.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\vector.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\gen\proto\cell.pb.h">
+      <Filter>gen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\gen\proto\common.pb.h">
+      <Filter>gen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\gen\proto\savegame.pb.h">
+      <Filter>gen</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\lua.cpp" />
+    <ClCompile Include="..\src\lua_types.cpp" />
+    <ClCompile Include="..\src\modal.cpp" />
+    <ClCompile Include="..\src\ui_util.cpp" />
+    <ClCompile Include="..\src\vec.cpp" />
+    <ClCompile Include="..\src\yugen.cpp" />
+    <ClCompile Include="..\src\render\gl_handle.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\render\gl_util.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\render\util.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\render\window.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\game\collision.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\game\environment.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\game\lighting.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\game\savegame.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\game\stage.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\game\world.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\filesystem\compressed.cpp">
+      <Filter>filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\filesystem\filesystem.cpp">
+      <Filter>filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\filesystem\physical.cpp">
+      <Filter>filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\bank.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\cell.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\tileset.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gen\proto\cell.pb.cc">
+      <Filter>gen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gen\proto\common.pb.cc">
+      <Filter>gen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gen\proto\savegame.pb.cc">
+      <Filter>gen</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="render">
+      <UniqueIdentifier>{9f4ab4c9-2a77-4f0f-ac15-826ceba59805}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="game">
+      <UniqueIdentifier>{1798ee8c-f523-4bf6-b8dc-016cffca8b29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="proto">
+      <UniqueIdentifier>{5510103b-bd54-4945-92e7-f52b06e0faa1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="filesystem">
+      <UniqueIdentifier>{01a29194-9efa-495d-bb66-d0866b74be0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{4ca03216-6870-49e9-bbdb-b5dc88ab2b89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="data">
+      <UniqueIdentifier>{ddf49ee3-8507-4400-a51f-f2111ea32f63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gen">
+      <UniqueIdentifier>{667b171e-ac24-4bd5-84c3-1b9a15d25080}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\proto\cell.proto">
+      <Filter>proto</Filter>
+    </None>
+    <None Include="..\src\proto\common.proto">
+      <Filter>proto</Filter>
+    </None>
+    <None Include="..\src\proto\savegame.proto">
+      <Filter>proto</Filter>
+    </None>
+    <None Include="yedit.vcxproj" />
+  </ItemGroup>
+</Project>

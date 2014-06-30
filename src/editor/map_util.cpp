@@ -213,8 +213,9 @@ void ScriptMoveAction::undo() const
 
 bool ScriptMoveAction::is_noop() const
 {
-  return map.has_script({new_min, new_max, path}) ||
-      !map.has_script({min, max, path});
+  ScriptBlueprint old_bp{min, max, path};
+  ScriptBlueprint new_bp{new_min, new_max, path};
+  return map.has_script(new_bp) || !map.has_script(old_bp);
 }
 
 TileBrush::TileBrush()
@@ -252,7 +253,7 @@ bool BrushPanel::event(const sf::Event& e)
 
 void BrushPanel::update()
 {
-  y::ivec2 tiles = y::max({1, 1}, _brush.size);
+  y::ivec2 tiles = y::max(y::ivec2{1, 1}, _brush.size);
   set_size(tiles * Tileset::tile_size);
 }
 
@@ -374,7 +375,7 @@ void TilePanel::draw(RenderUtil& util) const
   y::ivec2 max = y::max(start, _tile_hover);
 
   if (y::in_region(_tile_hover, y::ivec2(), t.get_size()) || is_dragging()) {
-    min = y::max(min, {0, 0});
+    min = y::max(min, y::ivec2());
     max = y::min(max, t.get_size() - y::ivec2{1, 1});
     util.irender_outline(
          min * Tileset::tile_size +
@@ -389,7 +390,7 @@ void TilePanel::copy_drag_to_brush() const
 
   y::ivec2 min = y::min(get_drag_start(), _tile_hover);
   y::ivec2 max = y::max(get_drag_start(), _tile_hover);
-  min = y::max(min, {0, 0});
+  min = y::max(min, y::ivec2());
   max = y::min(max, t.get_size() - y::ivec2{1, 1});
   max = y::min(max, min + TileBrush::max_size - y::ivec2{1, 1});
   _brush.size = y::ivec2{1, 1} + max - min;

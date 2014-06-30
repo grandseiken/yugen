@@ -1,8 +1,7 @@
 #ifndef VEC_H
 #define VEC_H
 
-// Temporary until Yang has proper header setup.
-#include "../depend/yang/src/typedefs.h"
+#include <yang/typedefs.h>
 #include "common/algorithm.h"
 #include "common/math.h"
 

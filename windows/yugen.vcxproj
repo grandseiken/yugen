@@ -1,0 +1,169 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{5096D834-65F7-4844-903F-B1BAA8A8798C}</ProjectGuid>
+    <RootNamespace>yugen</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IntDir>$(Configuration)\yugen</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IntDir>$(Configuration)\yugen</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\depend\sfml_2_1\include;..\depend\luajit_2_0_2\include;..\depend\boost_1_55_0;..\depend\protobuf_2_5_0\src;..\depend\yang\include;..\depend\glew_1_10_0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_MBCS;_SCL_SECURE_NO_WARNINGS;SFML_STATIC;GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>..\depend\boost_1_55_0\stage\lib;..\depend\sfml_2_1\lib;..\depend\protobuf_2_5_0\vsprojects\Release;..\depend\glew_1_10_0\lib\Release\Win32;..\depend\luajit_2_0_2\src</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sfml-window.lib;sfml-audio.lib;sfml-system.lib;sfml-graphics.lib;sfml-main.lib;lua51.lib;libprotobuf.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>..\depend\protobuf_2_5_0\vsprojects\Release\protoc -I../src/proto --cpp_out=../gen/proto ../src/proto/common.proto ../src/proto/cell.proto ../src/proto/savegame.proto</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\depend\sfml_2_1\include;..\depend\luajit_2_0_2\include;..\depend\boost_1_55_0;..\depend\protobuf_2_5_0\src;..\depend\yang\include;..\depend\glew_1_10_0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_MBCS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>..\depend\boost_1_55_0\stage\lib;..\depend\sfml_2_1\lib;..\depend\protobuf_2_5_0\vsprojects\Release;..\depend\glew_1_10_0\lib\Release\Win32;..\depend\luajit_2_0_2\src</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sfml-window.lib;sfml-audio.lib;sfml-system.lib;sfml-graphics.lib;sfml-main.lib;lua51.lib;libprotobuf.lib;glew32.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>..\depend\protobuf_2_5_0\vsprojects\Release\protoc -I../src/proto --cpp_out=../gen/proto ../src/proto/common.proto ../src/proto/cell.proto ../src/proto/savegame.proto</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\gen\proto\cell.pb.h" />
+    <ClInclude Include="..\gen\proto\common.pb.h" />
+    <ClInclude Include="..\gen\proto\savegame.pb.h" />
+    <ClInclude Include="..\src\callback.h" />
+    <ClInclude Include="..\src\common\algorithm.h" />
+    <ClInclude Include="..\src\common\function.h" />
+    <ClInclude Include="..\src\common\io.h" />
+    <ClInclude Include="..\src\common\list.h" />
+    <ClInclude Include="..\src\common\map.h" />
+    <ClInclude Include="..\src\common\math.h" />
+    <ClInclude Include="..\src\common\memory.h" />
+    <ClInclude Include="..\src\common\ordered_map.h" />
+    <ClInclude Include="..\src\common\ordered_set.h" />
+    <ClInclude Include="..\src\common\pair.h" />
+    <ClInclude Include="..\src\common\set.h" />
+    <ClInclude Include="..\src\common\string.h" />
+    <ClInclude Include="..\src\common\tuple.h" />
+    <ClInclude Include="..\src\common\utility.h" />
+    <ClInclude Include="..\src\common\vector.h" />
+    <ClInclude Include="..\src\data\bank.h" />
+    <ClInclude Include="..\src\data\cell.h" />
+    <ClInclude Include="..\src\data\tileset.h" />
+    <ClInclude Include="..\src\filesystem\compressed.h" />
+    <ClInclude Include="..\src\filesystem\filesystem.h" />
+    <ClInclude Include="..\src\filesystem\physical.h" />
+    <ClInclude Include="..\src\game\collision.h" />
+    <ClInclude Include="..\src\game\environment.h" />
+    <ClInclude Include="..\src\game\lighting.h" />
+    <ClInclude Include="..\src\game\savegame.h" />
+    <ClInclude Include="..\src\game\stage.h" />
+    <ClInclude Include="..\src\game\world.h" />
+    <ClInclude Include="..\src\log.h" />
+    <ClInclude Include="..\src\lua.h" />
+    <ClInclude Include="..\src\lua_api.h" />
+    <ClInclude Include="..\src\lua_types.h" />
+    <ClInclude Include="..\src\modal.h" />
+    <ClInclude Include="..\src\perlin.h" />
+    <ClInclude Include="..\src\render\gl_handle.h" />
+    <ClInclude Include="..\src\render\gl_util.h" />
+    <ClInclude Include="..\src\render\util.h" />
+    <ClInclude Include="..\src\render\window.h" />
+    <ClInclude Include="..\src\save.h" />
+    <ClInclude Include="..\src\spatial_hash.h" />
+    <ClInclude Include="..\src\ui_util.h" />
+    <ClInclude Include="..\src\vec.h" />
+    <ClInclude Include="..\src\yugen.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\gen\proto\cell.pb.cc" />
+    <ClCompile Include="..\gen\proto\common.pb.cc" />
+    <ClCompile Include="..\gen\proto\savegame.pb.cc" />
+    <ClCompile Include="..\src\data\bank.cpp" />
+    <ClCompile Include="..\src\data\cell.cpp" />
+    <ClCompile Include="..\src\data\tileset.cpp" />
+    <ClCompile Include="..\src\filesystem\compressed.cpp" />
+    <ClCompile Include="..\src\filesystem\filesystem.cpp" />
+    <ClCompile Include="..\src\filesystem\physical.cpp" />
+    <ClCompile Include="..\src\game\collision.cpp" />
+    <ClCompile Include="..\src\game\environment.cpp" />
+    <ClCompile Include="..\src\game\lighting.cpp" />
+    <ClCompile Include="..\src\game\savegame.cpp" />
+    <ClCompile Include="..\src\game\stage.cpp" />
+    <ClCompile Include="..\src\game\world.cpp" />
+    <ClCompile Include="..\src\lua.cpp" />
+    <ClCompile Include="..\src\lua_types.cpp" />
+    <ClCompile Include="..\src\modal.cpp" />
+    <ClCompile Include="..\src\render\gl_handle.cpp" />
+    <ClCompile Include="..\src\render\gl_util.cpp" />
+    <ClCompile Include="..\src\render\util.cpp" />
+    <ClCompile Include="..\src\render\window.cpp" />
+    <ClCompile Include="..\src\ui_util.cpp" />
+    <ClCompile Include="..\src\vec.cpp" />
+    <ClCompile Include="..\src\yugen.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\proto\cell.proto" />
+    <None Include="..\src\proto\common.proto" />
+    <None Include="..\src\proto\savegame.proto" />
+    <None Include="yedit.vcxproj" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

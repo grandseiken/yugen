@@ -44,15 +44,11 @@ enum a_dither_pattern {
   ADD_PATTERN_RGBSPLIT,
 };
 
-constexpr y::int32 a_dither_dim(a_dither_pattern pattern)
-{
-  return pattern < ADD_PATTERN ? 512 : 256;
-}
-
-constexpr y::int32 a_dither_size(a_dither_pattern pattern)
-{
-  return 3 * a_dither_dim(pattern) * a_dither_dim(pattern);
-}
+// TODO: macros due to lack of constexpr in MSVC.
+#define a_dither_dim(pattern) \
+    ((pattern) < ADD_PATTERN ? 512 : 256)
+#define a_dither_size(pattern) \
+    (3 * a_dither_dim(pattern) * a_dither_dim(pattern))
 
 GLfloat a_dither_compute(a_dither_pattern pattern, y::int32 n)
 {

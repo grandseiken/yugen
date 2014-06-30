@@ -26,7 +26,7 @@ void PhysicalFilesystem::list_directory_internal(y::vector<y::string>& output,
                           .generic_string().substr(_root.length()));
     }
   }
-  catch (const boost::filesystem::filesystem_error& e) {}
+  catch (const boost::filesystem::filesystem_error&) {}
 }
 
 bool PhysicalFilesystem::is_file_internal(const y::string& path) const
@@ -37,7 +37,7 @@ bool PhysicalFilesystem::is_file_internal(const y::string& path) const
       return true;
     }
   }
-  catch (const boost::filesystem::filesystem_error& e) {}
+  catch (const boost::filesystem::filesystem_error&) {}
   return false;
 }
 
@@ -49,7 +49,7 @@ bool PhysicalFilesystem::is_directory_internal(const y::string& path) const
       return true;
     }
   }
-  catch (const boost::filesystem::filesystem_error& e) {}
+  catch (const boost::filesystem::filesystem_error&) {}
   return false;
 }
 
@@ -68,10 +68,10 @@ void PhysicalFilesystem::read_file_internal(y::string& output,
     file.read(&output[first], output.length());
   }
   catch (const boost::filesystem::filesystem_error& e) {
-    log_err("Read of ", path, " failed");
+    log_err("Read of ", path, " failed: ", e.what());
   }
   catch (const std::ofstream::failure& e) {
-    log_err("Read of ", path, " failed");
+    log_err("Read of ", path, " failed", e.what());
   }
 }
 
@@ -85,9 +85,9 @@ void PhysicalFilesystem::write_file_internal(const y::string& data,
     file << data;
   }
   catch (const boost::filesystem::filesystem_error& e) {
-    log_err("Write of ", path, " failed");
+    log_err("Write of ", path, " failed: ", e.what());
   }
   catch (const std::ofstream::failure& e) {
-    log_err("Write of ", path, " failed");
+    log_err("Write of ", path, " failed: ", e.what());
   }
 }

@@ -128,7 +128,7 @@ const GlDatabuffer<GLushort, 1>& RenderUtil::quad_element(y::size length) const
 {
   if (_element.data.size() / 6 < length) {
     for (y::size i = _element.data.size() / 6; i < length; ++i) {
-      y::write_vector(_element.data, 6 * i, {
+      y::write_vector<GLushort, std::vector<GLushort>>(_element.data, 6 * i, {
           GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
           GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
     }
@@ -204,7 +204,7 @@ void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
 
   for (y::size i = 0; i < text.length(); ++i) {
     float fi = i;
-    y::write_vector(pixels_data, 8 * i, {
+    y::write_vector<float, std::vector<float>>(pixels_data, 8 * i, {
         (origin + fi * font_size)[xx], origin[yy],
         (origin + (fi + 1) * font_size)[xx], origin[yy],
         (origin + fi * font_size)[xx], (origin + font_size)[yy],
@@ -321,7 +321,7 @@ void RenderUtil::render_lines(const y::vector<line>& lines,
     y::fvec2 normal =
         y::from_angle<float>(y::angle(x.b - x.a) + float(y::pi / 2));
 
-    y::write_vector(tri_data, 8 * i, {
+    y::write_vector<float, std::vector<float>>(tri_data, 8 * i, {
         x.a[xx], x.a[yy],
         (x.a + normal)[xx], (x.a + normal)[yy],
         x.b[xx], x.b[yy],
@@ -388,17 +388,17 @@ void RenderUtil::render_batch(
         frame_size[xx] / 2, -frame_size[yy] / 2,
         -frame_size[xx] / 2, frame_size[yy] / 2,
         frame_size[xx] / 2, frame_size[yy] / 2});
-    y::write_vector(_rotation.data, 4 * i, {
+    y::write_vector<float, std::vector<float>>(_rotation.data, 4 * i, {
         s.rotation, s.rotation, s.rotation, s.rotation});
-    y::write_vector(_origin.data, 8 * i, {
+    y::write_vector<float, std::vector<float>>(_origin.data, 8 * i, {
         left, top, left, top,
         left, top, left, top});
-    y::write_vector(_frame_index.data, 8 * i, {
+    y::write_vector<float, std::vector<float>>(_frame_index.data, 8 * i, {
         s.frame_x, s.frame_y, s.frame_x, s.frame_y,
         s.frame_x, s.frame_y, s.frame_x, s.frame_y});
-    y::write_vector(_depth.data, 4 * i, {
+    y::write_vector<float, std::vector<float>>(_depth.data, 4 * i, {
         s.depth, s.depth, s.depth, s.depth});
-    y::write_vector(_colour.data, 16 * i, {
+    y::write_vector<float, std::vector<float>>(_colour.data, 16 * i, {
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],

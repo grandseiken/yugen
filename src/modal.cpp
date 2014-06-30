@@ -234,7 +234,7 @@ bool PanelUi::event(const sf::Event& e)
   for (Panel* panel : _panels) {
     fx = o[xx] - panel->get_origin()[xx];
     fy = o[yy] - panel->get_origin()[yy];
-    if (y::in_region(y::ivec2{fx, fy}, {0, 0}, panel->get_size())) {
+    if (y::in_region(y::ivec2{fx, fy}, y::ivec2{0, 0}, panel->get_size())) {
       if (panel->is_visible() && (panel->event(f) || panel->is_dragging())) {
         return !enter;
       }

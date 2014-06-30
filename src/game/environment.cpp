@@ -475,7 +475,7 @@ void Environment::render_physics(const GameRenderer& renderer) const
         pos[xx] + size / 2., pos[yy] - size / 2.,
         pos[xx] - size / 2., pos[yy] + size / 2.,
         pos[xx] + size / 2., pos[yy] + size / 2.});
-    y::write_vector(_colour.data, 16 * i, {
+    y::write_vector<float, y::vector<float>>(_colour.data, 16 * i, {
         colour[rr], colour[gg], colour[bb], colour[aa],
         colour[rr], colour[gg], colour[bb], colour[aa],
         colour[rr], colour[gg], colour[bb], colour[aa],

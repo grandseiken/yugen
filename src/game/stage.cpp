@@ -257,7 +257,7 @@ void ScriptBank::create_in_bounds(
       const LuaFile& file = bank.scripts.get(ws.path);
       Script* script =
           new Script(_stage, file.path, file.contents, ws.origin, ws.region);
-      _script_map.emplace(key, ConstScriptReference(*script));
+      _script_map.emplace(key, *script);
       add_script(y::move_unique(script));
     }
   }

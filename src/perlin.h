@@ -28,7 +28,12 @@ struct DefaultGenerator {
 // Generalised vector generator.
 template<typename T, y::size N>
 struct DefaultGenerator<y::vec<T, N>> : DefaultGenerator<T> {
-  using DefaultGenerator<T>::DefaultGenerator;
+  DefaultGenerator(y::size seed)
+    : DefaultGenerator<T>(seed)
+  {}
+
+  DefaultGenerator()
+  {}
 
   typedef y::vec<T, N> V;
   y::vec<T, N> operator()()

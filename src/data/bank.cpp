@@ -96,7 +96,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
       _textures.emplace_back(gl.make_unique(normal_texture));
     }
 
-    Tileset* tileset = new Tileset({texture, normal_texture});
+    Tileset* tileset = new Tileset(Sprite{texture, normal_texture});
     if (filesystem.exists(data_path)) {
       log_debug("Loading ", data_path);
       tileset->load(filesystem, *this, data_path);

@@ -10,9 +10,6 @@
 #include "game/stage.h"
 #endif
 
-// Anonymous namespace.
-y_namespace() {
-
 y_ptrtypedef(GameStage) {} y_endtypedef();
 y_ptrtypedef(Sprite) {} y_endtypedef();
 y_ptrtypedef(LuaFile) {} y_endtypedef();
@@ -1129,6 +1126,3 @@ y_ptrtypedef(Light) {
   y_method("get_source", light__get_source);
   y_method("destroy", light__destroy);
 } y_endtypedef();
-
-// End anonymous namespace.
-}

@@ -50,6 +50,8 @@ PROTOBUF_DIR= \
 	$(DEPEND_DIR)/protobuf_2_5_0
 SFML_DIR= \
 	$(DEPEND_DIR)/sfml_2_1
+YANG_DIR= \
+	$(DEPEND_DIR)/yang
 # Boost compiled libraries we depend on.
 BOOST_LIBRARIES= \
 	filesystem iostreams system
@@ -65,7 +67,7 @@ export PROTOC= \
 	$(PROTOBUF_DIR)/bin/protoc
 
 DEPENDENCY_DIRS= \
-	$(BOOST_DIR) $(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR)
+	$(BOOST_DIR) $(LUAJIT_DIR) $(PROTOBUF_DIR) $(SFML_DIR) $(YANG_DIR)
 DEPENDENCY_CFLAGS= \
 	$(addprefix -isystem ,\
 	$(addsuffix /include,$(DEPENDENCY_DIRS)))

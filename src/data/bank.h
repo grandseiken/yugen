@@ -385,7 +385,7 @@ inline Dataset<CellMap>& Databank::get_set<CellMap>()
 template<typename T>
 void Databank::save_name(Filesystem& filesystem, const y::string& name) const
 {
-  get_set<T>().template save(filesystem, *this, name);
+  get_set<T>().save(filesystem, *this, name);
 }
 
 template<typename T>
@@ -397,7 +397,7 @@ void Databank::save(Filesystem& filesystem, const T& t) const
 template<typename T>
 void Databank::save_all(Filesystem& filesystem) const
 {
-  get_set<T>().template save_all(filesystem, *this);
+  get_set<T>().save_all(filesystem, *this);
 }
 
 #endif

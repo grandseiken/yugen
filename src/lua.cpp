@@ -55,8 +55,6 @@ namespace {
 /**** Preprocessor magic for defining types and functions useable by Lua   ****/
 /**** in a style that sort of approximates C functions:                    ****/
 /******************************************************************************/
-/***/ #define y_namespace() namespace
-/***/
 /***/ #define y_ptrtypedef(T)                                                  \
 /***/ template<>                                                               \
 /***/ const y::string LuaType<T*>::type_name = "y." #T "*";                    \
