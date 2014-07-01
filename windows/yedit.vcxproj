@@ -79,7 +79,8 @@
       <AdditionalDependencies>sfml-window.lib;sfml-audio.lib;sfml-system.lib;sfml-graphics.lib;sfml-main.lib;lua51.lib;libprotobuf.lib;glew32.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>..\depend\protobuf_2_5_0\vsprojects\Release\protoc -I../src/proto --cpp_out=../gen/proto ../src/proto/common.proto ../src/proto/cell.proto ../src/proto/savegame.proto</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -87,6 +88,7 @@
     <ClInclude Include="..\gen\proto\common.pb.h" />
     <ClInclude Include="..\gen\proto\savegame.pb.h" />
     <ClInclude Include="..\src\callback.h" />
+    <ClInclude Include="..\src\common.h" />
     <ClInclude Include="..\src\data\bank.h" />
     <ClInclude Include="..\src\data\cell.h" />
     <ClInclude Include="..\src\data\tileset.h" />

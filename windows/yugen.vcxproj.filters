@@ -70,6 +70,7 @@
     <ClInclude Include="..\gen\proto\savegame.pb.h">
       <Filter>gen</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\common.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\lua.cpp" />
@@ -155,6 +156,9 @@
     <Filter Include="gen">
       <UniqueIdentifier>{667b171e-ac24-4bd5-84c3-1b9a15d25080}</UniqueIdentifier>
     </Filter>
+    <Filter Include="scripts">
+      <UniqueIdentifier>{63142950-7c23-4300-ad1e-52473f81610f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\proto\cell.proto">
@@ -165,6 +169,42 @@
     </None>
     <None Include="..\src\proto\savegame.proto">
       <Filter>proto</Filter>
+    </None>
+    <None Include="..\data\scripts\collide.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\keys.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\render.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\script_set.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\game\bush.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\game\crate.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\game\fog.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\game\hello.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\game\hello2.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\game\player.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\game\sun.lua">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="..\data\scripts\game\water.lua">
+      <Filter>scripts</Filter>
     </None>
   </ItemGroup>
 </Project>

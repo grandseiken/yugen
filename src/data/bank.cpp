@@ -27,6 +27,8 @@ Databank::Databank()
   , tilesets(*_default_tileset)
   , cells(*_default_cell)
   , maps(*_default_map)
+  , sounds(_default_sound)
+  , musics(_default_music)
 {
   log_debug("Created default Databank");
 }
@@ -45,6 +47,8 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
   , tilesets(*_default_tileset)
   , cells(*_default_cell)
   , maps(*_default_map)
+  , sounds(_default_sound)
+  , musics(_default_music)
 {
   // Things should be loaded in order of dependence, so that the data can be
   // accessed while loading if necessary. For example, maps depend on cells
@@ -118,6 +122,47 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     lua_file->path = s;
     filesystem.read_file_with_includes(lua_file->contents, s);
     scripts.insert(s, std::unique_ptr<LuaFile>(lua_file));
+  }
+
+  paths.clear();
+  filesystem.list_pattern(paths, "/sounds/**.wav");
+  for (const std::string& s : paths) {
+    log_debug("Loading ", s);
+    std::string data;
+    filesystem.read_file(data, s);
+    if (data.empty()) {
+      continue;
+    }
+
+    sf::SoundBuffer* sound = new sf::SoundBuffer();
+    if (!sound->loadFromMemory(data.data(), data.length())) {
+      log_err("Couldn't load sound ", s);
+      delete sound;
+      continue;
+    }
+    sounds.insert(s, std::unique_ptr<sf::SoundBuffer>(sound));
+  }
+
+  paths.clear();
+  filesystem.list_pattern(paths, "/musics/**.ogg");
+  for (const std::string& s : paths) {
+    log_debug("Loading ", s);
+    _music_data.emplace_back();
+    filesystem.read_file(_music_data.back(), s);
+    if (_music_data.back().empty()) {
+      continue;
+    }
+
+    // TODO: should probably be buffered instead of loading from memory.
+    // Filesystem needs a way to get a buffer rather than reading all at once.
+    sf::Music* music = new sf::Music();
+    if (!music->openFromMemory(_music_data.back().data(),
+                               _music_data.back().length())) {
+      log_err("Couldn't load music ", s);
+      delete music;
+      continue;
+    }
+    musics.insert(s, std::unique_ptr<sf::Music>(music));
   }
 
   // Maps depend on knowing the names of scripts, but grabbing data out of

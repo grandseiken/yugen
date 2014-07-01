@@ -87,6 +87,7 @@
     <ClInclude Include="..\gen\proto\common.pb.h" />
     <ClInclude Include="..\gen\proto\savegame.pb.h" />
     <ClInclude Include="..\src\callback.h" />
+    <ClInclude Include="..\src\common.h" />
     <ClInclude Include="..\src\data\bank.h" />
     <ClInclude Include="..\src\data\cell.h" />
     <ClInclude Include="..\src\data\tileset.h" />
@@ -143,6 +144,18 @@
     <ClCompile Include="..\src\yugen.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\data\scripts\collide.lua" />
+    <None Include="..\data\scripts\game\bush.lua" />
+    <None Include="..\data\scripts\game\crate.lua" />
+    <None Include="..\data\scripts\game\fog.lua" />
+    <None Include="..\data\scripts\game\hello.lua" />
+    <None Include="..\data\scripts\game\hello2.lua" />
+    <None Include="..\data\scripts\game\player.lua" />
+    <None Include="..\data\scripts\game\sun.lua" />
+    <None Include="..\data\scripts\game\water.lua" />
+    <None Include="..\data\scripts\keys.lua" />
+    <None Include="..\data\scripts\render.lua" />
+    <None Include="..\data\scripts\script_set.lua" />
     <None Include="..\src\proto\cell.proto" />
     <None Include="..\src\proto\common.proto" />
     <None Include="..\src\proto\savegame.proto" />

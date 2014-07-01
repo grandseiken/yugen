@@ -573,6 +573,38 @@ void GameRenderer::render_scene(layer_light_type light_type) const
   _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
+GameAudio::GameAudio()
+  : _old_music(nullptr)
+{
+}
+
+void GameAudio::play_sound(sf::SoundBuffer& sound)
+{
+  _sounds.emplace_back();
+  _sounds.back().setBuffer(sound);
+  _sounds.back().play();
+}
+
+void GameAudio::play_music(sf::Music& music)
+{
+  if (_old_music) {
+    _old_music->stop();
+  }
+  music.setLoop(true);
+  music.play();
+  _old_music = &music;
+}
+
+void GameAudio::update()
+{
+  auto pred = [&](const sf::Sound& s)
+  {
+    return s.getStatus() == sf::SoundSource::Stopped;
+  };
+  _sounds.erase(
+      std::remove_if(_sounds.begin(), _sounds.end(), pred) ,_sounds.end());
+}
+
 Camera::Camera(const y::ivec2& framebuffer_size)
   : _framebuffer_size(framebuffer_size)
   , _rotation(0)
@@ -750,6 +782,16 @@ GameRenderer& GameStage::get_renderer()
   return _renderer;
 }
 
+const GameAudio& GameStage::get_audio() const
+{
+  return _audio;
+}
+
+GameAudio& GameStage::get_audio()
+{
+  return _audio;
+}
+
 const Camera& GameStage::get_camera() const
 {
   return _camera;
@@ -846,6 +888,8 @@ void GameStage::update()
   static const y::wvec2& upper_bound = y::wvec2(
       (1 + half_size) * Cell::cell_size * Tileset::tile_size);
 
+  // Update audio.
+  _audio.update();
   // Update scripts.
   _scripts.update_all();
   _scripts.handle_messages();

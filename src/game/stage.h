@@ -10,6 +10,7 @@
 
 #include <list>
 #include <vector>
+#include <SFML/Audio.hpp>
 #include <SFML/Window.hpp>
 
 class Camera;
@@ -261,6 +262,21 @@ private:
 
 };
 
+class GameAudio {
+public:
+
+  GameAudio();
+  void play_sound(sf::SoundBuffer& sound);
+  void play_music(sf::Music& music);
+  void update();
+
+private:
+
+  std::vector<sf::Sound> _sounds;
+  sf::Music* _old_music;
+
+};
+
 class Camera {
 public:
 
@@ -313,6 +329,9 @@ public:
   const GameRenderer& get_renderer() const;
   /***/ GameRenderer& get_renderer();
 
+  const GameAudio& get_audio() const;
+  /***/ GameAudio& get_audio();
+
   const Camera& get_camera() const;
   /***/ Camera& get_camera();
 
@@ -357,6 +376,7 @@ private:
 
   ScriptBank _scripts;
   GameRenderer _renderer;
+  GameAudio _audio;
   Camera _camera;
 
   std::unique_ptr<Savegame> _savegame;

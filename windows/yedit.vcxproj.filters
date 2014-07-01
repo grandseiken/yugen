@@ -81,6 +81,7 @@
     <ClInclude Include="..\gen\proto\savegame.pb.h">
       <Filter>gen</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\common.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\lua.cpp" />

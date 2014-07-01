@@ -6,6 +6,7 @@
 #include "../save.h"
 #include <unordered_map>
 #include <vector>
+#include <SFML/Audio.hpp>
 
 class CellBlueprint;
 class CellMap;
@@ -133,6 +134,8 @@ private:
   std::unique_ptr<Tileset> _default_tileset;
   std::unique_ptr<CellBlueprint> _default_cell;
   std::unique_ptr<CellMap> _default_map;
+  sf::SoundBuffer _default_sound;
+  sf::Music _default_music;
 
 public:
 
@@ -141,6 +144,9 @@ public:
   Dataset<Tileset> tilesets;
   Dataset<CellBlueprint> cells;
   Dataset<CellMap> maps;
+  Dataset<sf::SoundBuffer> sounds;
+  Dataset<sf::Music> musics;
+  std::vector<std::string> _music_data;
 
 };
 
@@ -384,6 +390,31 @@ template<>
 inline Dataset<CellMap>& Databank::get_set<CellMap>()
 {
   return maps;
+}
+
+template<>
+inline const Dataset<sf::SoundBuffer>&
+    Databank::get_set<sf::SoundBuffer>() const
+{
+  return sounds;
+}
+
+template<>
+inline Dataset<sf::SoundBuffer>& Databank::get_set<sf::SoundBuffer>()
+{
+  return sounds;
+}
+
+template<>
+inline const Dataset<sf::Music>& Databank::get_set<sf::Music>() const
+{
+  return musics;
+}
+
+template<>
+inline Dataset<sf::Music>& Databank::get_set<sf::Music>()
+{
+  return musics;
 }
 
 template<typename T>

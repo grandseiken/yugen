@@ -10,9 +10,13 @@
 #include "game/stage.h"
 #endif
 
+typedef sf::SoundBuffer SfSoundBuffer;
+typedef sf::Music SfMusic;
 y_ptrtypedef(GameStage) {} y_endtypedef();
 y_ptrtypedef(Sprite) {} y_endtypedef();
 y_ptrtypedef(LuaFile) {} y_endtypedef();
+y_ptrtypedef(SfSoundBuffer) {} y_endtypedef();
+y_ptrtypedef(SfMusic) {} y_endtypedef();
 
 /******************************************************************************/
 // Vector API
@@ -847,6 +851,39 @@ y_api(render_reflect)
     }
   }
 end:
+  y_void();
+}
+
+/******************************************************************************/
+// Audio API
+/******************************************************************************/
+y_api(get_sound)
+    y_arg(std::string, path)
+{
+  y_assert(stage.get_bank().sounds.is_name_used(path), 0,
+           ("Missing sound " + path + " used").c_str());
+  y_return(&stage.get_bank().sounds.get(path));
+}
+
+y_api(get_music)
+    y_arg(std::string, path)
+{
+  y_assert(stage.get_bank().musics.is_name_used(path), 0,
+           ("Missing music " + path + " used").c_str());
+  y_return(&stage.get_bank().musics.get(path));
+}
+
+y_api(play_sound)
+    y_arg(SfSoundBuffer*, sound)
+{
+  stage.get_audio().play_sound(*sound);
+  y_void();
+}
+
+y_api(play_music)
+    y_arg(SfMusic*, music)
+{
+  stage.get_audio().play_music(*music);
   y_void();
 }
 

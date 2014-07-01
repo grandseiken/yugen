@@ -44,12 +44,17 @@ local jump_stage = JUMP_STAGE_NONE
 local wall_jump_timer = 0
 local wall_jump_left = false
 
+-- Audio.
+local music = get_music("/musics/test_ominous.ogg")
+local sound = get_sound("/sounds/test_boss_fire.wav")
+
 -- Load/save data.
 local has_loaded = false
 local function load_origin()
   if has_loaded then
     return
   end
+  play_music(music)
   has_loaded = true
   self:set_origin(vec(savegame_get("player_x") or 0.0,
                       savegame_get("player_y") or 0.0))
@@ -98,6 +103,7 @@ local function jump_logic(left_down, right_down, up_down,
       jump_stage = JUMP_STAGE_UP
       jump_timer = JUMP_PERIOD_UP
       jump_input_buffer = 0
+      play_sound(sound)
     end
     wall_jump_timer = wall_jump_timer - 1
   end
@@ -110,6 +116,7 @@ local function jump_logic(left_down, right_down, up_down,
       jump_stage = JUMP_STAGE_UP
       jump_timer = JUMP_PERIOD_UP
       jump_input_buffer = 0
+      play_sound(sound)
     end
   end
 
@@ -277,7 +284,7 @@ function update()
                1, 0.5, 1, 1,
                1, -0.005, -0.005, -.01,
                1., -0.005, -0.005, -.001)
-  -- load_origin()
+  load_origin()
   -- save_origin()
 end
 
