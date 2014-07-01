@@ -23,12 +23,12 @@ struct Geometry {
 namespace std {
   template<>
   struct hash<Geometry> {
-    y::size operator()(const Geometry& g) const;
+    std::size_t operator()(const Geometry& g) const;
   };
 }
 
 // Stores world geometry.
-class WorldGeometry : public y::no_copy {
+class WorldGeometry {
 public:
 
   WorldGeometry();
@@ -48,7 +48,7 @@ public:
 
 private:
 
-  typedef y::vector<Geometry> geometry_list;
+  typedef std::vector<Geometry> geometry_list;
 
   struct bucket {
     geometry_list middle;
@@ -58,7 +58,7 @@ private:
     geometry_list right;
   };
 
-  y::map<y::ivec2, bucket> _buckets;
+  std::unordered_map<y::ivec2, bucket> _buckets;
   mutable geometry_hash _geometry_hash;
   mutable bool _dirty;
 
@@ -68,7 +68,7 @@ private:
 };
 
 struct WorldScript {
-  y::string path;
+  std::string path;
   y::wvec2 origin;
   y::wvec2 region;
 };
@@ -76,11 +76,11 @@ struct WorldScript {
 // Interface for supplying cells to the WorldWindow. WorldSources must be
 // immutable and must also never be destroyed while Scripts still exist
 // in the game world that they have been sourced from.
-class WorldSource : public y::no_copy {
+class WorldSource {
 public:
 
   // Pass a unique ID based on the type so we can distinguish equality.
-  WorldSource(y::size type_id);
+  WorldSource(std::size_t type_id);
   virtual ~WorldSource() {}
 
   // Subclasses must override to call types_equal(source) and check data.
@@ -88,7 +88,7 @@ public:
   bool operator!=(const WorldSource& source) const;
 
   // Subclasses must override to hash get_type_id() and the data.
-  virtual void hash_combine(y::size& seed) const = 0;
+  virtual void hash_combine(std::size_t& seed) const = 0;
 
   // Get the cell at a particular coordinate.
   virtual const CellBlueprint* get_coord(const y::ivec2& coord) const = 0;
@@ -98,11 +98,11 @@ public:
 protected:
 
   bool types_equal(const WorldSource& source) const;
-  y::size get_type_id() const;
+  std::size_t get_type_id() const;
 
 private:
 
-  y::size _type_id;
+  std::size_t _type_id;
 
 };
 
@@ -110,13 +110,13 @@ private:
 class CellMapSource : public WorldSource {
 public:
 
-  const y::size type_id = 0xce11;
+  const std::size_t type_id = 0xce11;
 
   CellMapSource(const CellMap& map);
   ~CellMapSource() override {}
 
   bool operator==(const WorldSource& source) const override;
-  void hash_combine(y::size& seed) const override;
+  void hash_combine(std::size_t& seed) const override;
 
   const CellBlueprint* get_coord(const y::ivec2& coord) const override;
   virtual const CellMap::script_list& get_scripts() const override;
@@ -129,11 +129,11 @@ private:
 
 // Sliding window into a Cell source. The source can be changed to simulate
 // non-planar geometry.
-class WorldWindow : public y::no_copy {
+class WorldWindow {
 public:
 
   // Boundary width, in cells, around (0, 0) in the active window.
-  static const y::int32 active_window_half_size = 1;
+  static const std::int32_t active_window_half_size = 1;
 
   // Initialise world with the given coord of the active map at (0, 0) in the
   // active window. Source is owned by caller and must be preserved.
@@ -177,7 +177,7 @@ public:
   // After window operations, there may be new Scripts that should be
   // instantiated. These functions report which cells should have their scripts
   // refreshed.
-  typedef y::vector<y::ivec2> cell_list;
+  typedef std::vector<y::ivec2> cell_list;
   const cell_list& get_refreshed_cells() const;
   void clear_refreshed_cells();
 
@@ -188,7 +188,7 @@ public:
 private:
 
   // Give (x, y) in [-half_width, half_width] * [-half_width, half_width].
-  static y::size to_internal_index(const y::ivec2& active_window);
+  static std::size_t to_internal_index(const y::ivec2& active_window);
 
   const CellBlueprint* active_window_target(
       const y::ivec2& active_window) const;
@@ -207,10 +207,10 @@ private:
     active_window_entry();
 
     const CellBlueprint* blueprint;
-    y::unique<Cell> cell;
+    std::unique_ptr<Cell> cell;
   };
 
-  typedef y::unique<active_window_entry[]> active_window;
+  typedef std::unique_ptr<active_window_entry[]> active_window;
   active_window _active_window;
   WorldGeometry _active_geometry;
 

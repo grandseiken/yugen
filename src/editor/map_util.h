@@ -11,18 +11,18 @@ class Databank;
 class RenderUtil;
 
 struct Zoom {
-  static const y::vector<float> array;
+  static const std::vector<float> array;
 };
 
 // Action that adds a cell.
 struct CellAddAction : public StackAction {
   CellAddAction(Databank& bank, CellMap& map,
-                const y::ivec2& cell, const y::string& path);
+                const y::ivec2& cell, const std::string& path);
 
   Databank& bank;
   CellMap& map;
   y::ivec2 cell;
-  y::string path;
+  std::string path;
 
   void redo() const override;
   void undo() const override;
@@ -32,13 +32,13 @@ struct CellAddAction : public StackAction {
 // Action that renames a cell.
 struct CellRenameAction : public StackAction {
   CellRenameAction(Databank& bank, CellMap& map,
-                   const y::ivec2& cell, const y::string& path);
+                   const y::ivec2& cell, const std::string& path);
 
   Databank& bank;
   CellMap& map;
   y::ivec2 cell;
-  y::string new_path;
-  mutable y::string old_path;
+  std::string new_path;
+  mutable std::string old_path;
 
   void redo() const override;
   void undo() const override;
@@ -52,7 +52,7 @@ struct CellRemoveAction : public StackAction {
   Databank& bank;
   CellMap& map;
   y::ivec2 cell;
-  mutable y::string path;
+  mutable std::string path;
 
   void redo() const override;
   void undo() const override;
@@ -61,20 +61,20 @@ struct CellRemoveAction : public StackAction {
 
 // Action that changes a set of tiles.
 struct TileEditAction : public StackAction {
-  TileEditAction(CellMap& map, y::int32 layer);
+  TileEditAction(CellMap& map, std::int32_t layer);
 
   void set_tile(const y::ivec2& cell, const y::ivec2& tile, const Tile& t);
 
   CellMap& map;
-  y::int32 layer;
+  std::int32_t layer;
 
   struct entry {
     Tile old_tile;
     Tile new_tile;
   };
 
-  typedef y::pair<y::ivec2, y::ivec2> key;
-  y::map<key, entry> edits;
+  typedef std::pair<y::ivec2, y::ivec2> key;
+  std::unordered_map<key, entry> edits;
 
   void redo() const override;
   void undo() const override;
@@ -84,12 +84,12 @@ struct TileEditAction : public StackAction {
 // Action that adds a script.
 struct ScriptAddAction : public StackAction {
   ScriptAddAction(CellMap& map, const y::ivec2& min, const y::ivec2& max,
-                  const y::string& path);
+                  const std::string& path);
 
   CellMap& map;
   y::ivec2 min;
   y::ivec2 max;
-  y::string path;
+  std::string path;
 
   void redo() const override;
   void undo() const override;
@@ -99,12 +99,12 @@ struct ScriptAddAction : public StackAction {
 // Action that removes a script.
 struct ScriptRemoveAction : public StackAction {
   ScriptRemoveAction(CellMap& map, const y::ivec2& min, const y::ivec2& max,
-                     const y::string& path);
+                     const std::string& path);
 
   CellMap& map;
   y::ivec2 min;
   y::ivec2 max;
-  y::string path;
+  std::string path;
 
   void redo() const override;
   void undo() const override;
@@ -115,14 +115,14 @@ struct ScriptRemoveAction : public StackAction {
 struct ScriptMoveAction : public StackAction {
   ScriptMoveAction(CellMap& map, const y::ivec2& min, const y::ivec2& max,
                    const y::ivec2& new_min, const y::ivec2& new_max,
-                   const y::string& path);
+                   const std::string& path);
 
   CellMap& map;
   y::ivec2 min;
   y::ivec2 max;
   y::ivec2 new_min;
   y::ivec2 new_max;
-  y::string path;
+  std::string path;
 
   void redo() const override;
   void undo() const override;
@@ -137,7 +137,7 @@ struct TileBrush {
   /***/ Tile& get(const y::ivec2& v);
 
   y::ivec2 size;
-  y::unique<Tile[]> array;
+  std::unique_ptr<Tile[]> array;
   static const y::ivec2 max_size;
 };
 
@@ -172,7 +172,7 @@ public:
 
 private:
 
-  y::int32 get_list_height() const;
+  std::int32_t get_list_height() const;
 
   void copy_drag_to_brush() const;
 
@@ -180,7 +180,7 @@ private:
   TileBrush& _brush;
 
   UiList _list;
-  y::int32 _tileset_select;
+  std::int32_t _tileset_select;
   y::ivec2 _tile_hover;
 
 };
@@ -192,8 +192,8 @@ public:
   ScriptPanel(const Databank& bank);
   ~ScriptPanel() override {}
 
-  const y::string& get_script() const;
-  void set_script(const y::string& path);
+  const std::string& get_script() const;
+  void set_script(const std::string& path);
 
   bool event(const sf::Event& e) override;
   void update() override;
@@ -203,7 +203,7 @@ private:
 
   const Databank& _bank;
   UiList _list;
-  y::int32 _script_select;
+  std::int32_t _script_select;
 
 };
 
@@ -211,10 +211,10 @@ private:
 class LayerPanel : public Panel {
 public:
 
-  LayerPanel(const y::vector<y::string>& status);
+  LayerPanel(const std::vector<std::string>& status);
   ~LayerPanel() override {}
 
-  y::int32 get_layer() const;
+  std::int32_t get_layer() const;
 
   bool event(const sf::Event& e) override;
   void update() override;
@@ -222,9 +222,9 @@ public:
 
 private:
 
-  const y::vector<y::string>& _status;
+  const std::vector<std::string>& _status;
   UiList _list;
-  y::int32 _layer_select;
+  std::int32_t _layer_select;
 
 };
 
@@ -232,7 +232,7 @@ private:
 class MinimapPanel : public Panel {
 public:
 
-  MinimapPanel(const CellMap& map, y::ivec2& camera, const y::int32& zoom);
+  MinimapPanel(const CellMap& map, y::ivec2& camera, const std::int32_t& zoom);
   ~MinimapPanel() override {}
 
   bool event(const sf::Event& e) override;
@@ -241,11 +241,11 @@ public:
 
 private:
 
-  static const y::int32 scale;
+  static const std::int32_t scale;
 
   const CellMap& _map;
   y::ivec2& _camera;
-  const y::int32& _zoom;
+  const std::int32_t& _zoom;
 
 };
 

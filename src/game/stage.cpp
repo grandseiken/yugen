@@ -28,7 +28,7 @@ Script& ScriptBank::create_script(
     const LuaFile& file, const y::wvec2& origin, const y::wvec2& region)
 {
   Script* s = new Script(_stage, file.path, file.contents, origin, region);
-  add_script(y::move_unique(s));
+  add_script(std::unique_ptr<Script>(s));
   return *s;
 }
 
@@ -51,7 +51,7 @@ void ScriptBank::get_in_radius(result& output,
   }
 }
 
-y::int32 ScriptBank::get_uid(const Script* script) const
+std::int32_t ScriptBank::get_uid(const Script* script) const
 {
   auto it = _uid_map.find(script);
   if (it != _uid_map.end()) {
@@ -62,8 +62,8 @@ y::int32 ScriptBank::get_uid(const Script* script) const
   // infinite run of unused UIDs).
   // Maintaining this invariant allows efficient generation and release of UIDs.
   auto min = _uid_unused.begin();
-  y::size uid = *min;
-  _uid_map.insert(y::make_pair(script, uid));
+  std::size_t uid = *min;
+  _uid_map.emplace(script, uid);
   _uid_unused.erase(min);
   if (_uid_unused.empty()) {
     _uid_unused.insert(1 + uid);
@@ -71,8 +71,8 @@ y::int32 ScriptBank::get_uid(const Script* script) const
   return uid;
 }
 
-void ScriptBank::send_message(Script* script, const y::string& function_name,
-                              const y::vector<LuaValue>& args)
+void ScriptBank::send_message(Script* script, const std::string& function_name,
+                              const std::vector<LuaValue>& args)
 {
   _messages.push_back({script, function_name, args});
 }
@@ -154,7 +154,7 @@ void ScriptBank::clean_out_of_bounds(
   // If the script overlaps at all with any cell which is not being refreshed,
   // then we need to keep it around. If it is entirely contained within cells
   // we're replacing, or genuine out-of-bounds areas, then get rid of it.
-  auto is_out_of_bounds = [&](const y::unique<Script>& s)
+  auto is_out_of_bounds = [&](const std::unique_ptr<Script>& s)
   {
     if (s.get() == &player) {
       return false;
@@ -186,7 +186,7 @@ void ScriptBank::clean_out_of_bounds(
 void ScriptBank::clean_destroyed()
 {
   _scripts.remove_if(
-      [](const y::unique<Script>& s) {return s->is_destroyed();});
+      [](const std::unique_ptr<Script>& s) {return s->is_destroyed();});
 
   // Remove all the script map entries where the references have been
   // invalidated.
@@ -258,21 +258,21 @@ void ScriptBank::create_in_bounds(
       Script* script =
           new Script(_stage, file.path, file.contents, ws.origin, ws.region);
       _script_map.emplace(key, *script);
-      add_script(y::move_unique(script));
+      add_script(std::unique_ptr<Script>(script));
     }
   }
 }
 
-void ScriptBank::add_script(y::unique<Script> script)
+void ScriptBank::add_script(std::unique_ptr<Script> script)
 {
   update_spatial_hash(script.get());
   script->add_move_callback(
-      y::bind(&ScriptBank::update_spatial_hash, this, y::_1));
+      std::bind(&ScriptBank::update_spatial_hash, this, std::placeholders::_1));
   script->add_destroy_callback(
-      y::bind(&SpatialHash<Script*, y::world, 2>::remove,
-              &_spatial_hash, y::_1));
+      std::bind(&SpatialHash<Script*, y::world, 2>::remove,
+              &_spatial_hash, std::placeholders::_1));
   script->add_destroy_callback(
-      y::bind(&ScriptBank::release_uid, this, y::_1));
+      std::bind(&ScriptBank::release_uid, this, std::placeholders::_1));
 
   _scripts.emplace_back();
   (_scripts.rbegin())->swap(script);
@@ -301,9 +301,9 @@ bool ScriptBank::script_map_key::operator!=(const script_map_key& key) const
   return !operator==(key);
 }
 
-y::size ScriptBank::script_map_hash::operator()(const script_map_key& key) const
+std::size_t ScriptBank::script_map_hash::operator()(const script_map_key& key) const
 {
-  y::size seed = 0;
+  std::size_t seed = 0;
   key.source.hash_combine(seed);
   boost::hash_combine(seed, key.blueprint.min[xx]);
   boost::hash_combine(seed, key.blueprint.min[yy]);
@@ -534,7 +534,7 @@ void GameRenderer::render_tiles(
         continue;
       }
 
-      for (y::int32 layer = -Cell::background_layers;
+      for (std::int32_t layer = -Cell::background_layers;
            layer <= Cell::foreground_layers; ++layer) {
         const Tile& t = cell->get_tile(layer, *jt);
         if (!t.tileset) {
@@ -584,8 +584,8 @@ Camera::Camera(const y::ivec2& framebuffer_size)
 void Camera::update(Script* focus)
 {
   static const y::world camera_deadzone_size =
-      y::world(y::min(RenderUtil::native_size[xx],
-                      RenderUtil::native_size[yy])) / 5;
+      y::world(std::min(RenderUtil::native_size[xx],
+                        RenderUtil::native_size[yy])) / 5;
   static const y::wvec2 camera_deadzone{
       camera_deadzone_size, camera_deadzone_size};
   static const y::wvec2 camera_deadzone_buffer =
@@ -595,17 +595,17 @@ void Camera::update(Script* focus)
   // Rotate into camera-space so that movement respects rotation.
   y::wvec2 target = y::rotate(focus->get_origin() - _origin, _rotation);
 
-  if (y::abs(target[xx]) < camera_deadzone[xx] / 2) {
+  if (std::abs(target[xx]) < camera_deadzone[xx] / 2) {
     _is_moving_x = false;
   }
-  if (y::abs(target[yy]) < camera_deadzone[yy] / 2) {
+  if (std::abs(target[yy]) < camera_deadzone[yy] / 2) {
     _is_moving_y = false;
   }
 
-  if (y::abs(target[xx]) > camera_deadzone_buffer[xx] / 2) {
+  if (std::abs(target[xx]) > camera_deadzone_buffer[xx] / 2) {
     _is_moving_x = true;
   }
-  if (y::abs(target[yy]) > camera_deadzone_buffer[yy] / 2) {
+  if (std::abs(target[yy]) > camera_deadzone_buffer[yy] / 2) {
     _is_moving_y = true;
   }
 
@@ -613,8 +613,8 @@ void Camera::update(Script* focus)
   y::wvec2 dir =
       y::wvec2{_is_moving_x ? 1. : 0.,
                _is_moving_y ? 1. : 0.} * target * camera_speed *
-      y::wvec2{target[xx] ? 1. / y::abs(target[xx]) : 0.,
-               target[yy] ? 1. / y::abs(target[yy]) : 0.};
+      y::wvec2{target[xx] ? 1. / std::abs(target[xx]) : 0.,
+               target[yy] ? 1. / std::abs(target[yy]) : 0.};
   _origin += y::rotate(dir, -_rotation);
 }
 
@@ -665,7 +665,7 @@ y::world Camera::get_rotation() const
 
 GameStage::GameStage(const Databank& bank, Filesystem& save_filesystem,
                      RenderUtil& util, const GlFramebuffer& framebuffer,
-                     const y::string& source_key, const y::wvec2& coord,
+                     const std::string& source_key, const y::wvec2& coord,
                      bool fake)
   : _bank(bank)
   , _save_filesystem(save_filesystem)
@@ -680,7 +680,7 @@ GameStage::GameStage(const Databank& bank, Filesystem& save_filesystem,
   , _collision(new Collision(_world))
   , _lighting(new Lighting(_world, util.get_gl()))
   , _environment(new Environment(util.get_gl(), _world, fake))
-  , _player(y::null)
+  , _player(nullptr)
 {
   const LuaFile& file = _bank.scripts.get("/scripts/game/player.lua");
   y::wvec2 offset = y::wvec2(_world.get_active_coord() *
@@ -790,7 +790,7 @@ Environment& GameStage::get_environment()
   return *_environment;
 }
 
-const WorldSource& GameStage::get_source(const y::string& source_key) const
+const WorldSource& GameStage::get_source(const std::string& source_key) const
 {
   auto it = _source_map.find(source_key);
   if (it != _source_map.end()) {
@@ -799,12 +799,12 @@ const WorldSource& GameStage::get_source(const y::string& source_key) const
 
   if (_bank.maps.is_name_used(source_key)) {
     CellMapSource* source = new CellMapSource(_bank.maps.get(source_key));
-    _source_map.insert(y::make_pair(source_key, y::move_unique(source)));
+    _source_map.emplace(source_key, std::unique_ptr<WorldSource>(source));
     return *source;
   }
 
   log_err("Invalid WorldSource key ", source_key);
-  return *(WorldSource*)y::null;
+  return *(WorldSource*)nullptr;
 }
 
 void GameStage::event(const sf::Event& e)
@@ -823,7 +823,7 @@ void GameStage::event(const sf::Event& e)
       }
     }
     if (b && get_player()->has_function("key")) {
-      y::vector<LuaValue> args;
+      std::vector<LuaValue> args;
       args.emplace_back(y::world(pair.first));
       args.emplace_back(e.type == sf::Event::KeyPressed);
       get_player()->call("key", args);
@@ -840,7 +840,7 @@ void GameStage::event(const sf::Event& e)
 
 void GameStage::update()
 {
-  static const y::int32 half_size = WorldWindow::active_window_half_size;
+  static const std::int32_t half_size = WorldWindow::active_window_half_size;
   static const y::wvec2& lower_bound = y::wvec2(
       -half_size * Cell::cell_size * Tileset::tile_size);
   static const y::wvec2& upper_bound = y::wvec2(
@@ -853,7 +853,7 @@ void GameStage::update()
 
   // Update window. When we need to move the active window, make sure to
   // compensate by moving all scripts and the camera to balance it out.
-  const y::int32 cell_switch_buffer = 2;
+  const std::int32_t cell_switch_buffer = 2;
   y::wvec2 origin = -y::wvec2(cell_switch_buffer * Tileset::tile_size);
   y::wvec2 size = y::wvec2(Tileset::tile_size *
                            (y::ivec2{cell_switch_buffer,
@@ -910,7 +910,7 @@ Script* GameStage::get_player() const
   return _player;
 }
 
-bool GameStage::is_key_down(y::int32 key) const
+bool GameStage::is_key_down(std::int32_t key) const
 {
   auto it = _key_map.find(key);
   if (it == _key_map.end()) {

@@ -12,7 +12,7 @@ namespace y {
 // where P is the corresponding protobuf type, and implement save_to_proto and
 // load_from_proto.
 template<typename P>
-class io : public y::no_copy {
+class io {
 public:
 
   // Allows derived classes to determine the protobuf type.
@@ -21,9 +21,9 @@ public:
   // Save this object to the filesystem, under the given path.
   // If human_readable is true, use the ASCII protobuf format.
   void save(Filesystem& filesystem, const Databank& bank,
-            const y::string& path, bool human_readable = false) const;
+            const std::string& path, bool human_readable = false) const;
   void load(const Filesystem& filesystem, Databank& bank,
-            const y::string& path, bool human_readable = false);
+            const std::string& path, bool human_readable = false);
 
 protected:
 
@@ -39,11 +39,11 @@ protected:
 
 template<typename P>
 void io<P>::save(Filesystem& filesystem, const Databank& bank,
-                 const y::string& path, bool human_readable) const
+                 const std::string& path, bool human_readable) const
 {
   P proto;
   save_to_proto(bank, proto);
-  y::string s;
+  std::string s;
   if (human_readable) {
     google::protobuf::TextFormat::PrintToString(proto, &s);
   }
@@ -55,9 +55,9 @@ void io<P>::save(Filesystem& filesystem, const Databank& bank,
 
 template<typename P>
 void io<P>::load(const Filesystem& filesystem, Databank& bank,
-                 const y::string& path, bool human_readable)
+                 const std::string& path, bool human_readable)
 {
-  y::string s;
+  std::string s;
   filesystem.read_file(s, path);
 
   P proto;

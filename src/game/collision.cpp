@@ -97,10 +97,10 @@ bool line_intersects_circle(
   return true;
 }
 
-void get_geometries(y::vector<world_geometry>& output,
-                    const y::vector<y::wvec2>& vertices)
+void get_geometries(std::vector<world_geometry>& output,
+                    const std::vector<y::wvec2>& vertices)
 {
-  for (y::size i = 0; i < vertices.size(); ++i) {
+  for (std::size_t i = 0; i < vertices.size(); ++i) {
     output.push_back({vertices[i], vertices[(1 + i) % vertices.size()]});
   }
 }
@@ -115,24 +115,24 @@ y::world get_projection_ratio(
 
 y::world get_projection_ratio(
     const world_geometry& geometry,
-    const y::vector<y::wvec2>& vertices, const y::wvec2& move)
+    const std::vector<y::wvec2>& vertices, const y::wvec2& move)
 {
   y::world min_ratio = 2;
   for (const y::wvec2& v : vertices) {
-    min_ratio = y::min(min_ratio,
-                       get_projection_ratio(geometry, v, move, true));
+    min_ratio = std::min(min_ratio,
+                         get_projection_ratio(geometry, v, move, true));
   }
   return min_ratio;
 }
 
 y::world get_projection_ratio(
-    const y::vector<world_geometry>& geometry,
-    const y::vector<y::wvec2>& vertices, const y::wvec2& move)
+    const std::vector<world_geometry>& geometry,
+    const std::vector<y::wvec2>& vertices, const y::wvec2& move)
 {
   y::world min_ratio = 2;
   for (const world_geometry& g : geometry) {
     for (const y::wvec2& v : vertices) {
-      min_ratio = y::min(min_ratio, get_projection_ratio(g, v, move, true));
+      min_ratio = std::min(min_ratio, get_projection_ratio(g, v, move, true));
     }
   }
   return min_ratio;
@@ -144,7 +144,7 @@ bool has_intersection(const world_geometry& a,
   return get_projection_ratio(a, b.start, b.end - b.start, false) <= 1;
 }
 
-bool has_intersection(const y::vector<world_geometry>& a,
+bool has_intersection(const std::vector<world_geometry>& a,
                       const world_geometry& b)
 {
   for (const world_geometry& g : a) {
@@ -155,8 +155,8 @@ bool has_intersection(const y::vector<world_geometry>& a,
   return false;
 }
 
-bool has_intersection(const y::vector<world_geometry>& a,
-                      const y::vector<world_geometry>& b)
+bool has_intersection(const std::vector<world_geometry>& a,
+                      const std::vector<world_geometry>& b)
 {
   for (const world_geometry& g: b) {
     if (has_intersection(a, g)) {
@@ -176,7 +176,7 @@ y::world get_arc_projection(
   y::world t_1;
   if (!line_intersects_circle(g.start, g.end, origin,
                               (vertex - origin).length_squared(), t_0, t_1)) {
-    return y::abs(rotation);
+    return std::abs(rotation);
   }
 
   // If any root t satisfies 0 <= t <= 1 then it is a block of the circle by
@@ -188,7 +188,7 @@ y::world get_arc_projection(
     static const y::world tolerance = 1.0 / 1024;
     // Impact outside the line segment.
     if (t < 0 || t > 1) {
-      return y::abs(rotation);
+      return std::abs(rotation);
     }
     y::wvec2 impact_rel = g.start + t * g_vec - origin;
     // Skip if the collision is opposite the direction the line is defined
@@ -198,7 +198,7 @@ y::world get_arc_projection(
     // have get_vertices_and_geometries_for_rotate.
     y::world signed_distance = g_vec.dot(impact_rel);
     if ((rotation > 0) != (signed_distance > 0)) {
-      return y::abs(rotation);
+      return std::abs(rotation);
     }
 
     y::world limiting_angle = y::angle(impact_rel);
@@ -220,33 +220,33 @@ y::world get_arc_projection(
     return limiting_rotation;
   };
 
-  y::world limiting_rotation = y::min(limit(t_0), limit(t_1));
+  y::world limiting_rotation = std::min(limit(t_0), limit(t_1));
   return limiting_rotation;
 }
 
 y::world get_arc_projection(
     const world_geometry& geometry,
-    const y::vector<y::wvec2>& vertices,
+    const std::vector<y::wvec2>& vertices,
     const y::wvec2& origin, y::world rotation)
 {
-  y::world limiting_rotation = y::abs(rotation);
+  y::world limiting_rotation = std::abs(rotation);
   for (const y::wvec2& v : vertices) {
-    limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                            geometry, v, origin, rotation));
+    limiting_rotation = std::min(
+        limiting_rotation, get_arc_projection(geometry, v, origin, rotation));
   }
   return limiting_rotation;
 }
 
 y::world get_arc_projection(
-    const y::vector<world_geometry>& geometry,
-    const y::vector<y::wvec2>& vertices,
+    const std::vector<world_geometry>& geometry,
+    const std::vector<y::wvec2>& vertices,
     const y::wvec2& origin, y::world rotation)
 {
-  y::world limiting_rotation = y::abs(rotation);
+  y::world limiting_rotation = std::abs(rotation);
   for (const world_geometry& g : geometry) {
     for (const y::wvec2& v : vertices) {
-      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                              g, v, origin, rotation));
+      limiting_rotation = std::min(
+          limiting_rotation, get_arc_projection(g, v, origin, rotation));
     }
   }
   return limiting_rotation;
@@ -255,7 +255,7 @@ y::world get_arc_projection(
 // This filtering looks like an optimisation, but actually affects whether
 // collision will happen 'on a point'. Not a big deal.
 Body::bounds get_bounds(
-    const entry_list& bodies, y::int32 collide_mask,
+    const entry_list& bodies, std::int32_t collide_mask,
     const y::wvec2& origin, y::world rotation)
 {
   y::wvec2 min;
@@ -271,11 +271,11 @@ Body::bounds get_bounds(
     max = first ? bounds.second : y::max(max, bounds.second);
     first = false;
   }
-  return y::make_pair(min, max);
+  return std::make_pair(min, max);
 }
 
 Body::bounds get_full_rotation_bounds(
-    const entry_list& bodies, y::int32 collide_mask,
+    const entry_list& bodies, std::int32_t collide_mask,
     const y::wvec2& origin, y::world rotation, const y::wvec2& offset)
 {
   y::wvec2 min;
@@ -291,19 +291,19 @@ Body::bounds get_full_rotation_bounds(
     max = first ? bounds.second : y::max(max, bounds.second);
     first = false;
   }
-  return y::make_pair(min, max);
+  return std::make_pair(min, max);
 }
 
 // Get only the vertices and geometries oriented in the direction of a move.
 void get_vertices_and_geometries_for_move(
-    y::vector<world_geometry>& geometry_output,
-    y::vector<y::wvec2>& vertex_output,
-    const y::wvec2& move, const y::vector<y::wvec2>& vertices)
+    std::vector<world_geometry>& geometry_output,
+    std::vector<y::wvec2>& vertex_output,
+    const y::wvec2& move, const std::vector<y::wvec2>& vertices)
 {
   bool first_keep = false;
   bool keep = false;
 
-  for (y::size i = 0; i < vertices.size(); ++i) {
+  for (std::size_t i = 0; i < vertices.size(); ++i) {
     const y::wvec2& a = vertices[i];
     const y::wvec2& b = vertices[(1 + i) % vertices.size()];
 
@@ -327,15 +327,15 @@ void get_vertices_and_geometries_for_move(
 
 // Similar for rotation.
 void get_vertices_and_geometries_for_rotate(
-    y::vector<world_geometry>& geometry_output,
-    y::vector<y::wvec2>& vertex_output,
+    std::vector<world_geometry>& geometry_output,
+    std::vector<y::wvec2>& vertex_output,
     y::world rotate, const y::wvec2& origin,
-    const y::vector<y::wvec2>& vertices)
+    const std::vector<y::wvec2>& vertices)
 {
   bool first_keep = false;
   bool keep = false;
 
-  for (y::size i = 0; i < vertices.size(); ++i) {
+  for (std::size_t i = 0; i < vertices.size(); ++i) {
     const y::wvec2& a = vertices[i];
     const y::wvec2& b = vertices[(1 + i) % vertices.size()];
 
@@ -373,7 +373,7 @@ enum CollideMaskReserved {
 
 Constraint::Constraint(
     Script& source, Script& target,
-    bool source_fixed, bool target_fixed, y::int32 tag)
+    bool source_fixed, bool target_fixed, std::int32_t tag)
   : invalidated(false)
   , source(source)
   , target(target)
@@ -414,7 +414,7 @@ Body::Body(Script& source)
 Body::bounds Body::get_bounds(const y::wvec2& origin,
                               y::world rotation) const
 {
-  y::vector<y::wvec2> vertices;
+  std::vector<y::wvec2> vertices;
   get_vertices(vertices, origin, rotation);
 
   y::wvec2 min;
@@ -425,7 +425,7 @@ Body::bounds Body::get_bounds(const y::wvec2& origin,
     max = first ? v : y::max(max, v);
     first = false;
   }
-  return y::make_pair(min, max);
+  return std::make_pair(min, max);
 }
 
 Body::bounds Body::get_full_rotation_bounds(
@@ -435,7 +435,7 @@ Body::bounds Body::get_full_rotation_bounds(
   // the offset of rotation. We rotate it in local coordinates first, then
   // check the bounds in offset coordinates, and finally return in world
   // coordinates.
-  y::vector<y::wvec2> vertices;
+  std::vector<y::wvec2> vertices;
   get_vertices(vertices, -offset, rotation);
 
   y::wvec2 min;
@@ -448,11 +448,11 @@ Body::bounds Body::get_full_rotation_bounds(
   }
 
   y::world size = y::max(y::abs(min), y::abs(max)).length();
-  return y::make_pair(origin + offset + y::wvec2{-size, -size},
-                      origin + offset + y::wvec2{size, size});
+  return std::make_pair(origin + offset + y::wvec2{-size, -size},
+                        origin + offset + y::wvec2{size, size});
 }
 
-void Body::get_vertices(y::vector<y::wvec2>& output,
+void Body::get_vertices(std::vector<y::wvec2>& output,
                         const y::wvec2& origin, y::world rotation) const
 {
   y::wvec2 dr = offset + size / 2;
@@ -477,7 +477,7 @@ void Body::get_vertices(y::vector<y::wvec2>& output,
 
 void ConstraintData::create_constraint(
     Script& source, Script& target,
-    bool source_fixed, bool target_fixed, y::int32 tag)
+    bool source_fixed, bool target_fixed, std::int32_t tag)
 {
   Constraint* constraint = new Constraint(
       source, target, source_fixed, target_fixed, tag);
@@ -507,7 +507,7 @@ bool ConstraintData::has_constraint(const Script& source) const
   return false;
 }
 
-bool ConstraintData::has_constraint(const Script& source, y::int32 tag) const
+bool ConstraintData::has_constraint(const Script& source, std::int32_t tag) const
 {
   auto it = _constraint_map.find(&source);
   if (it == _constraint_map.end()) {
@@ -522,7 +522,7 @@ bool ConstraintData::has_constraint(const Script& source, y::int32 tag) const
 }
 
 void ConstraintData::get_constraints(
-    y::vector<Script*>& output, const Script& source) const
+    std::vector<Script*>& output, const Script& source) const
 {
   auto it = _constraint_map.find(&source);
   if (it == _constraint_map.end()) {
@@ -536,7 +536,7 @@ void ConstraintData::get_constraints(
 }
 
 void ConstraintData::get_constraints(
-    y::vector<Script*>& output, const Script& source, y::int32 tag) const
+    std::vector<Script*>& output, const Script& source, std::int32_t tag) const
 {
   auto it = _constraint_map.find(&source);
   if (it == _constraint_map.end()) {
@@ -560,7 +560,7 @@ void ConstraintData::destroy_constraints(const Script& source)
   }
 }
 
-void ConstraintData::destroy_constraints(const Script& source, y::int32 tag)
+void ConstraintData::destroy_constraints(const Script& source, std::int32_t tag)
 {
   auto it = _constraint_map.find(&source);
   if (it == _constraint_map.end()) {
@@ -609,8 +609,8 @@ CollisionData::CollisionData()
 Body* CollisionData::create_obj(Script& source)
 {
   if (get_list(source).empty()) {
-    source.add_move_callback(
-        y::bind(&CollisionData::update_spatial_hash, this, y::_1));
+    source.add_move_callback(std::bind(
+        &CollisionData::update_spatial_hash, this, std::placeholders::_1));
   }
   Body* body = ScriptMap<Body>::create_obj(source);
   return body;
@@ -618,7 +618,7 @@ Body* CollisionData::create_obj(Script& source)
 
 void CollisionData::get_bodies_in_region(
     result& output, const y::wvec2& origin, const y::wvec2& region,
-    y::int32 collide_mask) const
+    std::int32_t collide_mask) const
 {
   y::wvec2 min = origin - region / 2;
   y::wvec2 max = origin + region / 2;
@@ -636,7 +636,7 @@ void CollisionData::get_bodies_in_region(
 
 void CollisionData::get_bodies_in_radius(
     result& output, const y::wvec2& origin, y::world radius,
-    y::int32 collide_mask) const
+    std::int32_t collide_mask) const
 {
   y::wvec2 r{radius, radius};
 
@@ -652,22 +652,22 @@ void CollisionData::get_bodies_in_radius(
 }
 
 void CollisionData::get_bodies_in_body(
-    result& output, const Body* body, y::int32 collide_mask) const
+    result& output, const Body* body, std::int32_t collide_mask) const
 {
   auto bounds = body->get_bounds(body->source.get_origin(),
                                  body->source.get_rotation());
   y::wvec2 min_bound = bounds.first;
   y::wvec2 max_bound = bounds.second;
 
-  y::vector<y::wvec2> vertices;
-  y::vector<world_geometry> geometries;
+  std::vector<y::wvec2> vertices;
+  std::vector<world_geometry> geometries;
 
   body->get_vertices(vertices,
                      body->source.get_origin(), body->source.get_rotation());
   get_geometries(geometries, vertices);
 
-  y::vector<y::wvec2> block_vertices;
-  y::vector<world_geometry> block_geometries;
+  std::vector<y::wvec2> block_vertices;
+  std::vector<world_geometry> block_geometries;
   for (auto it = _spatial_hash.search(min_bound, max_bound); it; ++it) {
     Body* block = *it;
     if (&block->source == &body->source ||
@@ -691,7 +691,7 @@ void CollisionData::get_bodies_in_body(
 
 bool CollisionData::source_in_region(
     const Script& source, const y::wvec2& origin, const y::wvec2& region,
-    y::int32 source_collide_mask) const
+    std::int32_t source_collide_mask) const
 {
   Body::bounds bounds = get_bounds(get_list(source), 0,
                                    source.get_origin(), source.get_rotation());
@@ -712,7 +712,7 @@ bool CollisionData::source_in_region(
 
 bool CollisionData::source_in_radius(
     const Script& source, const y::wvec2& origin, y::world radius,
-    y::int32 source_collide_mask) const
+    std::int32_t source_collide_mask) const
 {
   y::wvec2 r{radius, radius};
   Body::bounds bounds = get_bounds(get_list(source), 0,
@@ -738,14 +738,14 @@ bool CollisionData::body_in_region(
   y::wvec2 min = origin - region / 2;
   y::wvec2 max = origin + region / 2;
 
-  y::vector<y::wvec2> vertices;
+  std::vector<y::wvec2> vertices;
   body->get_vertices(vertices, body->source.get_origin(),
                                body->source.get_rotation());
   if (!vertices.empty() &&
       vertices[0] < max && vertices[0] >= min) {
     return true;
   }
-  for (y::size i = 0; i < vertices.size(); ++i) {
+  for (std::size_t i = 0; i < vertices.size(); ++i) {
     const y::wvec2& a = vertices[i];
     const y::wvec2& b = vertices[(1 + i) % vertices.size()];
     if (y::line_intersects_rect(a, b, min, max)) {
@@ -758,7 +758,7 @@ bool CollisionData::body_in_region(
 bool CollisionData::body_in_radius(
     const Body* body, const y::wvec2& origin, y::world radius) const
 {
-  y::vector<y::wvec2> vertices;
+  std::vector<y::wvec2> vertices;
   body->get_vertices(vertices, body->source.get_origin(),
                                body->source.get_rotation());
 
@@ -769,7 +769,7 @@ bool CollisionData::body_in_radius(
 
   y::world t_0;
   y::world t_1;
-  for (y::size i = 0; i < vertices.size(); ++i) {
+  for (std::size_t i = 0; i < vertices.size(); ++i) {
     const y::wvec2& a = vertices[i];
     const y::wvec2& b = vertices[(1 + i) % vertices.size()];
     if (line_intersects_circle(a, b, origin, radius * radius, t_0, t_1) &&
@@ -839,8 +839,8 @@ void Collision::render(
     RenderUtil& util,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
-  y::vector<RenderUtil::line> green;
-  y::vector<RenderUtil::line> blue;
+  std::vector<RenderUtil::line> green;
+  std::vector<RenderUtil::line> blue;
 
   for (auto it = _world.get_geometry().search(camera_min,
                                              camera_max); it; ++it) {
@@ -848,7 +848,7 @@ void Collision::render(
                                         y::fvec2(it->end)});
   }
 
-  y::vector<y::wvec2> vertices;
+  std::vector<y::wvec2> vertices;
   for (auto it = _data.get_spatial_hash().search(camera_min,
                                                  camera_max); it; ++it) {
     const Body* b = *it;
@@ -858,7 +858,7 @@ void Collision::render(
 
     vertices.clear();
     b->get_vertices(vertices, b->source.get_origin(), b->source.get_rotation());
-    for (y::size i = 0; i < vertices.size(); ++i) {
+    for (std::size_t i = 0; i < vertices.size(); ++i) {
       blue.emplace_back(RenderUtil::line{
           y::fvec2(vertices[i]),
           y::fvec2(vertices[(i + 1) % vertices.size()])});
@@ -869,10 +869,11 @@ void Collision::render(
   util.render_lines(blue, {0.f, 0.f, 1.f, .5f});
 }
 
-y::wvec2 Collision::collider_move(y::vector<Script*>& push_script_output,
-                                  y::vector<y::wvec2>& push_amount_output,
-                                  Script& source, const y::wvec2& move,
-                                  y::int32 push_mask, y::int32 push_max) const
+y::wvec2 Collision::collider_move(
+    std::vector<Script*>& push_script_output,
+    std::vector<y::wvec2>& push_amount_output,
+    Script& source, const y::wvec2& move,
+    std::int32_t push_mask, std::int32_t push_max) const
 {
   return move * collider_move_constrained(
       push_script_output, push_amount_output,
@@ -887,7 +888,7 @@ y::world Collision::collider_rotate(Script& source, y::world rotate,
 
 bool Collision::source_check(
     const Script& source,
-    y::int32 source_collide_mask, y::int32 target_collide_mask) const
+    std::int32_t source_collide_mask, std::int32_t target_collide_mask) const
 {
   for (const entry& e : _data.get_list(source)) {
     if (source_collide_mask && !(source_collide_mask && e->collide_type)) {
@@ -900,15 +901,15 @@ bool Collision::source_check(
   return false;
 }
 
-bool Collision::body_check(const Body* body, y::int32 collide_mask) const
+bool Collision::body_check(const Body* body, std::int32_t collide_mask) const
 {
   auto bounds = body->get_bounds(body->source.get_origin(),
                                  body->source.get_rotation());
   y::wvec2 min_bound = bounds.first;
   y::wvec2 max_bound = bounds.second;
 
-  y::vector<y::wvec2> vertices;
-  y::vector<world_geometry> geometries;
+  std::vector<y::wvec2> vertices;
+  std::vector<world_geometry> geometries;
 
   body->get_vertices(vertices,
                      body->source.get_origin(), body->source.get_rotation());
@@ -923,8 +924,8 @@ bool Collision::body_check(const Body* body, y::int32 collide_mask) const
     }
   }
 
-  y::vector<y::wvec2> block_vertices;
-  y::vector<world_geometry> block_geometries;
+  std::vector<y::wvec2> block_vertices;
+  std::vector<world_geometry> block_geometries;
   for (auto it = _data.get_spatial_hash().search(min_bound,
                                                  max_bound); it; ++it) {
     const Body* block = *it;
@@ -951,9 +952,9 @@ bool Collision::body_check(const Body* body, y::int32 collide_mask) const
 
 y::world Collision::collider_move_raw(
     Body*& first_block_output, Script& source, const y::wvec2& move,
-    const y::set<Script*>& excluded_set) const
+    const std::unordered_set<Script*>& excluded_set) const
 {
-  first_block_output = y::null;
+  first_block_output = nullptr;
   const entry_list& bodies = _data.get_list(source);
   if (bodies.empty() || move == y::wvec2()) {
     source.set_origin(source.get_origin() + move);
@@ -966,9 +967,9 @@ y::world Collision::collider_move_raw(
   y::wvec2 max_bound = y::max(bounds.second, move + bounds.second);
 
   y::world min_ratio = 1;
-  y::vector<y::wvec2> vertices_temp;
-  y::vector<y::wvec2> vertices;
-  y::vector<world_geometry> geometries;
+  std::vector<y::wvec2> vertices_temp;
+  std::vector<y::wvec2> vertices;
+  std::vector<world_geometry> geometries;
 
   // By reversing the nesting of these loops we could skip geometry on a
   // per-body basis. Incurs extra overhead though, and since most things will
@@ -1006,9 +1007,10 @@ y::world Collision::collider_move_raw(
       get_vertices_and_geometries_for_move(geometries, vertices,
                                            move, vertices_temp);
 
-      min_ratio = y::min(min_ratio, get_projection_ratio(wg, vertices, move));
-      min_ratio = y::min(min_ratio, get_projection_ratio(
-                      geometries, {wg.start, wg.end}, -move));
+      min_ratio = std::min(min_ratio, get_projection_ratio(wg, vertices, move));
+      min_ratio = std::min(
+          min_ratio,
+          get_projection_ratio(geometries, {wg.start, wg.end}, -move));
     }
   }
 
@@ -1018,11 +1020,11 @@ y::world Collision::collider_move_raw(
   min_bound = y::min(bounds.first, move + bounds.first);
   max_bound = y::max(bounds.second, move + bounds.second);
 
-  y::vector<Body*> blocking_bodies;
+  std::vector<Body*> blocking_bodies;
   _data.get_spatial_hash().search(blocking_bodies, min_bound, max_bound);
 
-  y::vector<y::wvec2> block_vertices;
-  y::vector<world_geometry> block_geometries;
+  std::vector<y::wvec2> block_vertices;
+  std::vector<world_geometry> block_geometries;
 
   for (const auto& pointer : bodies) {
     vertices_temp.clear();
@@ -1055,8 +1057,8 @@ y::world Collision::collider_move_raw(
 
       // Save the lowest block_ratio body so we can try to push it.
       y::world block_ratio =
-          y::min(get_projection_ratio(block_geometries, vertices, move),
-                 get_projection_ratio(geometries, block_vertices, -move));
+          std::min(get_projection_ratio(block_geometries, vertices, move),
+                   get_projection_ratio(geometries, block_vertices, -move));
       if (block_ratio < min_ratio) {
         first_block_output = block;
         min_ratio = block_ratio;
@@ -1074,7 +1076,8 @@ y::world Collision::collider_move_raw(
 
 y::world Collision::collider_rotate_raw(
     Script& source, y::world rotate,
-    const y::wvec2& origin_offset, const y::set<Script*>& excluded_set) const
+    const y::wvec2& origin_offset,
+    const std::unordered_set<Script*>& excluded_set) const
 {
   // TODO: rotation still seems to be a little bit inconsistent as to
   // when a thing touching a surface at a point will rotate. Seems like
@@ -1100,10 +1103,10 @@ y::world Collision::collider_rotate_raw(
   y::wvec2 min_bound = bounds.first;
   y::wvec2 max_bound = bounds.second;
 
-  y::world limiting_rotation = y::abs(rotate);
-  y::vector<y::wvec2> vertices_temp;
-  y::vector<y::wvec2> vertices;
-  y::vector<world_geometry> geometries;
+  y::world limiting_rotation = std::abs(rotate);
+  std::vector<y::wvec2> vertices_temp;
+  std::vector<y::wvec2> vertices;
+  std::vector<world_geometry> geometries;
 
   // See collider_move for details.
   for (auto it = _world.get_geometry().search(min_bound, max_bound); it; ++it) {
@@ -1136,11 +1139,11 @@ y::world Collision::collider_rotate_raw(
       get_vertices_and_geometries_for_rotate(
           geometries, vertices, rotate, origin, vertices_temp);
 
-      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                              wg, vertices, origin, rotate));
-      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                              geometries, {wg.start, wg.end},
-                              origin, -rotate));
+      limiting_rotation = std::min(
+          limiting_rotation, get_arc_projection(wg, vertices, origin, rotate));
+      limiting_rotation = std::min(
+          limiting_rotation, get_arc_projection(geometries, {wg.start, wg.end},
+                                                origin, -rotate));
     }
   }
 
@@ -1149,11 +1152,11 @@ y::world Collision::collider_rotate_raw(
   min_bound = bounds.first;
   max_bound = bounds.second;
 
-  y::vector<Body*> blocking_bodies;
+  std::vector<Body*> blocking_bodies;
   _data.get_spatial_hash().search(blocking_bodies, min_bound, max_bound);
 
-  y::vector<y::wvec2> block_vertices;
-  y::vector<world_geometry> block_geometries;
+  std::vector<y::wvec2> block_vertices;
+  std::vector<world_geometry> block_geometries;
   for (const auto& pointer : bodies) {
     vertices_temp.clear();
     vertices.clear();
@@ -1182,10 +1185,12 @@ y::world Collision::collider_rotate_raw(
       get_vertices_and_geometries_for_rotate(
           block_geometries, block_vertices, -rotate, origin, vertices_temp);
 
-      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                              block_geometries, vertices, origin, rotate));
-      limiting_rotation = y::min(limiting_rotation, get_arc_projection(
-                              geometries, block_vertices, origin, -rotate));
+      limiting_rotation = std::min(
+          limiting_rotation, get_arc_projection(block_geometries, vertices,
+                                                origin, rotate));
+      limiting_rotation = std::min(
+          limiting_rotation, get_arc_projection(geometries, block_vertices,
+                                                origin, -rotate));
     }
   }
 
@@ -1197,11 +1202,11 @@ y::world Collision::collider_rotate_raw(
 }
 
 y::world Collision::collider_move_push(
-    y::vector<Script*>& push_script_output,
-    y::vector<y::wvec2>& push_amount_output,
+    std::vector<Script*>& push_script_output,
+    std::vector<y::wvec2>& push_amount_output,
     Script& source, const y::wvec2& move,
-    y::int32 push_mask, y::int32 push_max,
-    const y::set<Script*>& excluded_set) const
+    std::int32_t push_mask, std::int32_t push_max,
+    const std::unordered_set<Script*>& excluded_set) const
 {
   // TODO: (optionally) recurse against the blocked direction, i.e. slide down
   // a wall if we can? Doesn't matter for 'characters' who walk about through
@@ -1223,8 +1228,8 @@ y::world Collision::collider_move_push(
   // Attempt to push the blocker. Whether blocker push should preserve the
   // excluded set is debatable; behaves incorrectly in different situations
   // either way (I think).
-  y::vector<Script*> push_scripts;
-  y::vector<y::wvec2> push_amounts;
+  std::vector<Script*> push_scripts;
+  std::vector<y::wvec2> push_amounts;
   y::world block_move_ratio = collider_move_constrained(
       push_scripts, push_amounts, block_source, remaining_move,
       push_mask, push_max - 1, excluded_set);
@@ -1255,7 +1260,7 @@ y::world Collision::collider_move_push(
   // If we got stuck closer than the blocked object, move the blockers we
   // already pushed back to where we got stuck.
   if (recursive_ratio < 1.) {
-    for (y::size i = 0; i < push_script_output.size(); ++i) {
+    for (std::size_t i = 0; i < push_script_output.size(); ++i) {
       Script* s = push_script_output[i];
       Body* ignore;
       // Need to collider_move them back otherwise odd things can happen in
@@ -1274,20 +1279,20 @@ y::world Collision::collider_move_push(
 }
 
 y::world Collision::collider_move_constrained(
-    y::vector<Script*>& push_script_output,
-    y::vector<y::wvec2>& push_amount_output,
+    std::vector<Script*>& push_script_output,
+    std::vector<y::wvec2>& push_amount_output,
     Script& source, const y::wvec2& move,
-    y::int32 push_mask, y::int32 push_max,
-    const y::set<Script*>& initial_excluded_set) const
+    std::int32_t push_mask, std::int32_t push_max,
+    const std::unordered_set<Script*>& initial_excluded_set) const
 {
-  y::set<Script*> linked_scripts;
+  std::unordered_set<Script*> linked_scripts;
   if (!walk_constraint_graph(linked_scripts, source)) {
     return 0.;
   }
   // So that chained Scripts at the back aren't blocked by ones at the front
   // before they've moved, keep a set of Scripts to exclude from collision
   // checks and move them all as one unified object.
-  y::set<Script*> excluded_set;
+  std::unordered_set<Script*> excluded_set;
   excluded_set.insert(initial_excluded_set.begin(),
                       initial_excluded_set.end());
   excluded_set.insert(linked_scripts.begin(), linked_scripts.end());
@@ -1296,22 +1301,22 @@ y::world Collision::collider_move_constrained(
   // doing this forwards is really the correct way.
   auto reverse_move = [&](
       Script& source, const y::wvec2& amount,
-      const y::vector<Script*>& scripts,
-      const y::vector<y::wvec2>& amounts)
+      const std::vector<Script*>& scripts,
+      const std::vector<y::wvec2>& amounts)
   {
     Body* ignore;
     collider_move_raw(ignore, source, -amount, excluded_set);
-    for (y::size i = 0; i < scripts.size(); ++i) {
+    for (std::size_t i = 0; i < scripts.size(); ++i) {
       collider_move_raw(ignore, *scripts[i],
                         -amounts[i], excluded_set);
     }
   };
 
-  y::vector<Script*> scripts;
+  std::vector<Script*> scripts;
   scripts.insert(scripts.end(), linked_scripts.begin(), linked_scripts.end());
-  y::vector<y::vector<Script*>> push_scripts;
-  y::vector<y::vector<y::wvec2>> push_amounts;
-  y::vector<y::wvec2> moves;
+  std::vector<std::vector<Script*>> push_scripts;
+  std::vector<std::vector<y::wvec2>> push_amounts;
+  std::vector<y::wvec2> moves;
   y::world limited_move = 1.;
 
   // Move each script in order of the move direction.
@@ -1321,14 +1326,14 @@ y::world Collision::collider_move_constrained(
     y::world move_ratio = collider_move_push(
         *push_scripts.rbegin(), *push_amounts.rbegin(),
         *script, move, push_mask, push_max, excluded_set);
-    move_ratio = y::max(0., move_ratio);
-    limited_move = y::min(move_ratio, limited_move);
+    move_ratio = std::max(0., move_ratio);
+    limited_move = std::min(move_ratio, limited_move);
     moves.push_back(move_ratio * move);
   }
 
   // If any were blocked, reverse everything and move again.
   if (limited_move < 1.) {
-    for (y::int32 i = scripts.size() - 1; i >= 0; i--) {
+    for (std::int32_t i = scripts.size() - 1; i >= 0; i--) {
       reverse_move(*scripts[i], moves[i],
                    push_scripts[i], push_amounts[i]);
     }
@@ -1346,8 +1351,8 @@ y::world Collision::collider_move_constrained(
   }
 
   // Collapse move lists and return.
-  for (y::size i = 0; i < push_scripts.size(); ++i) {
-    for (y::size j = 0; j < push_scripts[i].size(); ++j) {
+  for (std::size_t i = 0; i < push_scripts.size(); ++i) {
+    for (std::size_t j = 0; j < push_scripts[i].size(); ++j) {
       push_script_output.push_back(push_scripts[i][j]);
       push_amount_output.push_back(push_amounts[i][j]);
     }
@@ -1358,7 +1363,7 @@ y::world Collision::collider_move_constrained(
 y::world Collision::collider_rotate_constrained(
     Script& source, y::world rotate, const y::wvec2& origin_offset) const
 {
-  y::set<Script*> linked_scripts;
+  std::unordered_set<Script*> linked_scripts;
   if (!walk_constraint_graph(linked_scripts, source)) {
     return 0.;
   }
@@ -1366,24 +1371,24 @@ y::world Collision::collider_rotate_constrained(
   // This function is currently considerably simpler than the corresponding
   // movement function, since rotations can't push (so we don't need to reverse
   // anything).
-  y::vector<Script*> scripts;
+  std::vector<Script*> scripts;
   for (Script* script : linked_scripts) {
     scripts.emplace_back(script);
   }
 
   y::world limited_rotation = rotate;
-  y::vector<y::world> rotations;
+  std::vector<y::world> rotations;
   for (Script* script : scripts) {
     y::world r = collider_rotate_raw(
         *script, rotate,
         origin_offset - script->get_origin() + source.get_origin(),
         linked_scripts);
     rotations.push_back(r);
-    limited_rotation = y::max(0., y::min(r, limited_rotation));
+    limited_rotation = std::max(0., std::min(r, limited_rotation));
   }
 
   if (limited_rotation < rotate) {
-    for (y::int32 i = scripts.size() - 1; i >= 0; i--) {
+    for (std::int32_t i = scripts.size() - 1; i >= 0; i--) {
       collider_rotate_raw(
           *scripts[i], -rotations[i],
           origin_offset - scripts[i]->get_origin() + source.get_origin(),
@@ -1403,14 +1408,14 @@ y::world Collision::collider_rotate_constrained(
 }
 
 bool Collision::walk_constraint_graph(
-    y::set<Script*>& linked_scripts_output, Script& source) const
+    std::unordered_set<Script*>& linked_scripts_output, Script& source) const
 {
   linked_scripts_output.insert(&source);
 
-  y::vector<y::pair<Script*, bool>> stack;
+  std::vector<std::pair<Script*, bool>> stack;
   stack.emplace_back(&source, false);
 
-  y::set<Constraint*> used_constraints;
+  std::unordered_set<Constraint*> used_constraints;
   while (!stack.empty()) {
     Script& node = *stack.rbegin()->first;
     bool node_traverse_from_fixed = stack.rbegin()->second;

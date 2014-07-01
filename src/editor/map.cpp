@@ -7,6 +7,7 @@
 #include "../../gen/proto/cell.pb.h"
 
 #include <chrono>
+#include <sstream>
 #include <SFML/Window.hpp>
 
 MapEditor::MapEditor(
@@ -72,7 +73,7 @@ void MapEditor::event(const sf::Event& e)
       start_drag(camera_to_world(_hover).euclidean_div(Tileset::tile_size));
       if (e.mouseButton.button == sf::Mouse::Left) {
         _tile_edit_style = control;
-        _tile_edit_action = y::move_unique(
+        _tile_edit_action.reset(
             new TileEditAction(_map, _layer_panel.get_layer()));
       }
     }
@@ -84,7 +85,7 @@ void MapEditor::event(const sf::Event& e)
                                        get_hover_world());
       }
       else {
-        _script_add_action = y::move_unique(
+        _script_add_action.reset(
             new ScriptAddAction(_map, get_hover_world(), get_hover_world(),
                 _script_panel.get_script()));
       }
@@ -99,11 +100,11 @@ void MapEditor::event(const sf::Event& e)
   if (e.type == sf::Event::MouseButtonReleased && is_dragging()) {
     // End draw and commit tile edit.
     if (_tile_edit_action) {
-      get_undo_stack().new_action(y::move_unique(_tile_edit_action));
+      get_undo_stack().new_action(std::move(_tile_edit_action));
     }
     // End drag and add script.
     else if (_script_add_action) {
-      get_undo_stack().new_action(y::move_unique(_script_add_action));
+      get_undo_stack().new_action(std::move(_script_add_action));
     }
     // End drag and move script.
     else if (is_script_layer()) {
@@ -111,7 +112,7 @@ void MapEditor::event(const sf::Event& e)
       y::ivec2 new_min;
       y::ivec2 new_max;
       get_script_drag_result(new_min, new_max, b, _script_drag, true, false);
-      get_undo_stack().new_action(y::move_unique(
+      get_undo_stack().new_action(std::unique_ptr<StackAction>(
           new ScriptMoveAction(_map, b.min, b.max, new_min, new_max, b.path)));
     }
     // End pick and copy tiles.
@@ -128,7 +129,7 @@ void MapEditor::event(const sf::Event& e)
   }
 
   CellBlueprint* cell = _map.get_coord(get_hover_cell());
-  y::int32 old_zoom = _zoom;
+  std::int32_t old_zoom = _zoom;
   switch (e.key.code) {
     // Quit!
     case sf::Keyboard::Escape:
@@ -136,7 +137,7 @@ void MapEditor::event(const sf::Event& e)
         end();
       }
       else {
-        push(y::move_unique(new ConfirmationModal(
+        push(std::unique_ptr<Modal>(new ConfirmationModal(
             _util, _confirm_result, "Unsaved changes. Are you sure?")));
       }
       break;
@@ -144,20 +145,20 @@ void MapEditor::event(const sf::Event& e)
     // Kick off game.
     case sf::Keyboard::Return:
       if (shift) {
-        y::string call = "bin/yugen " + _bank.maps.get_name(_map) +
-                         " " + y::to_string(get_hover_world()[xx]) +
-                         " " + y::to_string(get_hover_world()[yy]);
-        y::cout << call <<
-            " exited with code " << system(call.c_str()) << y::endl;
+        std::string call = "bin/yugen " + _bank.maps.get_name(_map) +
+                         " " + std::to_string(get_hover_world()[xx]) +
+                         " " + std::to_string(get_hover_world()[yy]);
+        std::cout << call <<
+            " exited with code " << system(call.c_str()) << std::endl;
       }
       break;
 
     // Rename cell.
     case sf::Keyboard::R:
       if (is_mouse_on_screen() && cell) {
-        const y::string& name =
+        const std::string& name =
             _bank.cells.get_name(*cell);
-        push(y::move_unique(new TextInputModal(
+        push(std::unique_ptr<Modal>(new TextInputModal(
             _util, name, _input_result, "Rename cell " + name + " to:")));
       }
       break;
@@ -165,14 +166,15 @@ void MapEditor::event(const sf::Event& e)
     // New cell.
     case sf::Keyboard::N:
       if (is_mouse_on_screen() && !cell) {
-        static const y::string hex = "0123456789abcdef";
-        y::string random_name;
-        y::size r = std::uniform_int_distribution<y::size>()(_generator);
-        for (y::size i = 0; i < 8; ++i) {
+        static const std::string hex = "0123456789abcdef";
+        std::string random_name;
+        std::size_t r =
+            std::uniform_int_distribution<std::size_t>()(_generator);
+        for (std::size_t i = 0; i < 8; ++i) {
           random_name += hex[r % hex.length()];
           r /= hex.length();
         }
-        push(y::move_unique(new TextInputModal(
+        push(std::unique_ptr<Modal>(new TextInputModal(
             _util, "/world/" + random_name + ".cell",
             _input_result, "Add cell using name:")));
       }
@@ -182,11 +184,11 @@ void MapEditor::event(const sf::Event& e)
     case sf::Keyboard::Delete:
       if (is_script_layer()) {
         const ScriptBlueprint& b = _map.get_script_at(get_hover_world());
-        get_undo_stack().new_action(y::move_unique(
+        get_undo_stack().new_action(std::unique_ptr<StackAction>(
             new ScriptRemoveAction(_map, b.min, b.max, b.path)));
       }
       else {
-        get_undo_stack().new_action(y::move_unique(
+        get_undo_stack().new_action(std::unique_ptr<StackAction>(
             new CellRemoveAction(_bank, _map, get_hover_cell())));
       }
       break;
@@ -194,7 +196,7 @@ void MapEditor::event(const sf::Event& e)
     // Zoom in.
     case sf::Keyboard::Z:
       ++_zoom;
-      y::clamp(_zoom, 0, y::int32(Zoom::array.size()));
+      y::clamp(_zoom, 0, std::int32_t(Zoom::array.size()));
       _hover = y::ivec2(y::fvec2(_hover) *
                         Zoom::array[old_zoom] / Zoom::array[_zoom]);
       break;
@@ -202,7 +204,7 @@ void MapEditor::event(const sf::Event& e)
     // Zoom out.
     case sf::Keyboard::X:
       --_zoom;
-      y::clamp(_zoom, 0, y::int32(Zoom::array.size()));
+      y::clamp(_zoom, 0, std::int32_t(Zoom::array.size()));
       _hover = y::ivec2(y::fvec2(_hover) *
                         Zoom::array[old_zoom] / Zoom::array[_zoom]);
       break;
@@ -248,7 +250,7 @@ void MapEditor::update()
                             RenderUtil::from_grid());
 
   // Move camera with arrow keys.
-  y::int32 speed = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
+  std::int32_t speed = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
                    sf::Keyboard::isKeyPressed(sf::Keyboard::RShift) ? 32 : 8;
   y::ivec2 d;
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) ||
@@ -279,7 +281,7 @@ void MapEditor::update()
   // Update hover and status text.
   _layer_status.clear();
   if (is_mouse_on_screen()) {
-    y::sstream ss;
+    std::stringstream ss;
     ss << get_hover_cell() << " : " << get_hover_tile() <<
         " [" << Zoom::array[_zoom] << "X]";
     _layer_status.emplace_back(ss.str());
@@ -303,19 +305,19 @@ void MapEditor::update()
   if (_light_drag) {
     y::fvec2 d = y::fvec2(get_drag_start() - _hover);
     if (d != y::fvec2()) {
-      _light_direction = d / y::max(y::abs(d[xx]), y::abs(d[yy]));
+      _light_direction = d / std::max(std::abs(d[xx]), std::abs(d[yy]));
     }
   }
 
   // Rename or add cell.
   if (_input_result.success) {
-    const y::string& result = _input_result.result;
+    const std::string& result = _input_result.result;
     if (_map.is_coord_used(get_hover_cell())) {
-      get_undo_stack().new_action(y::move_unique(
+      get_undo_stack().new_action(std::unique_ptr<StackAction>(
             new CellRenameAction(_bank, _map, get_hover_cell(), result)));
     }
     else {
-      get_undo_stack().new_action(y::move_unique(
+      get_undo_stack().new_action(std::unique_ptr<StackAction>(
           new CellAddAction(_bank, _map, get_hover_cell(), result)));
     }
     _input_result.success = false;
@@ -347,7 +349,7 @@ void MapEditor::draw() const
       _util.get_gl().make_unique_framebuffer(screen_size, false, false));
 
   // Draw cell contents.
-  for (y::int32 layer = -Cell::background_layers;
+  for (std::int32_t layer = -Cell::background_layers;
        layer <= Cell::foreground_layers; ++layer) {
     // Draw layer contents to colour and normal buffers.
     colourbuffer->bind(true, true);
@@ -490,10 +492,10 @@ void MapEditor::get_script_drag_result(
     swap_x = min_output[xx] > max_output[xx];
     swap_y = min_output[yy] > max_output[yy];
     if (swap_x) {
-      y::swap(min_output[xx], max_output[xx]);
+      std::swap(min_output[xx], max_output[xx]);
     }
     if (swap_y) {
-      y::swap(min_output[yy], max_output[yy]);
+      std::swap(min_output[yy], max_output[yy]);
     }
   }
 
@@ -542,7 +544,7 @@ void MapEditor::copy_drag_to_brush()
     Tile& e = _tile_brush.get(u);
 
     if (!_map.is_coord_used(c)) {
-      e.tileset = y::null;
+      e.tileset = nullptr;
       e.index = 0;
     }
     else {
@@ -584,9 +586,9 @@ void MapEditor::copy_brush_to_action() const
   }
 }
 
-const y::fvec4& MapEditor::colour_for_layer(y::int32 layer) const
+const y::fvec4& MapEditor::colour_for_layer(std::int32_t layer) const
 {
-  y::int32 active_layer = _layer_panel.get_layer();
+  std::int32_t active_layer = _layer_panel.get_layer();
 
   return active_layer > Cell::foreground_layers ? colour::white :
       layer < active_layer ? colour::dark :
@@ -596,7 +598,7 @@ const y::fvec4& MapEditor::colour_for_layer(y::int32 layer) const
 
 void MapEditor::draw_cell_layer(
     RenderBatch& batch,
-    const y::ivec2& coord, y::int32 layer, bool normal) const
+    const y::ivec2& coord, std::int32_t layer, bool normal) const
 {
   if (!_map.is_coord_used(coord)) {
     return;
@@ -609,9 +611,10 @@ void MapEditor::draw_cell_layer(
   for (auto it = y::cartesian(Cell::cell_size); it; ++it) {
     // In the middle of a TileEditAction we need to render the
     // uncommited drawing.
-    y::map<TileEditAction::key, TileEditAction::entry>::const_iterator jt;
+    std::unordered_map<
+        TileEditAction::key, TileEditAction::entry>::const_iterator jt;
     if (edit) {
-      jt = _tile_edit_action->edits.find(y::make_pair(coord, *it));
+      jt = _tile_edit_action->edits.find(std::make_pair(coord, *it));
     }
     const Tile& t = edit && jt != _tile_edit_action->edits.end() ?
         jt->second.new_tile : cell->get_tile(layer, *it);
@@ -640,11 +643,11 @@ void MapEditor::draw_scripts() const
   // Script region the mouse is hovering over.
   const ScriptBlueprint* hover_script =
       !is_dragging() && _map.has_script_at(get_hover_world()) ?
-          &_map.get_script_at(get_hover_world()) : y::null;
+          &_map.get_script_at(get_hover_world()) : nullptr;
 
   // Script being dragged.
   const ScriptBlueprint* drag_script = is_dragging() && !_script_add_action ?
-      &_map.get_script_at(get_drag_start()) : y::null;
+      &_map.get_script_at(get_drag_start()) : nullptr;
 
   for (const ScriptBlueprint& s : _map.get_scripts()) {
     // Need to show an uncommitted script drag.

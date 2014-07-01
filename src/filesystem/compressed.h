@@ -2,13 +2,13 @@
 #define FILESYSTEM_COMPRESSED_H
 
 #include "filesystem.h"
-#include "../common/set.h"
+#include <unordered_set>
 
 // Implementation of Filesystem that wraps another (concrete) implementation,
 // adding compression to a given set of file extensions.
 // Will fall back to uncompressed files when loading if a compressed version
 // does not exist.
-class CompressedFilesystem : public Filesystem, public y::no_copy {
+class CompressedFilesystem : public Filesystem {
 public:
 
   enum compression_algorithm {
@@ -24,31 +24,31 @@ public:
   // The set of extensions to be compressed should be completely specified
   // before Filesystem is used.
   // If no extensions are specified, all files will be compressed.
-  void add_compressed_extension(const y::string& extension);
+  void add_compressed_extension(const std::string& extension);
 
 protected:
 
-  void list_directory_internal(y::vector<y::string>& output,
-                               const y::string& path) const override;
+  void list_directory_internal(std::vector<std::string>& output,
+                               const std::string& path) const override;
 
-  bool is_file_internal(const y::string& path) const override;
+  bool is_file_internal(const std::string& path) const override;
 
-  bool is_directory_internal(const y::string& path) const override;
+  bool is_directory_internal(const std::string& path) const override;
 
-  void read_file_internal(y::string& output,
-                          const y::string& path) const override;
+  void read_file_internal(std::string& output,
+                          const std::string& path) const override;
 
-  void write_file_internal(const y::string& data,
-                           const y::string& path) override;
+  void write_file_internal(const std::string& data,
+                           const std::string& path) override;
 
 private:
 
-  y::string get_suffix() const;
-  bool should_compress(const y::string& path) const;
+  std::string get_suffix() const;
+  bool should_compress(const std::string& path) const;
 
   Filesystem& _base;
   compression_algorithm _algorithm;
-  y::set<y::string> _extensions;
+  std::unordered_set<std::string> _extensions;
 
 };
 

@@ -2,18 +2,19 @@
 #define SPATIAL_HASH_H
 
 #include "vec.h"
+#include <unordered_map>
 #include <boost/iterator/iterator_facade.hpp>
 
 // Container for fast lookup of objects in regions of space. T is the stored
 // object type, V is the type of the coordinate line, and V the dimensions; that
 // is, the coordinate system is defined in terms of y::vec<V, N>.
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 class SpatialHash {
 public:
 
   typedef y::vec<V, N> coord;
 
-  SpatialHash(y::size bucket_size);
+  SpatialHash(std::size_t bucket_size);
 
   // Add or update an object with given bounding box.
   void update(const T& t, const coord& min, const coord& max);
@@ -34,7 +35,7 @@ public:
       coord min;
       coord max;
     };
-    typedef y::map<T, entry> bucket;
+    typedef std::unordered_map<T, entry> bucket;
 
     iterator(const SpatialHash& hash,
              const coord& min, const coord& max);
@@ -50,27 +51,27 @@ public:
     const SpatialHash<T, V, N>& _hash;
     coord _min;
     coord _max;
-    y::vec_iterator<y::int32, N> _i;
+    y::vec_iterator<std::int32_t, N> _i;
     typename bucket::const_iterator _j;
 
   };
 
   // Find all objects which overlap the given bounding box.
-  void search(y::vector<T>& output,
+  void search(std::vector<T>& output,
               const coord& min, const coord& max) const;
   iterator search(const coord& min, const coord& max) const;
 
 private:
 
 
-  typedef y::vec<y::int32, N> bucket_coord;
-  y::int32 _bucket_size;
+  typedef y::vec<std::int32_t, N> bucket_coord;
+  std::int32_t _bucket_size;
 
   typedef typename iterator::entry entry;
   typedef typename iterator::bucket bucket;
 
   // Spatial buckets.
-  y::map<bucket_coord, bucket> _buckets;
+  std::unordered_map<bucket_coord, bucket> _buckets;
 
   // Bucket for objects which are too large to fit in a bucket and must always
   // be checked.
@@ -78,13 +79,13 @@ private:
 
 };
 
-template<typename T, typename V, y::size N>
-SpatialHash<T, V, N>::SpatialHash(y::size bucket_size)
+template<typename T, typename V, std::size_t N>
+SpatialHash<T, V, N>::SpatialHash(std::size_t bucket_size)
   : _bucket_size(bucket_size)
 {
 }
 
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 void SpatialHash<T, V, N>::update(
     const T& t, const coord& min, const coord& max)
 {
@@ -100,15 +101,15 @@ void SpatialHash<T, V, N>::update(
   coord origin = (min + max) / 2;
 
   if (half_size[xx] >= _bucket_size || half_size[yy] >= _bucket_size) {
-    _fallback_bucket.insert(y::make_pair(t, entry{min, max}));
+    _fallback_bucket.emplace(t, entry{min, max});
     return;
   }
 
   bucket_coord bucket = bucket_coord(origin) / _bucket_size;
-  _buckets[bucket].insert(y::make_pair(t, entry{min, max}));
+  _buckets[bucket].emplace(t, entry{min, max});
 }
 
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 void SpatialHash<T, V, N>::remove(const T& t)
 {
   for (auto it = _buckets.begin(); it != _buckets.end();) {
@@ -123,20 +124,20 @@ void SpatialHash<T, V, N>::remove(const T& t)
   _fallback_bucket.erase(t);
 }
 
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 void SpatialHash<T, V, N>::clear()
 {
   _buckets.clear();
   _fallback_bucket.clear();
 }
 
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 SpatialHash<T, V, N>::iterator::operator bool() const
 {
   return _j != _hash._fallback_bucket.end();
 }
 
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 SpatialHash<T, V, N>::iterator::iterator(const SpatialHash& hash,
                                          const coord& min, const coord& max)
   : _hash(hash)
@@ -145,7 +146,7 @@ SpatialHash<T, V, N>::iterator::iterator(const SpatialHash& hash,
 {
   bucket_coord min_bucket = bucket_coord(min) / _hash._bucket_size;
   bucket_coord max_bucket = bucket_coord(max) / _hash._bucket_size;
-  for (y::size i = 0; i < N; ++i) {
+  for (std::size_t i = 0; i < N; ++i) {
     min_bucket[i] -= 1;
     max_bucket[i] += 2;
   }
@@ -154,7 +155,7 @@ SpatialHash<T, V, N>::iterator::iterator(const SpatialHash& hash,
   seek_to_next(false);
 }
 
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 void SpatialHash<T, V, N>::iterator::seek_to_next(bool inner)
 {
   // Replicates the search functions below in iterator form. Iterators have the
@@ -186,33 +187,33 @@ void SpatialHash<T, V, N>::iterator::seek_to_next(bool inner)
   }
 }
 
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 void SpatialHash<T, V, N>::iterator::increment()
 {
   ++_j;
   seek_to_next(true);
 }
 
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 bool SpatialHash<T, V, N>::iterator::equal(const iterator& arg) const
 {
   return _j == arg._j;
 }
 
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 const T& SpatialHash<T, V, N>::iterator::dereference() const
 {
   return _j->first;
 }
 
-template<typename T, typename V, y::size N>
-void SpatialHash<T, V, N>::search(y::vector<T>& output,
+template<typename T, typename V, std::size_t N>
+void SpatialHash<T, V, N>::search(std::vector<T>& output,
                                   const coord& min, const coord& max) const
 {
   bucket_coord min_bucket = bucket_coord(min) / _bucket_size;
   bucket_coord max_bucket = bucket_coord(max) / _bucket_size;
   // We have to extend the search by one in each direction because of overlaps.
-  for (y::size i = 0; i < N; ++i) {
+  for (std::size_t i = 0; i < N; ++i) {
     min_bucket[i] -= 1;
     max_bucket[i] += 2;
   }
@@ -235,7 +236,7 @@ void SpatialHash<T, V, N>::search(y::vector<T>& output,
   }
 }
 
-template<typename T, typename V, y::size N>
+template<typename T, typename V, std::size_t N>
 typename SpatialHash<T, V, N>::iterator SpatialHash<T, V, N>::search(
     const coord& min, const coord& max) const
 {

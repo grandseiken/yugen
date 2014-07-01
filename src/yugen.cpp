@@ -9,6 +9,8 @@
 #include "render/util.h"
 #include "render/window.h"
 
+#include <iomanip>
+#include <sstream>
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 
@@ -50,12 +52,12 @@ enum a_dither_pattern {
 #define a_dither_size(pattern) \
     (3 * a_dither_dim(pattern) * a_dither_dim(pattern))
 
-GLfloat a_dither_compute(a_dither_pattern pattern, y::int32 n)
+GLfloat a_dither_compute(a_dither_pattern pattern, std::int32_t n)
 {
-  y::size size = a_dither_dim(pattern);
-  y::int32 x = n % size;
-  y::int32 y = (n / size) % size;
-  y::int32 c = n / (size * size);
+  std::size_t size = a_dither_dim(pattern);
+  std::int32_t x = n % size;
+  std::int32_t y = (n / size) % size;
+  std::int32_t c = n / (size * size);
 
   switch (pattern) {
     case XOR_PATTERN:
@@ -88,7 +90,7 @@ Yugen::Yugen(RenderUtil& util, RunTiming& run_timing)
         RenderUtil::native_size, false, false))
   , _post_buffer(util.get_gl().make_unique_framebuffer(
         RenderUtil::native_size, false, false))
-  , _stage(y::null)
+  , _stage(nullptr)
   , _crop_program(util.get_gl().make_unique_program({
       "/shaders/crop.v.glsl",
       "/shaders/crop.f.glsl"}))
@@ -103,7 +105,7 @@ Yugen::Yugen(RenderUtil& util, RunTiming& run_timing)
   , _a_dither_texture()
   , _dither_frame(0)
 {
-  for (y::int32 n = 0; n < a_dither_size(a_dither); ++n) {
+  for (std::int32_t n = 0; n < a_dither_size(a_dither); ++n) {
     a_dither_matrix[n] = a_dither_compute(a_dither, n);
   }
   _a_dither_texture.swap(util.get_gl().make_unique_texture<float, 3>(
@@ -167,34 +169,34 @@ void Yugen::draw() const
   float update_pct = 100.f *
       float(_run_timing.us_per_update_avg) / _run_timing.us_per_frame_avg;
 
-  y::sstream ss;
-  ss << y::setw(5) <<
+  std::stringstream ss;
+  ss << std::setw(5) <<
       _run_timing.us_per_update_avg << " / " <<
-      y::setw(5) <<
+      std::setw(5) <<
       _run_timing.us_per_draw_avg << " / " <<
-      y::setw(5) <<
+      std::setw(5) <<
       _run_timing.us_per_frame_avg << " avg (" <<
-      y::setw(5) << y::setprecision(1) << y::fixed <<
+      std::setw(5) << std::setprecision(1) << std::fixed <<
       fps_avg << " fps)";
   _util.irender_text(ss.str(), {16, 16}, colour::white);
 
-  ss.str(y::string());
+  ss.str(std::string());
   ss.clear();
-  ss << y::setw(5) <<
+  ss << std::setw(5) <<
       _run_timing.us_per_update_inst << " / " <<
-      y::setw(5) <<
+      std::setw(5) <<
       _run_timing.us_per_draw_inst << " / " <<
-      y::setw(5) <<
+      std::setw(5) <<
       _run_timing.us_per_frame_inst << " inst (" <<
-      y::setw(5) << y::setprecision(1) << y::fixed <<
+      std::setw(5) << std::setprecision(1) << std::fixed <<
       fps_inst << " fps)";
   _util.irender_text(ss.str(), {16, 24}, colour::white);
 
-  ss.str(y::string());
+  ss.str(std::string());
   ss.clear();
-  ss << y::setw(5) << y::setprecision(1) << y::fixed <<
+  ss << std::setw(5) << std::setprecision(1) << std::fixed <<
       update_pct << "% update; " <<
-      y::setw(1) <<
+      std::setw(1) <<
       _run_timing.updates_this_cycle << " updates";
   if (_recording) {
     ss << " [recording]";
@@ -239,7 +241,7 @@ void Yugen::post_render(const GlFramebuffer& source,
           y::fvec2());
   _post_program->bind_uniform(
       "dither_rot", _stage ? float(_stage->get_camera().get_rotation()) : 0.f);
-  _post_program->bind_uniform("dither_frame", y::int32(++_dither_frame));
+  _post_program->bind_uniform("dither_frame", std::int32_t(++_dither_frame));
   _util.quad_element().draw_elements(GL_TRIANGLE_STRIP, 4);
 }
 
@@ -264,7 +266,7 @@ void Yugen::recording_render(const GlFramebuffer& source) const
   }
   if (_recording) {
     y::ivec2 size = source.get_size();
-    y::int32 length = 4 * size[xx] * size[yy];
+    std::int32_t length = 4 * size[xx] * size[yy];
     unsigned char* data = new unsigned char[length];
     glReadPixels(0, 0, size[xx], size[yy], GL_RGBA, GL_UNSIGNED_BYTE, data);
     _save_file_frames.emplace_back(data);
@@ -275,19 +277,19 @@ void Yugen::recording_render(const GlFramebuffer& source) const
   }
   if (sf::Keyboard::isKeyPressed(sf::Keyboard::Return)) {
     _recording = false;
-    y::size n = 0;
+    std::size_t n = 0;
     for (unsigned char* data : _save_file_frames) {
       y::ivec2 size = source.get_size();
       sf::Image image;
       image.create(size[xx], size[yy], data);
       image.flipVertically();
 
-      y::sstream ss;
-      ss << "tmp/" << y::setw(4) << y::setfill('0') << n++ << ".png";
+      std::stringstream ss;
+      ss << "tmp/" << std::setw(4) << std::setfill('0') << n++ << ".png";
       image.saveToFile(ss.str());
       delete[] data;
-      y::cout << "Saved frame " <<
-          n << " of " << _save_file_frames.size() << y::endl;
+      std::cout << "Saved frame " <<
+          n << " of " << _save_file_frames.size() << std::endl;
     }
     _save_file_frames.clear();
   }
@@ -295,10 +297,10 @@ void Yugen::recording_render(const GlFramebuffer& source) const
       _run_timing.target_draws_per_second = _recording ? 0.f : 60.f;
 }
 
-y::int32 main(y::int32 argc, char** argv)
+std::int32_t main(std::int32_t argc, char** argv)
 {
-  y::vector<y::string> args;
-  for (y::int32 i = 1; i < argc; ++i) {
+  std::vector<std::string> args;
+  for (std::int32_t i = 1; i < argc; ++i) {
     args.emplace_back(argv[i]);
   }
   // Usage: yugen [map x y]
@@ -317,13 +319,13 @@ y::int32 main(y::int32 argc, char** argv)
   Databank databank(data_filesystem, gl);
   RenderUtil util(gl);
 
-  y::string map = databank.maps.get_names()[0];
+  std::string map = databank.maps.get_names()[0];
   y::wvec2 world;
   if (!args.empty()) {
     if (databank.maps.is_name_used(args[0])) {
       map = args[0];
     }
-    y::ivec2 tile{y::stoi(args[1]), y::stoi(args[2])};
+    y::ivec2 tile{std::stoi(args[1]), std::stoi(args[2])};
     world = (y::wvec2{.5, .5} + y::wvec2(tile)) *
              y::wvec2(Tileset::tile_size);
   }
@@ -344,8 +346,8 @@ y::int32 main(y::int32 argc, char** argv)
   yugen->set_stage(stage);
 
   ModalStack stack;
-  stack.push(y::move_unique(yugen));
-  stack.push(y::move_unique(stage));
+  stack.push(std::unique_ptr<Modal>(yugen));
+  stack.push(std::unique_ptr<Modal>(stage));
   stack.run(window, run_timing);
   return 0;
 }

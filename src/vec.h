@@ -2,8 +2,7 @@
 #define VEC_H
 
 #include <yang/typedefs.h>
-#include "common/algorithm.h"
-#include "common/math.h"
+#include "common.h"
 
 #include <boost/functional/hash.hpp>
 #include <boost/iterator/iterator_facade.hpp>
@@ -14,7 +13,7 @@ namespace proto {
 
 namespace y {
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 using vec = yang::vec<T, N>;
 using yang::abs;
 using yang::pow;
@@ -25,7 +24,7 @@ using yang::euclidean_mod;
 
 // Iterator for traversing hyperrectangles in integer-coordinate vector space.
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 class vec_iterator : public boost::iterator_facade<
     vec_iterator<T, N>,
     const vec<T, N>, boost::forward_traversal_tag> {
@@ -53,7 +52,7 @@ private:
 
   void increment()
   {
-    for (y::size i = 0; i < N; ++i) {
+    for (std::size_t i = 0; i < N; ++i) {
       if (++_value.elements[i] < (_min + _size).elements[i]) {
         break;
       }
@@ -85,13 +84,13 @@ private:
 
 };
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 vec_iterator<T, N> cartesian(const vec<T, N>& min, const vec<T, N>& max)
 {
   return vec_iterator<T, N>(min, max);
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 vec_iterator<T, N> cartesian(const vec<T, N>& max)
 {
   return cartesian(vec<T, N>(), max);
@@ -116,7 +115,7 @@ auto angle(const vec<T, 2>& v) -> decltype(atan(T()))
   return atan2(v[1], v[0]);
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 auto angle(const vec<T, N>& v, const vec<T, N>& u) -> decltype(acos(T()))
 {
   if (!v.length() || !u.length()) {
@@ -133,7 +132,7 @@ vec<T, 2> from_angle(T angle)
 
 // Check if a vector lies in a particular region.
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 bool in_region(const vec<T, N>& v,
                const vec<T, N>& origin, const vec<T, N>& size)
 {
@@ -176,9 +175,9 @@ bool line_intersects_rect(const vec<T, 2>& start, const vec<T, 2>& end,
 
 // Standard typedefs.
 
-typedef vec<int32, 2> ivec2;
-typedef vec<int32, 3> ivec3;
-typedef vec<int32, 4> ivec4;
+typedef vec<std::int32_t, 2> ivec2;
+typedef vec<std::int32_t, 3> ivec3;
+typedef vec<std::int32_t, 4> ivec4;
 typedef vec<float, 2> fvec2;
 typedef vec<float, 3> fvec3;
 typedef vec<float, 4> fvec4;
@@ -186,9 +185,9 @@ typedef vec<world, 2> wvec2;
 typedef vec<world, 3> wvec3;
 typedef vec<world, 4> wvec4;
 
-typedef vec_iterator<int32, 2> ivec2_iterator;
-typedef vec_iterator<int32, 3> ivec3_iterator;
-typedef vec_iterator<int32, 4> ivec4_iterator;
+typedef vec_iterator<std::int32_t, 2> ivec2_iterator;
+typedef vec_iterator<std::int32_t, 3> ivec3_iterator;
+typedef vec_iterator<std::int32_t, 4> ivec4_iterator;
 typedef vec_iterator<float, 2> fvec2_iterator;
 typedef vec_iterator<float, 3> fvec3_iterator;
 typedef vec_iterator<float, 4> fvec4_iterator;
@@ -221,13 +220,13 @@ namespace {
 
 namespace std {
 
-  template<typename T, y::size N>
+  template<typename T, std::size_t N>
   struct hash<y::vec<T, N>> {
-    y::size operator()(const y::vec<T, N>& arg) const
+    std::size_t operator()(const y::vec<T, N>& arg) const
     {
       std::hash<T> t;
-      y::size seed = 0;
-      for (y::size i = 0; i < N; ++i) {
+      std::size_t seed = 0;
+      for (std::size_t i = 0; i < N; ++i) {
         boost::hash_combine(seed, t(arg[i]));
       }
       return seed;

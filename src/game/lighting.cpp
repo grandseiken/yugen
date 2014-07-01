@@ -145,9 +145,9 @@ void Lighting::recalculate_traces(
   // move a lot and don't rotate.
   //
   // Only bother with this if performance actually becomes an issue.
-  y::set<trace_key, trace_key_hash> trace_preserve;
+  std::unordered_set<trace_key, trace_key_hash> trace_preserve;
 
-  y::vector<y::wvec2> vertex_buffer;
+  std::vector<y::wvec2> vertex_buffer;
   geometry_entry geometry_buffer;
   geometry_map map;
   angular_order angular;
@@ -185,10 +185,10 @@ void Lighting::recalculate_traces(
       // Perform the appropriate vertex sort.
       if (light->is_planar()) {
         planar.normal_vec = light->normal_vec;
-        y::sort(vertex_buffer.begin(), vertex_buffer.end(), planar);
+        std::sort(vertex_buffer.begin(), vertex_buffer.end(), planar);
       }
       else {
-        y::sort(vertex_buffer.begin(), vertex_buffer.end(), angular);
+        std::sort(vertex_buffer.begin(), vertex_buffer.end(), angular);
       }
 
       // Trace the light geometry.
@@ -223,10 +223,10 @@ void Lighting::render_traces(
     RenderUtil& util,
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
-  y::vector<RenderUtil::line> lines;
+  std::vector<RenderUtil::line> lines;
 
   for (const auto& pair : _trace_results) {
-    for (y::size i = 0; i < pair.second.size(); ++i) {
+    for (std::size_t i = 0; i < pair.second.size(); ++i) {
       y::wvec2 a = pair.first.origin + pair.second[i];
       y::wvec2 b = pair.first.origin + pair.second[(1 + i) %
                                                    pair.second.size()];
@@ -281,8 +281,8 @@ void Lighting::add_vertex(const y::wvec2& origin, const y::wvec2& trace,
 }
 
 void Lighting::add_triangle(
-    y::vector<GLushort>& element_data, const y::wvec2& min, const y::wvec2& max,
-    y::size start_index, y::size a, y::size b, y::size c,
+    std::vector<GLushort>& element_data, const y::wvec2& min, const y::wvec2& max,
+    std::size_t start_index, std::size_t a, std::size_t b, std::size_t c,
     const y::wvec2& at, const y::wvec2& bt, const y::wvec2& ct) const
 {
   static const y::wvec2 o;
@@ -372,7 +372,7 @@ void Lighting::render_internal(
   // stop the light triangles from very occassionally overlapping and producing
   // artefacts, even though the triangles are formed with *exactly* the same
   // edges. I don't know what's going wrong.
-  y::size n = _element_data.size();
+  std::size_t n = _element_data.size();
   for (const auto& data : _element_data) {
     program.bind_uniform("depth", float(n--) / (1 + _element_data.size()));
     _element_buffer->reupload_data(data);
@@ -387,11 +387,11 @@ void Lighting::render_angular_internal(
   // Arranging in a triangle fan causes tears in the triangles due to slight
   // inaccuracies, so we use a fan with three triangles per actual triangle
   // to make sure the edges line up exactly.
-  y::size origin_index = _tri.data.size() / 2;
+  std::size_t origin_index = _tri.data.size() / 2;
 
   // Set up the vertices.
   add_vertex(origin, origin, light);
-  for (y::size i = 0; i < trace.size(); ++i) {
+  for (std::size_t i = 0; i < trace.size(); ++i) {
     add_vertex(origin, origin + trace[i], light);
   }
   const y::wvec2 min = camera_min - origin;
@@ -400,18 +400,18 @@ void Lighting::render_angular_internal(
   // Set up the indices.
   _element_data.emplace_back();
   auto& light_element_data = *_element_data.rbegin();
-  for (y::size i = 1; i < trace.size(); i += 2) {
-    y::size prev = i - 1;
-    y::size a = i;
-    y::size b = (1 + i) % trace.size();
-    y::size next = (2 + i) % trace.size();
+  for (std::size_t i = 1; i < trace.size(); i += 2) {
+    std::size_t prev = i - 1;
+    std::size_t a = i;
+    std::size_t b = (1 + i) % trace.size();
+    std::size_t next = (2 + i) % trace.size();
 
     // Find the closer of the two possible vertices for left and right
     // (depending on whether each corner is a concave or convex one).
-    y::size l = trace[a].length_squared() <=
-                trace[prev].length_squared() ? a : prev;
-    y::size r = trace[b].length_squared() <=
-                trace[next].length_squared() ? b : next;
+    std::size_t l = trace[a].length_squared() <=
+                    trace[prev].length_squared() ? a : prev;
+    std::size_t r = trace[b].length_squared() <=
+                    trace[next].length_squared() ? b : next;
 
     // Render the triangles, using the configuration:
     // origin, l, r; l, r, b; a, b, l.
@@ -434,11 +434,11 @@ void Lighting::render_planar_internal(
     const y::wvec2& camera_min, const y::wvec2& camera_max) const
 {
   // Similarly here we use up to 4 triangles to prevent tearing.
-  y::size start_index = _tri.data.size() / 2;
+  std::size_t start_index = _tri.data.size() / 2;
 
   // Set up the vertices.
   y::wvec2 offset = light.get_offset();
-  for (y::size i = 0; i < trace.size(); i += 2) {
+  for (std::size_t i = 0; i < trace.size(); i += 2) {
     y::wvec2 on_plane = get_planar_point_on_geometry(
         light.normal_vec, trace[i], world_geometry(-offset, offset));
     add_vertex(origin + on_plane, origin + on_plane, light);
@@ -452,21 +452,21 @@ void Lighting::render_planar_internal(
   // Set up the indices.
   _element_data.emplace_back();
   auto& light_element_data = *_element_data.rbegin();
-  for (y::size i = 1; i < trace.size() - 2; i += 2) {
-    y::size prev = i - 1;
-    y::size a = i;
-    y::size b = 1 + i;
-    y::size next = 2 + i;
+  for (std::size_t i = 1; i < trace.size() - 2; i += 2) {
+    std::size_t prev = i - 1;
+    std::size_t a = i;
+    std::size_t b = 1 + i;
+    std::size_t next = 2 + i;
 
     y::wvec2 on_plane_l = get_planar_point_on_geometry(
         light.normal_vec, trace[a], world_geometry(-offset, offset));
     y::wvec2 on_plane_r = get_planar_point_on_geometry(
         light.normal_vec, trace[b], world_geometry(-offset, offset));
 
-    y::size l = (trace[a] - on_plane_l).length_squared() <=
-                (trace[prev] - on_plane_l).length_squared() ? a : prev;
-    y::size r = (trace[b] - on_plane_r).length_squared() <=
-                (trace[next] - on_plane_r).length_squared() ? b : next;
+    std::size_t l = (trace[a] - on_plane_l).length_squared() <=
+                    (trace[prev] - on_plane_l).length_squared() ? a : prev;
+    std::size_t r = (trace[b] - on_plane_r).length_squared() <=
+                    (trace[next] - on_plane_r).length_squared() ? b : next;
 
     // Render the triangles, using the configuration:
     // left on-plane, right on-plane, r; left on-plane, l, r; l, r, a; a, b, r.
@@ -507,9 +507,9 @@ bool Lighting::trace_key::operator!=(const trace_key& key) const
   return !operator==(key);
 }
 
-y::size Lighting::trace_key_hash::operator()(const trace_key& key) const
+std::size_t Lighting::trace_key_hash::operator()(const trace_key& key) const
 {
-  y::size seed = 0;
+  std::size_t seed = 0;
   boost::hash_combine(seed, key.origin[xx]);
   boost::hash_combine(seed, key.origin[yy]);
   boost::hash_combine(seed, key.max_range);
@@ -549,9 +549,9 @@ bool Lighting::world_geometry::operator!=(const world_geometry& g) const
   return !operator==(g);
 }
 
-y::size Lighting::world_geometry_hash::operator()(const world_geometry& g) const
+std::size_t Lighting::world_geometry_hash::operator()(const world_geometry& g) const
 {
-  y::size seed = 0;
+  std::size_t seed = 0;
   boost::hash_combine(seed, g.start[xx]);
   boost::hash_combine(seed, g.start[yy]);
   boost::hash_combine(seed, g.end[xx]);
@@ -560,7 +560,7 @@ y::size Lighting::world_geometry_hash::operator()(const world_geometry& g) const
 }
 
 void Lighting::get_relevant_geometry(
-    y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+    std::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
     geometry_map& map_output, const Light& light, const y::wvec2& origin,
     const WorldGeometry::geometry_hash& all_geometry, bool planar)
 {
@@ -575,7 +575,7 @@ void Lighting::get_relevant_geometry(
 }
 
 void Lighting::get_angular_relevant_geometry(
-    y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+    std::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
     geometry_map& map_output, const Light& light, const y::wvec2& origin,
     const WorldGeometry::geometry_hash& all_geometry)
 {
@@ -628,7 +628,7 @@ void Lighting::get_angular_relevant_geometry(
 }
 
 void Lighting::get_planar_relevant_geometry(
-    y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+    std::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
     geometry_map& map_output, const Light& light, const y::wvec2& origin,
     const WorldGeometry::geometry_hash& all_geometry)
 {
@@ -705,7 +705,7 @@ y::wvec2 Lighting::get_planar_point_on_geometry(
 }
 
 void Lighting::trace_light_geometry(light_trace& output, const Light& light,
-                                    const y::vector<y::wvec2>& vertex_buffer,
+                                    const std::vector<y::wvec2>& vertex_buffer,
                                     const geometry_entry& geometry_buffer,
                                     const geometry_map& map, bool planar)
 {
@@ -721,7 +721,7 @@ void Lighting::trace_light_geometry(light_trace& output, const Light& light,
 
 void Lighting::trace_angular_light_geometry(
     light_trace& output, const Light& light,
-    const y::vector<y::wvec2>& vertex_buffer,
+    const std::vector<y::wvec2>& vertex_buffer,
     const geometry_entry& geometry_buffer,
     const geometry_map& map)
 {
@@ -749,16 +749,16 @@ void Lighting::trace_angular_light_geometry(
         closest_geometry_output = v[xx] > 0 ?
             world_geometry(ur, dr) : world_geometry(dl, ul);
       }
-      else if (v[yy] > 0 && v[yy] >= y::abs(v[xx])) {
+      else if (v[yy] > 0 && v[yy] >= std::abs(v[xx])) {
         closest_geometry_output = world_geometry(dr, dl);
       }
-      else if (v[yy] < 0 && -v[yy] >= y::abs(v[xx])) {
+      else if (v[yy] < 0 && -v[yy] >= std::abs(v[xx])) {
         closest_geometry_output = world_geometry(ul, ur);
       }
-      else if (v[xx] > 0 && v[xx] >= y::abs(v[yy])) {
+      else if (v[xx] > 0 && v[xx] >= std::abs(v[yy])) {
         closest_geometry_output = world_geometry(ur, dr);
       }
-      else if (v[xx] < 0 && -v[xx] >= y::abs(v[yy])) {
+      else if (v[xx] < 0 && -v[xx] >= std::abs(v[yy])) {
         closest_geometry_output = world_geometry(dl, ul);
       }
       else {
@@ -769,7 +769,7 @@ void Lighting::trace_angular_light_geometry(
       return get_angular_point_on_geometry(v, closest_geometry_output);
     }
 
-    const world_geometry* closest_geometry = y::null;
+    const world_geometry* closest_geometry = nullptr;
     y::wvec2 closest_point;
 
     bool first = true;
@@ -814,7 +814,7 @@ void Lighting::trace_angular_light_geometry(
   // If stack is empty, make sure the first vertex gets added.
   bool add_first = stack.empty();
 
-  for (y::size i = 0; i < vertex_buffer.size(); ++i) {
+  for (std::size_t i = 0; i < vertex_buffer.size(); ++i) {
     const auto& v = vertex_buffer[i];
 
     // Add or remove from stack as appropriate.
@@ -863,7 +863,7 @@ void Lighting::trace_angular_light_geometry(
 
 void Lighting::trace_planar_light_geometry(
     light_trace& output, const Light& light,
-    const y::vector<y::wvec2>& vertex_buffer,
+    const std::vector<y::wvec2>& vertex_buffer,
     const geometry_entry& geometry_buffer,
     const geometry_map& map)
 {
@@ -873,7 +873,7 @@ void Lighting::trace_planar_light_geometry(
   auto get_closest = [&](
       world_geometry& closest_geometry_output, const y::wvec2& v)
   {
-    const world_geometry* closest_geometry = y::null;
+    const world_geometry* closest_geometry = nullptr;
     y::wvec2 closest_point;
     // Point on light plane for comparison.
     const y::wvec2 plane_point = get_planar_point_on_geometry(
@@ -935,7 +935,7 @@ void Lighting::trace_planar_light_geometry(
   get_closest(prev_closest_geometry, first_vec);
   bool add_first = stack.empty();
 
-  for (y::size i = 0; i < vertex_buffer.size(); ++i) {
+  for (std::size_t i = 0; i < vertex_buffer.size(); ++i) {
     const auto& v = vertex_buffer[i];
 
     auto it = map.find(v);
@@ -990,12 +990,12 @@ void Lighting::make_cone_trace(light_trace& output, const light_trace& trace,
   // We need to re-order the trace so that it doesn't have a big gap in the
   // middle; do this by detecting straight runs of points in the cone.
   bool straight = false;
-  y::vector<light_trace> straight_traces;
+  std::vector<light_trace> straight_traces;
 
-  y::size min_index = 0;
-  y::size max_index = 0;
+  std::size_t min_index = 0;
+  std::size_t max_index = 0;
 
-  y::size i = 0;
+  std::size_t i = 0;
   for (; i < trace.size(); i += 2) {
     const y::wvec2& v = trace[i];
     const y::wvec2& w = trace[1 + i];

@@ -1,8 +1,8 @@
 #include "world.h"
 
-#include "../common/function.h"
 #include "../data/tileset.h"
 #include <boost/functional/hash.hpp>
+#include <functional>
 
 Geometry::Geometry(const y::ivec2& start, const y::ivec2& end, bool external)
   : start(start)
@@ -22,9 +22,9 @@ bool Geometry::operator!=(const Geometry& g) const
 }
 
 namespace std {
-  y::size hash<Geometry>::operator()(const Geometry& g) const
+  std::size_t hash<Geometry>::operator()(const Geometry& g) const
   {
-    y::size seed = 0;
+    std::size_t seed = 0;
     boost::hash_combine(seed, g.start[xx]);
     boost::hash_combine(seed, g.start[yy]);
     boost::hash_combine(seed, g.end[xx]);
@@ -63,7 +63,7 @@ void WorldGeometry::clear_geometry(const y::ivec2& coord)
 
 void WorldGeometry::swap_geometry(const y::ivec2& a, const y::ivec2& b)
 {
-  y::swap(_buckets[a], _buckets[b]);
+  std::swap(_buckets[a], _buckets[b]);
   _dirty = true;
 }
 
@@ -79,7 +79,7 @@ const WorldGeometry::geometry_hash& WorldGeometry::get_geometry() const
 void WorldGeometry::calculate_geometry(bucket& bucket,
                                        const CellBlueprint& cell)
 {
-  static const y::int32 collision_layer = 0;
+  static const std::int32_t collision_layer = 0;
   enum Edge {
     EDGE_UP,
     EDGE_DOWN,
@@ -96,13 +96,13 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
   };
 
   // Lots of impenetrable case statements.
-  y::function<bool(const y::ivec2&, Edge)> is_tile_blocked =
+  std::function<bool(const y::ivec2&, Edge)> is_tile_blocked =
       [&](const y::ivec2& v, Edge edge)
   {
     if (!(v >= y::ivec2() && v < Cell::cell_size)) {
       return true;
     }
-    y::int32 c = cell.get_tile(collision_layer, v).get_collision();
+    std::int32_t c = cell.get_tile(collision_layer, v).get_collision();
 
     switch (edge) {
       case EDGE_UP:
@@ -208,7 +208,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
 
   // Defines a consistent traversal direction for the edges of irregular
   // tiles.
-  auto consistent_traversal = [&](y::int32 collision, bool positive)
+  auto consistent_traversal = [&](std::int32_t collision, bool positive)
   {
     switch (collision) {
       case Tileset::COLLIDE_HALF_U:
@@ -262,7 +262,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
 
   // Given irregular tile, returns the next irregular tile we expect to see
   // in the consistent traversal direction if we are to form a line.
-  auto expected_traversal = [&](y::int32 collision)
+  auto expected_traversal = [&](std::int32_t collision)
   {
     switch (collision) {
       case Tileset::COLLIDE_SLOPE2_UL_A:
@@ -304,7 +304,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
 
   auto add_traversal_edge = [&](
       geometry_list& list, y::ivec2 min, y::ivec2 max,
-      y::int32 min_c, y::int32 max_c)
+      std::int32_t min_c, std::int32_t max_c)
   {
     min *= Tileset::tile_size;
     max *= Tileset::tile_size;
@@ -420,16 +420,16 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
     RIGHT,
   };
   Boundary boundary;
-  y::int32 boundary_start = 0;
+  std::int32_t boundary_start = 0;
 
   // Horizontal geometry lines.
-  for (y::int32 row = 0; row <= Cell::cell_height; ++row) {
+  for (std::int32_t row = 0; row <= Cell::cell_height; ++row) {
     geometry_list& list =
         row == 0 ? bucket.top :
         row == Cell::cell_height ? bucket.bottom : bucket.middle;
 
     boundary = NONE;
-    for (y::int32 t = 0; t <= 2 * Cell::cell_width; ++t) {
+    for (std::int32_t t = 0; t <= 2 * Cell::cell_width; ++t) {
       bool above = is_tile_blocked(
           {t / 2, row - 1}, t % 2 ? HALF_EDGE_RIGHT_DOWN :
                                     HALF_EDGE_LEFT_DOWN);
@@ -460,13 +460,13 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
   }
 
   // Vertical geometry lines.
-  for (y::int32 col = 0; col <= Cell::cell_width; ++col) {
+  for (std::int32_t col = 0; col <= Cell::cell_width; ++col) {
     geometry_list& list =
         col == 0 ? bucket.left :
         col == Cell::cell_width ? bucket.right : bucket.middle;
 
     boundary = NONE;
-    for (y::int32 t = 0; t <= 2 * Cell::cell_height; ++t) {
+    for (std::int32_t t = 0; t <= 2 * Cell::cell_height; ++t) {
       bool left = is_tile_blocked(
           {col - 1, t / 2}, t % 2 ? HALF_EDGE_DOWN_RIGHT :
                                     HALF_EDGE_UP_RIGHT);
@@ -500,9 +500,9 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
   // Full straight edges of irregular tiles are handled by the above strategy.
   // Now we make a list of non-full tiles so we can go back and fill in the
   // sloped edges.
-  y::set<y::ivec2> set;
+  std::unordered_set<y::ivec2> set;
   for (auto it = y::cartesian(Cell::cell_size); it; ++it) {
-    y::int32 c = cell.get_tile(collision_layer, *it).get_collision();
+    std::int32_t c = cell.get_tile(collision_layer, *it).get_collision();
     if (c != Tileset::COLLIDE_NONE && c != Tileset::COLLIDE_FULL) {
       set.insert(*it);
     }
@@ -514,13 +514,13 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
   while (!set.empty()) {
     y::ivec2 v = *set.begin();
     set.erase(v);
-    y::int32 collision = cell.get_tile(collision_layer, v).get_collision();
+    std::int32_t collision = cell.get_tile(collision_layer, v).get_collision();
 
     // Scan all the way in both directions to the end of the sloped edge.
-    y::int32 c = collision;
+    std::int32_t c = collision;
     y::ivec2 u = v;
     y::ivec2 dir = consistent_traversal(c, true);
-    y::int32 next = cell.get_tile(collision_layer, u + dir).get_collision();
+    std::int32_t next = cell.get_tile(collision_layer, u + dir).get_collision();
 
     while (next == expected_traversal(c)) {
       u += dir;
@@ -531,7 +531,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
       next = cell.get_tile(collision_layer, u + dir).get_collision();
     }
     y::ivec2 max = u;
-    y::int32 max_c = c;
+    std::int32_t max_c = c;
 
     // Other direction.
     c = collision;
@@ -548,7 +548,7 @@ void WorldGeometry::calculate_geometry(bucket& bucket,
       next = cell.get_tile(collision_layer, u + dir).get_collision();
     }
     y::ivec2 min = u;
-    y::int32 min_c = c;
+    std::int32_t min_c = c;
 
     // Add the line.
     add_traversal_edge(bucket.middle, min, max, min_c, max_c);
@@ -588,8 +588,8 @@ void WorldGeometry::merge_all_geometry() const
 
   auto merge_loop = [&](
       const y::ivec2& a_offset, const y::ivec2& b_offset,
-      y::int32 a_min, y::int32 a_max, y::int32 b_min, y::int32 b_max,
-      y::size& a_index, y::size& b_index, geometry_list& a, geometry_list& b)
+      std::int32_t a_min, std::int32_t a_max, std::int32_t b_min, std::int32_t b_max,
+      std::size_t& a_index, std::size_t& b_index, geometry_list& a, geometry_list& b)
   {
     if (a_max < b_min) {
       insert(Geometry(a_offset + a[a_index].start,
@@ -660,17 +660,17 @@ void WorldGeometry::merge_all_geometry() const
       geometry_list top = bucket.bottom;
       geometry_list bottom = jt->second.top;
 
-      y::size top_index = 0;
-      y::size bottom_index = 0;
+      std::size_t top_index = 0;
+      std::size_t bottom_index = 0;
       y::ivec2 bottom_offset =
           (*it + y::ivec2{0, 1}) * Tileset::tile_size * Cell::cell_size;
 
       while (top_index < top.size() && bottom_index < bottom.size()) {
-        y::int32 top_min = top[top_index].start[xx];
-        y::int32 top_max = top[top_index].end[xx];
+        std::int32_t top_min = top[top_index].start[xx];
+        std::int32_t top_max = top[top_index].end[xx];
 
-        y::int32 bottom_min = bottom[bottom_index].end[xx];
-        y::int32 bottom_max = bottom[bottom_index].start[xx];
+        std::int32_t bottom_min = bottom[bottom_index].end[xx];
+        std::int32_t bottom_max = bottom[bottom_index].start[xx];
 
         merge_loop(offset, bottom_offset,
                    top_min, top_max, bottom_min, bottom_max,
@@ -690,17 +690,17 @@ void WorldGeometry::merge_all_geometry() const
       geometry_list left = bucket.right;
       geometry_list right = jt->second.left;
 
-      y::size left_index = 0;
-      y::size right_index = 0;
+      std::size_t left_index = 0;
+      std::size_t right_index = 0;
       y::ivec2 right_offset =
           (*it + y::ivec2{1, 0}) * Tileset::tile_size * Cell::cell_size;
 
       while (left_index < left.size() && right_index < right.size()) {
-        y::int32 left_min = left[left_index].end[yy];
-        y::int32 left_max = left[left_index].start[yy];
+        std::int32_t left_min = left[left_index].end[yy];
+        std::int32_t left_max = left[left_index].start[yy];
 
-        y::int32 right_min = right[right_index].start[yy];
-        y::int32 right_max = right[right_index].end[yy];
+        std::int32_t right_min = right[right_index].start[yy];
+        std::int32_t right_max = right[right_index].end[yy];
 
         // This time the right list is the one with reversed segments, so need
         // to pass everything the other way around.
@@ -720,7 +720,7 @@ void WorldGeometry::merge_all_geometry() const
   }
 }
 
-WorldSource::WorldSource(y::size type_id)
+WorldSource::WorldSource(std::size_t type_id)
   : _type_id(type_id)
 {
 }
@@ -735,7 +735,7 @@ bool WorldSource::types_equal(const WorldSource& source) const
   return _type_id == source._type_id;
 }
 
-y::size WorldSource::get_type_id() const
+std::size_t WorldSource::get_type_id() const
 {
   return _type_id;
 }
@@ -751,7 +751,7 @@ bool CellMapSource::operator==(const WorldSource& source) const
   return types_equal(source) && &_map == &((CellMapSource*)&source)->_map;
 }
 
-void CellMapSource::hash_combine(y::size& seed) const
+void CellMapSource::hash_combine(std::size_t& seed) const
 {
   boost::hash_combine(seed, get_type_id());
   boost::hash_combine(seed, &_map);
@@ -804,24 +804,26 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
   if (offset == y::ivec2()) {
     return;
   }
-  y::int32 half_size = active_window_half_size;
+  std::int32_t half_size = active_window_half_size;
   y::ivec2 half_v{half_size, half_size};
   _active_source_offset -= offset;
 
   // Temporary copy of the active window.
-  y::unique<active_window_entry[]> copy(
+  std::unique_ptr<active_window_entry[]> copy(
       new active_window_entry[(1 + 2 * half_size) * (1 + 2 * half_size)]);
   // Stores which cells in the copy have been used.
-  y::unique<bool[]> used(new bool[(1 + 2 * half_size) * (1 + 2 * half_size)]);
+  std::unique_ptr<bool[]> used(
+      new bool[(1 + 2 * half_size) * (1 + 2 * half_size)]);
   // Stores which cells in the new active window have been filled.
-  y::unique<bool[]> done(new bool[(1 + 2 * half_size) * (1 + 2 * half_size)]);
+  std::unique_ptr<bool[]> done(
+      new bool[(1 + 2 * half_size) * (1 + 2 * half_size)]);
   // We swap the geometry by offsetting it. This is fucking retarded.
   y::ivec2 geometry_swap{1 + 2 * active_window_half_size, 0};
 
   // Copy the active window into the temporary copy.
   for (auto it = get_cartesian(); it; ++it) {
     _active_geometry.swap_geometry(*it, *it + geometry_swap);
-    y::size internal_index = to_internal_index(*it);
+    std::size_t internal_index = to_internal_index(*it);
     copy[internal_index].blueprint = _active_window[internal_index].blueprint;
     copy[internal_index].cell.swap(_active_window[internal_index].cell);
     used[internal_index] = done[internal_index] = false;
@@ -830,10 +832,10 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
   // Move the cells that are still in view from the copy to the new window.
   for (auto it = get_cartesian(); it; ++it) {
     y::ivec2 source = *it + offset;
-    y::size internal_index = to_internal_index(*it);
+    std::size_t internal_index = to_internal_index(*it);
     if (source >= -half_v && source <= half_v) {
       _active_geometry.swap_geometry(source + geometry_swap, *it);
-      y::size copy_index = to_internal_index(source);
+      std::size_t copy_index = to_internal_index(source);
       _active_window[internal_index].blueprint = copy[copy_index].blueprint;
       _active_window[internal_index].cell.swap(copy[copy_index].cell);
       used[copy_index] = done[internal_index] = true;
@@ -842,7 +844,7 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
 
   // Create or swap the remaining unfilled cells in the active window.
   for (auto it = get_cartesian(); it; ++it) {
-    y::size internal_index = to_internal_index(*it);
+    std::size_t internal_index = to_internal_index(*it);
     if (done[internal_index]) {
       continue;
     }
@@ -860,8 +862,8 @@ void WorldWindow::move_active_window(const y::ivec2& offset)
     }
 
     // Otherwise create it.
-    Cell* new_cell = new_blueprint ? new Cell(*new_blueprint) : y::null;
-    _active_window[internal_index].cell = y::move_unique(new_cell);
+    Cell* new_cell = new_blueprint ? new Cell(*new_blueprint) : nullptr;
+    _active_window[internal_index].cell.reset(new_cell);
     if (new_blueprint) {
       _active_geometry.merge_geometry(*new_blueprint, *it);
     }
@@ -927,11 +929,11 @@ WorldScript WorldWindow::script_blueprint_to_world_script(
                                                      blueprint.min)))};
 }
 
-y::size WorldWindow::to_internal_index(const y::ivec2& active_window)
+std::size_t WorldWindow::to_internal_index(const y::ivec2& active_window)
 {
-  const y::int32 half_size = active_window_half_size;
-  y::int32 x = active_window[xx] + half_size;
-  y::int32 y = active_window[yy] + half_size;
+  const std::int32_t half_size = active_window_half_size;
+  std::int32_t x = active_window[xx] + half_size;
+  std::int32_t y = active_window[yy] + half_size;
   return y * (1 + 2 * half_size) + x;
 }
 
@@ -950,7 +952,7 @@ void WorldWindow::update_active_window()
 
 void WorldWindow::update_active_window_cell(const y::ivec2& v)
 {
-  y::size internal_index = to_internal_index(v);
+  std::size_t internal_index = to_internal_index(v);
 
   const CellBlueprint* old_blueprint = _active_window[internal_index].blueprint;
   const CellBlueprint* new_blueprint = active_window_target(v);
@@ -961,9 +963,9 @@ void WorldWindow::update_active_window_cell(const y::ivec2& v)
   }
 
   if (old_blueprint != new_blueprint) {
-    Cell* new_cell = new_blueprint ? new Cell(*new_blueprint) : y::null;
+    Cell* new_cell = new_blueprint ? new Cell(*new_blueprint) : nullptr;
 
-    _active_window[internal_index].cell = y::move_unique(new_cell);
+    _active_window[internal_index].cell.reset(new_cell);
     _active_window[internal_index].blueprint = new_blueprint;
     _active_geometry.clear_geometry(v);
     if (new_blueprint) {
@@ -973,8 +975,8 @@ void WorldWindow::update_active_window_cell(const y::ivec2& v)
 }
 
 WorldWindow::active_window_entry::active_window_entry()
-  : blueprint(y::null)
-  , cell(y::null)
+  : blueprint(nullptr)
+  , cell(nullptr)
 {
 }
 

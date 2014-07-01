@@ -1,12 +1,11 @@
 #ifndef DATA_BANK_H
 #define DATA_BANK_H
 
-#include "../common/map.h"
-#include "../common/vector.h"
-#include "../common/utility.h"
 #include "../render/gl_handle.h"
 #include "../log.h"
 #include "../save.h"
+#include <unordered_map>
+#include <vector>
 
 class CellBlueprint;
 class CellMap;
@@ -21,62 +20,64 @@ class Tileset;
 // will persist for its lifetime. Requesting resources by invalid names returns
 // a reference to a standard missing resource.
 template<typename T>
-class Dataset : public y::no_copy {
+class Dataset {
 public:
 
   Dataset(T& default_resource);
+  Dataset(const Dataset&) = delete;
+  Dataset& operator=(const Dataset&) = delete;
 
   // Save specific resource to filesystem.
   void save(Filesystem& filesystem, const Databank& bank,
-            const y::string& name, bool human_readable = false) const;
+            const std::string& name, bool human_readable = false) const;
 
   // Save all resources to filesystem.
   void save_all(Filesystem& filesystem, const Databank& bank,
                 bool human_readable = false) const;
 
   // Add a new resource.
-  void insert(const y::string& name, y::unique<T> resource);
-  y::size size() const;
+  void insert(const std::string& name, std::unique_ptr<T> resource);
+  std::size_t size() const;
   bool empty() const;
 
   // Get list of loaded resource names.
-  const y::vector<y::string>& get_names() const;
+  const std::vector<std::string>& get_names() const;
   // Check if a name is used.
-  bool is_name_used(const y::string& name) const;
+  bool is_name_used(const std::string& name) const;
 
   // Get resource by name.
-  const T& get(const y::string& name) const;
-  /***/ T& get(const y::string& name);
+  const T& get(const std::string& name) const;
+  /***/ T& get(const std::string& name);
 
   // Get resource by index.
-  const T& get(y::size index) const;
-  /***/ T& get(y::size index);
+  const T& get(std::size_t index) const;
+  /***/ T& get(std::size_t index);
 
   // Get name resource is stored as.
-  const y::string& get_name(const T& resource) const;
-  const y::string& get_name(y::size index) const;
+  const std::string& get_name(const T& resource) const;
+  const std::string& get_name(std::size_t index) const;
   // Get index resource is stored at.
-  y::size get_index(const T& resource) const;
-  y::size get_index(const y::string& name) const;
+  std::size_t get_index(const T& resource) const;
+  std::size_t get_index(const std::string& name) const;
 
   // Rename resource.
-  void rename(const T& resource, const y::string& new_name);
+  void rename(const T& resource, const std::string& new_name);
 
   // Clear everything.
   void clear();
 
 private:
 
-  typedef y::map<y::string, y::unique<T>> map_type;
-  y::vector<y::string> _list;
+  typedef std::unordered_map<std::string, std::unique_ptr<T>> map_type;
+  std::vector<std::string> _list;
   map_type _map;
   T& _default;
 
 };
 
 struct LuaFile {
-  y::string path;
-  y::string contents;
+  std::string path;
+  std::string contents;
 
   // Editor display.
   y::fvec4 yedit_colour;
@@ -90,13 +91,16 @@ struct Sprite {
 };
 #endif
 
-class Databank : public y::no_copy {
+class Databank {
 public:
 
   ~Databank();
   Databank();
   Databank(const Filesystem& filesystem, GlUtil& gl,
            bool load_yedit_data = false);
+
+  Databank(const Databank&) = delete;
+  Databank& operator=(const Databank&) = delete;
 
   void reload_cells_and_maps(const Filesystem& filesystem);
 
@@ -108,7 +112,7 @@ public:
 
   // Save resource of a given type.
   template<typename>
-  void save_name(Filesystem& filesystem, const y::string& name) const;
+  void save_name(Filesystem& filesystem, const std::string& name) const;
   template<typename T>
   void save(Filesystem& filesystem, const T& t) const;
   // Save all the resources of a certain type.
@@ -122,13 +126,13 @@ private:
   void make_lua_file(LuaFile& file, GameStage& gl);
 
   // Used to delete the textures when the Databank is destroyed.
-  y::vector<GlUnique<GlTexture2D>> _textures;
+  std::vector<GlUnique<GlTexture2D>> _textures;
 
-  y::unique<LuaFile> _default_script;
-  y::unique<Sprite> _default_sprite;
-  y::unique<Tileset> _default_tileset;
-  y::unique<CellBlueprint> _default_cell;
-  y::unique<CellMap> _default_map;
+  std::unique_ptr<LuaFile> _default_script;
+  std::unique_ptr<Sprite> _default_sprite;
+  std::unique_ptr<Tileset> _default_tileset;
+  std::unique_ptr<CellBlueprint> _default_cell;
+  std::unique_ptr<CellMap> _default_map;
 
 public:
 
@@ -148,7 +152,7 @@ Dataset<T>::Dataset(T& default_resource)
 
 template<typename T>
 void Dataset<T>::save(Filesystem& filesystem, const Databank& bank,
-                      const y::string& name, bool human_readable) const
+                      const std::string& name, bool human_readable) const
 {
   auto it = _map.find(name);
   if (it != _map.end()) {
@@ -161,13 +165,13 @@ template<typename T>
 void Dataset<T>::save_all(Filesystem& filesystem, const Databank& bank,
                           bool human_readable) const
 {
-  for (const y::string& name : _list) {
+  for (const std::string& name : _list) {
     save(filesystem, bank, name, human_readable);
   }
 }
 
 template<typename T>
-void Dataset<T>::insert(const y::string& name, y::unique<T> resource)
+void Dataset<T>::insert(const std::string& name, std::unique_ptr<T> resource)
 {
   auto it = _map.find(name);
   if (it != _map.end()) {
@@ -176,13 +180,13 @@ void Dataset<T>::insert(const y::string& name, y::unique<T> resource)
   }
 
   _list.emplace_back(name);
-  y::sort(_list.begin(), _list.end());
-  auto jt = _map.insert(y::make_pair(name, y::unique<T>()));
+  std::sort(_list.begin(), _list.end());
+  auto jt = _map.emplace(name, std::unique_ptr<T>());
   jt.first->second.swap(resource);
 }
 
 template<typename T>
-y::size Dataset<T>::size() const
+std::size_t Dataset<T>::size() const
 {
   return _list.size();
 }
@@ -194,15 +198,15 @@ bool Dataset<T>::empty() const
 }
 
 template<typename T>
-const y::vector<y::string>& Dataset<T>::get_names() const
+const std::vector<std::string>& Dataset<T>::get_names() const
 {
   return _list;
 }
 
 template<typename T>
-bool Dataset<T>::is_name_used(const y::string& name) const
+bool Dataset<T>::is_name_used(const std::string& name) const
 {
-  for (const y::string& s : _list) {
+  for (const std::string& s : _list) {
     if (s == name) {
       return true;
     }
@@ -211,7 +215,7 @@ bool Dataset<T>::is_name_used(const y::string& name) const
 }
 
 template<typename T>
-const T& Dataset<T>::get(const y::string& name) const
+const T& Dataset<T>::get(const std::string& name) const
 {
   auto it = _map.find(name);
   if (it != _map.end()) {
@@ -222,7 +226,7 @@ const T& Dataset<T>::get(const y::string& name) const
 }
 
 template<typename T>
-T& Dataset<T>::get(const y::string& name)
+T& Dataset<T>::get(const std::string& name)
 {
   auto it = _map.find(name);
   if (it != _map.end()) {
@@ -233,7 +237,7 @@ T& Dataset<T>::get(const y::string& name)
 }
 
 template<typename T>
-const T& Dataset<T>::get(y::size index) const
+const T& Dataset<T>::get(std::size_t index) const
 {
   if (index < get_names().size()) {
     return get(get_names()[index]);
@@ -243,7 +247,7 @@ const T& Dataset<T>::get(y::size index) const
 }
 
 template<typename T>
-T& Dataset<T>::get(y::size index)
+T& Dataset<T>::get(std::size_t index)
 {
   if (index < get_names().size()) {
     return get(get_names()[index]);
@@ -253,9 +257,9 @@ T& Dataset<T>::get(y::size index)
 }
 
 template<typename T>
-const y::string& Dataset<T>::get_name(const T& resource) const
+const std::string& Dataset<T>::get_name(const T& resource) const
 {
-  static y::string none = "<no resource>";
+  static std::string none = "<no resource>";
   for (const auto& pair : _map) {
     if (pair.second.get() == &resource) {
       return pair.first;
@@ -266,16 +270,16 @@ const y::string& Dataset<T>::get_name(const T& resource) const
 }
 
 template<typename T>
-const y::string& Dataset<T>::get_name(y::size index) const
+const std::string& Dataset<T>::get_name(std::size_t index) const
 {
   return get_name(get(index));
 }
 
 template<typename T>
-y::size Dataset<T>::get_index(const T& resource) const
+std::size_t Dataset<T>::get_index(const T& resource) const
 {
-  for (y::size i = 0; i < _list.size(); ++i) {
-    const y::string& s = _list[i];
+  for (std::size_t i = 0; i < _list.size(); ++i) {
+    const std::string& s = _list[i];
     auto it = _map.find(s);
     if (it != _map.end() && it->second.get() == &resource) {
       return i;
@@ -286,32 +290,32 @@ y::size Dataset<T>::get_index(const T& resource) const
 }
 
 template<typename T>
-y::size Dataset<T>::get_index(const y::string& name) const
+std::size_t Dataset<T>::get_index(const std::string& name) const
 {
   return get_index(get(name));
 }
 
 template<typename T>
-void Dataset<T>::rename(const T& resource, const y::string& new_name)
+void Dataset<T>::rename(const T& resource, const std::string& new_name)
 {
-  y::size i = get_index(resource);
-  if (i == y::size(-1)) {
+  std::size_t i = get_index(resource);
+  if (i == std::size_t(-1)) {
     return;
   }
   _list.erase(_list.begin() + i);
 
-  const y::string& name = get_name(resource);
+  const std::string& name = get_name(resource);
   auto it = _map.find(name);
   if (it == _map.end()) {
     return;
   }
-  y::unique<T> temp;
+  std::unique_ptr<T> temp;
   temp.swap(it->second);
   _map.erase(it);
 
   _list.emplace_back(new_name);
-  y::sort(_list.begin(), _list.end());
-  auto jt = _map.insert(y::make_pair(new_name, y::unique<T>()));
+  std::sort(_list.begin(), _list.end());
+  auto jt = _map.emplace(new_name, std::unique_ptr<T>());
   jt.first->second.swap(temp);
 }
 
@@ -383,7 +387,7 @@ inline Dataset<CellMap>& Databank::get_set<CellMap>()
 }
 
 template<typename T>
-void Databank::save_name(Filesystem& filesystem, const y::string& name) const
+void Databank::save_name(Filesystem& filesystem, const std::string& name) const
 {
   get_set<T>().save(filesystem, *this, name);
 }

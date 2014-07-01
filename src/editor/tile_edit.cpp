@@ -11,7 +11,7 @@
 namespace {
 
 void render_collision(RenderUtil& util, const y::ivec2& pixels,
-                      y::int32 collision, const y::fvec4& colour)
+                      std::int32_t collision, const y::fvec4& colour)
 {
   static const y::ivec2& t = Tileset::tile_size;
   const y::ivec2 ul = pixels + Tileset::ul;
@@ -120,8 +120,9 @@ void render_collision(RenderUtil& util, const y::ivec2& pixels,
 // End anonymous namespace.
 }
 
-SetCollideAction::SetCollideAction(Tileset& tileset, const y::ivec2& coord,
-                                   y::int32 old_collide, y::int32 new_collide)
+SetCollideAction::SetCollideAction(
+    Tileset& tileset, const y::ivec2& coord,
+    std::int32_t old_collide, std::int32_t new_collide)
   : tileset(tileset)
   , coord(coord)
   , old_collide(old_collide)
@@ -144,7 +145,7 @@ bool SetCollideAction::is_noop() const
   return old_collide == new_collide;
 }
 
-TilesetPanel::TilesetPanel(Tileset& tileset, y::int32& collide_select,
+TilesetPanel::TilesetPanel(Tileset& tileset, std::int32_t& collide_select,
                            UndoStack& undo_stack)
   : Panel(y::ivec2(), y::ivec2(), 0)
   , _tileset(tileset)
@@ -168,7 +169,7 @@ bool TilesetPanel::event(const sf::Event& e)
   if (e.type == sf::Event::MouseButtonPressed) {
     if (e.mouseButton.button == sf::Mouse::Left &&
         _tileset.get_collision(_hover) != _collide_select) {
-      _undo_stack.new_action(y::move_unique(new SetCollideAction(
+      _undo_stack.new_action(std::unique_ptr<StackAction>(new SetCollideAction(
           _tileset, _hover, _tileset.get_collision(_hover),
           _collide_select)));
     }
@@ -205,9 +206,9 @@ void TilesetPanel::draw(RenderUtil& util) const
   }
 }
 
-const y::int32 CollidePanel::entries_per_row = 8;
+const std::int32_t CollidePanel::entries_per_row = 8;
 
-CollidePanel::CollidePanel(y::int32& collide_select)
+CollidePanel::CollidePanel(std::int32_t& collide_select)
   : Panel(y::ivec2(), y::ivec2(), 0)
   , _collide_select(collide_select)
   , _hover{-1, -1}
@@ -232,7 +233,7 @@ bool CollidePanel::event(const sf::Event& e)
 
   if (e.type == sf::Event::MouseButtonPressed && _hover >= y::ivec2()) {
     y::ivec2 v = _hover.euclidean_div(Tileset::tile_size);
-    y::int32 i = v[xx] + v[yy] * entries_per_row;
+    std::int32_t i = v[xx] + v[yy] * entries_per_row;
     if (i < Tileset::COLLIDE_SIZE) {
       _collide_select = i;
     }
@@ -259,13 +260,13 @@ bool CollidePanel::event(const sf::Event& e)
 void CollidePanel::update()
 {
   set_size(Tileset::tile_size * y::ivec2{
-      y::min(entries_per_row, y::int32(Tileset::COLLIDE_SIZE)),
+      std::min(entries_per_row, std::int32_t(Tileset::COLLIDE_SIZE)),
       1 + (Tileset::COLLIDE_SIZE - 1) / entries_per_row});
 }
 
 void CollidePanel::draw(RenderUtil& util) const
 {
-  for (y::int32 i = 0; i < Tileset::COLLIDE_SIZE; ++i) {
+  for (std::int32_t i = 0; i < Tileset::COLLIDE_SIZE; ++i) {
      y::ivec2 v{i % entries_per_row, i / entries_per_row};
      render_collision(util, Tileset::tile_size * v, i, colour::hover);
      if (i == _collide_select) {
@@ -317,12 +318,12 @@ void TilesetEditor::event(const sf::Event& e)
 
 void TilesetEditor::update()
 {
-  y::roll<y::int32>(_collide_select, 0, Tileset::COLLIDE_SIZE);
+  y::roll<std::int32_t>(_collide_select, 0, Tileset::COLLIDE_SIZE);
 
   y::ivec2 spacer = RenderUtil::from_grid();
   const Resolution& r = _util.get_window().get_mode();
 
-  const y::int32 total_width =
+  const std::int32_t total_width =
       (_collide_panel.get_size() + _tileset_panel.get_size() + spacer)[xx];
 
   _tileset_panel.set_origin(

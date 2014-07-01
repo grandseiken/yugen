@@ -1,25 +1,26 @@
 #ifndef LUA_TYPES_H
 #define LUA_TYPES_H
 
-#include "common/map.h"
-#include "common/memory.h"
-#include "common/string.h"
-#include "common/utility.h"
-#include "common/vector.h"
-
+#include "common.h"
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <type_traits>
+#include <unordered_map>
+#include <vector>
 #include <lua/lua.hpp>
 
-typedef y::int32 lua_int;
+typedef std::int32_t lua_int;
 
 // LuaValue hold a variety of different Lua types. We use LuaType<LuaValue> when
 // we don't care exactly what type something is, but want to use it between C++
 // and Lua. When we know the exact type T we're working with, we use LuaType<T>.
 struct LuaValue {
-  LuaValue(void* userdata, const y::string& metatable);
+  LuaValue(void* userdata, const std::string& metatable);
   LuaValue(y::world world);
   LuaValue(bool boolean);
-  LuaValue(const y::string& string);
-  LuaValue(const y::vector<LuaValue>& array);
+  LuaValue(const std::string& string);
+  LuaValue(const std::vector<LuaValue>& array);
 
   LuaValue(const LuaValue& value);
   LuaValue(LuaValue&& value);
@@ -38,8 +39,8 @@ struct LuaValue {
   void* userdata;
   y::world world;
   bool boolean;
-  y::string string;
-  y::vector<LuaValue> array;
+  std::string string;
+  std::vector<LuaValue> array;
 };
 
 // Base type for non-primitive (i.e. userdata) type information structures.
@@ -50,7 +51,8 @@ struct LuaGenericType {
   virtual void* copy(const void* v) const = 0;
   virtual void del(void* v) const = 0;
 };
-typedef y::map<y::string, y::unique<const LuaGenericType>> LuaGenericTypeMap;
+typedef std::unordered_map<
+    std::string, std::unique_ptr<const LuaGenericType>> LuaGenericTypeMap;
 extern LuaGenericTypeMap lua_generic_type_map;
 
 // Generic Lua-allocated and copied type.
@@ -58,7 +60,7 @@ template<typename T>
 struct LuaType : LuaGenericType {
   // For generic types, this can't be defined automatically here. Should be
   // defined by a y_*typedef macro in lua_api.h.
-  static const y::string type_name;
+  static const std::string type_name;
   static T default_value;
 
   void to_lua(lua_State* state, const void* v) const override;
@@ -73,7 +75,7 @@ struct LuaType : LuaGenericType {
 // World scalar type.
 template<>
 struct LuaType<y::world> {
-  static const y::string type_name;
+  static const std::string type_name;
   static y::world default_value;
 
   inline y::world get(lua_State* state, lua_int index) const;
@@ -83,19 +85,19 @@ struct LuaType<y::world> {
 
 // Integer type.
 template<>
-struct LuaType<y::int32> {
-  static const y::string type_name;
-  static y::int32 default_value;
+struct LuaType<std::int32_t> {
+  static const std::string type_name;
+  static std::int32_t default_value;
 
-  inline y::int32 get(lua_State* state, lua_int index) const;
+  inline std::int32_t get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
-  inline void push(lua_State* state, y::int32 arg) const;
+  inline void push(lua_State* state, std::int32_t arg) const;
 };
 
 // Boolean type.
 template<>
 struct LuaType<bool> {
-  static const y::string type_name;
+  static const std::string type_name;
   static bool default_value;
 
   inline bool get(lua_State* state, lua_int index) const;
@@ -105,30 +107,30 @@ struct LuaType<bool> {
 
 // String type.
 template<>
-struct LuaType<y::string> {
-  static const y::string type_name;
-  static y::string default_value;
+struct LuaType<std::string> {
+  static const std::string type_name;
+  static std::string default_value;
 
-  inline y::string get(lua_State* state, lua_int index) const;
+  inline std::string get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
-  inline void push(lua_State* state, const y::string& arg) const;
+  inline void push(lua_State* state, const std::string& arg) const;
 };
 
 // Array type.
 template<typename T>
-struct LuaType<y::vector<T>> {
-  static const y::string type_name;
-  static y::vector<T> default_value;
+struct LuaType<std::vector<T>> {
+  static const std::string type_name;
+  static std::vector<T> default_value;
 
-  inline y::vector<T> get(lua_State* state, lua_int index) const;
+  inline std::vector<T> get(lua_State* state, lua_int index) const;
   inline bool is(lua_State* state, lua_int index) const;
-  inline void push(lua_State* state, const y::vector<T>& arg) const;
+  inline void push(lua_State* state, const std::vector<T>& arg) const;
 };
 
 // Generic LuaValue union type.
 template<>
 struct LuaType<LuaValue> {
-  static const y::string type_name;
+  static const std::string type_name;
   static LuaValue default_value;
 
   inline LuaValue get(lua_State* state, lua_int index) const;
@@ -138,19 +140,19 @@ struct LuaType<LuaValue> {
 
 // Standard type names and values.
 template<typename T>
-const y::string LuaType<y::vector<T>>::type_name =
+const std::string LuaType<std::vector<T>>::type_name =
     "array<" + LuaType<T>::type_name + ">";
 
 template<typename T>
 T LuaType<T>::default_value;
 template<typename T>
-y::vector<T> LuaType<y::vector<T>>::default_value;
+std::vector<T> LuaType<std::vector<T>>::default_value;
 
 // Generic Lua-allocated and copied implementation.
 template<typename T>
 void LuaType<T>::to_lua(lua_State* state, const void* v) const
 {
-  typedef typename y::remove_const<T>::type T_non_const;
+  typedef typename std::remove_const<T>::type T_non_const;
   T_non_const* t = reinterpret_cast<T_non_const*>(
       lua_newuserdata(state, sizeof(T)));
   const T& arg = *reinterpret_cast<const T*>(v);
@@ -161,7 +163,7 @@ template<typename T>
 void* LuaType<T>::copy(const void* v) const
 {
   const T& arg = *reinterpret_cast<const T*>(v);
-  return new typename y::remove_const<T>::type(arg);
+  return new typename std::remove_const<T>::type(arg);
 }
 
 template<typename T>
@@ -188,7 +190,7 @@ bool LuaType<T>::is(lua_State* state, lua_int index) const
 
   luaL_getmetatable(state, type_name.c_str());
   if (!lua_rawequal(state, -1, -2)) {
-    v = y::null;
+    v = nullptr;
   }
   lua_pop(state, 2);
   return v;
@@ -220,17 +222,17 @@ void LuaType<y::world>::push(lua_State* state, y::world arg) const
 }
 
 // Integer implementation.
-y::int32 LuaType<y::int32>::get(lua_State* state, lua_int index) const
+std::int32_t LuaType<std::int32_t>::get(lua_State* state, lua_int index) const
 {
   return lua_tointeger(state, index);
 }
 
-bool LuaType<y::int32>::is(lua_State* state, lua_int index) const
+bool LuaType<std::int32_t>::is(lua_State* state, lua_int index) const
 {
   return lua_isnumber(state, index);
 }
 
-void LuaType<y::int32>::push(lua_State* state, y::int32 arg) const
+void LuaType<std::int32_t>::push(lua_State* state, std::int32_t arg) const
 {
   lua_pushinteger(state, arg);
 }
@@ -252,26 +254,27 @@ void LuaType<bool>::push(lua_State* state, bool arg) const
 }
 
 // String implementation.
-y::string LuaType<y::string>::get(lua_State* state, lua_int index) const
+std::string LuaType<std::string>::get(lua_State* state, lua_int index) const
 {
-  return y::string(lua_tostring(state, index));
+  return std::string(lua_tostring(state, index));
 }
 
-bool LuaType<y::string>::is(lua_State* state, lua_int index) const
+bool LuaType<std::string>::is(lua_State* state, lua_int index) const
 {
   return lua_isstring(state, index);
 }
 
-void LuaType<y::string>::push(lua_State* state, const y::string& arg) const
+void LuaType<std::string>::push(lua_State* state, const std::string& arg) const
 {
   lua_pushstring(state, arg.c_str());
 }
 
 // Array implementation.
 template<typename T>
-y::vector<T> LuaType<y::vector<T>>::get(lua_State* state, lua_int index) const
+std::vector<T> LuaType<std::vector<T>>::get(
+    lua_State* state, lua_int index) const
 {
-  y::vector<T> t;
+  std::vector<T> t;
   LuaType<T> element_type;
 
   lua_int size = 1;
@@ -287,7 +290,7 @@ y::vector<T> LuaType<y::vector<T>>::get(lua_State* state, lua_int index) const
 }
 
 template<typename T>
-bool LuaType<y::vector<T>>::is(lua_State* state, lua_int index) const
+bool LuaType<std::vector<T>>::is(lua_State* state, lua_int index) const
 {
   if (!lua_istable(state, index)) {
     return false;
@@ -308,14 +311,14 @@ bool LuaType<y::vector<T>>::is(lua_State* state, lua_int index) const
 }
 
 template<typename T>
-void LuaType<y::vector<T>>::push(
-    lua_State* state, const y::vector<T>& arg) const
+void LuaType<std::vector<T>>::push(
+    lua_State* state, const std::vector<T>& arg) const
 {
   lua_createtable(state, arg.size(), 0);
   LuaType<T> element_type;
 
   lua_int index = lua_gettop(state);
-  for (y::size i = 0; i < arg.size(); ++i) {
+  for (std::size_t i = 0; i < arg.size(); ++i) {
     element_type.push(state, arg[i]);
     lua_rawseti(state, index, 1 + i);
   }
@@ -334,12 +337,12 @@ LuaValue LuaType<LuaValue>::get(lua_State* state, lua_int index) const
     return LuaValue(boolean.get(state, index));
   }
 
-  LuaType<y::string> string;
+  LuaType<std::string> string;
   if (string.is(state, index)) {
     return LuaValue(string.get(state, index));
   }
 
-  LuaType<y::vector<LuaValue>> array;
+  LuaType<std::vector<LuaValue>> array;
   if (array.is(state, index)) {
     return LuaValue(array.get(state, index));
   }
@@ -349,7 +352,7 @@ LuaValue LuaType<LuaValue>::get(lua_State* state, lua_int index) const
   if (v && lua_getmetatable(state, index)) {
     lua_pushstring(state, "_typename");
     lua_rawget(state, -2);
-    y::string t = lua_tostring(state, -1);
+    std::string t = lua_tostring(state, -1);
     lua_pop(state, 2);
     return LuaValue(lua_generic_type_map[t]->copy(v), t);
   }
@@ -361,8 +364,8 @@ bool LuaType<LuaValue>::is(lua_State* state, lua_int index) const
 {
   LuaType<y::world> world;
   LuaType<bool> boolean;
-  LuaType<y::string> string;
-  LuaType<y::vector<LuaValue>> array;
+  LuaType<std::string> string;
+  LuaType<std::vector<LuaValue>> array;
 
   void *v = lua_touserdata(state, index);
   bool is_userdata = v && lua_getmetatable(state, index);
@@ -393,10 +396,10 @@ void LuaType<LuaValue>::push(lua_State* state, const LuaValue& arg) const
       LuaType<bool>().push(state, arg.boolean);
       break;
     case LuaValue::STRING:
-      LuaType<y::string>().push(state, arg.string);
+      LuaType<std::string>().push(state, arg.string);
       break;
     case LuaValue::ARRAY:
-      LuaType<y::vector<LuaValue>>().push(state, arg.array);
+      LuaType<std::vector<LuaValue>>().push(state, arg.array);
       break;
     default: {}
   }

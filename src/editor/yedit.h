@@ -1,7 +1,6 @@
 #ifndef EDITOR_YEDIT_H
 #define EDITOR_YEDIT_H
 
-#include "../common/math.h"
 #include "../modal.h"
 #include "../ui_util.h"
 
@@ -35,11 +34,11 @@ private:
   UiList _cell_list;
   UiList _script_list;
 
-  y::int32 _list_select;
-  y::int32 _tileset_select;
-  y::int32 _map_select;
-  y::int32 _cell_select;
-  y::int32 _script_select;
+  std::int32_t _list_select;
+  std::int32_t _tileset_select;
+  std::int32_t _map_select;
+  std::int32_t _cell_select;
+  std::int32_t _script_select;
 
   TextInputResult _input_result;
 

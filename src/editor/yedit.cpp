@@ -75,7 +75,7 @@ Yedit::Yedit(Filesystem& output, Databank& bank, RenderUtil& util)
 
 void Yedit::event(const sf::Event& e)
 {
-  y::int32& item_select =
+  std::int32_t& item_select =
       _list_select == 0 ? _tileset_select :
       _list_select == 1 ? _map_select :
       _list_select == 2 ? _cell_select :
@@ -112,16 +112,16 @@ void Yedit::event(const sf::Event& e)
       break;
     case sf::Keyboard::Return:
       if (_list_select == 0) {
-        push(y::move_unique(new TilesetEditor(
+        push(std::unique_ptr<Modal>(new TilesetEditor(
             _output, _bank, _util, _bank.tilesets.get(_tileset_select))));
       }
       else if (_list_select == 1) {
         if (shift) {
-          push(y::move_unique(new TextInputModal(
+          push(std::unique_ptr<Modal>(new TextInputModal(
               _util, "/world/new.map", _input_result, "Add map using name:")));
         }
         else {
-          push(y::move_unique(new MapEditor(
+          push(std::unique_ptr<Modal>(new MapEditor(
               _output, _bank, _util, _bank.maps.get(_map_select))));
         }
       }
@@ -135,11 +135,11 @@ void Yedit::event(const sf::Event& e)
 
 void Yedit::update()
 {
-  y::roll<y::int32>(_list_select, 0, 4);
-  y::roll<y::int32>(_tileset_select, 0, _bank.tilesets.size());
-  y::roll<y::int32>(_map_select, 0, _bank.maps.size());
-  y::roll<y::int32>(_cell_select, 0, _bank.cells.size());
-  y::roll<y::int32>(_script_select, 0, _bank.scripts.size());
+  y::roll<std::int32_t>(_list_select, 0, 4);
+  y::roll<std::int32_t>(_tileset_select, 0, _bank.tilesets.size());
+  y::roll<std::int32_t>(_map_select, 0, _bank.maps.size());
+  y::roll<std::int32_t>(_cell_select, 0, _bank.cells.size());
+  y::roll<std::int32_t>(_script_select, 0, _bank.scripts.size());
 
   const Resolution& screen = _util.get_window().get_mode();
   y::ivec2 size =
@@ -165,11 +165,11 @@ void Yedit::update()
       _list_select == 3 ? colour::faint_panel : colour::black);
 
   if (_input_result.success) {
-    const y::string& result = _input_result.result;
+    const std::string& result = _input_result.result;
     if (!_bank.maps.is_name_used(result) &&
         result.substr(0, 7) == "/world/" &&
         result.substr(result.length() - 4) == ".map") {
-      _bank.maps.insert(result, y::move_unique(new CellMap()));
+      _bank.maps.insert(result, std::unique_ptr<CellMap>(new CellMap()));
     }
     _input_result.success = false;
   }
@@ -188,13 +188,13 @@ void Yedit::draw() const
 
   auto render_list = [&](
       const UiList& list, bool active,
-      const y::string& title, const y::vector<y::string>& source,
-      y::vector<bool>& actives, y::size select)
+      const std::string& title, const std::vector<std::string>& source,
+      std::vector<bool>& actives, std::size_t select)
   {
     _util.irender_text(
          title, RenderUtil::from_grid(list.get_origin() - y::ivec2{0, 2}),
          active ? colour::select : colour::item);
-    y::vector<y::fvec4> items;
+    std::vector<y::fvec4> items;
     for (bool b : actives) {
       items.emplace_back(
           b ? colour::select : active ? colour::item : colour::dark_outline);
@@ -207,8 +207,8 @@ void Yedit::draw() const
   };
 
   // Render tileset list.
-  y::vector<bool> items;
-  for (y::int32 i = 0; i < y::int32(_bank.tilesets.size()); ++i) {
+  std::vector<bool> items;
+  for (std::int32_t i = 0; i < std::int32_t(_bank.tilesets.size()); ++i) {
     items.push_back(
         _list_select == 0 ? i == _tileset_select :
         _list_select == 1 ? used(_bank.tilesets.get(i),
@@ -222,7 +222,7 @@ void Yedit::draw() const
 
   // Render map list.
   items.clear();
-  for (y::int32 i = 0; i < y::int32(_bank.maps.size()); ++i) {
+  for (std::int32_t i = 0; i < std::int32_t(_bank.maps.size()); ++i) {
     items.push_back(
         _list_select == 0 ? used(_bank.tilesets.get(_tileset_select),
                                  _bank.maps.get(i)) :
@@ -237,7 +237,7 @@ void Yedit::draw() const
 
   // Render cell list.
   items.clear();
-  for (y::int32 i = 0; i < y::int32(_bank.cells.size()); ++i) {
+  for (std::int32_t i = 0; i < std::int32_t(_bank.cells.size()); ++i) {
     items.push_back(
         _list_select == 0 ? used(_bank.tilesets.get(_tileset_select),
                                  _bank.cells.get(i)) :
@@ -251,7 +251,7 @@ void Yedit::draw() const
 
   // Render script list.
   items.clear();
-  for (y::int32 i = 0; i < y::int32(_bank.scripts.size()); ++i) {
+  for (std::int32_t i = 0; i < std::int32_t(_bank.scripts.size()); ++i) {
     items.push_back(
         _list_select == 0 ? false :
         _list_select == 1 ? used(_bank.scripts.get(i),
@@ -263,7 +263,7 @@ void Yedit::draw() const
               _bank.scripts.get_names(), items, _script_select);
 }
 
-y::int32 main(y::int32, char**)
+std::int32_t main(std::int32_t, char**)
 {
   Window window("Crunk Yedit", 24, {0, 0}, false, true);
   PhysicalFilesystem filesystem("data");
@@ -278,7 +278,7 @@ y::int32 main(y::int32, char**)
   RunTiming run_timing;
   run_timing.target_updates_per_second = 0.f;
   run_timing.target_draws_per_second = 0.f;
-  stack.push(y::move_unique(new Yedit(filesystem, databank, util)));
+  stack.push(std::unique_ptr<Modal>(new Yedit(filesystem, databank, util)));
   stack.run(window, run_timing);
   return 0;
 }

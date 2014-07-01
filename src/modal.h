@@ -1,11 +1,10 @@
 #ifndef MODAL_H
 #define MODAL_H
 
-#include "common/memory.h"
-#include "common/ordered_set.h"
-#include "common/utility.h"
-#include "common/vector.h"
 #include "vec.h"
+#include <memory>
+#include <set>
+#include <vector>
 
 namespace sf {
   class Event;
@@ -16,7 +15,7 @@ class RenderUtil;
 class Window;
 
 // A generic action that can be done or undone.
-class StackAction : public y::no_copy {
+class StackAction {
 public:
 
   virtual ~StackAction() {}
@@ -29,7 +28,7 @@ public:
 };
 
 // Class for storing and using StackAction objects.
-class UndoStack : public y::no_copy {
+class UndoStack {
 public:
 
   UndoStack();
@@ -38,7 +37,7 @@ public:
   bool can_redo() const;
 
   // Called by the Modal to execute and store a new StackAction.
-  void new_action(y::unique<StackAction> action);
+  void new_action(std::unique_ptr<StackAction> action);
 
   // Undo and redo are handled automatically by the ModalStack.
   void undo();
@@ -51,12 +50,12 @@ public:
 
 private:
 
-  typedef y::unique<StackAction> element;
-  typedef y::vector<element> stack;
+  typedef std::unique_ptr<StackAction> element;
+  typedef std::vector<element> stack;
   stack _undo_stack;
   stack _redo_stack;
 
-  y::int32 _save_offset;
+  std::int32_t _save_offset;
   bool _save_position_exists;
 
 };
@@ -81,10 +80,10 @@ private:
 };
 
 // A panel in the UI.
-class Panel : public Draggable, public y::no_copy {
+class Panel : public Draggable {
 public:
 
-  Panel(const y::ivec2& origin, const y::ivec2& size, y::int32 z_index = 0);
+  Panel(const y::ivec2& origin, const y::ivec2& size, std::int32_t z_index = 0);
   ~Panel() override {}
 
   void set_origin(const y::ivec2& origin);
@@ -109,12 +108,12 @@ private:
 
   y::ivec2 _origin;
   y::ivec2 _size;
-  y::int32 _z_index;
+  std::int32_t _z_index;
 
 };
 
 // A set of panels making up a complete UI layer.
-class PanelUi : public y::no_copy {
+class PanelUi {
 public:
 
   PanelUi(Modal& parent);
@@ -144,14 +143,14 @@ private:
 
   Modal& _parent;
 
-  typedef y::ordered_set<Panel*, Panel::order> panel_set;
+  typedef std::set<Panel*, Panel::order> panel_set;
   panel_set _panels;
   panel_set _mouse_over;
 
 };
 
 // Interface to an entry in the ModalStack.
-class Modal : public y::no_copy, public Draggable {
+class Modal : public Draggable {
 public:
 
   Modal();
@@ -163,7 +162,7 @@ public:
   virtual void draw() const = 0;
 
   // Push a new mode onto the top of the enclosing stack.
-  void push(y::unique<Modal> modal);
+  void push(std::unique_ptr<Modal> modal);
 
   // Checks if there are any elements on the stack above this one.
   bool has_next() const;
@@ -202,23 +201,23 @@ struct RunTiming {
   float target_updates_per_second;
   float target_draws_per_second;
 
-  y::size us_per_update_inst;
-  y::size us_per_update_avg;
-  y::size us_per_draw_inst;
-  y::size us_per_draw_avg;
-  y::size us_per_frame_inst;
-  y::size us_per_frame_avg;
+  std::size_t us_per_update_inst;
+  std::size_t us_per_update_avg;
+  std::size_t us_per_draw_inst;
+  std::size_t us_per_draw_avg;
+  std::size_t us_per_frame_inst;
+  std::size_t us_per_frame_avg;
 
-  y::size updates_this_cycle;
-  y::size draws_this_cycle;
+  std::size_t updates_this_cycle;
+  std::size_t draws_this_cycle;
 };
 
 // A stack of modes. The topmost mode receives all events and controls the
 // program flow. Modes are rendered from back to front.
-class ModalStack : public y::no_copy {
+class ModalStack {
 public:
 
-  void push(y::unique<Modal> modal);
+  void push(std::unique_ptr<Modal> modal);
   bool empty() const;
 
   // Run until the stack is empty. Push a mode onto the stack first. If fps
@@ -232,13 +231,13 @@ private:
   bool has_next(const Modal& modal) const;
   void draw_next(const Modal& modal) const;
 
-  void event(const sf::Event& e, y::size index);
+  void event(const sf::Event& e, std::size_t index);
   void update();
-  void draw(y::size index) const;
+  void draw(std::size_t index) const;
   bool clear_ended();
 
-  typedef y::unique<Modal> element;
-  typedef y::vector<element> stack;
+  typedef std::unique_ptr<Modal> element;
+  typedef std::vector<element> stack;
   stack _stack;
 
 };

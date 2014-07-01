@@ -49,10 +49,10 @@ void load_from_proto(LuaValue& value, const proto::Value& proto)
   }
   else if (proto.type() == proto::ARRAY) {
     value.type = LuaValue::ARRAY;
-    while (y::int32(value.array.size()) < proto.array_value_size()) {
+    while (std::int32_t(value.array.size()) < proto.array_value_size()) {
       value.array.emplace_back(0.0);
     }
-    for (y::int32 i = 0; i < proto.array_value_size(); ++i) {
+    for (std::int32_t i = 0; i < proto.array_value_size(); ++i) {
       load_from_proto(value.array[i], proto.array_value(i));
     }
   }
@@ -70,14 +70,14 @@ Savegame::Savegame()
 }
 
 void Savegame::save(Filesystem& filesystem,
-                    const y::string& path, bool human_readable) const
+                    const std::string& path, bool human_readable) const
 {
   Databank temp;
   y::io<proto::Savegame>::save(filesystem, temp, path, human_readable);
 }
 
 void Savegame::load(const Filesystem& filesystem,
-                    const y::string& path, bool human_readable)
+                    const std::string& path, bool human_readable)
 {
   Databank temp;
   y::io<proto::Savegame>::load(filesystem, temp, path, human_readable);
@@ -88,7 +88,7 @@ void Savegame::clear()
   _map.clear();
 }
 
-const LuaValue& Savegame::get(const y::string& key) const
+const LuaValue& Savegame::get(const std::string& key) const
 {
   auto it = _map.find(key);
   if (it == _map.end()) {
@@ -97,7 +97,7 @@ const LuaValue& Savegame::get(const y::string& key) const
   return it->second;
 }
 
-void Savegame::put(const y::string& key, const LuaValue& value)
+void Savegame::put(const std::string& key, const LuaValue& value)
 {
   // We can't handle arbitrary userdata types. It might be possible to provide
   // an exception for two-dimensional vectors for convenience.
@@ -106,7 +106,7 @@ void Savegame::put(const y::string& key, const LuaValue& value)
     return;
   }
   _map.erase(key);
-  _map.insert(y::make_pair(key, value));
+  _map.emplace(key, value);
 }
 
 void Savegame::save_to_proto(const Databank&, proto::Savegame& proto) const
@@ -122,7 +122,7 @@ void Savegame::load_from_proto(Databank&, const proto::Savegame& proto)
 {
   clear();
 
-  for (y::int32 i = 0; i < proto.entries_size(); ++i) {
+  for (std::int32_t i = 0; i < proto.entries_size(); ++i) {
     LuaValue value(0.0);
     ::load_from_proto(value, proto.entries(i).value());
     put(proto.entries(i).key(), value);

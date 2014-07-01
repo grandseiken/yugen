@@ -3,11 +3,11 @@
 
 #include "map_util.h"
 
-#include "../common/memory.h"
 #include "../render/gl_handle.h"
 #include "../modal.h"
 #include "../vec.h"
 
+#include <memory>
 #include <random>
 
 class CellMap;
@@ -54,10 +54,10 @@ private:
   void copy_drag_to_brush();
   void copy_brush_to_action() const;
 
-  const y::fvec4& colour_for_layer(y::int32 layer) const;
+  const y::fvec4& colour_for_layer(std::int32_t layer) const;
   void draw_cell_layer(
       RenderBatch& batch,
-      const y::ivec2& coord, y::int32 layer, bool normal) const;
+      const y::ivec2& coord, std::int32_t layer, bool normal) const;
   void draw_scripts() const;
   void draw_cursor() const;
 
@@ -76,11 +76,11 @@ private:
 
   bool _camera_drag;
   bool _light_drag;
-  y::int32 _zoom;
+  std::int32_t _zoom;
   y::ivec2 _camera;
   y::ivec2 _hover;
   y::fvec2 _light_direction;
-  y::vector<y::string> _layer_status;
+  std::vector<std::string> _layer_status;
 
   TileBrush _tile_brush;
   BrushPanel _brush_panel;
@@ -90,8 +90,8 @@ private:
   MinimapPanel _minimap_panel;
 
   bool _tile_edit_style;
-  y::unique<TileEditAction> _tile_edit_action;
-  y::unique<ScriptAddAction> _script_add_action;
+  std::unique_ptr<TileEditAction> _tile_edit_action;
+  std::unique_ptr<ScriptAddAction> _script_add_action;
   script_drag _script_drag;
   TextInputResult _input_result;
   ConfirmationResult _confirm_result;

@@ -7,10 +7,10 @@
 
 #include <SFML/Window.hpp>
 
-const y::vector<float> Zoom::array{.25f, .5f, 1.f, 2.f, 3.f, 4.f};
+const std::vector<float> Zoom::array{.25f, .5f, 1.f, 2.f, 3.f, 4.f};
 
 CellAddAction::CellAddAction(Databank& bank, CellMap& map,
-                             const y::ivec2& cell, const y::string& path)
+                             const y::ivec2& cell, const std::string& path)
   : bank(bank)
   , map(map)
   , cell(cell)
@@ -21,7 +21,8 @@ CellAddAction::CellAddAction(Databank& bank, CellMap& map,
 void CellAddAction::redo() const
 {
   if (!bank.cells.is_name_used(path)) {
-    bank.cells.insert(path, y::move_unique(new CellBlueprint()));
+    bank.cells.insert(
+        path, std::unique_ptr<CellBlueprint>(new CellBlueprint()));
   }
   map.set_coord(cell, bank.cells.get(path));
 }
@@ -39,7 +40,7 @@ bool CellAddAction::is_noop() const
 }
 
 CellRenameAction::CellRenameAction(Databank& bank, CellMap& map,
-                                   const y::ivec2& cell, const y::string& path)
+                                   const y::ivec2& cell, const std::string& path)
   : bank(bank)
   , map(map)
   , cell(cell)
@@ -91,7 +92,7 @@ bool CellRemoveAction::is_noop() const
   return !map.get_coord(cell);
 }
 
-TileEditAction::TileEditAction(CellMap& map, y::int32 layer)
+TileEditAction::TileEditAction(CellMap& map, std::int32_t layer)
   : map(map)
   , layer(layer)
 {
@@ -100,8 +101,7 @@ TileEditAction::TileEditAction(CellMap& map, y::int32 layer)
 void TileEditAction::set_tile(
     const y::ivec2& cell, const y::ivec2& tile, const Tile& t)
 {
-  const auto& p = y::make_pair(cell, tile);
-
+  auto p = std::make_pair(cell, tile);
   auto it = edits.find(p);
   if (it == edits.end()) {
     auto& edit = edits[p];
@@ -139,7 +139,7 @@ bool TileEditAction::is_noop() const
 
 ScriptAddAction::ScriptAddAction(
     CellMap& map, const y::ivec2& min, const y::ivec2& max,
-    const y::string& path)
+    const std::string& path)
   : map(map)
   , min(min)
   , max(max)
@@ -164,7 +164,7 @@ bool ScriptAddAction::is_noop() const
 
 ScriptRemoveAction::ScriptRemoveAction(
     CellMap& map, const y::ivec2& min, const y::ivec2& max,
-    const y::string& path)
+    const std::string& path)
   : map(map)
   , min(min)
   , max(max)
@@ -189,7 +189,7 @@ bool ScriptRemoveAction::is_noop() const
 
 ScriptMoveAction::ScriptMoveAction(
     CellMap& map, const y::ivec2& min, const y::ivec2& max,
-    const y::ivec2& new_min, const y::ivec2& new_max, const y::string& path)
+    const y::ivec2& new_min, const y::ivec2& new_max, const std::string& path)
   : map(map)
   , min(min)
   , max(max)
@@ -343,12 +343,12 @@ bool TilePanel::event(const sf::Event& e)
 
 void TilePanel::update()
 {
-  y::roll<y::int32>(_tileset_select, 0, _bank.tilesets.size());
+  y::roll<std::int32_t>(_tileset_select, 0, _bank.tilesets.size());
 
   const GlTexture2D& tex =
       _bank.tilesets.get(_tileset_select).get_texture().texture;
-  y::int32 tx_max = RenderUtil::to_grid(tex.get_size())[xx];
-  y::int32 ty_max = y::min(y::size(7), _bank.tilesets.size());
+  std::int32_t tx_max = RenderUtil::to_grid(tex.get_size())[xx];
+  std::int32_t ty_max = std::min(std::size_t(7), _bank.tilesets.size());
 
   set_size(tex.get_size() + RenderUtil::from_grid() * y::ivec2{0, ty_max});
   _list.set_size({tx_max, ty_max});
@@ -409,18 +409,18 @@ ScriptPanel::ScriptPanel(const Databank& bank)
 {
 }
 
-const y::string& ScriptPanel::get_script() const
+const std::string& ScriptPanel::get_script() const
 {
-  static const y::string& missing = "/yedit/missing.lua";
-  if (y::size(_script_select) >= _bank.scripts.size()) {
+  static const std::string& missing = "/yedit/missing.lua";
+  if (std::size_t(_script_select) >= _bank.scripts.size()) {
     return missing;
   }
   return _bank.scripts.get(_script_select).path;
 }
 
-void ScriptPanel::set_script(const y::string& path)
+void ScriptPanel::set_script(const std::string& path)
 {
-  y::int32 index = _bank.scripts.get_index(path);
+  std::int32_t index = _bank.scripts.get_index(path);
   if (index >= 0) {
     _script_select = index;
   }
@@ -456,9 +456,9 @@ bool ScriptPanel::event(const sf::Event& e)
 
 void ScriptPanel::update()
 {
-  y::roll<y::int32>(_script_select, 0, _bank.scripts.size());
+  y::roll<std::int32_t>(_script_select, 0, _bank.scripts.size());
 
-  y::ivec2 v = {32, y::min(17, y::int32(_bank.scripts.size()))};
+  y::ivec2 v = {32, std::min(17, std::int32_t(_bank.scripts.size()))};
   set_size(RenderUtil::from_grid(v));
   _list.set_size(v);
 }
@@ -468,7 +468,7 @@ void ScriptPanel::draw(RenderUtil& util) const
   _list.draw(util, _bank.scripts.get_names(), _script_select);
 }
 
-LayerPanel::LayerPanel(const y::vector<y::string>& status)
+LayerPanel::LayerPanel(const std::vector<std::string>& status)
   : Panel(y::ivec2(), y::ivec2())
   , _status(status)
   , _list(y::ivec2(), y::ivec2(), colour::panel, colour::item, colour::select)
@@ -476,7 +476,7 @@ LayerPanel::LayerPanel(const y::vector<y::string>& status)
 {
 }
 
-y::int32 LayerPanel::get_layer() const
+std::int32_t LayerPanel::get_layer() const
 {
   return _layer_select;
 }
@@ -517,20 +517,20 @@ bool LayerPanel::event(const sf::Event& e)
 
 void LayerPanel::update()
 {
-  y::roll<y::int32>(_layer_select, -Cell::background_layers,
+  y::roll<std::int32_t>(_layer_select, -Cell::background_layers,
                    2 + Cell::foreground_layers);
-  y::size len = 12;
-  for (const y::string& s : _status) {
-    len = y::max(len, s.length());
+  std::size_t len = 12;
+  for (const std::string& s : _status) {
+    len = std::max(len, s.length());
   }
   set_size(RenderUtil::from_grid({
-      y::int32(len), 4 + y::int32(_status.size())}));
-  _list.set_size({y::int32(len), 4});
+      std::int32_t(len), 4 + std::int32_t(_status.size())}));
+  _list.set_size({std::int32_t(len), 4});
 }
 
 void LayerPanel::draw(RenderUtil& util) const
 {
-  static y::vector<y::string> layer_names{
+  static std::vector<std::string> layer_names{
     "1 Background",
     "2 Collision",
     "3 Foreground",
@@ -538,14 +538,14 @@ void LayerPanel::draw(RenderUtil& util) const
 
   _list.draw(util, layer_names, Cell::background_layers + _layer_select);
 
-  y::int32 i = 0;
-  for (const y::string& s : _status) {
+  std::int32_t i = 0;
+  for (const std::string& s : _status) {
     util.irender_text(s, RenderUtil::from_grid({0, 4 + i++}), colour::item);
   }
 }
 
 MinimapPanel::MinimapPanel(const CellMap& map,
-                           y::ivec2& camera, const y::int32& zoom)
+                           y::ivec2& camera, const std::int32_t& zoom)
   : Panel(y::ivec2(), y::ivec2())
   , _map(map)
   , _camera(camera)
@@ -596,7 +596,7 @@ void MinimapPanel::draw(RenderUtil& util) const
   const y::ivec2& max = _map.get_boundary_max();
   y::ivec2 c;
   RenderBatch batch;
-  for (y::int32 layer = -Cell::background_layers;
+  for (std::int32_t layer = -Cell::background_layers;
        layer <= Cell::foreground_layers; ++layer) {
     for (auto it = _map.get_cartesian(); it; ++it) {
       const y::ivec2& c = *it;
@@ -637,4 +637,4 @@ void MinimapPanel::draw(RenderUtil& util) const
   util.set_scale(1.f);
 }
 
-const y::int32 MinimapPanel::scale = 16;
+const std::int32_t MinimapPanel::scale = 16;

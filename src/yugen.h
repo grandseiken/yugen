@@ -38,7 +38,7 @@ private:
   void recording_render(const GlFramebuffer& source) const;
 
   mutable bool _recording;
-  mutable y::vector<unsigned char*> _save_file_frames;
+  mutable std::vector<unsigned char*> _save_file_frames;
 
   RenderUtil& _util;
   RunTiming& _run_timing;
@@ -53,7 +53,7 @@ private:
   GlUnique<GlProgram> _upscale_program;
   GlUnique<GlTexture3D> _bayer_texture;
   GlUnique<GlTexture3D> _a_dither_texture;
-  mutable y::size _dither_frame;
+  mutable std::size_t _dither_frame;
 
 };
 

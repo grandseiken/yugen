@@ -49,16 +49,16 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
   // Things should be loaded in order of dependence, so that the data can be
   // accessed while loading if necessary. For example, maps depend on cells
   // and scripts.
-  y::vector<y::string> paths;
+  std::vector<std::string> paths;
   filesystem.list_pattern(paths, "/sprites/**.png");
-  for (const y::string& s : paths) {
-    y::string bare_path;
+  for (const std::string& s : paths) {
+    std::string bare_path;
     filesystem.barename(bare_path, s);
     if (bare_path.substr(bare_path.length() - 7) == "_normal") {
       continue;
     }
     log_debug("Loading ", bare_path);
-    y::string normal_path = bare_path + "_normal.png";
+    std::string normal_path = bare_path + "_normal.png";
 
     GlTexture2D texture = gl.make_texture(s);
     GlTexture2D normal_texture = filesystem.is_file(normal_path) ?
@@ -70,20 +70,21 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
       _textures.emplace_back(gl.make_unique(normal_texture));
     }
 
-    sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
+    sprites.insert(
+        s, std::unique_ptr<Sprite>(new Sprite{texture, normal_texture}));
   }
 
   // Tilesets are available as sprites as well.
   paths.clear();
   filesystem.list_pattern(paths, "/tiles/**.png");
-  for (const y::string& s : paths) {
-    y::string bare_path;
+  for (const std::string& s : paths) {
+    std::string bare_path;
     filesystem.barename(bare_path, s);
     if (bare_path.substr(bare_path.length() - 7) == "_normal") {
       continue;
     }
-    y::string data_path = bare_path + ".tile";
-    y::string normal_path = bare_path + "_normal.png";
+    std::string data_path = bare_path + ".tile";
+    std::string normal_path = bare_path + "_normal.png";
 
     log_debug("Loading ", bare_path);
     GlTexture2D texture = gl.make_texture(s);
@@ -101,8 +102,9 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
       log_debug("Loading ", data_path);
       tileset->load(filesystem, *this, data_path);
     }
-    tilesets.insert(data_path, y::move_unique(tileset));
-    sprites.insert(s, y::move_unique(new Sprite{texture, normal_texture}));
+    tilesets.insert(data_path, std::unique_ptr<Tileset>(tileset));
+    sprites.insert(
+        s, std::unique_ptr<Sprite>(new Sprite{texture, normal_texture}));
   }
 
   filesystem.read_file_with_includes(_default_script->contents,
@@ -110,12 +112,12 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
   // Scripts in the root directory are for inclusion only.
   paths.clear();
   filesystem.list_pattern(paths, "/scripts/*/**.lua");
-  for (const y::string& s : paths) {
+  for (const std::string& s : paths) {
     log_debug("Loading ", s);
     LuaFile* lua_file = new LuaFile;
     lua_file->path = s;
     filesystem.read_file_with_includes(lua_file->contents, s);
-    scripts.insert(s, y::move_unique(lua_file));
+    scripts.insert(s, std::unique_ptr<LuaFile>(lua_file));
   }
 
   // Maps depend on knowing the names of scripts, but grabbing data out of
@@ -132,7 +134,7 @@ Databank::Databank(const Filesystem& filesystem, GlUtil& gl,
     PhysicalFilesystem fake_filesystem("fake");
     GameStage fake_stage(*this, fake_filesystem, fake_util, *fake_framebuffer,
                          maps.get_names()[0], y::wvec2(), true);
-    for (y::size i = 0; i < scripts.size(); ++i) {
+    for (std::size_t i = 0; i < scripts.size(); ++i) {
       make_lua_file(scripts.get(i), fake_stage);
     }
   }
@@ -143,22 +145,22 @@ void Databank::reload_cells_and_maps(const Filesystem& filesystem)
   cells.clear();
   maps.clear();
 
-  y::vector<y::string> paths;
+  std::vector<std::string> paths;
   filesystem.list_pattern(paths, "/world/**.cell");
-  for (const y::string& s : paths) {
+  for (const std::string& s : paths) {
     log_debug("Loading ", s);
     CellBlueprint* cell = new CellBlueprint();
     cell->load(filesystem, *this, s);
-    cells.insert(s, y::move_unique(cell));
+    cells.insert(s, std::unique_ptr<CellBlueprint>(cell));
   }
 
   paths.clear();
   filesystem.list_pattern(paths, "/world/**.map");
-  for (const y::string& s : paths) {
+  for (const std::string& s : paths) {
     log_debug("Loading ", s);
     CellMap* map = new CellMap();
     map->load(filesystem, *this, s);
-    maps.insert(s, y::move_unique(map));
+    maps.insert(s, std::unique_ptr<CellMap>(map));
   }
 
   if (cells.get_names().empty() || maps.get_names().empty()) {
@@ -172,8 +174,9 @@ void Databank::make_default_map()
   CellMap* map = new CellMap();
   map->set_coord(y::ivec2(), *blueprint);
 
-  cells.insert("/world/default.cell", y::move_unique(blueprint));
-  maps.insert("/world/default.map", y::move_unique(map));
+  cells.insert(
+      "/world/default.cell", std::unique_ptr<CellBlueprint>(blueprint));
+  maps.insert("/world/default.map", std::unique_ptr<CellMap>(map));
 }
 
 void Databank::make_lua_file(LuaFile& file, GameStage& fake_stage)

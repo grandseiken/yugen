@@ -1,10 +1,10 @@
 #ifndef GAME_SAVEGAME_H
 #define GAME_SAVEGAME_H
 
-#include "../common/map.h"
-#include "../common/string.h"
 #include "../lua_types.h"
 #include "../save.h"
+#include <string>
+#include <unordered_map>
 
 class Filesystem;
 namespace proto {
@@ -25,13 +25,13 @@ public:
 
   Savegame();
   void save(Filesystem& filesystem,
-            const y::string& path, bool human_readable = false) const;
+            const std::string& path, bool human_readable = false) const;
   void load(const Filesystem& filesystem,
-            const y::string& path, bool human_readable = false);
+            const std::string& path, bool human_readable = false);
 
   void clear();
-  const LuaValue& get(const y::string& key) const;
-  void put(const y::string& key, const LuaValue& value);
+  const LuaValue& get(const std::string& key) const;
+  void put(const std::string& key, const LuaValue& value);
 
 protected:
 
@@ -42,7 +42,7 @@ protected:
 
 private:
 
-  typedef y::map<y::string, LuaValue> value_map;
+  typedef std::unordered_map<std::string, LuaValue> value_map;
   value_map _map;
   LuaValue _default_value;
 

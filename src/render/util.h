@@ -2,10 +2,25 @@
 #define RENDER_UTIL_H
 
 #include "gl_handle.h"
-#include "../common/ordered_map.h"
 #include "../vec.h"
+#include <map>
 
 class GlUtil;
+
+template<typename T, typename U = std::vector<T>>
+void write_vector(std::vector<T>& dest, std::size_t dest_index, const U& source)
+{
+  std::size_t i = 0;
+  for (const auto& u : source) {
+    if (dest_index + i < dest.size()) {
+      dest[dest_index + i] = T(u);
+    }
+    else {
+      dest.emplace_back(T(u));
+    }
+    ++i;
+  }
+}
 
 namespace colour {
   const y::fvec4 outline{.7f, .7f, .7f, 1.f};
@@ -24,7 +39,7 @@ namespace colour {
 }
 
 // Helper class to automatically batch renders using the same texture.
-class RenderBatch : public y::no_copy {
+class RenderBatch {
 public:
 
   struct batched_texture {
@@ -55,9 +70,9 @@ public:
     bool operator()(const batched_texture& l, const batched_texture& r) const;
   };
 
-  typedef y::vector<batched_sprite> batched_sprite_list;
-  typedef y::ordered_map<batched_texture, batched_sprite_list,
-                         batched_texture_order> batched_texture_map;
+  typedef std::vector<batched_sprite> batched_sprite_list;
+  typedef std::map<batched_texture, batched_sprite_list,
+                   batched_texture_order> batched_texture_map;
   const batched_texture_map& get_map() const;
   void clear();
 
@@ -69,15 +84,17 @@ private:
 
 class Window;
 
-class RenderUtil : public y::no_copy {
+class RenderUtil {
 public:
 
-  static const y::int32 native_width = 640;
-  static const y::int32 native_height = 360;
+  static const std::int32_t native_width = 640;
+  static const std::int32_t native_height = 360;
   static const y::ivec2 native_size;
   static const y::ivec2 native_overflow_size;
 
   RenderUtil(GlUtil& gl);
+  RenderUtil(const RenderUtil&) = delete;
+  RenderUtil& operator=(const RenderUtil&) = delete;
 
   /***/ GlUtil& get_gl() const;
   const Window& get_window() const;
@@ -86,7 +103,7 @@ public:
   typedef GlBuffer<float, 2> gl_quad_vertex;
 
   // Element array for arbitrarily many quads.
-  const GlDatabuffer<GLushort, 1>& quad_element(y::size length) const;
+  const GlDatabuffer<GLushort, 1>& quad_element(std::size_t length) const;
   // Element array for a quad.
   const gl_quad_element& quad_element() const;
   // Vertex positions for a quad.
@@ -110,9 +127,9 @@ public:
   void clear(const y::fvec4& colour) const;
 
   // Render text (at pixel coordinates).
-  void render_text(const y::string& text, const y::fvec2& origin,
+  void render_text(const std::string& text, const y::fvec2& origin,
                    const y::fvec4& colour) const;
-  void irender_text(const y::string& text, const y::ivec2& origin,
+  void irender_text(const std::string& text, const y::ivec2& origin,
                     const y::fvec4& colour) const;
 
   // Render colour (at pixel coordinates).
@@ -132,7 +149,7 @@ public:
     y::fvec2 a;
     y::fvec2 b;
   };
-  void render_lines(const y::vector<line>& lines,
+  void render_lines(const std::vector<line>& lines,
                     const y::fvec4& colour) const;
 
   // Render outline (at pixel coordinates).
@@ -166,8 +183,8 @@ public:
 private:
 
   // Font width and height.
-  static const y::int32 font_width = 8;
-  static const y::int32 font_height = 8;
+  static const std::int32_t font_width = 8;
+  static const std::int32_t font_height = 8;
   static const y::ivec2 font_size;
 
   GlUtil& _gl;

@@ -1,6 +1,5 @@
 #include "modal.h"
 
-#include "common/list.h"
 #include "render/util.h"
 #include "render/window.h"
 
@@ -24,7 +23,7 @@ bool UndoStack::can_redo() const
   return !_redo_stack.empty();
 }
 
-void UndoStack::new_action(y::unique<StackAction> action)
+void UndoStack::new_action(std::unique_ptr<StackAction> action)
 {
   StackAction* a = action.get();
   _undo_stack.emplace_back();
@@ -87,7 +86,7 @@ Draggable::Draggable()
 {
 }
 
-Panel::Panel(const y::ivec2& origin, const y::ivec2& size, y::int32 z_index)
+Panel::Panel(const y::ivec2& origin, const y::ivec2& size, std::int32_t z_index)
   : _visible(true)
   , _origin(origin)
   , _size(size)
@@ -154,7 +153,7 @@ bool Panel::order::operator()(Panel* a, Panel* b) const
   if (a->_z_index < b->_z_index) {
     return false;
   }
-  static y::less<Panel*> less;
+  static std::less<Panel*> less;
   return less(b, a);
 }
 
@@ -285,7 +284,7 @@ Panel* PanelUi::get_drag_panel() const
       return panel;
     }
   }
-  return y::null;
+  return nullptr;
 }
 
 void PanelUi::update_mouse_overs(bool in_window, const y::ivec2& v)
@@ -332,16 +331,16 @@ void PanelUi::update_mouse_overs(bool in_window, const y::ivec2& v)
 }
 
 Modal::Modal()
-  : _stack(y::null)
+  : _stack(nullptr)
   , _has_drawn_next(false)
   , _end(false)
   , _panel_ui(*this)
 {
 }
 
-void Modal::push(y::unique<Modal> modal)
+void Modal::push(std::unique_ptr<Modal> modal)
 {
-  _stack->push(y::move_unique(modal));
+  _stack->push(std::move(modal));
 }
 
 bool Modal::has_next() const
@@ -400,7 +399,7 @@ bool Modal::has_drawn_next() const
   return _has_drawn_next;
 }
 
-void ModalStack::push(y::unique<Modal> modal)
+void ModalStack::push(std::unique_ptr<Modal> modal)
 {
   modal->set_stack(*this);
   _stack.emplace_back();
@@ -425,10 +424,10 @@ void ModalStack::run(Window& window, RunTiming& run_timing)
   auto accumulated_update_ticks(hrclock::duration::zero());
   auto accumulated_draw_ticks(hrclock::duration::zero());
 
-  const y::size measurements = 64;
-  y::list<y::size> update_measurements;
-  y::list<y::size> draw_measurements;
-  for (y::size i = 0; i < measurements; ++i) {
+  const std::size_t measurements = 64;
+  std::list<std::size_t> update_measurements;
+  std::list<std::size_t> draw_measurements;
+  for (std::size_t i = 0; i < measurements; ++i) {
     update_measurements.emplace_back(0);
     draw_measurements.emplace_back(0);
   }
@@ -436,15 +435,15 @@ void ModalStack::run(Window& window, RunTiming& run_timing)
   while (!empty()) {
     auto ticks_per_update = std::chrono::duration_cast<hrclock::duration>(
         std::chrono::nanoseconds(
-            y::size(1000000000.f /
-                    run_timing.target_updates_per_second + .5f)));
+            std::size_t(1000000000.f /
+                        run_timing.target_updates_per_second + .5f)));
     auto ticks_per_draw = std::chrono::duration_cast<hrclock::duration>(
         std::chrono::nanoseconds(
-            y::size(1000000000.f /
-                    run_timing.target_draws_per_second + .5f)));
+            std::size_t(1000000000.f /
+                        run_timing.target_draws_per_second + .5f)));
 
     // Calculate the number of updates to do.
-    y::size updates = 1;
+    std::size_t updates = 1;
     auto now(clock.now());
     if (run_timing.target_updates_per_second > 0.f) {
       accumulated_update_ticks += (now - update_last);
@@ -464,10 +463,10 @@ void ModalStack::run(Window& window, RunTiming& run_timing)
     run_timing.updates_this_cycle += updates;
 
     // Do the updates.
-    for (y::size i = 0; i < updates; ++i) {
+    for (std::size_t i = 0; i < updates; ++i) {
       auto time_start(clock.now());
 
-      y::size top = _stack.size() - 1;
+      std::size_t top = _stack.size() - 1;
       sf::Event e;
       while (window.poll_event(e)) {
         if (e.type == sf::Event::Closed) {
@@ -523,10 +522,10 @@ void ModalStack::run(Window& window, RunTiming& run_timing)
     run_timing.us_per_draw_inst = *draw_measurements.rbegin();
     run_timing.us_per_update_avg = 0;
     run_timing.us_per_draw_avg = 0;
-    for (y::size m : update_measurements) {
+    for (std::size_t m : update_measurements) {
       run_timing.us_per_update_avg += m;
     }
-    for (y::size m : draw_measurements) {
+    for (std::size_t m : draw_measurements) {
       run_timing.us_per_draw_avg += m;
     }
     run_timing.us_per_update_avg /= measurements;
@@ -540,7 +539,7 @@ void ModalStack::run(Window& window, RunTiming& run_timing)
 
 bool ModalStack::has_next(const Modal& modal) const
 {
-  for (y::size i = 0; i < _stack.size(); ++i) {
+  for (std::size_t i = 0; i < _stack.size(); ++i) {
     if (_stack[i].get() == &modal) {
       return 1 + i < _stack.size();
     }
@@ -550,14 +549,14 @@ bool ModalStack::has_next(const Modal& modal) const
 
 void ModalStack::draw_next(const Modal& modal) const
 {
-  for (y::size i = 0; i < _stack.size(); ++i) {
+  for (std::size_t i = 0; i < _stack.size(); ++i) {
     if (_stack[i].get() == &modal && 1 + i < _stack.size()) {
       draw(1 + i);
     }
   }
 }
 
-void ModalStack::event(const sf::Event& e, y::size index)
+void ModalStack::event(const sf::Event& e, std::size_t index)
 {
   if (empty() || index >= _stack.size()) {
     return;
@@ -594,9 +593,9 @@ void ModalStack::update()
   top->update();
 }
 
-void ModalStack::draw(y::size index) const
+void ModalStack::draw(std::size_t index) const
 {
-  for (y::size i = index; i < _stack.size(); ++i) {
+  for (std::size_t i = index; i < _stack.size(); ++i) {
     const auto& modal = _stack[i];
     modal->clear_drawn_next();
     modal->draw();
@@ -608,7 +607,7 @@ void ModalStack::draw(y::size index) const
 
 bool ModalStack::clear_ended()
 {
-  for (y::size i = 0; i < _stack.size(); ++i) {
+  for (std::size_t i = 0; i < _stack.size(); ++i) {
     if (!_stack[i]->is_ended()) {
       continue;
     }

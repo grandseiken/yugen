@@ -39,7 +39,7 @@ y_api(vec__mul)
     y_optarg(const y::wvec2, a_vec) y_optarg(y::world, scalar)
     y_optarg(const y::wvec2, b_vec)
 {
-  static const y::string error =
+  static const std::string error =
            LuaType<y::wvec2>::type_name + " or " +
            LuaType<y::world>::type_name + " expected";
   y_assert(a_vec_defined || b_vec_defined, 0, error);
@@ -53,7 +53,7 @@ y_api(vec__div)
     y_optarg(const y::wvec2, a_vec) y_optarg(y::world, scalar)
     y_optarg(const y::wvec2, b_vec)
 {
-  static const y::string error =
+  static const std::string error =
            LuaType<y::wvec2>::type_name + " or " +
            LuaType<y::world>::type_name + " expected";
   y_assert(a_vec_defined || b_vec_defined, 0, error);
@@ -261,7 +261,7 @@ y_api(script__destroy)
 }
 
 y_api(script__send_message)
-    y_arg(Script*, script) y_arg(y::string, function_name)
+    y_arg(Script*, script) y_arg(std::string, function_name)
     y_varargs(LuaValue, args)
 {
   stage.get_scripts().send_message(script, function_name, args);
@@ -287,7 +287,7 @@ y_api(script__destroy_bodies)
 
 y_api(script__create_constraint)
     y_arg(Script*, script) y_arg(Script*, target)
-    y_arg(bool, fixed) y_arg(bool, target_fixed) y_optarg(y::int32, tag)
+    y_arg(bool, fixed) y_arg(bool, target_fixed) y_optarg(std::int32_t, tag)
 {
   stage.get_collision().get_constraints().create_constraint(
       *script, *target, fixed, target_fixed, tag_defined ? tag : 0);
@@ -295,7 +295,7 @@ y_api(script__create_constraint)
 }
 
 y_api(script__has_constraint)
-    y_arg(Script*, script) y_optarg(y::int32, tag)
+    y_arg(Script*, script) y_optarg(std::int32_t, tag)
 {
   y_return(tag_defined ?
       stage.get_collision().get_constraints().has_constraint(*script, tag) :
@@ -303,9 +303,9 @@ y_api(script__has_constraint)
 }
 
 y_api(script__get_constraints)
-    y_arg(Script*, script) y_optarg(y::int32, tag)
+    y_arg(Script*, script) y_optarg(std::int32_t, tag)
 {
-  y::vector<Script*> result;
+  std::vector<Script*> result;
   if (tag_defined) {
     stage.get_collision().get_constraints().get_constraints(
         result, *script, tag);
@@ -318,7 +318,7 @@ y_api(script__get_constraints)
 }
 
 y_api(script__destroy_constraints)
-    y_arg(Script*, script) y_optarg(y::int32, tag)
+    y_arg(Script*, script) y_optarg(std::int32_t, tag)
 {
   if (tag_defined) {
     stage.get_collision().get_constraints().destroy_constraints(*script, tag);
@@ -331,10 +331,10 @@ y_api(script__destroy_constraints)
 
 y_api(script__collider_move)
     y_arg(Script*, script) y_arg(const y::wvec2, move)
-    y_optarg(y::int32, push_mask) y_optarg(y::int32, push_max)
+    y_optarg(std::int32_t, push_mask) y_optarg(std::int32_t, push_max)
 {
-  y::vector<Script*> push_scripts;
-  y::vector<y::wvec2> push_amounts;
+  std::vector<Script*> push_scripts;
+  std::vector<y::wvec2> push_amounts;
   y::wvec2 moved = stage.get_collision().collider_move(
       push_scripts, push_amounts,
       *script, move, push_mask_defined ? push_mask : 0,
@@ -344,10 +344,10 @@ y_api(script__collider_move)
 
 y_api(script__collider_move_detail)
     y_arg(Script*, script) y_arg(const y::wvec2, move)
-    y_optarg(y::int32, push_mask) y_optarg(y::int32, push_max)
+    y_optarg(std::int32_t, push_mask) y_optarg(std::int32_t, push_max)
 {
-  y::vector<Script*> push_scripts;
-  y::vector<y::wvec2> push_amounts;
+  std::vector<Script*> push_scripts;
+  std::vector<y::wvec2> push_amounts;
   y::wvec2 moved = stage.get_collision().collider_move(
       push_scripts, push_amounts,
       *script, move, push_mask_defined ? push_mask : 0,
@@ -365,7 +365,7 @@ y_api(script__collider_rotate)
 
 y_api(script__in_region)
     y_arg(Script*, script) y_arg(y::wvec2, origin) y_arg(y::wvec2, region)
-    y_optarg(y::int32, source_collide_mask)
+    y_optarg(std::int32_t, source_collide_mask)
 {
   y_return(stage.get_collision().get_data().source_in_region(
       *script, origin, region,
@@ -374,7 +374,7 @@ y_api(script__in_region)
 
 y_api(script__in_radius)
     y_arg(Script*, script) y_arg(y::wvec2, origin) y_arg(y::world, radius)
-    y_optarg(y::int32, source_collide_mask)
+    y_optarg(std::int32_t, source_collide_mask)
 {
   y_return(stage.get_collision().get_data().source_in_radius(
       *script, origin, radius,
@@ -383,8 +383,8 @@ y_api(script__in_radius)
 
 y_api(script__source_check)
     y_arg(Script*, script)
-    y_arg(y::int32, source_collide_mask)
-    y_arg(y::int32, target_collide_mask)
+    y_arg(std::int32_t, source_collide_mask)
+    y_arg(std::int32_t, target_collide_mask)
 {
   y_return(stage.get_collision().source_check(*script, source_collide_mask,
                                                        target_collide_mask));
@@ -438,7 +438,7 @@ y_ptrtypedef(Script) {
 // Game stage API
 /******************************************************************************/
 y_api(get_script)
-    y_arg(y::string, path)
+    y_arg(std::string, path)
 {
   y_assert(stage.get_bank().scripts.is_name_used(path), 0,
            ("Missing script " + path + " used").c_str());
@@ -476,7 +476,7 @@ y_api(get_scripts_in_radius)
 
 y_api(get_bodies_in_region)
     y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
-    y_optarg(y::int32, collide_mask)
+    y_optarg(std::int32_t, collide_mask)
 {
   CollisionData::result result;
   stage.get_collision().get_data().get_bodies_in_region(
@@ -486,7 +486,7 @@ y_api(get_bodies_in_region)
 
 y_api(get_bodies_in_radius)
     y_arg(const y::wvec2, origin) y_arg(y::world, radius)
-    y_optarg(y::int32, collide_mask)
+    y_optarg(std::int32_t, collide_mask)
 {
   CollisionData::result result;
   stage.get_collision().get_data().get_bodies_in_radius(
@@ -503,13 +503,13 @@ y_api(set_player)
 
 y_api(clear_player)
 {
-  stage.set_player(y::null);
+  stage.set_player(nullptr);
   y_void();
 }
 
 y_api(has_player)
 {
-  y_return(stage.get_player() != y::null);
+  y_return(stage.get_player() != nullptr);
 }
 
 y_api(get_player)
@@ -518,7 +518,7 @@ y_api(get_player)
 }
 
 y_api(is_key_down)
-    y_arg(y::int32, key)
+    y_arg(std::int32_t, key)
 {
   y_return(stage.is_key_down(key));
 }
@@ -548,14 +548,14 @@ y_api(get_camera_rotation)
 }
 
 y_api(savegame_put)
-    y_arg(y::string, key) y_arg(LuaValue, value)
+    y_arg(std::string, key) y_arg(LuaValue, value)
 {
   stage.get_savegame().put(key, value);
   y_void();
 }
 
 y_api(savegame_get)
-    y_arg(y::string, key)
+    y_arg(std::string, key)
 {
   y_return(stage.get_savegame().get(key));
 }
@@ -570,7 +570,7 @@ y_api(savegame_save)
 // Rendering API
 /******************************************************************************/
 y_api(get_sprite)
-    y_arg(y::string, path)
+    y_arg(std::string, path)
 {
   y_assert(stage.get_bank().sprites.is_name_used(path), 0,
            ("Missing sprite " + path + " used").c_str());
@@ -578,11 +578,11 @@ y_api(get_sprite)
 }
 
 y_api(add_particle)
-    y_arg(y::int32, tag) y_arg(y::int32, frames)
+    y_arg(std::int32_t, tag) y_arg(std::int32_t, frames)
     y_arg(y::world, bounce_coefficient)
     y_arg(const y::wvec2, p) y_arg(const y::wvec2, dp)
     y_arg(const y::wvec2, d2p)
-    y_arg(y::int32, layer) y_arg(y::world, depth)
+    y_arg(std::int32_t, layer) y_arg(y::world, depth)
     y_arg(y::world, size) y_arg(y::world, dsize)
     y_arg(y::world, d2size)
     y_optarg(y::world, r) y_optarg(y::world, g)
@@ -615,11 +615,11 @@ y_api(add_particle)
 }
 
 y_api(add_textured_particle)
-    y_arg(y::int32, tag) y_arg(y::int32, frames)
+    y_arg(std::int32_t, tag) y_arg(std::int32_t, frames)
     y_arg(y::world, bounce_coefficient)
     y_arg(const y::wvec2, p) y_arg(const y::wvec2, dp)
     y_arg(const y::wvec2, d2p)
-    y_arg(y::int32, layer) y_arg(y::world, depth)
+    y_arg(std::int32_t, layer) y_arg(y::world, depth)
     y_arg(const Sprite*, sprite)
     y_arg(const y::wvec2, frame_size) y_arg(const y::wvec2, frame)
     y_optarg(y::world, r) y_optarg(y::world, g)
@@ -652,12 +652,12 @@ y_api(add_textured_particle)
 }
 
 y_api(add_rope)
-    y_arg(y::int32, point_masses) y_arg(y::world, length)
+    y_arg(std::int32_t, point_masses) y_arg(y::world, length)
     y_arg(y::world, mass) y_arg(y::world, spring) y_arg(y::world, friction)
     y_arg(const y::wvec2, gravity)
     y_arg(y::world, air_friction) y_arg(y::world, ground_friction)
     y_arg(y::world, bounce_coefficient)
-    y_arg(y::int32, layer) y_arg(y::world, depth)
+    y_arg(std::int32_t, layer) y_arg(y::world, depth)
     y_arg(y::world, size)
     y_arg(y::world, r) y_arg(y::world, g)
     y_arg(y::world, b) y_arg(y::world, a)
@@ -675,8 +675,8 @@ y_api(add_rope)
 
   stage.get_environment().add_rope(
       Rope(point_masses, length,
-           script_start_defined ? script_start : y::null,
-           script_end_defined ? script_end : y::null,
+           script_start_defined ? script_start : nullptr,
+           script_end_defined ? script_end : nullptr,
            v0, script_start_defined && !script_end_defined ? v0 : v1,
            params, layer, depth, size,
            y::fvec4{float(r), float(g), float(b), float(a)}));
@@ -684,12 +684,12 @@ y_api(add_rope)
 }
 
 y_api(add_textured_rope)
-    y_arg(y::int32, point_masses) y_arg(y::world, length)
+    y_arg(std::int32_t, point_masses) y_arg(y::world, length)
     y_arg(y::world, mass) y_arg(y::world, spring) y_arg(y::world, friction)
     y_arg(const y::wvec2, gravity)
     y_arg(y::world, air_friction) y_arg(y::world, ground_friction)
     y_arg(y::world, bounce_coefficient)
-    y_arg(y::int32, layer) y_arg(y::world, depth)
+    y_arg(std::int32_t, layer) y_arg(y::world, depth)
     y_arg(y::world, r) y_arg(y::world, g)
     y_arg(y::world, b) y_arg(y::world, a)
     y_arg(const Sprite*, sprite)
@@ -708,8 +708,8 @@ y_api(add_textured_rope)
 
   stage.get_environment().add_rope(
       Rope(point_masses, length,
-           script_start_defined ? script_start : y::null,
-           script_end_defined ? script_end : y::null,
+           script_start_defined ? script_start : nullptr,
+           script_end_defined ? script_end : nullptr,
            v0, script_start_defined && !script_end_defined ? v0 : v1,
            params, layer, depth,
            y::fvec4{float(r), float(g), float(b), float(a)},
@@ -718,14 +718,14 @@ y_api(add_textured_rope)
 }
 
 y_api(destroy_particles)
-    y_arg(y::int32, tag)
+    y_arg(std::int32_t, tag)
 {
   stage.get_environment().destroy_particles(tag);
   y_void();
 }
 
 y_api(modify_particles)
-    y_arg(y::int32, tag)
+    y_arg(std::int32_t, tag)
     y_arg(const y::wvec2, p_add) y_arg(const y::wvec2, dp_add)
     y_arg(const y::wvec2, d2p_add)
 {
@@ -735,7 +735,7 @@ y_api(modify_particles)
 }
 
 y_api(render_sprite)
-    y_arg(y::int32, layer) y_arg(y::world, depth)
+    y_arg(std::int32_t, layer) y_arg(y::world, depth)
     y_arg(const y::wvec2, origin) y_arg(y::world, rotation)
     y_arg(const Sprite*, sprite)
     y_arg(const y::wvec2, frame_size) y_arg(const y::wvec2, frame)
@@ -759,7 +759,7 @@ y_api(render_sprite)
 }
 
 y_api(render_fog)
-    y_arg(y::int32, layer) y_arg(y::world, layering_value)
+    y_arg(std::int32_t, layer) y_arg(y::world, layering_value)
     y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
     y_arg(const y::wvec2, tex_offset) y_arg(y::world, frame)
     y_arg(y::world, r) y_arg(y::world, g) y_arg(y::world, b)
@@ -796,7 +796,7 @@ end:
 }
 
 y_api(render_reflect)
-    y_arg(y::int32, layer) y_arg(y::world, layering_value)
+    y_arg(std::int32_t, layer) y_arg(y::world, layering_value)
     y_arg(const y::wvec2, origin) y_arg(const y::wvec2, region)
     y_arg(const y::wvec2, tex_offset) y_arg(y::world, frame)
     y_arg(y::world, r) y_arg(y::world, g) y_arg(y::world, b)
@@ -894,14 +894,14 @@ y_api(body__set_size)
 }
 
 y_api(body__set_collide_type)
-    y_arg(Body*, body) y_arg(y::int32, collide_type)
+    y_arg(Body*, body) y_arg(std::int32_t, collide_type)
 {
   body->collide_type = collide_type;
   y_void();
 }
 
 y_api(body__set_collide_mask)
-    y_arg(Body*, body) y_arg(y::int32, collide_mask)
+    y_arg(Body*, body) y_arg(std::int32_t, collide_mask)
 {
   body->collide_mask = collide_mask;
   y_void();
@@ -928,13 +928,13 @@ y_api(body__in_radius)
 }
 
 y_api(body__body_check)
-    y_arg(Body*, body) y_arg(y::int32, collide_mask)
+    y_arg(Body*, body) y_arg(std::int32_t, collide_mask)
 {
   y_return(stage.get_collision().body_check(body, collide_mask));
 }
 
 y_api(body__get_bodies_in_body)
-    y_arg(Body*, body) y_optarg(y::int32, collide_mask)
+    y_arg(Body*, body) y_optarg(std::int32_t, collide_mask)
 {
   CollisionData::result result;
   stage.get_collision().get_data().get_bodies_in_body(

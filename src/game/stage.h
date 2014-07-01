@@ -2,15 +2,14 @@
 #define GAME_STAGE_H
 
 #include "world.h"
-#include "../common/list.h"
-#include "../common/utility.h"
-#include "../common/vector.h"
 #include "../render/util.h"
 #include "../lua.h"
 #include "../modal.h"
 #include "../spatial_hash.h"
 #include "../vec.h"
 
+#include <list>
+#include <vector>
 #include <SFML/Window.hpp>
 
 class Camera;
@@ -24,10 +23,12 @@ class Savegame;
 struct LuaFile;
 
 // Stores all the scripts currently active.
-class ScriptBank : public y::no_copy {
+class ScriptBank {
 public:
 
   ScriptBank(GameStage& stage);
+  ScriptBank(const ScriptBank&) = delete;
+  ScriptBank& operator=(const ScriptBank&) = delete;
 
   Script& create_script(
       const LuaFile& file, const y::wvec2& origin);
@@ -35,7 +36,7 @@ public:
       const LuaFile& file,
       const y::wvec2& origin, const y::wvec2& region);
 
-  typedef y::vector<Script*> result;
+  typedef std::vector<Script*> result;
   // Finds scripts whose origin lies in the given region. Ignores assigned
   // region of the script itself.
   void get_in_region(result& output,
@@ -49,11 +50,11 @@ public:
   // the same userdata it would have to be modulo the calling Script; this
   // ensures different Scripts can be uniquely identified across different
   // client Scripts.
-  y::int32 get_uid(const Script* script) const;
+  std::int32_t get_uid(const Script* script) const;
 
   // Stash a message for calling at the end of the frame.
-  void send_message(Script* script, const y::string& function_name,
-                    const y::vector<LuaValue>& args);
+  void send_message(Script* script, const std::string& function_name,
+                    const std::vector<LuaValue>& args);
 
   // Functions below here should only be called by GameStage or GameRenderer,
   // not from the Lua API.
@@ -82,7 +83,7 @@ public:
 
 private:
 
-  void add_script(y::unique<Script> script);
+  void add_script(std::unique_ptr<Script> script);
   void release_uid(Script* script);
 
   GameStage& _stage;
@@ -99,21 +100,21 @@ private:
     ScriptBlueprint blueprint;
   };
   struct script_map_hash {
-    y::size operator()(const script_map_key& key) const;
+    std::size_t operator()(const script_map_key& key) const;
   };
-  typedef y::map<script_map_key, ConstScriptReference,
-                 script_map_hash> script_map;
+  typedef std::unordered_map<script_map_key, ConstScriptReference,
+                             script_map_hash> script_map;
   script_map _script_map;
 
-  mutable y::map<const Script*, y::size> _uid_map;
-  mutable y::ordered_set<y::size> _uid_unused;
+  mutable std::unordered_map<const Script*, std::size_t> _uid_map;
+  mutable std::set<std::size_t> _uid_unused;
 
   struct message {
     Script* script;
-    y::string function_name;
-    y::vector<LuaValue> args;
+    std::string function_name;
+    std::vector<LuaValue> args;
   };
-  y::vector<message> _messages;
+  std::vector<message> _messages;
 
   // Temporary per-frame data for storing which cells we need to preserve.
   bool _all_cells_preserved;
@@ -121,7 +122,7 @@ private:
 
   // Script destruction callbacks remove it from the datastructures, so the
   // scripts need to be destroyed first.
-  typedef y::list<y::unique<Script>> script_list;
+  typedef std::list<std::unique_ptr<Script>> script_list;
   script_list _scripts;
 
 };
@@ -134,7 +135,7 @@ private:
 // check the current layer, drawing if so desired. When we need a normal pass
 // the process is repeated and the Scripts draw the corresponding normal data.
 // For the world layer we also draw all the tiles.
-class GameRenderer : public y::no_copy {
+class GameRenderer {
 public:
 
   // All the defined layers, in order. Keep in sync with render.lua.
@@ -162,6 +163,8 @@ public:
   };
 
   GameRenderer(RenderUtil& util, const GlFramebuffer& framebuffer);
+  GameRenderer(const GameRenderer&) = delete;
+  GameRenderer& operator=(const GameRenderer&) = delete;
 
   RenderUtil& get_util() const;
   const GlFramebuffer& get_framebuffer() const;
@@ -258,7 +261,7 @@ private:
 
 };
 
-class Camera : public y::no_copy {
+class Camera {
 public:
 
   Camera(const y::ivec2& framebuffer_size);
@@ -295,7 +298,7 @@ public:
   // we're only using this as a fake to access Scripts from the editor.
   GameStage(const Databank& bank, Filesystem& save_filesystem,
             RenderUtil& util, const GlFramebuffer& framebuffer,
-            const y::string& source_key, const y::wvec2& coord,
+            const std::string& source_key, const y::wvec2& coord,
             bool fake = false);
   ~GameStage() override;
 
@@ -326,7 +329,7 @@ public:
   // Since it's important we keep around all the sources we use, this function
   // should be used to access them based on a string key. The type of source
   // depends on the string, for example a path to a map file.
-  const WorldSource& get_source(const y::string& source_key) const;
+  const WorldSource& get_source(const std::string& source_key) const;
 
   // Modal functions.
   void event(const sf::Event& e) override;
@@ -336,7 +339,7 @@ public:
   // Lua API functions.
   void set_player(Script* script);
   Script* get_player() const;
-  bool is_key_down(y::int32 key) const;
+  bool is_key_down(std::int32_t key) const;
   void save_game() const;
 
 private:
@@ -346,23 +349,24 @@ private:
   const Databank& _bank;
   Filesystem& _save_filesystem;
 
-  typedef y::map<y::string, y::unique<const WorldSource>> source_map;
+  typedef std::unordered_map<
+      std::string, std::unique_ptr<const WorldSource>> source_map;
   mutable source_map _source_map;
-  y::string _active_source_key;
+  std::string _active_source_key;
   WorldWindow _world;
 
   ScriptBank _scripts;
   GameRenderer _renderer;
   Camera _camera;
 
-  y::unique<Savegame> _savegame;
-  y::unique<Collision> _collision;
-  y::unique<Lighting> _lighting;
-  y::unique<Environment> _environment;
+  std::unique_ptr<Savegame> _savegame;
+  std::unique_ptr<Collision> _collision;
+  std::unique_ptr<Lighting> _lighting;
+  std::unique_ptr<Environment> _environment;
 
   Script* _player;
 
-  typedef y::map<y::int32, y::set<y::int32>> key_map;
+  typedef std::unordered_map<std::int32_t, std::unordered_set<std::int32_t>> key_map;
   key_map _key_map;
 
 };

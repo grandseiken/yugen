@@ -11,7 +11,7 @@ class GlUtil;
 class RenderUtil;
 
 // Data for various kinds of light.
-struct Light : y::no_copy {
+struct Light {
   Light(const Script& source);
 
   const Script& source;
@@ -80,16 +80,16 @@ public:
 
 private:
 
-  typedef y::vector<y::wvec2> light_trace;
+  typedef std::vector<y::wvec2> light_trace;
 
   // Add all the data for a vertex of a lit shape.
   void add_vertex(const y::wvec2& origin, const y::wvec2& trace,
                   const Light& light) const;
   // Add a triangle by element indices if necessary.
   void add_triangle(
-      y::vector<GLushort>& element_data,
+      std::vector<GLushort>& element_data,
       const y::wvec2& min, const y::wvec2& max,
-      y::size start_index, y::size a, y::size b, y::size c,
+      std::size_t start_index, std::size_t a, std::size_t b, std::size_t c,
       const y::wvec2& at, const y::wvec2& bt, const y::wvec2& ct) const;
 
   void render_internal(
@@ -117,9 +117,10 @@ private:
     bool operator!=(const trace_key& key) const;
   };
   struct trace_key_hash {
-    y::size operator()(const trace_key& key) const;
+    std::size_t operator()(const trace_key& key) const;
   };
-  typedef y::map<trace_key, light_trace, trace_key_hash> trace_results;
+  typedef std::unordered_map<
+      trace_key, light_trace, trace_key_hash> trace_results;
 
   // Internal lighting functions.
   struct world_geometry {
@@ -134,26 +135,26 @@ private:
     y::wvec2 end;
   };
   struct world_geometry_hash {
-    y::size operator()(const world_geometry& g) const;
+    std::size_t operator()(const world_geometry& g) const;
   };
-  typedef y::vector<world_geometry> geometry_entry;
-  typedef y::map<y::wvec2, geometry_entry> geometry_map;
-  typedef y::set<world_geometry, world_geometry_hash> geometry_set;
+  typedef std::vector<world_geometry> geometry_entry;
+  typedef std::unordered_map<y::wvec2, geometry_entry> geometry_map;
+  typedef std::unordered_set<world_geometry, world_geometry_hash> geometry_set;
 
   // Pair of functions for finding all vertices and geometries that might
   // affect the light output in the angular and planar settings.
   static void get_relevant_geometry(
-      y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+      std::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
       geometry_map& map_output, const Light& light, const y::wvec2& origin,
       const WorldGeometry::geometry_hash& all_geometry, bool planar);
 
   static void get_angular_relevant_geometry(
-      y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+      std::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
       geometry_map& map_output, const Light& light, const y::wvec2& origin,
       const WorldGeometry::geometry_hash& all_geometry);
 
   static void get_planar_relevant_geometry(
-      y::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
+      std::vector<y::wvec2>& vertex_output, geometry_entry& geometry_output,
       geometry_map& map_output, const Light& light, const y::wvec2& origin,
       const WorldGeometry::geometry_hash& all_geometry);
 
@@ -166,19 +167,19 @@ private:
 
   // Pair of functions for tracing angular and planar light geometry.
   static void trace_light_geometry(light_trace& output, const Light& light,
-                                   const y::vector<y::wvec2>& vertex_buffer,
+                                   const std::vector<y::wvec2>& vertex_buffer,
                                    const geometry_entry& geometry_buffer,
                                    const geometry_map& map, bool planar);
 
   static void trace_angular_light_geometry(
       light_trace& output, const Light& light,
-      const y::vector<y::wvec2>& vertex_buffer,
+      const std::vector<y::wvec2>& vertex_buffer,
       const geometry_entry& geometry_buffer,
       const geometry_map& map);
 
   static void trace_planar_light_geometry(
       light_trace& output, const Light& light,
-      const y::vector<y::wvec2>& vertex_buffer,
+      const std::vector<y::wvec2>& vertex_buffer,
       const geometry_entry& geometry_buffer,
       const geometry_map& map);
 
@@ -197,7 +198,7 @@ private:
   GlDatabuffer<float, 4> _colour;
   GlDatabuffer<float, 1> _layering;
 
-  mutable y::vector<y::vector<GLushort>> _element_data;
+  mutable std::vector<std::vector<GLushort>> _element_data;
   GlUnique<GlBuffer<GLushort, 1>> _element_buffer;
 
   trace_results _trace_results;

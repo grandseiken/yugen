@@ -87,21 +87,6 @@
     <ClInclude Include="..\gen\proto\common.pb.h" />
     <ClInclude Include="..\gen\proto\savegame.pb.h" />
     <ClInclude Include="..\src\callback.h" />
-    <ClInclude Include="..\src\common\algorithm.h" />
-    <ClInclude Include="..\src\common\function.h" />
-    <ClInclude Include="..\src\common\io.h" />
-    <ClInclude Include="..\src\common\list.h" />
-    <ClInclude Include="..\src\common\map.h" />
-    <ClInclude Include="..\src\common\math.h" />
-    <ClInclude Include="..\src\common\memory.h" />
-    <ClInclude Include="..\src\common\ordered_map.h" />
-    <ClInclude Include="..\src\common\ordered_set.h" />
-    <ClInclude Include="..\src\common\pair.h" />
-    <ClInclude Include="..\src\common\set.h" />
-    <ClInclude Include="..\src\common\string.h" />
-    <ClInclude Include="..\src\common\tuple.h" />
-    <ClInclude Include="..\src\common\utility.h" />
-    <ClInclude Include="..\src\common\vector.h" />
     <ClInclude Include="..\src\data\bank.h" />
     <ClInclude Include="..\src\data\cell.h" />
     <ClInclude Include="..\src\data\tileset.h" />
@@ -161,7 +146,6 @@
     <None Include="..\src\proto\cell.proto" />
     <None Include="..\src\proto\common.proto" />
     <None Include="..\src\proto\savegame.proto" />
-    <None Include="yedit.vcxproj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -9,14 +9,14 @@ namespace y {
   typedef std::ifstream ifstream;
 }
 
-PhysicalFilesystem::PhysicalFilesystem(const y::string& root)
+PhysicalFilesystem::PhysicalFilesystem(const std::string& root)
   : _root(boost::filesystem::absolute(boost::filesystem::path(root))
           .generic_string())
 {
 }
 
-void PhysicalFilesystem::list_directory_internal(y::vector<y::string>& output,
-                                                 const y::string& path) const
+void PhysicalFilesystem::list_directory_internal(std::vector<std::string>& output,
+                                                 const std::string& path) const
 {
   try {
     boost::filesystem::path root(_root);
@@ -29,7 +29,7 @@ void PhysicalFilesystem::list_directory_internal(y::vector<y::string>& output,
   catch (const boost::filesystem::filesystem_error&) {}
 }
 
-bool PhysicalFilesystem::is_file_internal(const y::string& path) const
+bool PhysicalFilesystem::is_file_internal(const std::string& path) const
 {
   try {
     boost::filesystem::path root(_root);
@@ -41,7 +41,7 @@ bool PhysicalFilesystem::is_file_internal(const y::string& path) const
   return false;
 }
 
-bool PhysicalFilesystem::is_directory_internal(const y::string& path) const
+bool PhysicalFilesystem::is_directory_internal(const std::string& path) const
 {
   try {
     boost::filesystem::path root(_root);
@@ -53,15 +53,15 @@ bool PhysicalFilesystem::is_directory_internal(const y::string& path) const
   return false;
 }
 
-void PhysicalFilesystem::read_file_internal(y::string& output,
-                                            const y::string& path) const
+void PhysicalFilesystem::read_file_internal(std::string& output,
+                                            const std::string& path) const
 {
   try {
     boost::filesystem::path root(_root);
     std::ifstream file((root / path).native(),
                        std::ios::in | std::ios::binary);
 
-    y::size first = output.length();
+    std::size_t first = output.length();
     file.seekg(0, std::ios::end);
     output.resize(output.length() + file.tellg());
     file.seekg(0, std::ios::beg);
@@ -75,8 +75,8 @@ void PhysicalFilesystem::read_file_internal(y::string& output,
   }
 }
 
-void PhysicalFilesystem::write_file_internal(const y::string& data,
-                                             const y::string& path)
+void PhysicalFilesystem::write_file_internal(const std::string& data,
+                                             const std::string& path)
 {
   try {
     boost::filesystem::path root(_root);

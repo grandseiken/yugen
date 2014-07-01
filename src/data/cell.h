@@ -1,10 +1,10 @@
 #ifndef DATA_CELL_H
 #define DATA_CELL_H
 
-#include "../common/map.h"
-#include "../common/memory.h"
 #include "../save.h"
 #include "../vec.h"
+#include <memory>
+#include <unordered_map>
 
 class CellBlueprint;
 class Tileset;
@@ -19,7 +19,7 @@ namespace proto {
 struct ScriptBlueprint {
   y::ivec2 min;
   y::ivec2 max;
-  y::string path;
+  std::string path;
 };
 
 // Sparse spatial map of CellBlueprints. CellMaps also store the scripts
@@ -45,7 +45,7 @@ public:
   // Get iterator to iterate over area enclosed by boundary.
   y::ivec2_iterator get_cartesian() const;
 
-  typedef y::vector<ScriptBlueprint> script_list;
+  typedef std::vector<ScriptBlueprint> script_list;
 
   // Script manipulation.
   void add_script(const ScriptBlueprint& blueprint);
@@ -66,7 +66,7 @@ private:
 
   void recalculate_boundary() const;
 
-  typedef y::map<y::ivec2, CellBlueprint*> blueprint_map;
+  typedef std::unordered_map<y::ivec2, CellBlueprint*> blueprint_map;
   blueprint_map _map;
 
   mutable y::ivec2 _min;
@@ -79,44 +79,44 @@ private:
 
 struct Tile {
 
-  Tile(const Tileset* tileset = y::null, y::size index = 0);
+  Tile(const Tileset* tileset = nullptr, std::size_t index = 0);
 
   bool operator==(const Tile& tile) const;
   bool operator!=(const Tile& tile) const;
 
-  y::int32 get_collision() const;
+  std::int32_t get_collision() const;
 
   const Tileset* tileset;
-  y::size index;
+  std::size_t index;
 
 };
 
 // An instantiation of a CellBlueprint. Modified tiles are stored as a diff
 // from the CelLBlueprint. Changes to the underlying blueprint are reflected.
-class Cell : public y::no_copy {
+class Cell {
 public:
 
-  static const y::int32 cell_width = 40;
-  static const y::int32 cell_height = 30;
+  static const std::int32_t cell_width = 40;
+  static const std::int32_t cell_height = 30;
   static const y::ivec2 cell_size;
 
   // Number of background and foreground layers, not including the collision
   // layer.
-  static const y::int32 background_layers = 1;
-  static const y::int32 foreground_layers = 1;
+  static const std::int32_t background_layers = 1;
+  static const std::int32_t foreground_layers = 1;
 
   // Layer enumeration.
-  static const y::int32 layer_background = -1;
-  static const y::int32 layer_collision = 0;
-  static const y::int32 layer_foreground = 1;
+  static const std::int32_t layer_background = -1;
+  static const std::int32_t layer_collision = 0;
+  static const std::int32_t layer_foreground = 1;
 
   Cell(const CellBlueprint& blueprint);
 
   // Get the tile at a given position.
-  const Tile& get_tile(y::int32 layer, const y::ivec2& v) const;
+  const Tile& get_tile(std::int32_t layer, const y::ivec2& v) const;
 
   // Set the tile at a given position.
-  /****/ void set_tile(y::int32 layer, const y::ivec2& v, const Tile& tile);
+  /****/ void set_tile(std::int32_t layer, const y::ivec2& v, const Tile& tile);
 
   // Returns true iff the tileset is currently used for any tile.
   bool is_tileset_used(const Tileset& tileset) const;
@@ -125,31 +125,31 @@ private:
 
   const CellBlueprint& _blueprint;
 
-  y::map<const Tileset*, y::int32> _changed_tilesets;
-  y::map<y::size, Tile> _changed_tiles;
+  std::unordered_map<const Tileset*, std::int32_t> _changed_tilesets;
+  std::unordered_map<std::size_t, Tile> _changed_tiles;
 
 };
 
 class CellBlueprint : public y::io<proto::CellBlueprint> {
 public:
 
-  static const y::int32 raw_size =
+  static const std::int32_t raw_size =
       Cell::cell_width * Cell::cell_height * (
           1 + Cell::foreground_layers + Cell::background_layers);
 
   CellBlueprint();
 
   // Get the tile at a given position.
-  const Tile& get_tile(y::int32 layer, const y::ivec2& v) const;
+  const Tile& get_tile(std::int32_t layer, const y::ivec2& v) const;
 
   // Set the tile at a given position.
-  /****/ void set_tile(y::int32 layer, const y::ivec2& v, const Tile& tile);
+  /****/ void set_tile(std::int32_t layer, const y::ivec2& v, const Tile& tile);
 
   // Returns true iff the tileset is currently used for any tile.
   bool is_tileset_used(const Tileset& tileset) const;
 
   // Returns the number of tiles that use the tileset.
-  y::size get_tileset_use_count(const Tileset& tileset) const;
+  std::size_t get_tileset_use_count(const Tileset& tileset) const;
 
 protected:
 
@@ -160,10 +160,10 @@ protected:
 
 private:
 
-  void set_tile_internal(y::size internal_index, const Tile& tile);
+  void set_tile_internal(std::size_t internal_index, const Tile& tile);
 
-  y::map<const Tileset*, y::size> _tilesets;
-  y::unique<Tile[]> _tiles;
+  std::unordered_map<const Tileset*, std::size_t> _tilesets;
+  std::unique_ptr<Tile[]> _tiles;
 
 };
 

@@ -1,26 +1,25 @@
 #ifndef CALLBACK_H
 #define CALLBACK_H
 
-#include "common/function.h"
-#include "common/map.h"
-#include "common/math.h"
-#include "common/utility.h"
+#include <cstdint>
+#include <functional>
+#include <unordered_map>
 
 template<typename... A>
-class CallbackSet : public y::no_copy {
+class CallbackSet {
 public:
 
-  typedef y::function<void(A...)> callback;
+  typedef std::function<void(A...)> callback;
   CallbackSet();
 
-  y::int32 add(const callback& c);
-  void remove(y::int32 id);
+  std::int32_t add(const callback& c);
+  void remove(std::int32_t id);
   void operator()(A... args) const;
 
 private:
 
-  y::int32 _ids;
-  y::map<y::int32, callback> _callbacks;
+  std::int32_t _ids;
+  std::unordered_map<std::int32_t, callback> _callbacks;
 
 };
 
@@ -31,15 +30,15 @@ CallbackSet<A...>::CallbackSet()
 }
 
 template<typename... A>
-y::int32 CallbackSet<A...>::add(const callback& c)
+std::int32_t CallbackSet<A...>::add(const callback& c)
 {
-  y::int32 id = _ids++;
+  std::int32_t id = _ids++;
   _callbacks[id] = c;
   return id;
 }
 
 template<typename... A>
-void CallbackSet<A...>::remove(y::int32 id)
+void CallbackSet<A...>::remove(std::int32_t id)
 {
   _callbacks.erase(id);
 }

@@ -69,51 +69,6 @@
     <ClInclude Include="..\src\data\tileset.h">
       <Filter>data</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\common\algorithm.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\function.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\io.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\list.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\map.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\math.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\memory.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\ordered_map.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\ordered_set.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\pair.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\set.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\string.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\tuple.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\utility.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\common\vector.h">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\editor\tile_edit.h">
       <Filter>editor</Filter>
     </ClInclude>
@@ -215,9 +170,6 @@
     </Filter>
     <Filter Include="filesystem">
       <UniqueIdentifier>{01a29194-9efa-495d-bb66-d0866b74be0e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="common">
-      <UniqueIdentifier>{4ca03216-6870-49e9-bbdb-b5dc88ab2b89}</UniqueIdentifier>
     </Filter>
     <Filter Include="data">
       <UniqueIdentifier>{ddf49ee3-8507-4400-a51f-f2111ea32f63}</UniqueIdentifier>

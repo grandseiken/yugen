@@ -49,35 +49,38 @@ void UiList::set_select(const y::fvec4& select)
   _select = select;
 }
 
-void UiList::draw(RenderUtil& util, const y::vector<y::fvec4>& items,
-                  const y::vector<y::string>& source, y::size select) const
+void UiList::draw(RenderUtil& util, const std::vector<y::fvec4>& items,
+                  const std::vector<std::string>& source,
+                  std::size_t select) const
 {
   util.irender_fill(RenderUtil::from_grid(_origin),
                     RenderUtil::from_grid(_size), _panel);
 
-  y::int32 w = _size[xx];
-  y::int32 h = _size[yy];
-  y::int32 offset = y::max<y::int32>(0,
-    select >= source.size() - h / 2 - 1 ? source.size() - h : select - h / 2);
+  std::int32_t w = _size[xx];
+  std::int32_t h = _size[yy];
+  std::int32_t offset = std::max<std::int32_t>(
+    0, select >= source.size() - h / 2 - 1 ? source.size() - h :
+                                             select - h / 2);
 
-  for (y::int32 i = 0; i < h; ++i) {
-    if (i + offset >= y::int32(items.size()) ||
-        i + offset >= y::int32(source.size())) {
+  for (std::int32_t i = 0; i < h; ++i) {
+    if (i + offset >= std::int32_t(items.size()) ||
+        i + offset >= std::int32_t(source.size())) {
       break;
     }
 
-    y::string s = source[i + offset];
-    s = y::int32(s.length()) > w ? s.substr(0, w - 3) + "..." : s;
+    std::string s = source[i + offset];
+    s = std::int32_t(s.length()) > w ? s.substr(0, w - 3) + "..." : s;
     util.irender_text(s, RenderUtil::from_grid(_origin + y::ivec2{0, i}),
                       items[i + offset]);
   }
 }
 
 void UiList::draw(RenderUtil& util,
-                  const y::vector<y::string>& source, y::size select) const
+                  const std::vector<std::string>& source,
+                  std::size_t select) const
 {
-  y::vector<y::fvec4> items;
-  for (y::size n = 0; n < source.size(); ++n) {
+  std::vector<y::fvec4> items;
+  for (std::size_t n = 0; n < source.size(); ++n) {
     items.emplace_back(n == select ? _select : _item);
   }
 
@@ -90,8 +93,9 @@ TextInputResult::TextInputResult()
 {
 }
 
-TextInputModal::TextInputModal(RenderUtil& util, const y::string& default_text,
-                               TextInputResult& output, const y::string& label)
+TextInputModal::TextInputModal(
+    RenderUtil& util, const std::string& default_text,
+    TextInputResult& output, const std::string& label)
   : _util(util)
   , _output(output)
   , _label(label)
@@ -103,12 +107,12 @@ TextInputModal::TextInputModal(RenderUtil& util, const y::string& default_text,
 
 void TextInputModal::event(const sf::Event& e)
 {
-  static const y::string allowed =
-      y::string("abcdefghijklmnopqrstuvwxyz") +
-      y::string("ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
-      y::string("0123456789[](){}_-+=@#&./ ");
+  static const std::string allowed =
+      std::string("abcdefghijklmnopqrstuvwxyz") +
+      std::string("ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
+      std::string("0123456789[](){}_-+=@#&./ ");
   if (e.type == sf::Event::TextEntered && e.text.unicode < 128 &&
-      allowed.find_first_of(char(e.text.unicode)) != y::string::npos) {
+      allowed.find_first_of(char(e.text.unicode)) != std::string::npos) {
     _output.result = _output.result.substr(0, _cursor) +
         char(e.text.unicode) + _output.result.substr(_cursor);
     ++_cursor;
@@ -167,20 +171,20 @@ void TextInputModal::draw() const
 {
   const Resolution& r = _util.get_window().get_mode();
   y::ivec2 size = RenderUtil::from_grid({
-      y::int32(y::max(_label.length(), 1 + _output.result.length())), 2});
+      std::int32_t(std::max(_label.length(), 1 + _output.result.length())), 2});
   y::ivec2 origin = r.size / 2 - size / 2;
   _util.irender_fill(origin, {size[xx], RenderUtil::from_grid()[yy]},
                      colour::panel);
   _util.irender_outline(origin - y::ivec2{1, 1},
                         y::ivec2{2, 2} + size, colour::outline);
-  _util.irender_fill(origin + RenderUtil::from_grid({y::int32(_cursor), 1}),
+  _util.irender_fill(origin + RenderUtil::from_grid({std::int32_t(_cursor), 1}),
                      RenderUtil::from_grid(), colour::item);
   _util.irender_text(_label, origin, colour::item);
   _util.irender_text(_output.result, origin + RenderUtil::from_grid({0, 1}),
                      colour::select);
   if (_cursor < _output.result.length()) {
     _util.irender_text(_output.result.substr(_cursor, 1),
-                       origin + RenderUtil::from_grid({y::int32(_cursor), 1}),
+                       origin + RenderUtil::from_grid({std::int32_t(_cursor), 1}),
                        colour::black);
   }
 }
@@ -191,7 +195,7 @@ ConfirmationResult::ConfirmationResult()
 }
 
 ConfirmationModal::ConfirmationModal(
-    RenderUtil& util, ConfirmationResult& output, const y::string& message)
+    RenderUtil& util, ConfirmationResult& output, const std::string& message)
   : _util(util)
   , _output(output)
   , _message(message)
@@ -238,7 +242,7 @@ void ConfirmationModal::draw() const
 {
   const Resolution& r = _util.get_window().get_mode();
   y::ivec2 size = RenderUtil::from_grid({
-      y::int32(y::max(_message.length(), y::size(10))), 2});
+      std::int32_t(std::max(_message.length(), std::size_t(10))), 2});
   y::ivec2 origin = r.size / 2 - size / 2;
   _util.irender_fill(origin, {size[xx], RenderUtil::from_grid()[yy]},
                      colour::panel);

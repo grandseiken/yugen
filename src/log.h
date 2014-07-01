@@ -1,16 +1,16 @@
 #ifndef LOG_H
 #define LOG_H
 
-#include "common/io.h"
+#include <iostream>
 
 namespace {
 
-inline void logg(y::ostream&)
+inline void logg(std::ostream&)
 {
 }
 
 template<typename T, typename... U>
-inline void logg(y::ostream& o, const T& t, const U&... args)
+inline void logg(std::ostream& o, const T& t, const U&... args)
 {
   o << t;
   logg(o, args...);
@@ -25,10 +25,10 @@ inline void logv(const T&, const U&... args)
 }
 
 template<typename... T>
-inline void loge(y::ostream& o, const T&... args)
+inline void loge(std::ostream& o, const T&... args)
 {
   logg(o, args...);
-  o << y::endl;
+  o << std::endl;
 }
 
 template<typename... T>
@@ -54,25 +54,25 @@ inline void logg_debug(const T&... args)
 template<typename... T>
 inline void log_info(const T&... args)
 {
-  loge(y::cout, args...);
+  loge(std::cout, args...);
 }
 
 template<typename... T>
 inline void logg_info(const T&... args)
 {
-  logg(y::cout, args...);
+  logg(std::cout, args...);
 }
 
 template<typename... T>
 inline void log_err(const T&... args)
 {
-  loge(y::cerr, args...);
+  loge(std::cerr, args...);
 }
 
 template<typename... T>
 inline void logg_err(const T&... args)
 {
-  logg(y::cerr, args...);
+  logg(std::cerr, args...);
 }
 
 // End anonymous namespace.

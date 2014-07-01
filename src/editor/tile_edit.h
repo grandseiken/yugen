@@ -11,12 +11,12 @@ class Tileset;
 // Action that sets the collision of a tile.
 struct SetCollideAction : public StackAction {
   SetCollideAction(Tileset& tileset, const y::ivec2& coord,
-                   y::int32 old_collide, y::int32 new_collide);
+                   std::int32_t old_collide, std::int32_t new_collide);
 
   Tileset& tileset;
   y::ivec2 coord;
-  y::int32 old_collide;
-  y::int32 new_collide;
+  std::int32_t old_collide;
+  std::int32_t new_collide;
 
   void redo() const override;
   void undo() const override;
@@ -27,7 +27,7 @@ struct SetCollideAction : public StackAction {
 class TilesetPanel : public Panel {
 public:
 
-  TilesetPanel(Tileset& tileset, y::int32& collide_select,
+  TilesetPanel(Tileset& tileset, std::int32_t& collide_select,
                UndoStack& undo_stack);
   ~TilesetPanel() override {}
 
@@ -38,7 +38,7 @@ public:
 private:
 
   Tileset& _tileset;
-  y::int32& _collide_select;
+  std::int32_t& _collide_select;
   UndoStack& _undo_stack;
   y::ivec2 _hover;
 
@@ -48,9 +48,9 @@ private:
 class CollidePanel : public Panel {
 public:
 
-  static const y::int32 entries_per_row;
+  static const std::int32_t entries_per_row;
 
-  CollidePanel(y::int32& collide_select);
+  CollidePanel(std::int32_t& collide_select);
   ~CollidePanel() override {}
 
   bool event(const sf::Event& e) override;
@@ -59,7 +59,7 @@ public:
 
 private:
 
-  y::int32& _collide_select;
+  std::int32_t& _collide_select;
   y::ivec2 _hover;
 
 };
@@ -83,7 +83,7 @@ private:
   RenderUtil& _util;
   Tileset& _tileset;
 
-  y::int32 _collide_select;
+  std::int32_t _collide_select;
 
   TilesetPanel _tileset_panel;
   CollidePanel _collide_panel;

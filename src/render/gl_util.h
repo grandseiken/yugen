@@ -2,20 +2,23 @@
 #define RENDER_GL_UTIL_H
 
 #include "gl_handle.h"
-#include "../common/map.h"
-#include "../common/set.h"
 #include "../log.h"
 #include "../vec.h"
 #include <GL/glew.h>
+#include <unordered_map>
+#include <unordered_set>
 
 class Filesystem;
 class Window;
 
-class GlUtil : public y::no_copy {
+class GlUtil {
 public:
 
   GlUtil(const Filesystem& filesystem, const Window& window);
   ~GlUtil();
+
+  GlUtil(const GlUtil&) = delete;
+  GlUtil& operator=(const GlUtil&) = delete;
 
   // Returns true iff everything was initialised without problems.
   explicit operator bool() const;
@@ -23,26 +26,26 @@ public:
   const Window& get_window() const;
 
   // Make an OpenGL buffer.
-  template<typename T, y::size N>
+  template<typename T, std::size_t N>
   GlBuffer<T, N> make_buffer(GLenum target, GLenum usage_hint);
-  template<typename T, y::size N>
+  template<typename T, std::size_t N>
   GlBuffer<T, N> make_buffer(GLenum target, GLenum usage_hint,
                              const T* data, GLsizei size);
-  template<typename T, y::size N>
+  template<typename T, std::size_t N>
   GlBuffer<T, N> make_buffer(GLenum target, GLenum usage_hint,
-                             const y::vector<T>& data);
-  template<typename T, y::size N>
+                             const std::vector<T>& data);
+  template<typename T, std::size_t N>
   GlUnique<GlBuffer<T, N>> make_unique_buffer(
       GLenum target, GLenum usage_hint);
-  template<typename T, y::size N>
+  template<typename T, std::size_t N>
   GlUnique<GlBuffer<T, N>> make_unique_buffer(
       GLenum target, GLenum usage_hint, const T* data, GLsizei size);
-  template<typename T, y::size N>
+  template<typename T, std::size_t N>
   GlUnique<GlBuffer<T, N>> make_unique_buffer(
-      GLenum target, GLenum usage_hint, const y::vector<T>& data);
+      GLenum target, GLenum usage_hint, const std::vector<T>& data);
 
   // Delete an existing buffer.
-  template<typename T, y::size N>
+  template<typename T, std::size_t N>
   void delete_buffer(const GlBuffer<T, N>& buffer);
 
   // Make an OpenGL framebuffer.
@@ -54,45 +57,46 @@ public:
   void delete_framebuffer(const GlFramebuffer& framebuffer);
 
   // Make an OpenGL texture.
-  template<typename T = float, y::size N = 2>
+  template<typename T = float, std::size_t N = 2>
   GlTexture<N> make_texture(const typename GlTexture<N>::ivecn& size,
                             GLenum bit_depth, GLenum format,
                             const T* data, bool loop = false);
-  template<typename T = float, y::size N = 2>
+  template<typename T = float, std::size_t N = 2>
   GlUnique<GlTexture<N>> make_unique_texture(
       const typename GlTexture<N>::ivecn& size,
       GLenum bit_depth, GLenum format, const T* data, bool loop = false);
   // Load texture from file.
   GlTexture2D make_texture(
-      const y::string& filename, bool loop = false);
+      const std::string& filename, bool loop = false);
   GlUnique<GlTexture2D> make_unique_texture(
-      const y::string& filename, bool loop = false);
+      const std::string& filename, bool loop = false);
   // Get preloaded texture.
-  GlTexture2D get_texture(const y::string& filename) const;
+  GlTexture2D get_texture(const std::string& filename) const;
   // Delete preloaded texture.
-  void delete_texture(const y::string& filename);
-  template<y::size N>
+  void delete_texture(const std::string& filename);
+  template<std::size_t N>
   void delete_texture(const GlTexture<N>& texture);
 
   // Load shader from file. If type is 0, guesses based on extension. Shaders
   // named in the standard way are automatically loaded, so there's no need
   // to manually call these functions.
-  GlShader make_shader(const y::string& filename, GLenum type = 0);
+  GlShader make_shader(const std::string& filename, GLenum type = 0);
   GlUnique<GlShader> make_unique_shader(
-      const y::string& filename, GLenum type = 0);
+      const std::string& filename, GLenum type = 0);
   // Get preloaded shader.
-  GlShader get_shader(const y::string& filename) const;
+  GlShader get_shader(const std::string& filename) const;
   // Delete preloaded shader.
-  void delete_shader(const y::string& filename);
+  void delete_shader(const std::string& filename);
   void delete_shader(const GlShader& shader);
 
   // Link multiple shaders into one GLSL program.
-  GlProgram make_program(const y::vector<y::string>& shaders);
-  GlUnique<GlProgram> make_unique_program(const y::vector<y::string>& shaders);
+  GlProgram make_program(const std::vector<std::string>& shaders);
+  GlUnique<GlProgram> make_unique_program(
+      const std::vector<std::string>& shaders);
   // Get preloaded program.
-  GlProgram get_program(const y::vector<y::string>& shaders) const;
+  GlProgram get_program(const std::vector<std::string>& shaders) const;
   // Delete preloaded program.
-  void delete_program(const y::vector<y::string>& shaders);
+  void delete_program(const std::vector<std::string>& shaders);
   void delete_program(const GlProgram& program);
 
   // Render to window, rather than any framebuffer.
@@ -117,10 +121,10 @@ private:
   const Filesystem& _filesystem;
   const Window& _window;
 
-  typedef y::set<GLuint> gl_handle_set;
-  typedef y::map<y::string, GlTexture2D> gl_texture_map;
-  typedef y::map<y::string, GlShader> gl_shader_map;
-  typedef y::map<y::string, GlProgram> gl_program_map;
+  typedef std::unordered_set<GLuint> gl_handle_set;
+  typedef std::unordered_map<std::string, GlTexture2D> gl_texture_map;
+  typedef std::unordered_map<std::string, GlShader> gl_shader_map;
+  typedef std::unordered_map<std::string, GlProgram> gl_program_map;
 
   gl_handle_set _buffer_set;
   gl_handle_set _texture_set;
@@ -135,7 +139,7 @@ private:
 
 template<typename>
 struct UniqueDelete {};
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 struct UniqueDelete<GlBuffer<T, N>> {
   void operator()(GlUtil& gl, const GlBuffer<T, N>& t)
   {
@@ -149,7 +153,7 @@ struct UniqueDelete<GlFramebuffer> {
     gl.delete_framebuffer(t);
   }
 };
-template<y::size N>
+template<std::size_t N>
 struct UniqueDelete<GlTexture<N>> {
   void operator()(GlUtil& gl, const GlTexture<N>& t)
   {
@@ -181,7 +185,7 @@ GlUnique<T>::~GlUnique()
   d(*_gl, _t);
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint)
 {
   // Don't log buffer creation and deletion, since it happens several times
@@ -193,7 +197,7 @@ GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint)
   return GlBuffer<T, N>(buffer, target, usage_hint);
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint,
                                    const T* data, GLsizei size)
 {
@@ -202,42 +206,42 @@ GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint,
   return handle;
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlBuffer<T, N> GlUtil::make_buffer(GLenum target, GLenum usage_hint,
-                                   const y::vector<T>& data)
+                                   const std::vector<T>& data)
 {
   return make_buffer<T, N>(target, usage_hint,
                            data.data(), sizeof(T) * data.size());
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlUnique<GlBuffer<T, N>> GlUtil::make_unique_buffer(
     GLenum target, GLenum usage_hint)
 {
   return make_unique(make_buffer<T, N>(target, usage_hint));
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlUnique<GlBuffer<T, N>> GlUtil::make_unique_buffer(
     GLenum target, GLenum usage_hint, const T* data, GLsizei size)
 {
   return make_unique(make_buffer<T, N>(target, usage_hint, data, size));
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlUnique<GlBuffer<T, N>> GlUtil::make_unique_buffer(
-    GLenum target, GLenum usage_hint, const y::vector<T>& data)
+    GLenum target, GLenum usage_hint, const std::vector<T>& data)
 {
   return make_unique(make_buffer<T, N>(target, usage_hint, data));
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlTexture<N> GlUtil::make_texture(const typename GlTexture<N>::ivecn& size,
                                   GLenum bit_depth, GLenum format,
                                   const T* data, bool loop)
 {
   logg_debug("Making ");
-  for (y::size i = 0; i < N; ++i) {
+  for (std::size_t i = 0; i < N; ++i) {
     if (i) {
       logg_debug('x');
     }
@@ -262,7 +266,7 @@ GlTexture<N> GlUtil::make_texture(const typename GlTexture<N>::ivecn& size,
   return GlTexture<N>(texture, size);
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlUnique<GlTexture<N>> GlUtil::make_unique_texture(
     const typename GlTexture<N>::ivecn& size,
     GLenum bit_depth, GLenum format, const T* data, bool loop)
@@ -270,7 +274,7 @@ GlUnique<GlTexture<N>> GlUtil::make_unique_texture(
   return make_unique(make_texture<T, N>(size, bit_depth, format, data, loop));
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 void GlUtil::delete_buffer(const GlBuffer<T, N>& buffer)
 {
   auto it = _buffer_set.find(buffer._handle);
@@ -280,11 +284,11 @@ void GlUtil::delete_buffer(const GlBuffer<T, N>& buffer)
   }
 }
 
-template<y::size N>
+template<std::size_t N>
 void GlUtil::delete_texture(const GlTexture<N>& texture)
 {
   logg_debug("Deleting ");
-  for (y::size i = 0; i < N; ++i) {
+  for (std::size_t i = 0; i < N; ++i) {
     if (i) {
       logg_debug('x');
     }

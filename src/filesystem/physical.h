@@ -4,30 +4,30 @@
 #include "filesystem.h"
 
 // Implementation of Filesystem that reads from local disk.
-class PhysicalFilesystem : public Filesystem, public y::no_copy {
+class PhysicalFilesystem : public Filesystem {
 public:
 
-  PhysicalFilesystem(const y::string& root);
+  PhysicalFilesystem(const std::string& root);
   ~PhysicalFilesystem() override {}
 
 protected:
 
-  void list_directory_internal(y::vector<y::string>& output,
-                               const y::string& path) const override;
+  void list_directory_internal(std::vector<std::string>& output,
+                               const std::string& path) const override;
 
-  bool is_file_internal(const y::string& path) const override;
+  bool is_file_internal(const std::string& path) const override;
 
-  bool is_directory_internal(const y::string& path) const override;
+  bool is_directory_internal(const std::string& path) const override;
 
-  void read_file_internal(y::string& output,
-                          const y::string& path) const override;
+  void read_file_internal(std::string& output,
+                          const std::string& path) const override;
 
-  void write_file_internal(const y::string& data,
-                           const y::string& path) override;
+  void write_file_internal(const std::string& data,
+                           const std::string& path) override;
 
 private:
 
-  const y::string _root;
+  const std::string _root;
 
 };
 

@@ -1,10 +1,10 @@
 #ifndef DATA_TILESET_H
 #define DATA_TILESET_H
 
-#include "../common/memory.h"
 #include "../render/gl_handle.h"
 #include "../save.h"
 #include "../vec.h"
+#include <memory>
 
 #ifndef SPRITE_DEC
 #define SPRITE_DEC
@@ -50,8 +50,8 @@ public:
     COLLIDE_SIZE,
   };
 
-  static const y::int32 tile_width = 32;
-  static const y::int32 tile_height = 32;
+  static const std::int32_t tile_width = 32;
+  static const std::int32_t tile_height = 32;
   static const y::ivec2 tile_size;
   static const y::ivec2 ul;
   static const y::ivec2 ur;
@@ -66,15 +66,15 @@ public:
   const Sprite& get_texture() const;
 
   const y::ivec2& get_size() const;
-  y::size get_tile_count() const;
+  std::size_t get_tile_count() const;
 
-  y::ivec2 from_index(y::int32 index) const;
-  y::int32 to_index(const y::ivec2& coords) const;
+  y::ivec2 from_index(std::int32_t index) const;
+  std::int32_t to_index(const y::ivec2& coords) const;
 
-  Collision get_collision(y::int32 index) const;
+  Collision get_collision(std::int32_t index) const;
   Collision get_collision(const y::ivec2& coords) const;
 
-  void set_collision(y::int32 index, Collision collision);
+  void set_collision(std::int32_t index, Collision collision);
   void set_collision(const y::ivec2& coords, Collision collision);
 
 protected:
@@ -89,7 +89,7 @@ private:
   y::ivec2 _size;
 
   Sprite _texture;
-  y::unique<Collision[]> _collision;
+  std::unique_ptr<Collision[]> _collision;
 
 };
 

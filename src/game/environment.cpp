@@ -46,7 +46,7 @@ y::wvec2 mass_collider_update(
   }
 
   if (collision) {
-    mass.v += y::max(0., min_ratio) * mass.d;
+    mass.v += std::max(0., min_ratio) * mass.d;
     return nearest_normal;
   }
   else {
@@ -59,9 +59,9 @@ y::wvec2 mass_collider_update(
 }
 
 Particle::Particle(
-    y::int32 tag, y::int32 frames, y::world bounce_coefficient,
+    std::int32_t tag, std::int32_t frames, y::world bounce_coefficient,
     const Derivatives<y::wvec2>& pos,
-    y::int32 layer, y::world depth,
+    std::int32_t layer, y::world depth,
     const Derivatives<y::world>& size,
     const Derivatives<y::fvec4>& colour)
   : tag(tag)
@@ -72,14 +72,14 @@ Particle::Particle(
   , pos(pos)
   , size(size)
   , colour(colour)
-  , sprite(y::null)
+  , sprite(nullptr)
 {
 }
 
 Particle::Particle(
-    y::int32 tag, y::int32 frames, y::world bounce_coefficient,
+    std::int32_t tag, std::int32_t frames, y::world bounce_coefficient,
     const Derivatives<y::wvec2>& pos,
-    y::int32 layer, y::world depth,
+    std::int32_t layer, y::world depth,
     const Derivatives<y::fvec4>& colour,
     const Sprite& sprite, const y::ivec2& frame_size, const y::ivec2& frame)
   : tag(tag)
@@ -125,10 +125,10 @@ void Particle::modify(const Derivatives<y::wvec2>& modify)
 }
 
 Rope::Rope(
-    y::size point_masses, y::world length,
+    std::size_t point_masses, y::world length,
     Script* script_start, Script* script_end,
     const y::wvec2& start, const y::wvec2& end, const params& params,
-    y::int32 layer, y::world depth,
+    std::int32_t layer, y::world depth,
     y::world size, const y::fvec4& colour)
   : _length(point_masses <= 1 ? length : length / point_masses - 1)
   , _params(params)
@@ -136,18 +136,18 @@ Rope::Rope(
   , _depth(depth)
   , _size(size)
   , _colour(colour)
-  , _sprite(y::null)
-  , _start(y::null)
-  , _end(y::null)
+  , _sprite(nullptr)
+  , _start(nullptr)
+  , _end(nullptr)
 {
   init(point_masses, script_start, script_end, start, end);
 }
 
 Rope::Rope(
-    y::size point_masses, y::world length,
+    std::size_t point_masses, y::world length,
     Script* script_start, Script* script_end,
     const y::wvec2& start, const y::wvec2& end, const params& params,
-    y::int32 layer, y::world depth,
+    std::int32_t layer, y::world depth,
     const y::fvec4& colour, const Sprite& sprite,
     const y::ivec2& frame_size, const y::ivec2& frame)
   : _length(point_masses <= 1 ? length : length / point_masses - 1)
@@ -158,8 +158,8 @@ Rope::Rope(
   , _sprite(&sprite)
   , _frame_size(frame_size)
   , _frame(frame)
-  , _start(y::null)
-  , _end(y::null)
+  , _start(nullptr)
+  , _end(nullptr)
 {
   init(point_masses, script_start, script_end, start, end);
 }
@@ -175,14 +175,12 @@ Rope::Rope(const Rope& rope)
   , _sprite(rope._sprite)
   , _frame_size(rope._frame_size)
   , _frame(rope._frame)
-  , _start(y::null)
-  , _end(y::null)
 {
   if (rope._start && rope._start->is_valid()) {
-    _start = y::move_unique(new ScriptReference(**rope._start));
+    _start.reset(new ScriptReference(**rope._start));
   }
   if (rope._end && rope._end->is_valid()) {
-    _end = y::move_unique(new ScriptReference(**rope._end));
+    _end.reset(new ScriptReference(**rope._end));
   }
 }
 
@@ -200,7 +198,7 @@ void Rope::update(const WorldWindow& world)
   }
 
   // Simulate springs between the masses.
-  for (y::size i = 0; !_masses.empty() && i < _masses.size() - 1; ++i) {
+  for (std::size_t i = 0; !_masses.empty() && i < _masses.size() - 1; ++i) {
     auto& a = _masses[i];
     auto& b = _masses[1 + i];
     y::wvec2 vec = b.v - a.v;
@@ -263,20 +261,20 @@ const Rope::mass_list& Rope::get_masses() const
   return _masses;
 }
 
-void Rope::init(y::size point_masses,
+void Rope::init(std::size_t point_masses,
                 Script* script_start, Script* script_end,
                 const y::wvec2& start, const y::wvec2& end)
 {
   if (script_start) {
-    _start = y::move_unique(new ScriptReference(*script_start));
+    _start.reset(new ScriptReference(*script_start));
   }
   if (script_end) {
-    _end = y::move_unique(new ScriptReference(*script_start));
+    _end.reset(new ScriptReference(*script_start));
   }
   y::wvec2 s = script_start ? script_start->get_origin() : start;
   y::wvec2 e = script_end ? script_end->get_origin() : end;
 
-  for (y::size i = 0; i < point_masses; ++i) {
+  for (std::size_t i = 0; i < point_masses; ++i) {
     y::wvec2 v = point_masses == 1 ? (s + e) / 2 :
         s + (i / (point_masses - 1.)) * (e - s);
     _masses.push_back({v, y::wvec2(), y::wvec2()});
@@ -287,7 +285,7 @@ void Rope::lock_endpoints()
 {
   if (_start) {
     if (!_start->is_valid()) {
-      _start.reset(y::null);
+      _start.reset(nullptr);
     }
     else if (!_masses.empty()) {
       _masses.begin()->v = (*_start)->get_origin();
@@ -295,7 +293,7 @@ void Rope::lock_endpoints()
   }
   if (_end) {
     if (!_end->is_valid()) {
-      _end.reset(y::null);
+      _end.reset(nullptr);
     }
     else if (!_masses.empty()) {
       _masses.rbegin()->v = (*_end)->get_origin();
@@ -378,14 +376,14 @@ void Environment::add_particle(const Particle& particle)
 
 void Environment::add_particle(Particle&& particle)
 {
-  _particles.emplace_back(y::move(particle));
+  _particles.emplace_back(particle);
 }
 
-void Environment::destroy_particles(y::int32 tag)
+void Environment::destroy_particles(std::int32_t tag)
 {
-  _particles.erase(y::remove_if(
-        _particles.begin(), _particles.end(),
-        [tag](Particle& p) {return p.tag == tag;}), _particles.end());
+  _particles.erase(std::remove_if(
+      _particles.begin(), _particles.end(),
+      [tag](Particle& p) {return p.tag == tag;}), _particles.end());
 }
 
 void Environment::destroy_particles()
@@ -394,7 +392,7 @@ void Environment::destroy_particles()
 }
 
 void Environment::modify_particles(
-    y::int32 tag, const Derivatives<y::wvec2>& modify)
+    std::int32_t tag, const Derivatives<y::wvec2>& modify)
 {
   // If iterating over the entire particle list every time we want to tweak them
   // is too much, could map tags to separate lists.
@@ -420,7 +418,7 @@ void Environment::add_rope(const Rope& rope)
 
 void Environment::add_rope(Rope&& rope)
 {
-  _ropes.emplace_back(y::move(rope));
+  _ropes.emplace_back(rope);
 }
 
 void Environment::move_ropes(const y::wvec2& move)
@@ -433,7 +431,7 @@ void Environment::move_ropes(const y::wvec2& move)
 void Environment::update_physics()
 {
   _particles.erase(
-      y::remove_if(
+      std::remove_if(
           _particles.begin(), _particles.end(),
           [&](Particle& p) {return !p.update(_world);}),
       _particles.end());
@@ -450,7 +448,7 @@ void Environment::render_physics(const GameRenderer& renderer) const
   gl.enable_depth(true);
   gl.enable_blend(true);
 
-  y::size i = 0;
+  std::size_t i = 0;
   auto render = [&](
       const Sprite* sprite, const y::ivec2& frame_size, const y::ivec2& frame,
       const y::wvec2& pos, y::world depth, y::world size,
@@ -470,17 +468,17 @@ void Environment::render_physics(const GameRenderer& renderer) const
     }
 
     // Divisor buffers would be great, again.
-    y::write_vector<float, y::vector<y::world>>(_pixels.data, 8 * i, {
+    write_vector<float, std::vector<y::world>>(_pixels.data, 8 * i, {
         pos[xx] - size / 2., pos[yy] - size / 2.,
         pos[xx] + size / 2., pos[yy] - size / 2.,
         pos[xx] - size / 2., pos[yy] + size / 2.,
         pos[xx] + size / 2., pos[yy] + size / 2.});
-    y::write_vector<float, y::vector<float>>(_colour.data, 16 * i, {
+    write_vector<float, std::vector<float>>(_colour.data, 16 * i, {
         colour[rr], colour[gg], colour[bb], colour[aa],
         colour[rr], colour[gg], colour[bb], colour[aa],
         colour[rr], colour[gg], colour[bb], colour[aa],
         colour[rr], colour[gg], colour[bb], colour[aa]});
-    y::write_vector<float, y::vector<y::world>>(_depth.data, 4 * i, {
+    write_vector<float, std::vector<y::world>>(_depth.data, 4 * i, {
         depth, depth, depth, depth});
     ++i;
   };
@@ -502,9 +500,9 @@ void Environment::render_physics(const GameRenderer& renderer) const
              mass.v, rope._depth, rope._size, rope._colour);
     }
     // TODO: better line rendering.
-    y::vector<RenderUtil::line> lines;
+    std::vector<RenderUtil::line> lines;
     const Rope::mass_list& masses = rope.get_masses();
-    for (y::size i = 0; !masses.empty() && i < masses.size() - 1; ++i) {
+    for (std::size_t i = 0; !masses.empty() && i < masses.size() - 1; ++i) {
       lines.push_back({y::fvec2(masses[i].v), y::fvec2(masses[1 + i].v)});
     }
     renderer.get_util().render_lines(lines, rope._colour);
@@ -527,7 +525,7 @@ void Environment::render_physics_normal(const GameRenderer& renderer) const
   gl.enable_depth(true);
   gl.enable_blend(false);
 
-  y::size i = 0;
+  std::size_t i = 0;
   auto render = [&](
       const Sprite* sprite, const y::ivec2& frame_size, const y::ivec2& frame,
       const y::wvec2& pos, y::world depth, y::world size)
@@ -545,12 +543,12 @@ void Environment::render_physics_normal(const GameRenderer& renderer) const
       return;
     }
 
-    y::write_vector<float, y::vector<y::world>>(_pixels.data, 8 * i, {
+    write_vector<float, std::vector<y::world>>(_pixels.data, 8 * i, {
         pos[xx] - size / 2., pos[yy] - size / 2.,
         pos[xx] + size / 2., pos[yy] - size / 2.,
         pos[xx] - size / 2., pos[yy] + size / 2.,
         pos[xx] + size / 2., pos[yy] + size / 2.});
-    y::write_vector<float, y::vector<y::world>>(_depth.data, 4 * i, {
+    write_vector<float, std::vector<y::world>>(_depth.data, 4 * i, {
         depth, depth, depth, depth});
     ++i;
   };
@@ -571,9 +569,9 @@ void Environment::render_physics_normal(const GameRenderer& renderer) const
       render(rope._sprite, rope._frame_size, rope._frame,
              mass.v, rope._depth, rope._size);
     }
-    y::vector<RenderUtil::line> lines;
+    std::vector<RenderUtil::line> lines;
     const Rope::mass_list& masses = rope.get_masses();
-    for (y::size i = 0; !masses.empty() && i < masses.size() - 1; ++i) {
+    for (std::size_t i = 0; !masses.empty() && i < masses.size() - 1; ++i) {
       lines.push_back({y::fvec2(masses[i].v), y::fvec2(masses[1 + i].v)});
     }
     renderer.get_util().render_lines(
@@ -693,7 +691,7 @@ void Environment::render_reflect_normal(
 GlUnique<GlBuffer<float, 2>> Environment::make_rect_buffer(
     RenderUtil& util, const y::wvec2& origin, const y::wvec2& region) const
 {
-  y::vector<float> pixel_data{
+  std::vector<float> pixel_data{
       float((origin - region / 2)[xx]), float((origin - region / 2)[yy]),
       float((origin + region / 2)[xx]), float((origin - region / 2)[yy]),
       float((origin - region / 2)[xx]), float((origin + region / 2)[yy]),

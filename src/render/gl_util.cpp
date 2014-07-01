@@ -44,14 +44,14 @@ GlUtil::GlUtil(const Filesystem& filesystem, const Window& window)
     return;
   }
 
-  y::vector<y::string> shaders;
+  std::vector<std::string> shaders;
   _filesystem.list_pattern(shaders, "/shaders/**.v.glsl");
   _filesystem.list_pattern(shaders, "/shaders/**.f.glsl");
   _filesystem.list_pattern(shaders, "/shaders/**.v");
   _filesystem.list_pattern(shaders, "/shaders/**.f");
 
   _setup_ok = true;
-  for (const y::string& shader : shaders) {
+  for (const std::string& shader : shaders) {
     if (!make_shader(shader)) {
       _setup_ok = false;
     }
@@ -100,7 +100,7 @@ GlFramebuffer GlUtil::make_framebuffer(const y::ivec2& size,
   GlTexture2D texture(make_texture<GLubyte>(size,
                                             has_alpha ? GL_RGBA8 : GL_RGB,
                                             has_alpha ? GL_RGBA : GL_RGB,
-                                            y::null));
+                                            nullptr));
   logg_debug("Making ", size[xx], 'x', size[yy], " framebuffer");
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                          GL_TEXTURE_2D, texture.get_handle(), 0);
@@ -168,7 +168,7 @@ void GlUtil::delete_framebuffer(const GlFramebuffer& framebuffer)
   }
 }
 
-GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
+GlTexture2D GlUtil::make_texture(const std::string& filename, bool loop)
 {
   logg_debug("Loading ", filename);
   if (loop) {
@@ -176,7 +176,7 @@ GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
   }
   log_debug();
 
-  y::string data;
+  std::string data;
   _filesystem.read_file(data, filename);
   if (data.empty()) {
     log_err("Couldn't read file ", filename);
@@ -188,7 +188,7 @@ GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
     log_err("Couldn't load image ", filename);
     return GlTexture2D();
   }
-  y::ivec2 size{y::int32(image.getSize().x), y::int32(image.getSize().y)};
+  y::ivec2 size{std::int32_t(image.getSize().x), std::int32_t(image.getSize().y)};
   GlTexture2D texture(make_texture<GLubyte>(size, GL_RGBA8, GL_RGBA,
                                             image.getPixelsPtr(), loop));
 
@@ -198,23 +198,23 @@ GlTexture2D GlUtil::make_texture(const y::string& filename, bool loop)
     glDeleteTextures(1, &handle);
     _texture_map.erase(it);
   }
-  _texture_map.insert(y::make_pair(filename, texture));
+  _texture_map.emplace(filename, texture);
   return texture;
 }
 
 GlUnique<GlTexture2D> GlUtil::make_unique_texture(
-    const y::string& filename, bool loop)
+    const std::string& filename, bool loop)
 {
   return make_unique(make_texture(filename, loop));
 }
 
-GlTexture2D GlUtil::get_texture(const y::string& filename) const
+GlTexture2D GlUtil::get_texture(const std::string& filename) const
 {
   auto it = _texture_map.find(filename);
   return it == _texture_map.end() ? GlTexture2D(0, y::ivec2()) : it->second;
 }
 
-void GlUtil::delete_texture(const y::string& filename)
+void GlUtil::delete_texture(const std::string& filename)
 {
   auto it = _texture_map.find(filename);
   if (it == _texture_map.end()) {
@@ -231,11 +231,11 @@ void GlUtil::delete_texture(const y::string& filename)
   _texture_map.erase(it);
 }
 
-GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
+GlShader GlUtil::make_shader(const std::string& filename, GLenum type)
 {
-  static const y::string header = "#version 120\n";
+  static const std::string header = "#version 120\n";
 
-  y::string data = header;
+  std::string data = header;
   if (!_filesystem.read_file_with_includes(data, filename)) {
     log_err("Couldn't read file ", filename);
     return GlShader();
@@ -267,7 +267,7 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
       _shader_map.erase(it);
     }
     GlShader r(shader);
-    _shader_map.insert(y::make_pair(filename, r));
+    _shader_map.emplace(filename, r);
     return r;
   }
 
@@ -275,7 +275,7 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
   log_err(data);
   GLint log_length;
   glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
-  y::unique<char[]> log(new char[log_length]);
+  std::unique_ptr<char[]> log(new char[log_length]);
   glGetShaderInfoLog(shader, log_length, 0, log.get());
   log_err(log.get());
   glDeleteShader(shader);
@@ -283,18 +283,18 @@ GlShader GlUtil::make_shader(const y::string& filename, GLenum type)
 }
 
 GlUnique<GlShader> GlUtil::make_unique_shader(
-    const y::string& filename, GLenum type)
+    const std::string& filename, GLenum type)
 {
   return make_unique(make_shader(filename, type));
 }
 
-GlShader GlUtil::get_shader(const y::string& filename) const
+GlShader GlUtil::get_shader(const std::string& filename) const
 {
   auto it = _shader_map.find(filename);
   return it == _shader_map.end() ? GlShader() : it->second;
 }
 
-void GlUtil::delete_shader(const y::string& filename)
+void GlUtil::delete_shader(const std::string& filename)
 {
   log_debug("Deleting shader ", filename);
   auto it = _shader_map.find(filename);
@@ -316,20 +316,20 @@ void GlUtil::delete_shader(const GlShader& shader)
   }
 }
 
-GlProgram GlUtil::make_program(const y::vector<y::string>& shaders)
+GlProgram GlUtil::make_program(const std::vector<std::string>& shaders)
 {
-  y::vector<y::string> sort;
-  y::copy(shaders.begin(), shaders.end(), y::back_inserter(sort));
-  y::sort(sort.begin(), sort.end());
+  std::vector<std::string> sort;
+  std::copy(shaders.begin(), shaders.end(), std::back_inserter(sort));
+  std::sort(sort.begin(), sort.end());
 
-  y::string hash;
-  for (const y::string& s : sort) {
+  std::string hash;
+  for (const std::string& s : sort) {
     hash += s + ';';
   }
   log_debug("Making program ", hash);
 
   GLuint program = glCreateProgram();
-  for (const y::string& shader : shaders) {
+  for (const std::string& shader : shaders) {
     glAttachShader(program, get_shader(shader).get_handle());
   }
   glLinkProgram(program);
@@ -343,14 +343,14 @@ GlProgram GlUtil::make_program(const y::vector<y::string>& shaders)
       _program_map.erase(it);
     }
     GlProgram r(program);
-    _program_map.insert(y::make_pair(hash, r));
+    _program_map.emplace(hash, r);
     return r;
   }
 
   log_err("Program failed linking");
   GLint log_length;
   glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
-  y::unique<char[]> log(new char[log_length]);
+  std::unique_ptr<char[]> log(new char[log_length]);
   glGetProgramInfoLog(program, log_length, 0, log.get());
   log_err(log.get());
   glDeleteProgram(program);
@@ -358,19 +358,19 @@ GlProgram GlUtil::make_program(const y::vector<y::string>& shaders)
 }
 
 GlUnique<GlProgram> GlUtil::make_unique_program(
-    const y::vector<y::string>& shaders)
+    const std::vector<std::string>& shaders)
 {
   return make_unique(make_program(shaders));
 }
 
-GlProgram GlUtil::get_program(const y::vector<y::string>& shaders) const
+GlProgram GlUtil::get_program(const std::vector<std::string>& shaders) const
 {
-  y::vector<y::string> sort;
-  y::copy(shaders.begin(), shaders.end(), y::back_inserter(sort));
-  y::sort(sort.begin(), sort.end());
+  std::vector<std::string> sort;
+  std::copy(shaders.begin(), shaders.end(), std::back_inserter(sort));
+  std::sort(sort.begin(), sort.end());
 
-  y::string hash;
-  for (const y::string& s : sort) {
+  std::string hash;
+  for (const std::string& s : sort) {
     hash += s + ';';
   }
 
@@ -378,14 +378,14 @@ GlProgram GlUtil::get_program(const y::vector<y::string>& shaders) const
   return it == _program_map.end() ? GlProgram() : it->second;
 }
 
-void GlUtil::delete_program(const y::vector<y::string>& shaders)
+void GlUtil::delete_program(const std::vector<std::string>& shaders)
 {
-  y::vector<y::string> sort;
-  y::copy(shaders.begin(), shaders.end(), y::back_inserter(sort));
-  y::sort(sort.begin(), sort.end());
+  std::vector<std::string> sort;
+  std::copy(shaders.begin(), shaders.end(), std::back_inserter(sort));
+  std::sort(sort.begin(), sort.end());
 
-  y::string hash;
-  for (const y::string& s : sort) {
+  std::string hash;
+  for (const std::string& s : sort) {
     hash += s + ';';
   }
 

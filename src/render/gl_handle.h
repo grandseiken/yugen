@@ -1,14 +1,30 @@
 #ifndef RENDER_GL_HANDLE_H
 #define RENDER_GL_HANDLE_H
 
-#include "../common/map.h"
-#include "../common/memory.h"
-#include "../common/set.h"
-#include "../common/string.h"
-#include "../common/utility.h"
-#include "../common/vector.h"
 #include "../vec.h"
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <boost/functional/hash.hpp>
 #include <GL/glew.h>
+
+namespace std {
+  template<typename T, typename U>
+  struct hash<std::pair<T, U>> {
+    std::size_t operator()(const std::pair<T, U>& arg) const
+    {
+      std::hash<T> t;
+      std::hash<U> u;
+
+      std::size_t seed = 0;
+      boost::hash_combine(seed, t(arg.first));
+      boost::hash_combine(seed, u(arg.second));
+      return seed;
+    }
+  };
+}
 
 #define GL_TYPE(T, V) template<> struct GlType<T> {enum {type_enum = V};}
 template<typename>
@@ -65,7 +81,7 @@ private:
 };
 
 // Lightweight handle to an OpenGL buffer.
-template<typename T, y::size>
+template<typename T, std::size_t>
 class GlBuffer : public GlHandle {
 public:
 
@@ -76,7 +92,7 @@ public:
   void draw_elements(GLenum mode, GLsizei count) const;
 
   void reupload_data(const T* data, GLsizei size) const;
-  void reupload_data(const y::vector<T>& data) const;
+  void reupload_data(const std::vector<T>& data) const;
 
 protected:
 
@@ -91,11 +107,11 @@ private:
 };
 
 // Lightweight handle to an OpenGL texture.
-template<y::size N>
+template<std::size_t N>
 class GlTexture : public GlHandle {
 public:
 
-  typedef y::vec<y::int32, N> ivecn;
+  typedef y::vec<std::int32_t, N> ivecn;
 
   GlTexture();
   ~GlTexture() override {}
@@ -118,7 +134,7 @@ private:
 typedef GlTexture<1> GlTexture1D;
 typedef GlTexture<2> GlTexture2D;
 typedef GlTexture<3> GlTexture3D;
-template<y::size>
+template<std::size_t>
 struct GlTextureEnum {};
 template<> struct GlTextureEnum<1> {
   enum {dimension_enum = GL_TEXTURE_1D};
@@ -197,67 +213,67 @@ public:
   void bind() const;
 
   // Unbind and disable an attribute.
-  void unbind_attribute(const y::string& name) const;
+  void unbind_attribute(const std::string& name) const;
 
   // Bind the value of an attribute variable.
-  template<typename T, y::size N>
-  bool bind_attribute(const y::string& name,
+  template<typename T, std::size_t N>
+  bool bind_attribute(const std::string& name,
                       const GlBuffer<T, N>& buffer) const;
 
   // Bind the value of a uniform variable.
   template<typename T>
-  bool bind_uniform(const y::string& name, T a) const;
+  bool bind_uniform(const std::string& name, T a) const;
   template<typename T>
-  bool bind_uniform(const y::string& name, T a, T b) const;
+  bool bind_uniform(const std::string& name, T a, T b) const;
   template<typename T>
-  bool bind_uniform(const y::string& name, T a, T b, T c) const;
+  bool bind_uniform(const std::string& name, T a, T b, T c) const;
   template<typename T>
-  bool bind_uniform(const y::string& name, T a, T b, T c, T d) const;
+  bool bind_uniform(const std::string& name, T a, T b, T c, T d) const;
 
   template<typename T>
-  bool bind_uniform(const y::string& name, const y::vec<T, 2>& arg) const;
+  bool bind_uniform(const std::string& name, const y::vec<T, 2>& arg) const;
   template<typename T>
-  bool bind_uniform(const y::string& name, const y::vec<T, 3>& arg) const;
+  bool bind_uniform(const std::string& name, const y::vec<T, 3>& arg) const;
   template<typename T>
-  bool bind_uniform(const y::string& name, const y::vec<T, 4>& arg) const;
+  bool bind_uniform(const std::string& name, const y::vec<T, 4>& arg) const;
 
-  bool bind_uniform(const y::string& name, const GlFramebuffer& arg) const;
-  template<y::size N>
-  bool bind_uniform(const y::string& name, const GlTexture<N>& arg) const;
+  bool bind_uniform(const std::string& name, const GlFramebuffer& arg) const;
+  template<std::size_t N>
+  bool bind_uniform(const std::string& name, const GlTexture<N>& arg) const;
 
   // Bind the value of an attribute variable in an array.
-  template<typename T, y::size N>
-  bool bind_attribute(y::size index, const y::string& name,
+  template<typename T, std::size_t N>
+  bool bind_attribute(std::size_t index, const std::string& name,
                       const GlBuffer<T, N>& buffer) const;
 
   // Bind the value of a uniform variable in an array.
   template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
+  bool bind_uniform(std::size_t index, const std::string& name,
                     T a) const;
   template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
+  bool bind_uniform(std::size_t index, const std::string& name,
                     T a, T b) const;
   template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
+  bool bind_uniform(std::size_t index, const std::string& name,
                     T a, T b, T c) const;
   template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
+  bool bind_uniform(std::size_t index, const std::string& name,
                     T a, T b, T c, T d) const;
 
   template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
+  bool bind_uniform(std::size_t index, const std::string& name,
                     const y::vec<T, 2>& arg) const;
   template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
+  bool bind_uniform(std::size_t index, const std::string& name,
                     const y::vec<T, 3>& arg) const;
   template<typename T>
-  bool bind_uniform(y::size index, const y::string& name,
+  bool bind_uniform(std::size_t index, const std::string& name,
                     const y::vec<T, 4>& arg) const;
 
-  bool bind_uniform(y::size index, const y::string& name,
+  bool bind_uniform(std::size_t index, const std::string& name,
                     const GlFramebuffer& arg) const;
-  template<y::size N>
-  bool bind_uniform(y::size index, const y::string& name,
+  template<std::size_t N>
+  bool bind_uniform(std::size_t index, const std::string& name,
                     const GlTexture<N>& arg) const;
 
 protected:
@@ -268,20 +284,20 @@ protected:
 private:
 
   // Check if uniform or attribute name exists in program.
-  bool check_name_exists(bool attribute, const y::string& name,
-                         bool array, y::size index,
+  bool check_name_exists(bool attribute, const std::string& name,
+                         bool array, std::size_t index,
                          GLenum& type_output) const;
 
   // Check if name exists and has correct type and size, or print error message.
   // TODO: GL allows converting integer -> float, etc, so that should work.
-  bool check_match(bool attribute, const y::string& name,
-                   bool array, y::size index,
-                   GLenum type, y::size length) const;
+  bool check_match(bool attribute, const std::string& name,
+                   bool array, std::size_t index,
+                   GLenum type, std::size_t length) const;
 
-  typedef y::map<y::string, GLint> single_map;
-  typedef y::map<y::pair<y::string, y::size>, GLint> array_map;
+  typedef std::unordered_map<std::string, GLint> single_map;
+  typedef std::unordered_map<std::pair<std::string, std::size_t>, GLint> array_map;
 
-  mutable y::int32 _texture_index;
+  mutable std::int32_t _texture_index;
 
   mutable single_map _uniform_single_map;
   mutable array_map _uniform_array_map;
@@ -289,26 +305,29 @@ private:
   mutable single_map _attribute_single_map;
   mutable array_map _attribute_array_map;
 
-  GLint get_uniform_location(const y::string& name) const;
-  GLint get_uniform_location(const y::string& name, y::size index) const;
+  GLint get_uniform_location(const std::string& name) const;
+  GLint get_uniform_location(const std::string& name, std::size_t index) const;
 
-  GLint get_attribute_location(const y::string& name) const;
-  GLint get_attribute_location(const y::string& name, y::size index) const;
+  GLint get_attribute_location(const std::string& name) const;
+  GLint get_attribute_location(const std::string& name, std::size_t index) const;
 
   // Store which attributes are enabled so we can disable them when no longer
   // needed.
-  mutable y::set<GLint> _enabled_attribute_indices;
+  mutable std::unordered_set<GLint> _enabled_attribute_indices;
 
 };
 
 template<typename T>
-class GlUnique : public y::no_copy {
+class GlUnique {
 public:
 
   typedef GlUnique<T> U;
 
+  GlUnique(const GlUnique&) = delete;
+  GlUnique& operator=(const GlUnique&) = delete;
+
   GlUnique()
-    : _gl(y::null)
+    : _gl(nullptr)
   {
   }
 
@@ -321,7 +340,7 @@ public:
   GlUnique(GlUnique&& u)
     : _gl(u._gl)
   {
-    y::swap(_t, u._t);
+    std::swap(_t, u._t);
   }
 
   // Implemented in gl_util.h.
@@ -329,14 +348,14 @@ public:
 
   void swap(GlUnique& u)
   {
-    y::swap(_t, u._t);
-    y::swap(_gl, u._gl);
+    std::swap(_t, u._t);
+    std::swap(_gl, u._gl);
   }
 
   void swap(GlUnique&& u)
   {
-    y::swap(_t, u._t);
-    y::swap(_gl, u._gl);
+    std::swap(_t, u._t);
+    std::swap(_gl, u._gl);
   }
 
   const T& operator*() const
@@ -367,7 +386,7 @@ private:
 };
 
 // Convenience struct to store a buffer and its data source together.
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 struct GlDatabuffer {
 
   GlDatabuffer(GlUnique<GlBuffer<T, N>>&& buffer);
@@ -375,12 +394,12 @@ struct GlDatabuffer {
 
   // The data is mutable as it's generally temporary, used for rendering, and
   // populated every frame from other sources.
-  mutable y::vector<T> data;
+  mutable std::vector<T> data;
   GlUnique<GlBuffer<T, N>> buffer;
 
 };
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlBuffer<T, N>::GlBuffer()
   : GlHandle(0)
   , _target(0)
@@ -388,7 +407,7 @@ GlBuffer<T, N>::GlBuffer()
 {
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlBuffer<T, N>::GlBuffer(GLuint handle, GLenum target, GLenum usage_hint)
   : GlHandle(handle)
   , _target(target)
@@ -396,60 +415,60 @@ GlBuffer<T, N>::GlBuffer(GLuint handle, GLenum target, GLenum usage_hint)
 {
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 void GlBuffer<T, N>::bind() const
 {
   glBindBuffer(_target, get_handle());
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 void GlBuffer<T, N>::draw_elements(GLenum mode, GLsizei count) const
 {
   bind();
   glDrawElements(mode, N * count, GlType<T>::type_enum, (void*)0);
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 void GlBuffer<T, N>::reupload_data(const T* data, GLsizei size) const
 {
   bind();
   glBufferData(_target, size, data, _usage_hint);
 }
 
-template<typename T, y::size N>
-void GlBuffer<T, N>::reupload_data(const y::vector<T>& data) const
+template<typename T, std::size_t N>
+void GlBuffer<T, N>::reupload_data(const std::vector<T>& data) const
 {
   reupload_data(data.data(), sizeof(T) * data.size());
 }
 
-template<y::size N>
+template<std::size_t N>
 GlTexture<N>::GlTexture()
   : GlHandle(0)
 {
 }
 
-template<y::size N>
+template<std::size_t N>
 GlTexture<N>::GlTexture(GLuint handle, const ivecn& size)
   : GlHandle(handle)
   , _size(size)
 {
 }
 
-template<y::size N>
+template<std::size_t N>
 void GlTexture<N>::bind(GLenum target) const
 {
   glActiveTexture(target);
   glBindTexture(GlTextureEnum<N>::dimension_enum, get_handle());
 }
 
-template<y::size N>
+template<std::size_t N>
 const typename GlTexture<N>::ivecn& GlTexture<N>::get_size() const
 {
   return _size;
 }
 
-template<typename T, y::size N>
-bool GlProgram::bind_attribute(const y::string& name,
+template<typename T, std::size_t N>
+bool GlProgram::bind_attribute(const std::string& name,
                                const GlBuffer<T, N>& buffer) const
 {
   if (!check_match(true, name, false, 0, GlType<T>::type_enum, N)) {
@@ -461,12 +480,12 @@ bool GlProgram::bind_attribute(const y::string& name,
   glEnableVertexAttribArray(location);
   buffer.bind();
   glVertexAttribPointer(
-      location, N, GlType<T>::type_enum, GL_FALSE, sizeof(T) * N, y::null);
+      location, N, GlType<T>::type_enum, GL_FALSE, sizeof(T) * N, nullptr);
   return true;
 }
 
 template<typename T>
-bool GlProgram::bind_uniform(const y::string& name, T a) const
+bool GlProgram::bind_uniform(const std::string& name, T a) const
 {
   if (!check_match(false, name, false, 0, GlType<T>::type_enum, 1)) {
     return false;
@@ -478,7 +497,7 @@ bool GlProgram::bind_uniform(const y::string& name, T a) const
 }
 
 template<typename T>
-bool GlProgram::bind_uniform(const y::string& name, T a, T b) const
+bool GlProgram::bind_uniform(const std::string& name, T a, T b) const
 {
   if (!check_match(false, name, false, 0, GlType<T>::type_enum, 2)) {
     return false;
@@ -490,7 +509,7 @@ bool GlProgram::bind_uniform(const y::string& name, T a, T b) const
 }
 
 template<typename T>
-bool GlProgram::bind_uniform(const y::string& name, T a, T b, T c) const
+bool GlProgram::bind_uniform(const std::string& name, T a, T b, T c) const
 {
   if (!check_match(false, name, false, 0, GlType<T>::type_enum, 3)) {
     return false;
@@ -502,7 +521,7 @@ bool GlProgram::bind_uniform(const y::string& name, T a, T b, T c) const
 }
 
 template<typename T>
-bool GlProgram::bind_uniform(const y::string& name, T a, T b, T c, T d) const
+bool GlProgram::bind_uniform(const std::string& name, T a, T b, T c, T d) const
 {
   if (!check_match(false, name, false, 0, GlType<T>::type_enum, 4)) {
     return false;
@@ -515,35 +534,35 @@ bool GlProgram::bind_uniform(const y::string& name, T a, T b, T c, T d) const
 
 template<typename T>
 bool GlProgram::bind_uniform(
-    const y::string& name, const y::vec<T, 2>& arg) const
+    const std::string& name, const y::vec<T, 2>& arg) const
 {
   return bind_uniform(name, arg[xx], arg[yy]);
 }
 
 template<typename T>
 bool GlProgram::bind_uniform(
-    const y::string& name, const y::vec<T, 3>& arg) const
+    const std::string& name, const y::vec<T, 3>& arg) const
 {
   return bind_uniform(name, arg[xx], arg[yy], arg[zz]);
 }
 
 template<typename T>
 bool GlProgram::bind_uniform(
-    const y::string& name, const y::vec<T, 4>& arg) const
+    const std::string& name, const y::vec<T, 4>& arg) const
 {
   return bind_uniform(name, arg[xx], arg[yy], arg[zz], arg[ww]);
 }
 
-template<y::size N>
-bool GlProgram::bind_uniform(const y::string& name,
+template<std::size_t N>
+bool GlProgram::bind_uniform(const std::string& name,
                              const GlTexture<N>& arg) const
 {
   arg.bind(GL_TEXTURE0 + _texture_index);
   return bind_uniform(name, _texture_index++);
 }
 
-template<typename T, y::size N>
-bool GlProgram::bind_attribute(y::size index, const y::string& name,
+template<typename T, std::size_t N>
+bool GlProgram::bind_attribute(std::size_t index, const std::string& name,
                                const GlBuffer<T, N>& buffer) const
 {
   if (!check_match(true, name, true, index, GlType<T>::type_enum, N)) {
@@ -555,12 +574,12 @@ bool GlProgram::bind_attribute(y::size index, const y::string& name,
   glEnableVertexAttribArray(location);
   buffer.bind();
   glVertexAttribPointer(
-      location, N, GlType<T>::type_enum, GL_FALSE, sizeof(T) * N, y::null);
+      location, N, GlType<T>::type_enum, GL_FALSE, sizeof(T) * N, nullptr);
   return true;
 }
 
 template<typename T>
-bool GlProgram::bind_uniform(y::size index, const y::string& name,
+bool GlProgram::bind_uniform(std::size_t index, const std::string& name,
                              T a) const
 {
   if (!check_match(false, name, true, index, GlType<T>::type_enum, 1)) {
@@ -573,7 +592,7 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
 }
 
 template<typename T>
-bool GlProgram::bind_uniform(y::size index, const y::string& name,
+bool GlProgram::bind_uniform(std::size_t index, const std::string& name,
                              T a, T b) const
 {
   if (!check_match(false, name, true, index, GlType<T>::type_enum, 2)) {
@@ -586,7 +605,7 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
 }
 
 template<typename T>
-bool GlProgram::bind_uniform(y::size index, const y::string& name,
+bool GlProgram::bind_uniform(std::size_t index, const std::string& name,
                              T a, T b, T c) const
 {
   if (!check_match(false, name, true, index, GlType<T>::type_enum, 3)) {
@@ -599,7 +618,7 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
 }
 
 template<typename T>
-bool GlProgram::bind_uniform(y::size index, const y::string& name,
+bool GlProgram::bind_uniform(std::size_t index, const std::string& name,
                              T a, T b, T c, T d) const
 {
   if (!check_match(false, name, true, index, GlType<T>::type_enum, 4)) {
@@ -613,40 +632,40 @@ bool GlProgram::bind_uniform(y::size index, const y::string& name,
 
 template<typename T>
 bool GlProgram::bind_uniform(
-    y::size index, const y::string& name, const y::vec<T, 2>& arg) const
+    std::size_t index, const std::string& name, const y::vec<T, 2>& arg) const
 {
   return bind_uniform(index, name, arg[xx], arg[yy]);
 }
 
 template<typename T>
 bool GlProgram::bind_uniform(
-    y::size index, const y::string& name, const y::vec<T, 3>& arg) const
+    std::size_t index, const std::string& name, const y::vec<T, 3>& arg) const
 {
   return bind_uniform(index, name, arg[xx], arg[yy], arg[zz]);
 }
 
 template<typename T>
 bool GlProgram::bind_uniform(
-    y::size index, const y::string& name, const y::vec<T, 4>& arg) const
+    std::size_t index, const std::string& name, const y::vec<T, 4>& arg) const
 {
   return bind_uniform(index, name, arg[xx], arg[yy], arg[zz], arg[ww]);
 }
 
-template<y::size N>
-bool GlProgram::bind_uniform(y::size index, const y::string& name,
+template<std::size_t N>
+bool GlProgram::bind_uniform(std::size_t index, const std::string& name,
                              const GlTexture<N>& arg) const
 {
   arg.bind(GL_TEXTURE0 + _texture_index);
   return bind_uniform(index, name, _texture_index++);
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 GlDatabuffer<T, N>::GlDatabuffer(GlUnique<GlBuffer<T, N>>&& buffer)
-  : buffer(y::forward<GlUnique<GlBuffer<T, N>>>(buffer))
+  : buffer(std::forward<GlUnique<GlBuffer<T, N>>>(buffer))
 {
 }
 
-template<typename T, y::size N>
+template<typename T, std::size_t N>
 const GlBuffer<T, N>& GlDatabuffer<T, N>::reupload() const
 {
   buffer->reupload_data(data);

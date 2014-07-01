@@ -1,11 +1,10 @@
 #ifndef LUA_H
 #define LUA_H
 
-#include "common/map.h"
-#include "common/set.h"
 #include "callback.h"
 #include "vec.h"
 #include "lua_types.h"
+#include <unordered_map>
 
 class Filesystem;
 class GameStage;
@@ -42,7 +41,7 @@ public:
 private:
 
   Script* _script;
-  y::int32 _callback_id;
+  std::int32_t _callback_id;
 
 };
 
@@ -71,18 +70,21 @@ public:
 private:
 
   const Script* _script;
-  y::int32 _callback_id;
+  std::int32_t _callback_id;
 
 };
 
-class Script : public y::no_copy {
+class Script {
 public:
 
-  Script(GameStage& stage, const y::string& path, const y::string& contents,
+  Script(GameStage& stage, const std::string& path, const std::string& contents,
          const y::wvec2& origin, const y::wvec2& region);
   ~Script();
 
-  const y::string& get_path() const;
+  Script(const Script&) = delete;
+  Script& operator=(const Script&) = delete;
+
+  const std::string& get_path() const;
 
   // A Script's region is initially provided on load from the CellMap (or when
   // dynamically created). The origin is always centered in the region. Scripts
@@ -95,25 +97,25 @@ public:
   void set_origin(const y::wvec2& origin);
   void set_rotation(y::world rotation);
 
-  typedef y::vector<LuaValue> lua_args;
+  typedef std::vector<LuaValue> lua_args;
 
-  bool has_function(const y::string& function_name) const;
-  void call(const y::string& function_name, const lua_args& args = {});
-  void call(lua_args& output, const y::string& function_name,
+  bool has_function(const std::string& function_name) const;
+  void call(const std::string& function_name, const lua_args& args = {});
+  void call(lua_args& output, const std::string& function_name,
             const lua_args& args = {});
 
   typedef CallbackSet<Script*>::callback callback;
-  y::int32 add_move_callback(const callback& callback) const;
-  void remove_move_callback(y::int32 id) const;
-  y::int32 add_destroy_callback(const callback& callback) const;
-  void remove_destroy_callback(y::int32 id) const;
+  std::int32_t add_move_callback(const callback& callback) const;
+  void remove_move_callback(std::int32_t id) const;
+  std::int32_t add_destroy_callback(const callback& callback) const;
+  void remove_destroy_callback(std::int32_t id) const;
 
   void destroy();
   bool is_destroyed() const;
 
 private:
 
-  y::string _path;
+  std::string _path;
   lua_State* _state;
 
   y::wvec2 _origin;
@@ -129,14 +131,17 @@ private:
 // Associated objects with Scripts which are destroyed when the Script that
 // aossicated them is destroyed. T is the associated object type.
 template<typename T>
-class ScriptMap : public y::no_copy {
+class ScriptMap {
 public:
 
-  typedef y::unique<T> entry;
-  typedef y::vector<entry> entry_list;
-  typedef y::vector<const Script*> source_list;
+  typedef std::unique_ptr<T> entry;
+  typedef std::vector<entry> entry_list;
+  typedef std::vector<const Script*> source_list;
 
+  ScriptMap() {}
   virtual ~ScriptMap() {}
+  ScriptMap(const ScriptMap&) = delete;
+  ScriptMap& operator=(const ScriptMap&) = delete;
 
   T* create_obj(Script& source);
   void destroy_obj(const Script& source, T* obj);
@@ -164,12 +169,12 @@ private:
     {}
 
     ConstScriptReference ref;
-    y::vector<entry> list;
+    std::vector<entry> list;
   };
-  typedef y::map<Script*, map_entry> map;
+  typedef std::unordered_map<Script*, map_entry> map;
   map _map;
 
-  static const y::vector<entry> no_list;
+  static const std::vector<entry> no_list;
 
 };
 
@@ -269,6 +274,6 @@ void ScriptMap<T>::on_destroy(T*)
 }
 
 template<typename T>
-const y::vector<typename ScriptMap<T>::entry> ScriptMap<T>::no_list;
+const std::vector<typename ScriptMap<T>::entry> ScriptMap<T>::no_list;
 
 #endif

@@ -36,7 +36,7 @@ namespace {
 
   // Lua assert.
   void lua_argassert(lua_State* state,
-                     bool condition, lua_int index, const y::string& message)
+                     bool condition, lua_int index, const std::string& message)
   {
 #ifdef DEBUG
     luaL_argcheck(state, condition, index, message.c_str());
@@ -57,9 +57,9 @@ namespace {
 /******************************************************************************/
 /***/ #define y_ptrtypedef(T)                                                  \
 /***/ template<>                                                               \
-/***/ const y::string LuaType<T*>::type_name = "y." #T "*";                    \
+/***/ const std::string LuaType<T*>::type_name = "y." #T "*";                  \
 /***/ template<>                                                               \
-/***/ const y::string LuaType<const T*>::type_name = "y." #T "*";              \
+/***/ const std::string LuaType<const T*>::type_name = "y." #T "*";            \
 /***/ y_api(T##__eq) y_arg(const T*, a) y_arg(const T*, b)                     \
 /***/ {                                                                        \
 /***/   y_return(a == b);                                                      \
@@ -78,9 +78,9 @@ namespace {
 /***/
 /***/ #define y_valtypedef(T)                                                  \
 /***/ template<>                                                               \
-/***/ const y::string LuaType<T>::type_name = "y." #T;                         \
+/***/ const std::string LuaType<T>::type_name = "y." #T;                       \
 /***/ template<>                                                               \
-/***/ const y::string LuaType<const T>::type_name = "y." #T;                   \
+/***/ const std::string LuaType<const T>::type_name = "y." #T;                 \
 /***/ y_api(T##__eq) y_arg(const T, a) y_arg(const T, b)                       \
 /***/ {                                                                        \
 /***/   y_return(a == b);                                                      \
@@ -130,7 +130,7 @@ namespace {
 /***/         lua_get<T>(_y_state, ++_y_stack);
 /***/
 /***/ #define y_varargs(T, name)                                               \
-/***/     y::vector<T> name;                                                   \
+/***/     std::vector<T> name;                                                 \
 /***/     while (++_y_stack <= lua_gettop(_y_state)) {                         \
 /***/       name.emplace_back(lua_get<T>(_y_state, _y_stack));                 \
 /***/     }
@@ -181,8 +181,9 @@ namespace {
 /***/   lua_pop(_y_state, 1);                                                  \
 /***/   if (lua_generic_type_map.find(LuaType<T*>::type_name) ==               \
 /***/       lua_generic_type_map.end()) {                                      \
-/***/     lua_generic_type_map.insert(y::make_pair(                            \
-/***/         LuaType<T*>::type_name, y::move_unique(new LuaType<T*>())));     \
+/***/     lua_generic_type_map.emplace(                                        \
+/***/         LuaType<T*>::type_name,                                          \
+/***/         std::unique_ptr<LuaGenericType>(new LuaType<T*>()));             \
 /***/   }                                                                      \
 /***/   (void)LuaType<T*>::type_name;
 /***/
@@ -191,8 +192,9 @@ namespace {
 /***/   lua_pop(_y_state, 1);                                                  \
 /***/   if (lua_generic_type_map.find(LuaType<T>::type_name) ==                \
 /***/       lua_generic_type_map.end()) {                                      \
-/***/     lua_generic_type_map.insert(y::make_pair(                            \
-/***/         LuaType<T>::type_name, y::move_unique(new LuaType<T>())));       \
+/***/     lua_generic_type_map.emplace(                                        \
+/***/         LuaType<T>::type_name,                                           \
+/***/         std::unique_ptr<LuaGenericType>(new LuaType<T>()));              \
 /***/   }                                                                      \
 /***/   (void)LuaType<T>::type_name;
 /***/
@@ -207,20 +209,20 @@ namespace {
 /***/   struct _y_no_op_struct_##name {                                        \
 /***/     static void no_op()                                                  \
 /***/     {                                                                    \
-/***/       GameStage& stage = *(GameStage*)y::null;                           \
+/***/       GameStage& stage = *(GameStage*)nullptr;                           \
 /***/       (void)stage;
 /***/
 /***/ #define y_arg(T, name)                                                   \
-/***/       decltype(lua_get<T>(y::null, 0)) name = lua_get<T>(y::null, 0);    \
+/***/       decltype(lua_get<T>(nullptr, 0)) name = lua_get<T>(nullptr, 0);    \
 /***/       (void)name;
 /***/
 /***/ #define y_varargs(T, name)                                               \
-/***/       y::vector<T> name;                                                 \
+/***/       std::vector<T> name;                                                 \
 /***/       (void)name;
 /***/
 /***/ #define y_optarg(T, name)                                                \
 /***/       bool name##_defined = false;                                       \
-/***/       decltype(lua_get<T>(y::null, 0)) name = lua_get<T>(y::null, 0);    \
+/***/       decltype(lua_get<T>(nullptr, 0)) name = lua_get<T>(nullptr, 0);    \
 /***/       (void)name##_defined;                                              \
 /***/       (void)name;
 /***/
@@ -264,7 +266,7 @@ namespace {
 ScriptReference::ScriptReference(Script& script)
   : _script(&script)
   , _callback_id(_script->add_destroy_callback(
-        y::bind(&ScriptReference::invalidate, this, y::_1)))
+        std::bind(&ScriptReference::invalidate, this, std::placeholders::_1)))
 {
 }
 
@@ -274,7 +276,7 @@ ScriptReference::ScriptReference(const ScriptReference& script)
 {
   if (_script) {
     _callback_id = _script->add_destroy_callback(
-        y::bind(&ScriptReference::invalidate, this, y::_1));
+        std::bind(&ScriptReference::invalidate, this, std::placeholders::_1));
   }
 }
 
@@ -296,7 +298,7 @@ ScriptReference& ScriptReference::operator=(const ScriptReference& arg)
   _script = arg._script;
   if (_script) {
     _callback_id = _script->add_destroy_callback(
-        y::bind(&ScriptReference::invalidate, this, y::_1));
+        std::bind(&ScriptReference::invalidate, this, std::placeholders::_1));
   }
   return *this;
 }
@@ -319,7 +321,7 @@ bool ScriptReference::is_valid() const
 void ScriptReference::invalidate(Script* script)
 {
   (void)script;
-  _script = y::null;
+  _script = nullptr;
 }
 
 const Script* ScriptReference::get() const
@@ -355,7 +357,8 @@ Script* ScriptReference::operator->()
 ConstScriptReference::ConstScriptReference(const Script& script)
   : _script(&script)
   , _callback_id(_script->add_destroy_callback(
-        y::bind(&ConstScriptReference::invalidate, this, y::_1)))
+        std::bind(&ConstScriptReference::invalidate,
+                  this, std::placeholders::_1)))
 {
 }
 
@@ -364,7 +367,8 @@ ConstScriptReference::ConstScriptReference(const ScriptReference& script)
 {
   if (_script) {
     _callback_id = _script->add_destroy_callback(
-        y::bind(&ConstScriptReference::invalidate, this, y::_1));
+        std::bind(&ConstScriptReference::invalidate,
+                  this, std::placeholders::_1));
   }
 }
 
@@ -373,7 +377,8 @@ ConstScriptReference::ConstScriptReference(const ConstScriptReference& script)
 {
   if (_script) {
     _callback_id = _script->add_destroy_callback(
-        y::bind(&ConstScriptReference::invalidate, this, y::_1));
+        std::bind(&ConstScriptReference::invalidate, this,
+                  std::placeholders::_1));
   }
 }
 
@@ -396,7 +401,8 @@ ConstScriptReference& ConstScriptReference::operator=(
   _script = arg._script;
   if (_script) {
     _callback_id = _script->add_destroy_callback(
-        y::bind(&ConstScriptReference::invalidate, this, y::_1));
+        std::bind(&ConstScriptReference::invalidate,
+                  this, std::placeholders::_1));
   }
   return *this;
 }
@@ -419,7 +425,7 @@ bool ConstScriptReference::is_valid() const
 void ConstScriptReference::invalidate(Script* script)
 {
   (void)script;
-  _script = y::null;
+  _script = nullptr;
 }
 
 const Script* ConstScriptReference::get() const
@@ -438,7 +444,7 @@ const Script* ConstScriptReference::operator->() const
 }
 
 Script::Script(GameStage& stage,
-               const y::string& path, const y::string& contents,
+               const std::string& path, const std::string& contents,
                const y::wvec2& origin, const y::wvec2& region)
   : _path(path)
   // Use standard allocator and panic function.
@@ -455,17 +461,16 @@ Script::Script(GameStage& stage,
 
   // Chunk reader function.
   struct read_data {
-    const y::string& data;
+    const std::string& data;
     bool has_read;
   };
 
-  auto read = [&](lua_State* state, void* data, y::size* size)
+  auto read = [&](lua_State*, void* data, std::size_t* size)
   {
-    (void)state;
     read_data* data_struct = reinterpret_cast<read_data*>(data);
     if (data_struct->has_read) {
       *size = 0;
-      return (const char*)y::null;
+      return (const char*)nullptr;
     }
     data_struct->has_read = true;
     *size = data_struct->data.length();
@@ -505,7 +510,7 @@ Script::~Script()
   lua_close(_state);
 }
 
-const y::string& Script::get_path() const
+const std::string& Script::get_path() const
 {
   return _path;
 }
@@ -542,7 +547,7 @@ void Script::set_rotation(y::world rotation)
   _move_callbacks(this);
 }
 
-bool Script::has_function(const y::string& function_name) const
+bool Script::has_function(const std::string& function_name) const
 {
   lua_getglobal(_state, function_name.c_str());
   bool has = lua_isfunction(_state, -1);
@@ -550,13 +555,13 @@ bool Script::has_function(const y::string& function_name) const
   return has;
 }
 
-void Script::call(const y::string& function_name, const lua_args& args)
+void Script::call(const std::string& function_name, const lua_args& args)
 {
   lua_args output;
   call(output, function_name, args);
 }
 
-void Script::call(lua_args& output, const y::string& function_name,
+void Script::call(lua_args& output, const std::string& function_name,
                   const lua_args& args)
 {
   lua_int top = lua_gettop(_state);
@@ -578,22 +583,22 @@ void Script::call(lua_args& output, const y::string& function_name,
   }
 }
 
-y::int32 Script::add_move_callback(const callback& c) const
+std::int32_t Script::add_move_callback(const callback& c) const
 {
   return _move_callbacks.add(c);
 }
 
-void Script::remove_move_callback(y::int32 id) const
+void Script::remove_move_callback(std::int32_t id) const
 {
   _move_callbacks.remove(id);
 }
 
-y::int32 Script::add_destroy_callback(const callback& c) const
+std::int32_t Script::add_destroy_callback(const callback& c) const
 {
   return _destroy_callbacks.add(c);
 }
 
-void Script::remove_destroy_callback(y::int32 id) const
+void Script::remove_destroy_callback(std::int32_t id) const
 {
   _destroy_callbacks.remove(id);
 }

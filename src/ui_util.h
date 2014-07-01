@@ -23,12 +23,12 @@ public:
   void set_select(const y::fvec4& select);
 
   // Draw with colour lookup from list.
-  void draw(RenderUtil& util, const y::vector<y::fvec4>& items,
-            const y::vector<y::string>& source, y::size select) const;
+  void draw(RenderUtil& util, const std::vector<y::fvec4>& items,
+            const std::vector<std::string>& source, std::size_t select) const;
 
   // Draw with default colour values.
   void draw(RenderUtil& util,
-            const y::vector<y::string>& source, y::size select) const;
+            const std::vector<std::string>& source, std::size_t select) const;
 
 private:
 
@@ -44,14 +44,14 @@ struct TextInputResult {
   TextInputResult();
 
   bool success;
-  y::string result;
+  std::string result;
 };
 
 class TextInputModal : public Modal {
 public:
 
-  TextInputModal(RenderUtil& util, const y::string& default_text,
-                 TextInputResult& output, const y::string& label);
+  TextInputModal(RenderUtil& util, const std::string& default_text,
+                 TextInputResult& output, const std::string& label);
   ~TextInputModal() override {}
 
   void event(const sf::Event& e) override;
@@ -62,8 +62,8 @@ private:
 
   RenderUtil& _util;
   TextInputResult& _output;
-  y::string _label;
-  y::size _cursor;
+  std::string _label;
+  std::size_t _cursor;
 
 };
 
@@ -77,7 +77,7 @@ class ConfirmationModal : public Modal {
 public:
 
   ConfirmationModal(RenderUtil& util, ConfirmationResult& output,
-                    const y::string& message);
+                    const std::string& message);
   ~ConfirmationModal() override {}
 
   void event(const sf::Event& e) override;
@@ -88,7 +88,7 @@ private:
 
   RenderUtil& _util;
   ConfirmationResult& _output;
-  y::string _message;
+  std::string _message;
 
 };
 

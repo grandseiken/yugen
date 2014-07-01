@@ -71,7 +71,7 @@ const y::ivec2 RenderUtil::native_size{RenderUtil::native_width,
                                        RenderUtil::native_height};
 // The size of the buffer we draw in order to handle rotations and other
 // special effects which might depend on pixels outside the view frame.
-const y::int32 native_overflow_dimensions =
+const std::int32_t native_overflow_dimensions =
     128 + RenderUtil::native_size.length();
 const y::ivec2 RenderUtil::native_overflow_size{native_overflow_dimensions,
                                                 native_overflow_dimensions};
@@ -124,11 +124,12 @@ const Window& RenderUtil::get_window() const
   return get_gl().get_window();
 }
 
-const GlDatabuffer<GLushort, 1>& RenderUtil::quad_element(y::size length) const
+const GlDatabuffer<GLushort, 1>& RenderUtil::quad_element(
+    std::size_t length) const
 {
   if (_element.data.size() / 6 < length) {
-    for (y::size i = _element.data.size() / 6; i < length; ++i) {
-      y::write_vector<GLushort, std::vector<GLushort>>(_element.data, 6 * i, {
+    for (std::size_t i = _element.data.size() / 6; i < length; ++i) {
+      write_vector<GLushort, std::vector<GLushort>>(_element.data, 6 * i, {
           GLushort(0 + 4 * i), GLushort(1 + 4 * i), GLushort(2 + 4 * i),
           GLushort(1 + 4 * i), GLushort(2 + 4 * i), GLushort(3 + 4 * i)});
     }
@@ -188,7 +189,7 @@ void RenderUtil::clear(const y::fvec4& colour) const
   glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
+void RenderUtil::render_text(const std::string& text, const y::fvec2& origin,
                              const y::fvec4& colour) const
 {
   if (!(_native_size >= y::ivec2())) {
@@ -198,20 +199,20 @@ void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
   _gl.enable_blend(true);
 
   y::fvec2 font_size = y::fvec2(from_grid());
-  y::vector<float> pixels_data;
-  y::vector<float> character_data;
-  y::vector<GLushort> element_data;
+  std::vector<float> pixels_data;
+  std::vector<float> character_data;
+  std::vector<GLushort> element_data;
 
-  for (y::size i = 0; i < text.length(); ++i) {
+  for (std::size_t i = 0; i < text.length(); ++i) {
     float fi = i;
-    y::write_vector<float, std::vector<float>>(pixels_data, 8 * i, {
+    write_vector<float, std::vector<float>>(pixels_data, 8 * i, {
         (origin + fi * font_size)[xx], origin[yy],
         (origin + (fi + 1) * font_size)[xx], origin[yy],
         (origin + fi * font_size)[xx], (origin + font_size)[yy],
         (origin + (fi + 1) * font_size)[xx], (origin + font_size)[yy]});
-    y::write_vector<float, y::vector<char>>(character_data, 4 * i, {
+    write_vector<float, std::vector<char>>(character_data, 4 * i, {
         text[i], text[i], text[i], text[i]});
-    y::write_vector<GLushort, y::vector<y::size>>(element_data, 6 * i, {
+    write_vector<GLushort, std::vector<std::size_t>>(element_data, 6 * i, {
         4 * i, 1 + 4 * i, 2 + 4 * i, 1 + 4 * i, 2 + 4 * i, 3 + 4 * i});
   }
 
@@ -233,7 +234,7 @@ void RenderUtil::render_text(const y::string& text, const y::fvec2& origin,
   element_buffer->draw_elements(GL_TRIANGLES, element_data.size());
 }
 
-void RenderUtil::irender_text(const y::string& text, const y::ivec2& origin,
+void RenderUtil::irender_text(const std::string& text, const y::ivec2& origin,
                               const y::fvec4& colour) const
 {
   render_text(text, y::fvec2(origin), colour);
@@ -304,7 +305,7 @@ void RenderUtil::render_line(const y::fvec2& a, const y::fvec2& b,
   render_lines({{a, b}}, colour);
 }
 
-void RenderUtil::render_lines(const y::vector<line>& lines,
+void RenderUtil::render_lines(const std::vector<line>& lines,
                               const y::fvec4& colour) const
 {
   if (!(_native_size >= y::ivec2())) {
@@ -313,20 +314,20 @@ void RenderUtil::render_lines(const y::vector<line>& lines,
   _gl.enable_depth(false);
   _gl.enable_blend(true);
 
-  y::vector<GLfloat> tri_data;
-  y::vector<GLushort> element_data;
+  std::vector<GLfloat> tri_data;
+  std::vector<GLushort> element_data;
 
-  y::size i = 0;
+  std::size_t i = 0;
   for (const line& x : lines) {
     y::fvec2 normal =
         y::from_angle<float>(y::angle(x.b - x.a) + float(y::pi / 2));
 
-    y::write_vector<float, std::vector<float>>(tri_data, 8 * i, {
+    write_vector<float, std::vector<float>>(tri_data, 8 * i, {
         x.a[xx], x.a[yy],
         (x.a + normal)[xx], (x.a + normal)[yy],
         x.b[xx], x.b[yy],
         (x.b + normal)[xx], (x.b + normal)[yy]});
-    y::write_vector<GLushort, y::vector<y::size>>(element_data, 6 * i++, {
+    write_vector<GLushort, std::vector<std::size_t>>(element_data, 6 * i++, {
         4 * i, 1 + 4 * i, 2 + 4 * i,
         1 + 4 * i, 2 + 4 * i, 3 + 4 * i});
   }
@@ -374,8 +375,8 @@ void RenderUtil::render_batch(
   _gl.enable_depth(true);
   _gl.enable_blend(true);
 
-  y::size length = list.size();
-  for (y::size i = 0; i < length; ++i) {
+  std::size_t length = list.size();
+  for (std::size_t i = 0; i < length; ++i) {
     const RenderBatch::batched_sprite& s = list[i];
     float left = s.left;
     float top = s.top;
@@ -383,22 +384,22 @@ void RenderUtil::render_batch(
     // Vertex attribute divisor buffers would be nice for this kind of thing,
     // but it's not available until around OpenGL 4.3 which is kind of recent
     // to target.
-    y::write_vector<float, y::vector<y::int32>>(_pixels.data, 8 * i, {
+    write_vector<float, std::vector<std::int32_t>>(_pixels.data, 8 * i, {
         -frame_size[xx] / 2, -frame_size[yy] / 2,
         frame_size[xx] / 2, -frame_size[yy] / 2,
         -frame_size[xx] / 2, frame_size[yy] / 2,
         frame_size[xx] / 2, frame_size[yy] / 2});
-    y::write_vector<float, std::vector<float>>(_rotation.data, 4 * i, {
+    write_vector<float, std::vector<float>>(_rotation.data, 4 * i, {
         s.rotation, s.rotation, s.rotation, s.rotation});
-    y::write_vector<float, std::vector<float>>(_origin.data, 8 * i, {
+    write_vector<float, std::vector<float>>(_origin.data, 8 * i, {
         left, top, left, top,
         left, top, left, top});
-    y::write_vector<float, std::vector<float>>(_frame_index.data, 8 * i, {
+    write_vector<float, std::vector<float>>(_frame_index.data, 8 * i, {
         s.frame_x, s.frame_y, s.frame_x, s.frame_y,
         s.frame_x, s.frame_y, s.frame_x, s.frame_y});
-    y::write_vector<float, std::vector<float>>(_depth.data, 4 * i, {
+    write_vector<float, std::vector<float>>(_depth.data, 4 * i, {
         s.depth, s.depth, s.depth, s.depth});
-    y::write_vector<float, std::vector<float>>(_colour.data, 16 * i, {
+    write_vector<float, std::vector<float>>(_colour.data, 16 * i, {
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],
         s.colour[rr], s.colour[gg], s.colour[bb], s.colour[aa],

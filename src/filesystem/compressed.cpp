@@ -1,5 +1,6 @@
 #include "compressed.h"
 
+#include <sstream>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/zlib.hpp>
@@ -13,22 +14,22 @@ CompressedFilesystem::CompressedFilesystem(
 {
 }
 
-void CompressedFilesystem::add_compressed_extension(const y::string& extension)
+void CompressedFilesystem::add_compressed_extension(const std::string& extension)
 {
   _extensions.insert(extension);
 }
 
-void CompressedFilesystem::list_directory_internal(y::vector<y::string>& output,
-                                                   const y::string& path) const
+void CompressedFilesystem::list_directory_internal(
+    std::vector<std::string>& output, const std::string& path) const
 {
-  y::vector<y::string> temp;
+  std::vector<std::string> temp;
   _base.list_directory(temp, path);
 
-  y::set<y::string> set;
-  for (const y::string& p : temp) {
+  std::unordered_set<std::string> set;
+  for (const std::string& p : temp) {
     if (p.length() > get_suffix().length() &&
         p.substr(p.length() - get_suffix().length()) == get_suffix()) {
-      y::string base = p.substr(0, p.length() - get_suffix().length());
+      std::string base = p.substr(0, p.length() - get_suffix().length());
 
       if (should_compress(base)) {
         set.insert(base);
@@ -39,33 +40,33 @@ void CompressedFilesystem::list_directory_internal(y::vector<y::string>& output,
     }
   }
 
-  for (const y::string& p : set) {
+  for (const std::string& p : set) {
     output.push_back(p);
   }
 }
 
-bool CompressedFilesystem::is_file_internal(const y::string& path) const
+bool CompressedFilesystem::is_file_internal(const std::string& path) const
 {
   return _base.is_file(path) ||
       (should_compress(path) && _base.is_file(path + get_suffix()));
 }
 
-bool CompressedFilesystem::is_directory_internal(const y::string& path) const
+bool CompressedFilesystem::is_directory_internal(const std::string& path) const
 {
   return _base.is_directory(path);
 }
 
-void CompressedFilesystem::read_file_internal(y::string& output,
-                                              const y::string& path) const
+void CompressedFilesystem::read_file_internal(std::string& output,
+                                              const std::string& path) const
 {
   if (!should_compress(path) || !_base.is_file(path + get_suffix())) {
     _base.read_file(output, path);
     return;
   }
 
-  y::string compressed;
+  std::string compressed;
   _base.read_file(compressed, path + get_suffix());
-  y::sstream ss;
+  std::stringstream ss;
   ss << compressed;
 
   boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
@@ -83,20 +84,20 @@ void CompressedFilesystem::read_file_internal(y::string& output,
   }
   in.push(ss);
 
-  y::sstream decompressed;
+  std::stringstream decompressed;
   boost::iostreams::copy(in, decompressed);
   output += decompressed.str();
 }
 
-void CompressedFilesystem::write_file_internal(const y::string& data,
-                                               const y::string& path)
+void CompressedFilesystem::write_file_internal(const std::string& data,
+                                               const std::string& path)
 {
   if (!should_compress(path)) {
     _base.write_file(data, path);
     return;
   }
 
-  y::string compressed;
+  std::string compressed;
   boost::iostreams::filtering_streambuf<boost::iostreams::output> out;
   switch (_algorithm) {
     case ZLIB:
@@ -116,16 +117,16 @@ void CompressedFilesystem::write_file_internal(const y::string& data,
   _base.write_file(compressed, path + get_suffix());
 }
 
-y::string CompressedFilesystem::get_suffix() const
+std::string CompressedFilesystem::get_suffix() const
 {
   return _algorithm == ZLIB ? ".z" :
          _algorithm == GZIP ? ".gzip" :
          _algorithm == BZIP2 ? ".bz2" : "";
 }
 
-bool CompressedFilesystem::should_compress(const y::string& path) const
+bool CompressedFilesystem::should_compress(const std::string& path) const
 {
-  y::string ext;
+  std::string ext;
   extension(ext, path);
   return _extensions.empty() || _extensions.count(ext);
 }

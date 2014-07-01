@@ -25,33 +25,33 @@ struct Derivatives {
 
 struct Particle {
   // Add a solid-colour particle.
-  Particle(y::int32 tag, y::int32 frames, y::world bounce_coefficient,
+  Particle(std::int32_t tag, std::int32_t frames, y::world bounce_coefficient,
            const Derivatives<y::wvec2>& pos,
-           y::int32 layer, y::world depth,
+           std::int32_t layer, y::world depth,
            const Derivatives<y::world>& size,
            const Derivatives<y::fvec4>& colour);
 
   // Add a textured particle.
-  Particle(y::int32 tag, y::int32 frames, y::world bounce_coefficient,
+  Particle(std::int32_t tag, std::int32_t frames, y::world bounce_coefficient,
            const Derivatives<y::wvec2>& pos,
-           y::int32 layer, y::world depth,
+           std::int32_t layer, y::world depth,
            const Derivatives<y::fvec4>& colour,
            const Sprite& sprite, const y::ivec2& frame_size,
            const y::ivec2& frame);
 
   // Lookup tag for manipulating many particles at once (for example for wind
   // blowing snow).
-  y::int32 tag;
+  std::int32_t tag;
 
   // Frames remaining until the particle is destroyed.
-  y::int32 frames;
+  std::int32_t frames;
 
   // Controls how the particle interacts with world geometry. If negative, does
   // not collide with world geometry at all. Otherwise, particle bounces on
   // contact and velocity is scaled by this coefficient.
   y::world bounce_coefficient;
 
-  y::int32 layer;
+  std::int32_t layer;
   y::world depth;
 
   // Size (in pixels), current position, colour, and derivatives. Size affects
@@ -86,17 +86,17 @@ public:
 
   // Constructs a new rope. Start and end positions will be ignored if the
   // corresponding script is non-null.
-  Rope(y::size point_masses, y::world length,
+  Rope(std::size_t point_masses, y::world length,
        Script* script_start, Script* script_end,
        const y::wvec2& start, const y::wvec2& end, const params& params,
-       y::int32 layer, y::world depth,
+       std::int32_t layer, y::world depth,
        y::world size, const y::fvec4& colour);
 
   // Similar for a textured Rope.
-  Rope(y::size point_masses, y::world length,
+  Rope(std::size_t point_masses, y::world length,
        Script* script_start, Script* script_end,
        const y::wvec2& start, const y::wvec2& end, const params& params,
-       y::int32 layer, y::world depth,
+       std::int32_t layer, y::world depth,
        const y::fvec4& colour, const Sprite& sprite,
        const y::ivec2& frame_size, const y::ivec2& frame);
 
@@ -106,13 +106,13 @@ public:
   void update(const WorldWindow& world);
   void move(const y::wvec2& move);
 
-  typedef y::vector<Derivatives<y::wvec2>> mass_list;
+  typedef std::vector<Derivatives<y::wvec2>> mass_list;
   const mass_list& get_masses() const;
 
 private:
 
   friend class Environment;
-  void init(y::size point_masses,
+  void init(std::size_t point_masses,
             Script* script_start, Script* script_end,
             const y::wvec2& start, const y::wvec2& end);
   void lock_endpoints();
@@ -123,7 +123,7 @@ private:
 
   // Rendering parameters work the same as for Particle (and apply to each
   // point-mass).
-  y::int32 _layer;
+  std::int32_t _layer;
   y::world _depth;
   y::world _size;
   y::fvec4 _colour;
@@ -132,12 +132,12 @@ private:
   y::ivec2 _frame_size;
   y::ivec2 _frame;
 
-  y::unique<ScriptReference> _start;
-  y::unique<ScriptReference> _end;
+  std::unique_ptr<ScriptReference> _start;
+  std::unique_ptr<ScriptReference> _end;
 
 };
 
-class Environment : public y::no_copy {
+class Environment {
 public:
 
   struct fog_params {
@@ -178,18 +178,20 @@ public:
   };
 
   Environment(GlUtil& util, const WorldWindow& world, bool fake);
+  Environment(const Environment&) = delete;
+  Environment& operator=(const Environment&) = delete;
 
   // Particle functions.
   void add_particle(const Particle& particle);
   void add_particle(Particle&& particle);
 
   // Destroy all particles with the given tag.
-  void destroy_particles(y::int32 tag);
+  void destroy_particles(std::int32_t tag);
   void destroy_particles();
 
   // Add position and derivates to all particles with the given tag.
   void modify_particles(
-      y::int32 tag, const Derivatives<y::wvec2>& modify);
+      std::int32_t tag, const Derivatives<y::wvec2>& modify);
   void modify_particles(const Derivatives<y::wvec2>& modify);
 
   // Rope functions.
@@ -223,8 +225,8 @@ private:
       RenderUtil& util, const y::wvec2& origin, const y::wvec2& region) const;
 
   const WorldWindow& _world;
-  y::vector<Particle> _particles;
-  y::vector<Rope> _ropes;
+  std::vector<Particle> _particles;
+  std::vector<Rope> _ropes;
 
   GlDatabuffer<float, 2> _pixels;
   GlDatabuffer<float, 4> _colour;
